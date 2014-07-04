@@ -5,7 +5,7 @@ date: 2013-03-11 00:05
 comments: true
 categories: [Command Line Tools, Productivity]
 ---
-![Kriss Kross will make you… Jump Jump](/images/autojump/kriss_kross.jpg)
+![Kriss Kross will make you… Jump Jump](/assets/assets/images/autojump/kriss_kross.jpg)
 
 [Autojump](https://github.com/joelthelion/Autojump) is a sweet little command line tool that'll have your rocking your clothes backwards and hopping around your computer's directories faster than a pair of 14-year old rappers.
 
@@ -140,4 +140,4 @@ Now you can use the alias `jl` to jump into a directory and `ls` all of its cont
 
 With Autojump all configured, you're now the Filesystem Mac Daddy and the Command Line Daddy Mac.
 
-![JUMP JUMP!!!](/images/autojump/kriss_kross_backwards.png)
+![JUMP JUMP!!!](/assets/assets/images/autojump/kriss_kross_backwards.png)
