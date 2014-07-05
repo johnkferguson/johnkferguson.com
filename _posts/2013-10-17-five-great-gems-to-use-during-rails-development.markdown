@@ -123,7 +123,7 @@ What `terminal-notifier-guard` does is simple: it displays a system
 notifications in OS X 10.8 telling you the result whenever guard runs. The
 notification looks like this:
 
-![terminal-notifier-guard notification](/assets/images/rails_dev_gems/terminal_notifier_guard.png)
+![terminal-notifier-guard notification]({% asset_path rails_dev_gems/terminal_notifier_guard.png %})
 
 This can be particularly nice if you are working on a small screen or laptop.
 In that case, you don't have to ALT+TAB into Terminal to see the results of your
@@ -147,7 +147,7 @@ on your local machine, you can use the keyboard shortcut `cmd + shift + x`
 (on OS X) or `ctrl + shift + x` to see all of the partials and other files
 being rendered in your view. The result of which looks like this.
 
-![xray-rails in action](/assets/images/rails_dev_gems/xray-screenshot.png)
+![xray-rails in action]({% asset_path rails_dev_gems/xray-screenshot.png %})
 
 From there, you can click on any of the overlays to open the corresponding file
 in your text editor. xray-rails sets Sublime Text as the default editor but
@@ -236,7 +236,7 @@ If you'd like to learn more about using debugger in Rails, check out
 `better_errors` replaces the standard Rails error page with a much better and
 more useful error page. It looks like this:
 
-![better_errors page](/assets/images/rails_dev_gems/better_errors.png)
+![better_errors page]({% asset_path rails_dev_gems/better_errors.png %})
 
 The added features of better_errors are quite powerful and include
 (from the [better_errors documentation](https://github.com/charliesome/better_errors#features)):

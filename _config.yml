@@ -10,3 +10,9 @@ github_username:  johnkellyferguson
 # Build settings
 markdown: kramdown
 permalink: /:title/
+
+# Asset compression
+assets:
+  compress:
+    css:  sass
+    js:   uglifier

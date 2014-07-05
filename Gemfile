@@ -1,6 +1,10 @@
 source "https://rubygems.org"
 
 gem 'thin'
+gem 'jekyll-assets'
+gem 'coffee-script'
+gem 'uglifier'
+gem 'sass'
 
 group :development do
   gem 'guard-jekyll-plus', require: false

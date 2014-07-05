@@ -48,21 +48,21 @@ Scheduler add-on.
 
 To do so, from within your app's page on heroku, click on the Get Add-ons button.
 
-![Add-on Button](/assets/images/sleepy_dynos/heroku_get_add_ons.png)
+![Add-on Button]({% asset_path sleepy_dynos/heroku_get_add_ons.png %})
 
 Scroll down the page to the Workers and Queueing section of the Add-Ons page
 and click on Heroku Scheduler.
 
-![Workers and Queueing](/assets/images/sleepy_dynos/heroku_workers_and_queueing.png)
+![Workers and Queueing]({% asset_path sleepy_dynos/heroku_workers_and_queueing.png %})
 
 On the Heroku Scheduler's add-on page, select the app you'd like to use the
 scheduler with and click the add button.
 
-![Heroku Scheduler Page](/assets/images/sleepy_dynos/heroku_scheduler_page.png)
+![Heroku Scheduler Page]({% asset_path sleepy_dynos/heroku_scheduler_page.png %})
 
 Navigate to your App's Page in Heroku and click on the Heroku Scheduler icon.
 
-![Heroku Add Ons List](/assets/images/sleepy_dynos/heroku_add_ons_list.png)
+![Heroku Add Ons List]({% asset_path sleepy_dynos/heroku_add_ons_list.png %})
 
 From within the Heroku Scheduler's configuration page, click on the add job
 button. Next, enter in the url of the app you'd like to prevent from sleeping
@@ -70,7 +70,7 @@ button. Next, enter in the url of the app you'd like to prevent from sleeping
 is publicly accessible. Finally, set the frequency to 'Every 10 minutes'
 and click Save.
 
-![Heroku Scheduler Configuration](/assets/images/sleepy_dynos/heroku_scheduler_config.png)
+![Heroku Scheduler Configuration]({% asset_path sleepy_dynos/heroku_scheduler_config.png %})
 
 That's it, you're all set. Your Heroku app won't go to sleep again.
 
