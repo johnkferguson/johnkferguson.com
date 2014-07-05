@@ -1,8 +1,6 @@
 method: s3
 site_dir: _site
 bucket_name: john-write-code
-access_key_id: <%= ENV['AWS_ACCESS_KEY_ID'] %>
-secret_access_key: <%= ENV['AWS_SECRET_ACCESS_KEY'] %>
 remote_path: /
 verbose: true
 region: us-east-1
