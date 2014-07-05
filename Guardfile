@@ -11,6 +11,8 @@ guard 'jekyll-plus',
   watch /_includes/
   watch /_assets/
   watch /index.html/
+  watch /_config.yml/
+  watch /_octopress.yml/
   ignore /^_site/
 end
 
