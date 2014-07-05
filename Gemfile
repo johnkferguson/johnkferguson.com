@@ -8,6 +8,7 @@ gem 'octopress-deploy', '~> 1.0.0.rc.8'
 gem 'aws-sdk'
 
 group :development do
+  gem 'dotenv'
   gem 'guard-jekyll-plus', require: false
   gem 'guard-livereload', require: false
   gem 'guard-bundler', require: false
