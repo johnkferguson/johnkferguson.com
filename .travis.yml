@@ -11,8 +11,8 @@ branches:
 
 env:
   global:
-    secure: CXzSud7CdAxUmxfFosvonIBikf6AhlzyyCVIEBltucIr5eDsIIh7QkQfGZoY7TakTYjE1hdwZtrM2ALMX3ttXxnarpmnd96Rr2ZKXYeDlJBUKOf3H6o9u8a4+OyYcjDkGNisr5Sryuoz1F6l6i2GMZ6LurEsq2pIdjm0hdD0Ws4=
-    secure: Sqa3XdJo2Ohna8iOwmdVVYnim9++vNZVZ6LqFKn5jdGvfYqMVq68Cj6rWFs4+dMpcqpiFFGgsZBp+BcfREbq0ENwg3riDiSu0wLGSpIaOulDHeZO2Vh0dM+AdmcK6mjCJCt5PUuYfSyBqzsb0rjMYblwAiDMVfveEzNLNOwvVIw=
+    secure: "CXzSud7CdAxUmxfFosvonIBikf6AhlzyyCVIEBltucIr5eDsIIh7QkQfGZoY7TakTYjE1hdwZtrM2ALMX3ttXxnarpmnd96Rr2ZKXYeDlJBUKOf3H6o9u8a4+OyYcjDkGNisr5Sryuoz1F6l6i2GMZ6LurEsq2pIdjm0hdD0Ws4="
+    secure: "Sqa3XdJo2Ohna8iOwmdVVYnim9++vNZVZ6LqFKn5jdGvfYqMVq68Cj6rWFs4+dMpcqpiFFGgsZBp+BcfREbq0ENwg3riDiSu0wLGSpIaOulDHeZO2Vh0dM+AdmcK6mjCJCt5PUuYfSyBqzsb0rjMYblwAiDMVfveEzNLNOwvVIw="
 
 after_success:
   - bundle exec octopress deploy --trace
