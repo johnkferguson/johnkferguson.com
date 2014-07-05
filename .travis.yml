@@ -1,9 +1,11 @@
 language: ruby
+cache: bundler
 rvm: 2.1.2
 
 before_script:
   - bundle install
-script: octopress build
+script:
+  - bundle exec octopress build
 
 branches:
   only:
