@@ -11,7 +11,7 @@ branches:
 
 env:
   global:
-    - AWS_ACCESS_KEY_ID=="GvJi2GQrkyFnzu72jKHJuy1HDKHhQotUYvliiy89FHokV4U2LuK+wMcIqohhZEddewmjjR3QqBYPPjo+m1f80HUXCe1OL8M3MF1iuRacCwOsmoDY6IR+KZ4zse5uIFipp3CzTSiriaU/DkCw/vd5k/g77mbPC3lw8IDF8/6+dsU="
+    - AWS_ACCESS_KEY_ID="GvJi2GQrkyFnzu72jKHJuy1HDKHhQotUYvliiy89FHokV4U2LuK+wMcIqohhZEddewmjjR3QqBYPPjo+m1f80HUXCe1OL8M3MF1iuRacCwOsmoDY6IR+KZ4zse5uIFipp3CzTSiriaU/DkCw/vd5k/g77mbPC3lw8IDF8/6+dsU="
     - AWS_SECRET_ACCESS_KEY="GftaVZiEO/kNV47bU6UncDINNjun1KQbCZdW1kJCU38eaFYtMjB1sqwqNZ/zaX2sQYmrfY5XT+WR8AiBlh5c49m2BX+NIJ2ZXwRpiXWZhmRjrmRGGxZxlFp+EWiybiZVhT67yUMomrZGdwTjQl8fIDfAeJBDWGYhExxVxrZ7Rz4="
 
 after_success:
