@@ -15,4 +15,6 @@ env:
     secure: "Sqa3XdJo2Ohna8iOwmdVVYnim9++vNZVZ6LqFKn5jdGvfYqMVq68Cj6rWFs4+dMpcqpiFFGgsZBp+BcfREbq0ENwg3riDiSu0wLGSpIaOulDHeZO2Vh0dM+AdmcK6mjCJCt5PUuYfSyBqzsb0rjMYblwAiDMVfveEzNLNOwvVIw="
 
 after_success:
+  - puts ENV['AWS_ACCESS_KEY_ID']
+  - puts ENV['AWS_SECRET_ACCESS_KEY']
   - bundle exec octopress deploy --trace
