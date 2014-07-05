@@ -2,17 +2,14 @@ language: ruby
 cache: bundler
 bundler_args: "--without development"
 rvm: 2.1.2
+env:
+  global:
+  - secure: TaYL+JNw+fNVzl5PcYKU/FLQypN8eFACFCYASBD6vesTlxfjTdaAhna0jHD/F9LNH8WeeVyCRHSazSPjmG4Dw7Nph2MSun7ctijfiwwboYTo3GE2lvYrwaX5zna/09Yir95k7/oil6t2vcFAzsGrkZpS9jiqa6qkfMtnYpokfF8=
+  - secure: Mb4/wR5afty02j+ttZCx4ZPTdvyVk8H1RNr6hfuJEN8oloQXw+FLQnJrkjtydRVXz2mdu4dJvvfSC39f2Nd3qOig0b3yBJG1BmHIm6KUxLiok0BdYHcp4NX/hDJFWp9BoWFV5Jb6dzA+lVuopippxliC+sOZgLW8OpzMCIMCDy4=
 script:
-  - bundle exec octopress build --trace
-
+- bundle exec octopress build --trace
 branches:
   only:
   - master
-
-env:
-  global:
-    secure: "GvJi2GQrkyFnzu72jKHJuy1HDKHhQotUYvliiy89FHokV4U2LuK+wMcIqohhZEddewmjjR3QqBYPPjo+m1f80HUXCe1OL8M3MF1iuRacCwOsmoDY6IR+KZ4zse5uIFipp3CzTSiriaU/DkCw/vd5k/g77mbPC3lw8IDF8/6+dsU="
-    secure: "GftaVZiEO/kNV47bU6UncDINNjun1KQbCZdW1kJCU38eaFYtMjB1sqwqNZ/zaX2sQYmrfY5XT+WR8AiBlh5c49m2BX+NIJ2ZXwRpiXWZhmRjrmRGGxZxlFp+EWiybiZVhT67yUMomrZGdwTjQl8fIDfAeJBDWGYhExxVxrZ7Rz4="
-
 after_success:
-  - bundle exec octopress deploy --trace
+- bundle exec octopress deploy --trace
