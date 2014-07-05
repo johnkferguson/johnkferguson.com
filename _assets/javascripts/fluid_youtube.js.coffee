@@ -1,4 +1,4 @@
-$ ->
+InstantClick.on 'change', ->
   $allVideos = $("iframe[src^='http://www.youtube.com']")
   $fluidEl = $(".wrap")
 

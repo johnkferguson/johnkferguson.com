@@ -1,4 +1,4 @@
-guard "jekyll-plus",
+guard 'jekyll-plus',
   config: %w(_octopress.yml _config.yml),
   extensions: %w(md markdown html css scss sass js coffee),
   serve: true do
