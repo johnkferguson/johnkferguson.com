@@ -12,6 +12,7 @@ GEM
       execjs
     coffee-script-source (1.7.0)
     colorator (0.1)
+    daemons (1.1.9)
     em-websocket (0.5.1)
       eventmachine (>= 0.12.9)
       http_parser.rb (~> 0.6.0)
@@ -26,6 +27,9 @@ GEM
       lumberjack (~> 1.0)
       pry (>= 0.9.12)
       thor (>= 0.18.1)
+    guard-bundler (2.0.0)
+      bundler (~> 1.0)
+      guard (~> 2.2)
     guard-jekyll-plus (1.4.9)
       guard (>= 1.1.0)
       jekyll (>= 1.0.0)
@@ -77,6 +81,7 @@ GEM
     pygments.rb (0.6.0)
       posix-spawn (~> 0.3.6)
       yajl-ruby (~> 1.1.0)
+    rack (1.5.2)
     rb-fsevent (0.9.4)
     rb-inotify (0.9.5)
       ffi (>= 0.5.0)
@@ -84,6 +89,10 @@ GEM
     safe_yaml (1.0.3)
     sass (3.3.9)
     slop (3.5.0)
+    thin (1.6.2)
+      daemons (>= 1.0.9)
+      eventmachine (>= 1.0.0)
+      rack (>= 1.0.0)
     thor (0.19.1)
     timers (1.1.0)
     toml (0.1.1)
@@ -94,5 +103,7 @@ PLATFORMS
   ruby
 
 DEPENDENCIES
+  guard-bundler
   guard-jekyll-plus
   guard-livereload
+  thin
