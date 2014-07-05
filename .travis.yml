@@ -11,10 +11,8 @@ branches:
 
 env:
   global:
-    secure: "CXzSud7CdAxUmxfFosvonIBikf6AhlzyyCVIEBltucIr5eDsIIh7QkQfGZoY7TakTYjE1hdwZtrM2ALMX3ttXxnarpmnd96Rr2ZKXYeDlJBUKOf3H6o9u8a4+OyYcjDkGNisr5Sryuoz1F6l6i2GMZ6LurEsq2pIdjm0hdD0Ws4="
-    secure: "Sqa3XdJo2Ohna8iOwmdVVYnim9++vNZVZ6LqFKn5jdGvfYqMVq68Cj6rWFs4+dMpcqpiFFGgsZBp+BcfREbq0ENwg3riDiSu0wLGSpIaOulDHeZO2Vh0dM+AdmcK6mjCJCt5PUuYfSyBqzsb0rjMYblwAiDMVfveEzNLNOwvVIw="
+    secure: "GvJi2GQrkyFnzu72jKHJuy1HDKHhQotUYvliiy89FHokV4U2LuK+wMcIqohhZEddewmjjR3QqBYPPjo+m1f80HUXCe1OL8M3MF1iuRacCwOsmoDY6IR+KZ4zse5uIFipp3CzTSiriaU/DkCw/vd5k/g77mbPC3lw8IDF8/6+dsU="
+    secure: "GftaVZiEO/kNV47bU6UncDINNjun1KQbCZdW1kJCU38eaFYtMjB1sqwqNZ/zaX2sQYmrfY5XT+WR8AiBlh5c49m2BX+NIJ2ZXwRpiXWZhmRjrmRGGxZxlFp+EWiybiZVhT67yUMomrZGdwTjQl8fIDfAeJBDWGYhExxVxrZ7Rz4="
 
 after_success:
-  - puts ENV['AWS_ACCESS_KEY_ID']
-  - puts ENV['AWS_SECRET_ACCESS_KEY']
   - bundle exec octopress deploy --trace
