@@ -1,6 +1,5 @@
 source "https://rubygems.org"
 
-gem 'thin'
 gem 'jekyll-assets'
 gem 'coffee-script'
 gem 'uglifier'
@@ -13,5 +12,6 @@ group :development do
   gem 'guard-livereload', require: false
   gem 'guard-bundler', require: false
   gem 'pry'
+  gem 'thin'
   gem 'travis'
 end
