@@ -3,7 +3,7 @@ cache: bundler
 bundler_args: "--without development"
 rvm: 2.1.2
 script:
-  - bundle exec octopress build
+  - bundle exec octopress build --trace
 
 branches:
   only:
@@ -15,4 +15,4 @@ env:
     secure: Sqa3XdJo2Ohna8iOwmdVVYnim9++vNZVZ6LqFKn5jdGvfYqMVq68Cj6rWFs4+dMpcqpiFFGgsZBp+BcfREbq0ENwg3riDiSu0wLGSpIaOulDHeZO2Vh0dM+AdmcK6mjCJCt5PUuYfSyBqzsb0rjMYblwAiDMVfveEzNLNOwvVIw=
 
 after_success:
-  - bundle exec octopress deploy
+  - bundle exec octopress deploy --trace
