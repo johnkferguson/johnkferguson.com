@@ -10,7 +10,7 @@ github_username:  johnkellyferguson
 # Build settings
 markdown: kramdown
 permalink: /:title/
-exclude: ['Gemfile', 'Gemfile.lock', 'Guardfile']
+exclude: ['Gemfile', 'Gemfile.lock', 'Guardfile', 'README.md']
 
 # Asset compression
 assets:
