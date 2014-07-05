@@ -1,15 +1,16 @@
 # Site settings
 title: John Write Code
 email: hello@johnkellyferguson.com
-description: ""
-baseurl: ""
-url: "http://johnwritecode.com"
+description: ''
+baseurl: ''
+url: 'http://johnwritecode.com'
 twitter_username: johnkferguson
 github_username:  johnkellyferguson
 
 # Build settings
 markdown: kramdown
 permalink: /:title/
+exclude: ['Gemfile', 'Gemfile.lock', 'Guardfile']
 
 # Asset compression
 assets:

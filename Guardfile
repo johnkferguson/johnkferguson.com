@@ -1,3 +1,7 @@
+guard :bundler do
+  watch('Gemfile')
+end
+
 guard 'jekyll-plus',
   config: %w(_octopress.yml _config.yml),
   extensions: %w(md markdown html css scss sass js coffee),
@@ -12,8 +16,4 @@ end
 
 guard 'livereload' do
   watch /.*/
-end
-
-guard :bundler do
-  watch('Gemfile')
 end
