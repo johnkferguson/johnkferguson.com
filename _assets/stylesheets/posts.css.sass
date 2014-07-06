@@ -38,7 +38,6 @@
 
 .post
   pre
-    border: 1px solid $code-border
     background-color: $code-background
     padding: 8px 12px
     -webkit-border-radius: 3px
@@ -48,8 +47,8 @@
     overflow: auto
   code
     font-family: Consolas, "Liberation Mono", Courier, monospace
-    border: 1px solid $code-border
     background-color: $code-background
+    color: $code-color
     padding: 8px 12px
     -webkit-border-radius: 3px
     -moz-border-radius: 3px
@@ -61,6 +60,7 @@
     margin-left: 1.35em
   pre
     code
+      color: inherit
       border: 0
       padding-right: 0
       padding-left: 0
