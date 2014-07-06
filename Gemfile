@@ -3,6 +3,7 @@ source "https://rubygems.org"
 gem 'aws-sdk'
 gem 'coffee-script'
 gem 'jekyll-assets'
+gem 'jekyll-sitemap'
 gem 'octopress', '~> 3.0.0.rc.12'
 gem 'octopress-deploy', '~> 1.0.0.rc.8'
 gem 'uglifier'
