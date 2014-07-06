@@ -17,16 +17,16 @@ This post will highlight five of the most useful, so you can get more out of Pry
 
 To install Pry, type the following into your terminal:
 
-{% highlight bash %}
+```bash
 $ gem install pry
-{% endhighlight %}
+```
 
 To start Pry from the terminal, simply enter in Pry like so:
 
-{% highlight bash %}
+```bash
 $ pry
 [1] pry(main)>
-{% endhighlight %}
+```
 
 Once in Pry, you can start interacting with Ruby as you would with irb,
 but with other added features.
@@ -41,7 +41,7 @@ such as `pwd`, `cd`, or `ls`. You can even run more advanced commands like
 To do so, simply prepend a `.` to the start of the shell command you would
 like to run. Here's some examples:
 
-{% highlight bash %}
+```bash
 [1] pry(main)> .pwd
 /Users/Username
 [2] pry(main)> .ls
@@ -52,7 +52,7 @@ Development Downloads Library   Music
 /Users/Username/Development
 [5] pry(main)> .ls
 ruby_rocks.rb      Folder
-{% endhighlight %}
+```
 
 
 ### 2. Make Full Use of Pry's Methods
@@ -63,7 +63,7 @@ code. Here are a few of the best:
 1.`cd` lets you move into a new context, such as an object or scope. Here's
 how it looks in action
 
-{% highlight bash %}
+```bash
 [1] pry(main)> self
 main
 [2] pry(main)> class Dog
@@ -75,7 +75,7 @@ nil
 [3] pry(main)> cd Dog
 [4] pry(Dog):1> self
 Dog < Object
-{% endhighlight %}
+```
 
 In the above example, we are now inside the Dog class object. We can perform
 other actions while inside an object, such as `ls`.
@@ -83,12 +83,12 @@ other actions while inside an object, such as `ls`.
 2.`ls` allows you to list all the various methods that an object can perform.
 We can see how it works by continuing our example
 
-{% highlight bash %}
+```bash
 [5] pry(Dog):1> ls
 Object.methods: yaml_tag
 Dog#methods: bark
 locals: _  __  _dir_  _ex_  _file_  _in_  _out_  _pry_
-{% endhighlight %}
+```
 
 As we can see, typing `ls` shows us what methods an object has. In
 this example, we see that Dog has the `bark` method.
@@ -97,7 +97,7 @@ this example, we see that Dog has the `bark` method.
 of great value when trying to understand what it is a method does.
 Continuing with our example, we can see the original bark method.
 
-{% highlight bash %}
+```bash
 [6] pry(Dog):1> show-method bark
 From: (pry) @ line 3:
 Owner: Dog
@@ -106,19 +106,19 @@ Number of lines: 3
 def bark
   puts "woof"
 end
-{% endhighlight %}
+```
 
 4.`nesting` can be used to help orient yourself in understanding the
 scope and inheritance of the current object. Here's how `nesting`
 works in our ongoing example.
 
-{% highlight bash %}
+```bash
 [7] pry(Dog):1> nesting
 Nesting status:
 --
 0 main (Pry top level)
 1 Dog
-{% endhighlight %}
+```
 
 5. Finally, `help` can list out all the other methods that Pry offers
 that won't be covered in this blog post. Try it out within Pry yourself
@@ -133,7 +133,7 @@ understand scope, methods and any sort of errors. Here's how it works.
 
 Let's say we have a file, pry-example.rb, with the following code:
 
-{% highlight ruby %}
+```ruby
 require 'pry'
 
 class Example
@@ -144,18 +144,18 @@ end
 
 demonstration = Example.new
 demonstration.how_binding_works
-{% endhighlight %}
+```
 
 We then run the file within the terminal:
 
-{% highlight bash %}
+```bash
 $ ruby pry-example.rb
-{% endhighlight %}
+```
 
 After running the file, we are then put into the code at the point
 where `binding.pry` is located.
 
-{% highlight bash %}
+```bash
 From: /Users/Username/pry-example.rb @ line 6 Example#how_binding_works:
 
     5: def how_binding_works
@@ -163,18 +163,18 @@ From: /Users/Username/pry-example.rb @ line 6 Example#how_binding_works:
     7: end
 
 [1] pry(#<Example>)>
-{% endhighlight %}
+```
 
 We can then execute whatever commands we want in order to understand
 this place in the code.
 
-{% highlight bash %}
+```bash
 [1] pry(#<Example>)> ls
 Example#methods: how_binding_works
 locals: _  __  _dir_  _ex_  _file_  _in_  _out_  _pry_
 [2] pry(#<Example>)> self
 #<Example:0x007fde422f8fc8>
-{% endhighlight %}
+```
 
 
 ### 4. Use Pry with Rails
@@ -189,9 +189,9 @@ and all the information in your database.
 To set up your rails app to use Pry, simply add the following code to your
 gemfile:
 
-{% highlight ruby %}
+```ruby
 gem 'pry-rails', :group => :development
-{% endhighlight %}
+```
 
 Then run `bundle install` and the next time you invoke the `rails console`,
 you'll be brought into Pry.

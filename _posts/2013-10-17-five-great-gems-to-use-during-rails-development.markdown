@@ -54,7 +54,7 @@ up in your development log.
 Before installing quiet_assets, you may find that a simple web request will
 produce something like the following in your Rails server log:
 
-{% highlight bash %}
+```bash
 Started GET "/" for 127.0.0.1 at 2013-10-16 16:32:29 -0400
   ActiveRecord::SchemaMigration Load (2.3ms)  SELECT "schema_migrations".* FROM "schema_migrations"
 Processing by SessionsController#new as HTML
@@ -86,11 +86,11 @@ Started GET "/assets/sessions.js?body=1" for 127.0.0.1 at 2013-10-16 16:32:31 -0
 Started GET "/assets/users.js?body=1" for 127.0.0.1 at 2013-10-16 16:32:31 -0400
 
 Started GET "/assets/application.js?body=1" for 127.0.0.1 at 2013-10-16 16:32:31 -0400
-{% endhighlight %}
+```
 
 After installing quiet_assets, the output will be much more manageable and look like the following:
 
-{% highlight bash %}
+```bash
 Started GET "/" for 127.0.0.1 at 2013-10-16 16:35:15 -0400
   ActiveRecord::SchemaMigration Load (1.4ms)  SELECT "schema_migrations".* FROM "schema_migrations"
 Processing by SessionsController#new as HTML
@@ -98,7 +98,7 @@ Processing by SessionsController#new as HTML
   Rendered sessions/new.html.haml within layouts/application (98.6ms)
   Rendered shared/_nav.html.haml (2.2ms)
 Completed 200 OK in 285ms (Views: 225.3ms | ActiveRecord: 2.6ms)
-{% endhighlight %}
+```
 
 The result is that it's now much easier to track things down in your log,
 like SQL queries or ajax requests.
@@ -155,17 +155,17 @@ in your text editor. xray-rails sets Sublime Text as the default editor but
 
 Installing xray-rails is simple. Just add it to your Gemfile:
 
-{% highlight ruby %}
+```ruby
 group :development do
   gem 'xray-rails'
 end
-{% endhighlight %}
+```
 
 Then bundle and delete your cached assets:
 
-{% highlight bash %}
+```bash
 $ bundle && rm -rf tmp/cache/assets
-{% endhighlight %}
+```
 
 Restart your app and you're ready to go.
 
@@ -191,7 +191,7 @@ dig into the code and see what's going on. In this example, I would place the
 debugger after setting the `@user` instance variable. You can see it in the code
 below:
 
-{% highlight ruby %}
+```ruby
 class UsersController < ApplicationController
   def create
     @user = User.new(params[:user])
@@ -208,7 +208,7 @@ class UsersController < ApplicationController
     end
   end
  end
-{% endhighlight %}
+```
 
 Then, when the create action is triggered, I would be put inside of a debugger
 session starting where the debugger is placed. I could then move through the
@@ -256,12 +256,12 @@ the live REPL feature (and you definitely want to), you will also need to
 include the `binding_of_caller` gem in your Gemfile. After doing so, your
 Gemfile should include the following:
 
-{% highlight ruby %}
+```ruby
 group :development do
   gem "better_errors"
   gem "binding_of_caller"
 end
-{% endhighlight %}
+```
 
 One trick I like to use with `better_errors` is to use `raise params.inspect`
 in my controller actions in order to trigger a `better_errors` page.
@@ -272,13 +272,13 @@ like I discussed previously, but I can also use `raise params.inspect` to
 trigger the rendering of the `better_errors` page. The following code shows how.
 
 
-{% highlight ruby %}
+```ruby
 class UsersController < ApplicationController
   def update
     raise params.inspect
   end
 end
-{% endhighlight %}
+```
 
 Then, once the update action is triggered, the browser will render the
 corresponding `better_errors` page.

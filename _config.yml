@@ -1,5 +1,5 @@
 # Site settings
-title: John Write Code
+title: 'John Write Code'
 email: hello@johnkellyferguson.com
 description: ''
 baseurl: ''
@@ -7,7 +7,10 @@ url: 'http://johnwritecode.com'
 twitter_username: johnkferguson
 github_username:  johnkellyferguson
 
-markdown: kramdown
+markdown: redcarpet
+
+redcarpet:
+  extensions: ['tables', 'no_intra_emphasis', 'autolink']
 permalink: /:title/
 exclude: ['Gemfile', 'Gemfile.lock', 'Guardfile', 'README.md', 'vendor/**']
 

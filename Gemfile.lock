@@ -191,6 +191,7 @@ DEPENDENCIES
   octopress-deploy (~> 1.0.0.rc.8)
   pry
   rack
+  redcarpet
   sass
   travis
   uglifier
