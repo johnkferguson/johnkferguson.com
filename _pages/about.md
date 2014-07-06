@@ -4,6 +4,8 @@ title: About
 permalink: /about/
 ---
 
+![John Kelly Ferguson]({% asset_path about/john_kelly_ferguson.jpg %})
+
 Hi there, I'm John Kelly Ferguson, a full-stack web developer living in
 New York City. This blog is my little place on the interwebs to share the story
 of my love affair with programming and a beautiful little language called Ruby.
