@@ -39,7 +39,7 @@ can add it or remove it as you please with no far-reaching implications.
 I use quite a few gems as a default during Rails development and testing as you
 can see in the following gist:
 
-<script src="https://gist.github.com/JohnKellyFerguson/5477333.js"></script>
+{% gist JohnKellyFerguson/5477333 %}
 
 There's quite a few different gems listed above. Instead of explaining all of
 them, I thought it'd be best to cover my five favorites.
@@ -274,9 +274,10 @@ trigger the rendering of the `better_errors` page. The following code shows how.
 
 {% highlight ruby %}
 class UsersController < ApplicationController
- def update
-   raise params.inspect
- end
+  def update
+    raise params.inspect
+  end
+end
 {% endhighlight %}
 
 Then, once the update action is triggered, the browser will render the
