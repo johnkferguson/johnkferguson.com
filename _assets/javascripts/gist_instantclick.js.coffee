@@ -8,7 +8,7 @@ GistInstantClick =
       try
         delete window[callback_name]
       catch e
-      html = '<link rel="stylesheet" href="'encodeURI(gist_data.stylesheet)'"></link>'
+      html = '<link rel="stylesheet" href="' + encodeURI(gist_data.stylesheet) + '"></link>'
       html += gist_data.div
       $gist.html html
       script.parentNode.removeChild script
