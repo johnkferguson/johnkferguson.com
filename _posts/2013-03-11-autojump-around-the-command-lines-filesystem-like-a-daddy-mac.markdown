@@ -39,7 +39,7 @@ If you already have Homebrew installed, then skip to step 2 to install or update
 1. Homebrew is an awesome package manager for OS X that can install any of the stuff you need that didn't come with your Mac. If you don't already have Homebrew, just enter the following code into a terminal prompt:
 
 ```bash
-ruby -e "$(curl -fsSL https://raw.github.com/mxcl/homebrew/go)"
+$ ruby -e "$(curl -fsSL https://raw.github.com/mxcl/homebrew/go)"
 ```
 
 For other installation options and more info, check out [Homebrew's documentation](https://github.com/mxcl/homebrew/wiki).

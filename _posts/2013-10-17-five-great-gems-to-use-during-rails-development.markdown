@@ -54,7 +54,7 @@ up in your development log.
 Before installing quiet_assets, you may find that a simple web request will
 produce something like the following in your Rails server log:
 
-```bash
+```ruby
 Started GET "/" for 127.0.0.1 at 2013-10-16 16:32:29 -0400
   ActiveRecord::SchemaMigration Load (2.3ms)  SELECT "schema_migrations".* FROM "schema_migrations"
 Processing by SessionsController#new as HTML
@@ -62,35 +62,23 @@ Processing by SessionsController#new as HTML
   Rendered sessions/new.html.haml within layouts/application (100.6ms)
   Rendered shared/_nav.html.haml (2.5ms)
 Completed 200 OK in 312ms (Views: 244.0ms | ActiveRecord: 3.2ms)
-
 Started GET "/assets/application.css?body=1" for 127.0.0.1 at 2013-10-16 16:32:31 -0400
-
 Started GET "/assets/scaffolds.css?body=1" for 127.0.0.1 at 2013-10-16 16:32:31 -0400
-
 Started GET "/assets/sessions.css?body=1" for 127.0.0.1 at 2013-10-16 16:32:31 -0400
-
 Started GET "/assets/users.css?body=1" for 127.0.0.1 at 2013-10-16 16:32:31 -0400
-
 Started GET "/assets/jquery.js?body=1" for 127.0.0.1 at 2013-10-16 16:32:31 -0400
-
 Started GET "/assets/xray.js?body=1" for 127.0.0.1 at 2013-10-16 16:32:31 -0400
-
 Started GET "/assets/jquery_ujs.js?body=1" for 127.0.0.1 at 2013-10-16 16:32:31 -0400
-
 Started GET "/assets/turbolinks.js?body=1" for 127.0.0.1 at 2013-10-16 16:32:31 -0400
-
 Started GET "/assets/xray.css?body=1" for 127.0.0.1 at 2013-10-16 16:32:31 -0400
-
 Started GET "/assets/sessions.js?body=1" for 127.0.0.1 at 2013-10-16 16:32:31 -0400
-
 Started GET "/assets/users.js?body=1" for 127.0.0.1 at 2013-10-16 16:32:31 -0400
-
 Started GET "/assets/application.js?body=1" for 127.0.0.1 at 2013-10-16 16:32:31 -0400
 ```
 
 After installing quiet_assets, the output will be much more manageable and look like the following:
 
-```bash
+```ruby
 Started GET "/" for 127.0.0.1 at 2013-10-16 16:35:15 -0400
   ActiveRecord::SchemaMigration Load (1.4ms)  SELECT "schema_migrations".* FROM "schema_migrations"
 Processing by SessionsController#new as HTML
