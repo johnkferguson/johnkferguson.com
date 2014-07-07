@@ -37,29 +37,23 @@
     padding-left: 20px
 
 .post
-  pre
-    background-color: $code-background
-    padding: 8px 12px
-    +border-radius
-    font-size: 15px
-    overflow: auto
-  code
-    font-family: Consolas, "Liberation Mono", Courier, monospace
-    background-color: $code-background
-    color: $code-color
-    padding: 8px 12px
-    +border-radius
-    font-size: 15px
-    overflow: auto
-    padding: 1px 5px
   ul, ol
     margin-left: 1.35em
+  pre, code
+    background-color: $code-background
+    font-size: 15px
+    overflow: auto
+    +border-radius
   pre
-    code
-      color: inherit
-      border: 0
-      padding-right: 0
-      padding-left: 0
+    padding: 8px 12px
+  code
+    padding: 1px 5px
+    font-family: Consolas, "Liberation Mono", Courier, monospace
+    color: $code-color
+  pre code
+    color: inherit
+    border: 0
+    padding: 0
 
 .gist
   font-size: 15px
