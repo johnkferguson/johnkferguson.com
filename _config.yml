@@ -12,6 +12,7 @@ redcarpet:
   - tables
   - no_intra_emphasis
   - autolink
+  - smart
 permalink: "/:title/"
 exclude:
 - Gemfile
