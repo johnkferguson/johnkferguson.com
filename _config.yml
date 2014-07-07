@@ -1,31 +1,33 @@
-# Site settings
-title: 'John Write Code'
+---
+title: John Write Code
 email: hello@johnkellyferguson.com
 description: ''
 baseurl: ''
-url: 'http://johnwritecode.com'
+url: http://johnwritecode.com
 twitter_username: johnkferguson
-github_username:  johnkellyferguson
-
+github_username: johnkellyferguson
 markdown: redcarpet
-
 redcarpet:
-  extensions: ['tables', 'no_intra_emphasis', 'autolink']
-permalink: /:title/
-exclude: ['Gemfile', 'Gemfile.lock', 'Guardfile', 'README.md', 'vendor/**']
-
+  extensions:
+  - tables
+  - no_intra_emphasis
+  - autolink
+permalink: "/:title/"
+exclude:
+- Gemfile
+- Gemfile.lock
+- Guardfile
+- README.md
+- vendor/**
 gems:
-  - jekyll-sitemap
-
+- jekyll-sitemap
 assets:
   dirname: assets
-  baseurl: /assets/
+  baseurl: "/assets/"
   sources:
-    - _assets/javascripts
-    - _assets/stylesheets
-    - _assets/images
-  js_compressor: uglifier
-  css_compressor: sass
+  - _assets/javascripts
+  - _assets/stylesheets
+  - _assets/images
   cachebust: hard
   cache: false
-  gzip: [ text/css, application/javascript ]
+  gzip: false

@@ -8,6 +8,8 @@ env:
   global:
   - secure: TaYL+JNw+fNVzl5PcYKU/FLQypN8eFACFCYASBD6vesTlxfjTdaAhna0jHD/F9LNH8WeeVyCRHSazSPjmG4Dw7Nph2MSun7ctijfiwwboYTo3GE2lvYrwaX5zna/09Yir95k7/oil6t2vcFAzsGrkZpS9jiqa6qkfMtnYpokfF8=
   - secure: Mb4/wR5afty02j+ttZCx4ZPTdvyVk8H1RNr6hfuJEN8oloQXw+FLQnJrkjtydRVXz2mdu4dJvvfSC39f2Nd3qOig0b3yBJG1BmHIm6KUxLiok0BdYHcp4NX/hDJFWp9BoWFV5Jb6dzA+lVuopippxliC+sOZgLW8OpzMCIMCDy4=
+before_script:
+  - ruby .travis_yaml_config.rb
 script:
 - bundle exec octopress build --trace
 branches:
