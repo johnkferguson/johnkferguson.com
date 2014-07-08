@@ -1,7 +1,0 @@
-method: s3
-site_dir: _site
-bucket_name: john-write-code
-remote_path: /
-verbose: true
-region: us-east-1
-delete: true
