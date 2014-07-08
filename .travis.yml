@@ -6,14 +6,14 @@ before_install:
 - 'echo ''gem: --no-ri --no-rdoc'' > ~/.gemrc'
 env:
   global:
-  - secure: TaYL+JNw+fNVzl5PcYKU/FLQypN8eFACFCYASBD6vesTlxfjTdaAhna0jHD/F9LNH8WeeVyCRHSazSPjmG4Dw7Nph2MSun7ctijfiwwboYTo3GE2lvYrwaX5zna/09Yir95k7/oil6t2vcFAzsGrkZpS9jiqa6qkfMtnYpokfF8=
-  - secure: Mb4/wR5afty02j+ttZCx4ZPTdvyVk8H1RNr6hfuJEN8oloQXw+FLQnJrkjtydRVXz2mdu4dJvvfSC39f2Nd3qOig0b3yBJG1BmHIm6KUxLiok0BdYHcp4NX/hDJFWp9BoWFV5Jb6dzA+lVuopippxliC+sOZgLW8OpzMCIMCDy4=
+  - secure: KH+R52si3dGuz5yODWziwE2Jvt082KuqWnM7Cah8+VrBBm8qWdNBeJTcXnws7aGvYrUYXmFogSG2PYerLJkbABykokUCNqM1oRX7/mKvOkKmB/zRGK5oX7unfH3vPleKodE1dMZSRwWIrV6Xmo5/qtchmosd+CYkP8irTQKEKvE=
+  - secure: PH8Fyt6FhqQH7IAN1xXiGTLamK3CuxFOXjn6o0tN+Q7R4p2xrmpxLDkudivt/zdmBKRLL/LkkFedr0QmI6U4P7rVvMDxzVafGQb2/9nFciOwfuUnqh42fVeO+5ckl516KIOg9ycFGfC5k4eG2Vd7fMrmXK58FG/yWVQRTMd6O5A=
 before_script:
-  - ruby .travis_yaml_config.rb
+- ruby .travis_yaml_config.rb
 script:
-- bundle exec octopress build --trace
+- bundle exec jekyll build --trace
 branches:
   only:
   - master
 after_success:
-- bundle exec octopress deploy --trace
+- bundle exec s3_website push
