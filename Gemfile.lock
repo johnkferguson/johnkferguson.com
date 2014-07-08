@@ -10,9 +10,6 @@ GEM
   remote: https://rubygems.org/
   specs:
     addressable (2.3.6)
-    aws-sdk (1.46.0)
-      json (~> 1.4)
-      nokogiri (>= 1.4.4)
     backports (3.6.0)
     blankslate (2.1.2.4)
     celluloid (0.15.2)
@@ -25,6 +22,10 @@ GEM
       execjs
     coffee-script-source (1.7.0)
     colorator (0.1)
+    colored (1.2)
+    configure-s3-website (1.5.5)
+      deep_merge (= 1.0.0)
+    deep_merge (1.0.0)
     dotenv (0.11.1)
       dotenv-deployment (~> 0.0.2)
     dotenv-deployment (0.0.2)
@@ -107,19 +108,13 @@ GEM
     lumberjack (1.0.9)
     mercenary (0.3.3)
     method_source (0.8.2)
-    mini_portile (0.6.0)
     multi_json (1.10.1)
     multipart-post (2.0.0)
     net-http-persistent (2.9.4)
     net-http-pipeline (1.0.1)
-    nokogiri (1.6.2.1)
-      mini_portile (= 0.6.0)
     octopress (3.0.0.rc.12)
       jekyll (~> 2.0)
       mercenary (~> 0.3.2)
-    octopress-deploy (1.0.0.rc.9)
-      colorator
-      octopress (~> 3.0.0.rc.10)
     parslet (1.5.0)
       blankslate (~> 2.0)
     posix-spawn (0.3.8)
@@ -138,6 +133,11 @@ GEM
     rb-inotify (0.9.5)
       ffi (>= 0.5.0)
     redcarpet (3.1.2)
+    s3_website (2.1.16)
+      colored (= 1.2)
+      configure-s3-website (= 1.5.5)
+      dotenv (~> 0.11.1)
+      thor (= 0.18.1)
     safe_yaml (1.0.3)
     sass (3.3.9)
     slop (3.5.0)
@@ -151,7 +151,7 @@ GEM
     sprockets-sass (1.1.0)
       sprockets (~> 2.0)
       tilt (~> 1.1)
-    thor (0.19.1)
+    thor (0.18.1)
     tilt (1.4.1)
     timers (1.1.0)
     toml (0.1.1)
@@ -179,7 +179,6 @@ PLATFORMS
   ruby
 
 DEPENDENCIES
-  aws-sdk
   coffee-script
   dotenv
   guard-bundler
@@ -188,10 +187,10 @@ DEPENDENCIES
   jekyll-assets
   jekyll-sitemap
   octopress (~> 3.0.0.rc.12)
-  octopress-deploy (~> 1.0.0.rc.8)
   pry
   rack
   redcarpet
+  s3_website
   sass
   travis
   uglifier
