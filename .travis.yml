@@ -1,7 +1,6 @@
 language: ruby
 cache: bundler
 bundler_args: "--without development"
-rvm: 2.1.2
 before_install:
 - 'echo ''gem: --no-ri --no-rdoc'' > ~/.gemrc'
 env:
