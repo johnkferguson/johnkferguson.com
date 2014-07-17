@@ -1,0 +1,280 @@
+//
+// Variables
+//
+
+$heading-color: #333333
+$code-background: #f8f8f8
+$code-border: #d5d5e9
+$code-color: #bf616a
+$date-color: #818181
+
+=border-radius($radius: 0.25rem)
+  -webkit-border-radius: $radius
+  -moz-border-radius:    $radius
+  -ms-border-radius:     $radius
+  border-radius:         $radius
+
+//
+// Base Settings
+//
+
+*
+  margin: 0
+  padding: 0
+
+html
+  font-family: "PT Serif", Georgia, "Times New Roman", serif
+  font-size: 16px
+
+@media (min-width: 44em)
+  html
+    font-size: 21px
+
+body
+  line-height: 1.5
+  font-weight: 400
+  background-color: #fff
+  color: #555555
+
+p
+  margin: 0 0 1rem
+
+h1, h2, h3, h4, h5, h6
+  margin-top: 0
+  margin-bottom: 0.5rem
+  font-weight: bold
+  line-height: 1.1
+  color: $heading-color
+  letter-spacing: -0.033rem
+
+h1, h2, h3
+  margin-top: 1.5rem
+
+h4, h5, h6
+  margin-top: 1.2rem
+
+h1
+  font-size: 2rem
+
+h2
+  font-size: 1.6rem
+
+h3
+  font-size: 1.4rem
+
+h4
+  font-size: 1.2rem
+
+a
+  font-weight: inherit
+  line-height: inherit
+  color: #222
+  text-decoration: none
+  -webkit-transition: all .2s ease-in-out
+  -moz-transition: all .2s ease-in-out
+  transition: all .2s ease-in-out
+  &:hover
+    color: #000000
+
+img
+  max-width: 100%
+  +border-radius
+
+blockquote
+  border-left: 0.2rem solid #e8e8e8
+  padding-left: 1rem
+  font-size: 0.9rem
+  opacity: .6
+  font-style: italic
+  margin: 1.5rem 0
+
+
+//
+// Code Styles
+//
+
+pre, code
+  background-color: $code-background
+  font-size: 0.75rem
+  overflow: auto
+  +border-radius
+
+pre
+  margin: 0 0 1rem
+
+code
+  padding: 0.05rem 0.25rem
+  font-family: Consolas, "Liberation Mono", Courier, monospace
+  color: $code-color
+
+pre code
+  color: inherit
+  border: 0
+  padding: 0
+
+.gist
+  font-size: 0.75rem
+
+  table
+    background-color: $code-background
+
+//
+// Global Settings
+//
+
+.wrap
+  padding: 0 0.75rem
+  max-width: 30rem
+  margin: 0 auto
+  zoom: 1
+
+.page-content
+  padding: 2rem 0rem
+  a
+    border-bottom: 1px solid #ddd
+    &:hover
+      border-bottom-color: #000
+
+//
+// Header Styles
+//
+
+.site-header
+  border-top: 1px solid $heading-color
+  padding-top: 0.5rem
+  min-height: 2.4rem
+  line-height: 2.1rem
+
+.site-title
+  display: block
+  color: #000
+  font-size: 1.5rem
+  letter-spacing: -1px
+  float: left
+  position: relative
+  border-bottom: 1px solid #000
+  z-index: 1
+
+.site-nav
+  float: right
+  .menu-icon
+    display: none
+  .page-link
+    color: #727272
+    letter-spacing: -0.033rem
+
+//
+// Footer Styles
+//
+
+.site-footer
+  border-top: 1px solid #e8e8e8
+  background-color: #fdfdfd
+  padding: 1.7rem 0
+  text-align: center
+
+.social-icons li
+  height: 3.45rem
+  display: inline
+  list-style-type: none
+  .github
+    padding-left: 1rem
+    padding-right: 1rem
+
+.github-icon-svg, .twitter-icon-svg, .email-icon-svg
+  width: 2.3rem
+  height: 2.3rem
+  position: relative
+  path
+    fill: #C2C2C2
+
+.github-icon-svg
+  &:hover
+    path
+      fill: #000
+
+.twitter-icon-svg
+  &:hover
+    path
+      fill: #9AE4E8
+
+.email-icon-svg
+  &:hover
+    path
+      fill: #e24f43
+
+//
+// Posts Index Page
+//
+
+.posts
+  list-style-type: none
+  li
+    margin-bottom: 1.4rem
+  .post-link
+    font-size: 1.2rem
+    letter-spacing: -0.04rem
+    line-height: 1
+  .post-date
+    display: block
+    font-size: 0.7rem
+    color: $date-color
+
+//
+// Posts Style
+//
+
+.post-header
+  margin-bottom: 1.2rem
+
+  .meta
+    color: $date-color
+
+.post
+  ul, ol
+    margin-left: 1.35em
+    padding-left: 1rem
+
+
+//
+// InstantClick
+//
+
+#instantclick
+  display: none
+
+//
+// Media Queries (for Menu Icon)
+//
+
+// @media screen and (max-width: 600px)
+//   .site-nav
+//     position: fixed
+//     z-index: 10
+//     top: 14px
+//     right: 8px
+//     +border-radius
+//     border: 1px solid #e8e8e8
+//     .menu-icon
+//       display: block
+//       font-size: 24px
+//       color: #505050
+//       float: right
+//       width: 36px
+//       text-align: center
+//       line-height: 36px
+//       svg
+//         width: 18px
+//         height: 16px
+//     .trigger
+//       clear: both
+//       margin-bottom: 5px
+//       display: none
+//     &:hover .trigger
+//       display: block
+//     .page-link
+//       display: block
+//       text-align: right
+//       line-height: 1.25
+//       padding: 5px 10px
+//       margin: 0
