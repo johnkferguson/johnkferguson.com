@@ -1,7 +1,7 @@
 s3_id: <%= ENV['JOHN_K_FERGUSON_ACCESS_KEY_ID'] %>
 s3_secret: <%= ENV['JOHN_K_FERGUSON_SECRET_ACCESS_KEY'] %>
 s3_bucket: johnkferguson.com
-cloudfront_distribution_id: <%= JOHN_K_FERGUSON_CLOUDFRONT_DISTRIBUTION_ID %>
+cloudfront_distribution_id: <%= ENV['JOHN_K_FERGUSON_CLOUDFRONT_DISTRIBUTION_ID'] %>
 
 s3_reduced_redundancy: true
 max_age:
