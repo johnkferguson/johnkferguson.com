@@ -162,6 +162,7 @@ pre code
   .page-link
     color: #727272
     letter-spacing: -0.033rem
+    padding: 0.5rem
 
 //
 // Footer Styles
@@ -237,6 +238,22 @@ pre code
   ul, ol
     margin-left: 1.35em
     padding-left: 1rem
+
+//
+// About Page
+//
+
+.about .post-content p:first-child
+  float: left
+  margin-bottom: 0
+  margin-right: 1rem
+
+  img
+    width: 210px
+
+@media (min-width: 44em)
+  .about .post-content p:first-child > img
+    width: 100%
 
 
 //

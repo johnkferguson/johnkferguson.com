@@ -2,28 +2,40 @@
 layout: page
 title: About
 permalink: /about/
+css_class: about
 ---
 
-![John Kelly Ferguson]({% asset_path about/john_kelly_ferguson.jpg %})
+![John Kelly Ferguson]({% asset_path about/jkf_main.jpg %})
 
-Hi there, I'm John Kelly Ferguson, a full-stack web developer living in
-New York City. This blog is my little place on the interwebs to share the story
-of my love affair with programming and a beautiful little language called Ruby.
+I'm a professional poker player who specializes in online 6-max No Limit Hold'em. 
 
-Although I've dabbled with programming in the past, I really got serious about
-it at the start of 2013. During that time, I attended the
-[Flatiron School](http://flatironschool.com/), a programming bootcamp and
-amazing environment full of incredible, caring people all focused on learning
-how to program. After three intense months there, I graduated and started my
-career as a full-stack Rails developer.
+I first got into poker years ago during the Moneymaker boom era. At the time, I was 
+a floundering college student who kept going to school because that was the thing you were supposed to do.
 
-Prior to my foray into programming, I played online poker professionally for
-several years. While competing regularly in some of the toughest games, I
-hopped around the globe, living all over in places like Argentina, South Africa,
- Colombia, Thailand and others. At some point along the way, I realized that I
- wanted to do something more with my life and that's when I discovered
-programming.
+Soon after, poker was paying for college. But I didn't like school and it didn't make sense to keep paying for something I didn't care about.
 
-Now I'm happy to call the greatest city in the world, a.k.a. New York, my home.
-When I'm not programming, I can often be found laughing and doing some sort of
-wild, goofy dance, reading, cooking, meditating, or shutting it down at karaoke.
+So I dropped out. 
+
+I started traveling and playing poker professionally. Since then, I've played millions of hands and visited over a dozen different countries. 
+
+A few years later, I decided to quit poker to learn how to program. 
+I got my first real 9-5 job. 
+For two years, I worked as a professional programmer, writing software in Ruby and JavaScript.
+
+The thing about programming is that there can be real poetry in it.
+Good code can be beautiful: a wonderful fusion of logic and language.
+I loved it.
+
+Towards the tail end of my programming career, I got very sick with Lyme disease. 
+I've since recovered, but at the time, it was deeply challenging and forced me to re-evaluate everything in my life.
+
+From that, I realized that I needed a job where I could have greater autonomy and flexibility.
+I needed something that would allow me to live a healthier life and take time to heal in the event that I got sick again.
+
+So I returned to online poker.
+
+Since then, I've been staying in different countries within Latin America, and continuing to play online poker.
+
+My main interest is in building a great life for myself. For me, this entails being as healthy as I can be, working hard to improve myself, both in poker and other areas, as well as building more honest and intimate relationships with the people I care about.
+
+How I move along that path will evolve over time. If you'd like to find out how I've been approaching it lately, please check out my [now page](/now).
