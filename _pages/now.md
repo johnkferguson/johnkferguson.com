@@ -2,6 +2,7 @@
 layout: page
 title: Now
 permalink: /now/
+index: 1
 ---
 
 **When: January 16, 2016**

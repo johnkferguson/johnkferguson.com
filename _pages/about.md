@@ -3,6 +3,7 @@ layout: page
 title: About
 permalink: /about/
 css_class: about
+index: 0
 ---
 
 ![John Kelly Ferguson]({% asset_path about/jkf_main.jpg %})
