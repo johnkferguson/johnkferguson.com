@@ -8,9 +8,3 @@ gem 'redcarpet'
 gem 's3_website'
 gem 'sass'
 gem 'uglifier'
-
-group :development do
-  gem 'dotenv'
-  gem 'pry'
-  gem 'rack'
-end
