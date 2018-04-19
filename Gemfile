@@ -11,7 +11,6 @@ gem 'uglifier'
 
 group :development do
   gem 'dotenv'
-  gem 'guard-jekyll-plus', github: 'awood/guard-jekyll-plus', require: false
   gem 'guard-livereload', require: false
   gem 'guard-bundler', require: false
   gem 'octopress'
