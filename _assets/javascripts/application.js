@@ -1,4 +1,2 @@
-//= require vendor/jquery
+//= require vendor/zepto
 //= require vendor/instantclick
-//= require gist_instantclick
-//= require fluid_youtube

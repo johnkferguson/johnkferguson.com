@@ -37,11 +37,7 @@ like [xray-rails]((https://github.com/brentd/xray-rails)) in development, you
 can add it or remove it as you please with no far-reaching implications.
 
 I use quite a few gems as a default during Rails development and testing as you
-can see in the following gist:
-
-<div class="embedded-gist gist" data-src="https://gist.github.com/JohnKellyFerguson/5477333.json"></div>
-
-There's quite a few different gems listed above. Instead of explaining all of
+can see in the following gist. Instead of explaining all of
 them, I thought it'd be best to cover my five favorites.
 
 
