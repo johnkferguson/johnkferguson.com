@@ -13,7 +13,6 @@ group :development do
   gem 'dotenv'
   gem 'guard-livereload', require: false
   gem 'guard-bundler', require: false
-  gem 'octopress'
   gem 'pry'
   gem 'rack'
   gem 'travis'
