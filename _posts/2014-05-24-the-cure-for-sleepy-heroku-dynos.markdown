@@ -2,8 +2,6 @@
 layout: post
 title: "The Cure for Sleepy Heroku Dynos"
 date: 2014-05-24 21:21
-comments: true
-categories:
 ---
 
 If your application on Heroku has been having slow initial page load times, the

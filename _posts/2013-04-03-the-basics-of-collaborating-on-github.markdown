@@ -2,8 +2,6 @@
 layout: post
 title: "The Basics of Collaborating on Github"
 date: 2013-04-03 00:10
-comments: true
-categories: [Github, Git, Collaboration]
 ---
 {% asset uploads/github-collabocats.jpg alt='Collabocats'%}
 

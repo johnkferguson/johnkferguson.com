@@ -2,8 +2,6 @@
 layout: post
 title: "Five Great Gems To Use During Rails Development"
 date: 2013-10-17 15:20
-comments: true
-categories: [Ruby, Rails, Gems, Productivity]
 ---
 
 When deciding whether to use a gem during Rails Development, the questions you
