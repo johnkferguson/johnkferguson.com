@@ -86,7 +86,7 @@ are being actively developed.
 For a more detailed explanation of Github Flow in action, check out Zach
 Holman's talk, "How Github Uses Github to Build Github" below:
 
-<iframe width="560" height="315" src="http://www.youtube.com/embed/qyz3jkOBbQY" frameborder="0" allowfullscreen></iframe>
+<iframe width="560" height="315" src="https://www.youtube.com/embed/qyz3jkOBbQY" frameborder="0" allowfullscreen></iframe>
 
 
 ### Suggested Workflow Rules
