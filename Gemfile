@@ -11,8 +11,6 @@ gem 'uglifier'
 
 group :development do
   gem 'dotenv'
-  gem 'guard-livereload', require: false
-  gem 'guard-bundler', require: false
   gem 'pry'
   gem 'rack'
 end
