@@ -20,7 +20,7 @@ exclude:
 - Guardfile
 - README.md
 - vendor/**
-gems:
+plugins:
 - jekyll-sitemap
 assets:
   dirname: assets
