@@ -2,8 +2,6 @@
 layout: post
 title: "Autojump Around the Command Line"
 date: 2013-03-11 00:05
-comments: true
-categories: [Command Line Tools, Productivity]
 ---
 [Autojump](https://github.com/joelthelion/Autojump) is a sweet little command
 line tool that makes it super easy to move around directories without having

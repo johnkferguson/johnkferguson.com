@@ -2,8 +2,6 @@
 layout: post
 title: "Five Ways to Get More Out of Pry"
 date: 2013-05-14 00:20
-comments: true
-categories: [Ruby, Gems]
 ---
 {% asset uploads/pry_logo_350.png alt='Pry' %}
 
