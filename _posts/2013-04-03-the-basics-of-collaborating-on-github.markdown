@@ -5,7 +5,7 @@ date: 2013-04-03 00:10
 comments: true
 categories: [Github, Git, Collaboration]
 ---
-![Collabocats]({% asset_path github/collabocats.jpg %})
+{% asset github-collabocats.jpg alt='Collabocats'%}
 
 [Github](https://github.com/) provides an incredible platform for
 collaborating on software projects. Features such as forks, pull-requests,
@@ -36,14 +36,14 @@ the process for adding collaborators to a repository.
 ### How to add collaborators:
 
 1. From the repository's main page, click on the settings tab.
-![Github Repository Settings]({% asset_path github/github-settings.png %})
+{% asset github/github-settings.png alt='Github Repository Settings'%}
 
 2. Click on Collaborators from the left sidebar.
-![Github Repository Collaborators]({% asset_path github/github-collaborators.png %})
+{% asset github/github-collaborators.png alt='Github Repository Collaborators'%}
 
 3. Enter in the usernames of any collaborators you would like to add to a
 project and click the add button.
-![Github Repository Collaborators]({% asset_path github/manage-collaborators.png %})
+{% asset github/manage-collaborators.png alt='Github Repository Collaborators'%}
 
 
 ## Deciding on a Workflow
@@ -140,37 +140,37 @@ If you've never submitted a pull request, follow along with the pictures to
 see how it works in action.
 
 #### From the repository page, click on the pull request button.
-![]({% asset_path github/pull-request-from-main-page.png %})
+{% asset github/pull-request-from-main-page.png %}
 
 #### Select the branch that will be the source of the pull request and its destination.
-![]({% asset_path github/pull-request-source-destination.png %})
+{% asset github/pull-request-source-destination.png %}
 
 #### Enter in a title for the pull request, fill in some comments and submit it.
-![]({% asset_path github/pull-request-description.png %})
+{% asset github/pull-request-description.png %}
 
 #### This is what your submitted pull request will look like.
 *(Notice the three main tabs: Discussion, Commits, Files Changed.)*
-![]({% asset_path github/pull-request-discussion.png %})
+{% asset github/pull-request-discussion.png %}
 
 #### The commits tab lists all the commits. You can click on the link to any commit to see it in detail.
-![]({% asset_path github/initial-commits.png %})
+{% asset github/initial-commits.png %}
 
 #### The files changed tab shows all the code that has changed.
 *(You can add inline comments to the code by clicking on the blue plus button
 that appears when you move your mouse near the line numbers.)*
-![]({% asset_path github/add-comments.png %})
+{% asset github/add-comments.png %}
 
 #### Comments appear in the Files Changed section as well as in the Discussion area.
-![]({% asset_path github/code-comments-discussion.png %})
+{% asset github/code-comments-discussion.png %}
 
 #### Any future commits from the same branch pushed to github will be included with the pull request.
-![]({% asset_path github/push-second-commit.png %})
+{% asset github/push-second-commit.png %}
 
 #### The commits tab will include the new commit.
-![]({% asset_path github/second-commits-tab.png %})
+{% asset github/second-commits-tab.png %}
 
 #### The Files changed tab will also include the code from the new commit.
-![]({% asset_path github/files-changed-2.png %})
+{% asset github/files-changed-2.png %}
 
 
 The entire Github pull request system provides an incredible way to review and discuss code.

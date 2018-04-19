@@ -5,7 +5,7 @@ date: 2013-05-14 00:20
 comments: true
 categories: [Ruby, Gems]
 ---
-![Pry]({% asset_path pry/pry_logo_350.png %})
+{% asset pry/pry_logo_350.png alt='Pry' %}
 
 ## What is Pry?
 
