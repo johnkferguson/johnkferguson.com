@@ -5,7 +5,7 @@ description: ''
 baseurl: ''
 url: http://johnwritecode.com
 twitter_username: johnkferguson
-github_username: johnkellyferguson
+github_username: johnkferguson
 markdown: redcarpet
 redcarpet:
   extensions:
