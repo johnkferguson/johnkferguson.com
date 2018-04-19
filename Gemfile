@@ -1,10 +1,12 @@
 source "https://rubygems.org"
 
-gem 'jekyll', '~> 3.0'
+gem 'jekyll', '3.7.3'
 gem 'coffee-script'
-gem 'jekyll-assets', '~>2.0'
-gem 'jekyll-sitemap'
-gem 'jekyll-watch'
 gem 'redcarpet'
 gem 'sass'
 # gem 'uglifier'
+
+group :jekyll_plugins do
+  gem 'jekyll-assets', '~> 3.0'
+  gem 'jekyll-sitemap'
+end
