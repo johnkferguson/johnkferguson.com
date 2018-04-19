@@ -1,7 +1,7 @@
 source "https://rubygems.org"
 
 gem 'coffee-script'
-gem 'jekyll-assets'
+gem 'jekyll-assets', '~>2.0'
 gem 'jekyll-sitemap'
 gem 'jekyll-watch'
 gem 'redcarpet'
@@ -15,5 +15,4 @@ group :development do
   gem 'guard-bundler', require: false
   gem 'pry'
   gem 'rack'
-  gem 'travis'
 end
