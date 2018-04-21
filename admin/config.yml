@@ -5,6 +5,7 @@ backend:
 publish_mode: editorial_workflow
 
 media_folder: "_assets/images/uploads"
+public_folder: "/assets/uploads"
 
 collections:
   - name: "post"
