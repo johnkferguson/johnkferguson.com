@@ -1,6 +1,6 @@
 import React from "react"
 
-import Layout from '../components/layout'
+import Layout from "../components/layout"
 
 const IndexPage = () => {
   return (
@@ -9,8 +9,6 @@ const IndexPage = () => {
         <p>Hello world!</p>
       </div>
     </Layout>
-
-
   )
 }
 
