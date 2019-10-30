@@ -1,8 +1,16 @@
 import React from "react"
 
+import Layout from '../components/layout'
+
 const IndexPage = () => {
   return (
-    <div>Hello world!</div>
+    <Layout>
+      <div>
+        <p>Hello world!</p>
+      </div>
+    </Layout>
+
+
   )
 }
 
