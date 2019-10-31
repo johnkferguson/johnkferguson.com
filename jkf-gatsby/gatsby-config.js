@@ -12,5 +12,14 @@ module.exports = {
     twitter_username: "johnkferguson",
     github_username: "johnkferguson",
   },
-  plugins: ["gatsby-plugin-sass"],
+  plugins: [
+    "gatsby-plugin-sass",
+    {
+      resolve: "gatsby-source-filesystem",
+      options: {
+        name: "src",
+        path: `${__dirname}/src/`,
+      },
+    },
+  ],
 }
