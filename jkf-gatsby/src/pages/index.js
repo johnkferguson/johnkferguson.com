@@ -13,6 +13,9 @@ const IndexPage = () => {
               title
               date
             }
+            fields {
+              slug
+            }
           }
         }
       }
@@ -26,7 +29,7 @@ const IndexPage = () => {
           return (
             <li>
               <span className="post-date">{edge.node.frontmatter.date}</span>
-              <Link className="post-link" href="">
+              <Link className="post-link" to={edge.node.fields.slug}>
                 {edge.node.frontmatter.title}
               </Link>
             </li>

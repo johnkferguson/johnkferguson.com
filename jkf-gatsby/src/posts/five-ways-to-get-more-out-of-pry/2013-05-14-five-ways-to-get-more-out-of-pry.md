@@ -3,7 +3,7 @@ layout: post
 title: "Five Ways to Get More Out of Pry"
 date: 2013-05-14 00:20
 ---
-{% asset uploads/pry_logo_350.png alt='Pry' %}
+![Pry](./pry_logo_350.png)
 
 ## What is Pry?
 

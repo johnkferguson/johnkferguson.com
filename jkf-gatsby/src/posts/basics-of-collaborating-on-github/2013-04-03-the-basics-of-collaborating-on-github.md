@@ -3,7 +3,7 @@ layout: post
 title: "The Basics of Collaborating on Github"
 date: 2013-04-03 00:10
 ---
-{% asset uploads/github-collabocats.jpg alt='Collabocats'%}
+![Collabocats](./github-collabocats.jpg)
 
 [Github](https://github.com/) provides an incredible platform for
 collaborating on software projects. Features such as forks, pull-requests,
@@ -34,15 +34,14 @@ the process for adding collaborators to a repository.
 ### How to add collaborators:
 
 1. From the repository's main page, click on the settings tab.
-{% asset uploads/github-settings.png alt='Github Repository Settings'%}
+![Github Repository Settings](./github-settings.png)
 
 2. Click on Collaborators from the left sidebar.
-{% asset uploads/github-collaborators.png alt='Github Repository Collaborators'%}
+![Github Repository Collaborators](./github-collaborators.png)
 
 3. Enter in the usernames of any collaborators you would like to add to a
 project and click the add button.
-{% asset uploads/manage-collaborators.png alt='Github Repository Collaborators'%}
-
+![Github Repository Collaborators](./manage-collaborators.png)
 
 ## Deciding on a Workflow
 
@@ -52,7 +51,6 @@ how to structure and work with branches, to decide how and when to push to
 master, as well as decide whether to utilize pull requests, and if so, how
 to do so. From this, a multitude of workflow options emerge. Two popular,
 established choices are:
-
 
 #### [Git-Flow](http://nvie.com/posts/a-successful-git-branching-model/)
 
@@ -86,7 +84,6 @@ Holman's talk, "How Github Uses Github to Build Github" below:
 
 <iframe width="560" height="315" src="https://www.youtube.com/embed/qyz3jkOBbQY" frameborder="0" allowfullscreen></iframe>
 
-
 ### Suggested Workflow Rules
 
 Whatever workflow you choose, there are certain rules that should almost always
@@ -110,7 +107,6 @@ find the relevant commit.
 branch names makes it easier for your team members to know what features you
 are working on. In addition, taking the time to properly name your branch
 can provide focus for what you should actually be working on.
-
 
 ## Pull Requests
 
@@ -138,37 +134,36 @@ If you've never submitted a pull request, follow along with the pictures to
 see how it works in action.
 
 #### From the repository page, click on the pull request button.
-{% asset uploads/pull-request-from-main-page.png %}
+![](./pull-request-from-main-page.png)
 
 #### Select the branch that will be the source of the pull request and its destination.
-{% asset uploads/pull-request-source-destination.png %}
+![](./pull-request-source-destination.png)
 
 #### Enter in a title for the pull request, fill in some comments and submit it.
-{% asset uploads/pull-request-description.png %}
+![](./pull-request-description.png)
 
 #### This is what your submitted pull request will look like.
 *(Notice the three main tabs: Discussion, Commits, Files Changed.)*
-{% asset uploads/pull-request-discussion.png %}
+![](./pull-request-discussion.png)
 
 #### The commits tab lists all the commits. You can click on the link to any commit to see it in detail.
-{% asset uploads/initial-commits.png %}
+![](./initial-commits.png)
 
 #### The files changed tab shows all the code that has changed.
 *(You can add inline comments to the code by clicking on the blue plus button
 that appears when you move your mouse near the line numbers.)*
-{% asset uploads/add-comments.png %}
+![](./add-comments.png)
 
 #### Comments appear in the Files Changed section as well as in the Discussion area.
-{% asset uploads/code-comments-discussion.png %}
+![](./code-comments-discussion.png)
 
 #### Any future commits from the same branch pushed to github will be included with the pull request.
-{% asset uploads/push-second-commit.png %}
+![](./push-second-commit.png)
 
 #### The commits tab will include the new commit.
-{% asset uploads/second-commits-tab.png %}
+![](./second-commits-tab.png)
 
 #### The Files changed tab will also include the code from the new commit.
-{% asset uploads/files-changed-2.png %}
-
+![](./files-changed-2.png)
 
 The entire Github pull request system provides an incredible way to review and discuss code.
