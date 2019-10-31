@@ -2,6 +2,7 @@ import React from "react"
 
 import Layout from "../components/layout"
 import { Link, graphql, useStaticQuery } from "gatsby"
+import { formatDate } from "../utils/format-date"
 
 const IndexPage = () => {
   const data = useStaticQuery(graphql`
@@ -28,7 +29,9 @@ const IndexPage = () => {
         {data.allMarkdownRemark.edges.map(edge => {
           return (
             <li>
-              <span className="post-date">{edge.node.frontmatter.date}</span>
+              <span className="post-date">
+                {formatDate(edge.node.frontmatter.date)}
+              </span>
               <Link className="post-link" to={edge.node.fields.slug}>
                 {edge.node.frontmatter.title}
               </Link>
