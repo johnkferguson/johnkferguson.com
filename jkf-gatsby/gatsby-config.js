@@ -5,8 +5,12 @@
  */
 
 module.exports = {
-  /* Your site config here */
-  plugins: [
-    'gatsby-plugin-sass'
-  ]
+  siteMetadata: {
+    title: "John K. Ferguson",
+    author: "John K. Ferguson",
+    email: "hello@johnkellyferguson.com",
+    twitter_username: "johnkferguson",
+    github_username: "johnkferguson",
+  },
+  plugins: ["gatsby-plugin-sass"],
 }
