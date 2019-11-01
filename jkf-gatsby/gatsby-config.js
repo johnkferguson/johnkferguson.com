@@ -6,6 +6,7 @@
 
 module.exports = {
   siteMetadata: {
+    siteUrl: "https://wwww.johnkferguson.com",
     title: "John K. Ferguson",
     author: "John K. Ferguson",
     email: "hello@johnkellyferguson.com",
@@ -13,6 +14,7 @@ module.exports = {
     github_username: "johnkferguson",
   },
   plugins: [
+    "gatsby-plugin-sitemap",
     "gatsby-plugin-sass",
     {
       resolve: "gatsby-source-filesystem",
