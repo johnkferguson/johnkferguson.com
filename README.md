@@ -19,7 +19,7 @@ The goal of this phase is to complete the transition from using `jekyll` to usin
 - [X] Set up post template
 - [X] Format dates
 - [X] Sort posts from most recent to least recent
-- [ ] Change date format to short codes
+- [X] Change date format to short codes
 - [ ] Add Rss feed
 - [ ] Add sitemap
 - [ ] Add robots.txt

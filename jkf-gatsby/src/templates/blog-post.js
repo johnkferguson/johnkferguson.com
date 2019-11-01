@@ -2,7 +2,7 @@ import React from "react"
 
 import { graphql } from "gatsby"
 import Layout from "../components/layout"
-import { formatDate } from "../utils/format-date"
+import { formatDateFullMonth } from "../helpers/format-date"
 
 export const query = graphql`
   query($slug: String!) {
@@ -23,7 +23,7 @@ const BlogPost = props => {
         <header className="post-header">
           <h1>{props.data.markdownRemark.frontmatter.title}</h1>
           <p className="meta">
-            {formatDate(props.data.markdownRemark.frontmatter.date)}
+            {formatDateFullMonth(props.data.markdownRemark.frontmatter.date)}
           </p>
         </header>
         <article
