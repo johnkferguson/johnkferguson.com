@@ -23,7 +23,7 @@ The goal of this phase is to complete the transition from using `jekyll` to usin
 - [ ] Add Rss feed [Reference](https://www.gatsbyjs.org/docs/adding-an-rss-feed/)
   - [x] Confirm excerpt is already included
 - [x] Add sitemap
-- [ ] Add robots.txt
+- [x] Add robots.txt
 - [ ] Add gatsby helmet
 - [ ] Format header based upon jekyll's `header.html`
 - [ ] Remove gatsby favicon
