@@ -29,7 +29,8 @@ The goal of this phase is to complete the transition from using `jekyll` to usin
 - [ ] Remove gatsby favicon
 - [ ] Confirm that gatsby site has all jekyll elements in it properly set up
 - [ ] Get rid of all jekyll components
-- [ ] Update Netlify build instructions (locally in file)
+- [ ] Update Netlify build instructions (locally in file, netlify.toml)
+- [ ] Update package.json info with real site info
 - [ ] Merge and deploy
 
 ### Phase 2: Gatsby Improvements
@@ -71,6 +72,8 @@ After leveraging all of the power that Gatsby has to offer, the goal of this pha
 - [ ] Create custom favicon
 - [ ] Considder adding elasticlunr.js
 - [ ] [Cross-post from Gatsby to Medium, etc.](https://www.freecodecamp.org/news/how-to-automatically-cross-post-from-your-gatsbyjs-blog-with-rss/)
+- [ ] Add blog comments
+  - [ ] Research options
 
 #### Updating sitemap
 
