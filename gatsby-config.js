@@ -3,7 +3,7 @@
 
 const {
   NODE_ENV,
-  URL: NETLIFY_SITE_URL = "https://www.example.com",
+  URL: NETLIFY_SITE_URL = "https://www.johnkferguson.com",
   DEPLOY_PRIME_URL: NETLIFY_DEPLOY_URL = NETLIFY_SITE_URL,
   CONTEXT: NETLIFY_ENV = NODE_ENV,
 } = process.env
@@ -12,7 +12,7 @@ const siteUrl = isNetlifyProduction ? NETLIFY_SITE_URL : NETLIFY_DEPLOY_URL
 
 module.exports = {
   siteMetadata: {
-    siteUrl: "https://wwww.johnkferguson.com",
+    siteUrl: siteUrl,
     title: "John K. Ferguson",
     author: "John K. Ferguson",
     description: "John K. Ferguson's personal site and blog.",
