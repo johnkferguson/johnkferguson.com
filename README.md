@@ -31,17 +31,17 @@ The goal of this phase is to complete the transition from using `jekyll` to usin
 - [x] Confirm that gatsby site has all jekyll elements in it properly set up
 - [x] Get rid of all jekyll components
 - [x] Update Netlify build instructions (locally in file, netlify.toml)
-- [ ] Update package.json info with real site info
-- [ ] Merge and deploy
+- [x] Update package.json info with real site info
+- [x] Merge and deploy
 
 ### Phase 2: Gatsby Improvements
 
 After completing the transition to Gatsby, the goal of this phase is to extend the functionality of the blog, leveraging the various tools offered by Gatsby and the general `javascript` ecosystem.
 
+- [x] Remove Netlify CMS
 - [ ] Add custom 404 page
 - [ ] Name all queries
 - [ ] Add canonical urls in head
-- [ ] Update Netlify CMS
 - [ ] [Add Gatsby plugin Netlify Cache](https://github.com/axe312ger/gatsby-plugin-netlify-cache)
 - [ ] Set all external links to open in new tab
 - [ ] Update site to use tailwind for css: [Reference](https://www.jerriepelser.com/blog/using-tailwind-with-gatsby/)
