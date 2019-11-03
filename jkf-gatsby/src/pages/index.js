@@ -41,6 +41,10 @@ const IndexPage = () => {
           )
         })}
       </ul>
+
+      <p className="rss-subscribe">
+        subscribe <a href="/rss.xml">via RSS</a>
+      </p>
     </Layout>
   )
 }

@@ -20,7 +20,7 @@ The goal of this phase is to complete the transition from using `jekyll` to usin
 - [x] Format dates
 - [x] Sort posts from most recent to least recent
 - [x] Change date format to short codes
-- [ ] Add Rss feed [Reference](https://www.gatsbyjs.org/docs/adding-an-rss-feed/)
+- [x] Add Rss feed [Reference](https://www.gatsbyjs.org/docs/adding-an-rss-feed/)
   - [x] Confirm excerpt is already included
 - [x] Add sitemap
 - [x] Add robots.txt
