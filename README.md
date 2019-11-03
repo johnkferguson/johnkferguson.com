@@ -28,8 +28,8 @@ The goal of this phase is to complete the transition from using `jekyll` to usin
 - [x] Format header based upon jekyll's `header.html`
 - [x] Remove gatsby favicon
 - [x] Change date formatting to use graphql
-- [ ] Confirm that gatsby site has all jekyll elements in it properly set up
-- [ ] Get rid of all jekyll components
+- [x] Confirm that gatsby site has all jekyll elements in it properly set up
+- [x] Get rid of all jekyll components
 - [ ] Update Netlify build instructions (locally in file, netlify.toml)
 - [ ] Update package.json info with real site info
 - [ ] Merge and deploy
@@ -47,6 +47,7 @@ After completing the transition to Gatsby, the goal of this phase is to extend t
 - [ ] Update site to use tailwind for css: [Reference](https://www.jerriepelser.com/blog/using-tailwind-with-gatsby/)
 - [ ] Add syntax highlighting by language
 - [ ] Create custom 404 page.
+- [ ] Embed fonts in page directly
 - [ ] Improve Site's SEO. References: [SEO React Helmet Example](https://github.com/jlengstorf/gatsby-theme-jason-blog/blob/master/src/components/SEO/SEO.js), [Simpler React Helmet Example](https://github.com/gatsbyjs/gatsby/blob/master/www/src/components/site-metadata.js), [SEO with Gatsby](https://blog.dustinschau.com/search-engine-optimization-with-gatsby)
 - [ ] Analyze asset bundle size
 - [ ] Look into ways to trim asset bundle
