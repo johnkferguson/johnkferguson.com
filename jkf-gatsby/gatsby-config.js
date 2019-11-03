@@ -20,6 +20,7 @@ module.exports = {
     github_username: "johnkferguson",
   },
   plugins: [
+    "gatsby-plugin-react-helmet",
     "gatsby-plugin-sitemap",
     "gatsby-plugin-sass",
     {

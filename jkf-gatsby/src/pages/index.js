@@ -1,6 +1,7 @@
 import React from "react"
 
 import Layout from "../components/layout"
+import Head from "../components/head"
 import { Link, graphql, useStaticQuery } from "gatsby"
 import { formatDateShortMonth } from "../helpers/format-date"
 
@@ -25,6 +26,7 @@ const IndexPage = () => {
 
   return (
     <Layout>
+      <Head />
       <ul className="posts">
         {data.allMarkdownRemark.edges.map(edge => {
           return (

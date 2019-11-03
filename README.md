@@ -24,9 +24,10 @@ The goal of this phase is to complete the transition from using `jekyll` to usin
   - [x] Confirm excerpt is already included
 - [x] Add sitemap
 - [x] Add robots.txt
-- [ ] Add gatsby helmet
-- [ ] Format header based upon jekyll's `header.html`
+- [x] Add gatsby helmet
+- [x] Format header based upon jekyll's `header.html`
 - [ ] Remove gatsby favicon
+- [ ] Change date formatting to use graphql
 - [ ] Confirm that gatsby site has all jekyll elements in it properly set up
 - [ ] Get rid of all jekyll components
 - [ ] Update Netlify build instructions (locally in file, netlify.toml)
@@ -37,7 +38,9 @@ The goal of this phase is to complete the transition from using `jekyll` to usin
 
 After completing the transition to Gatsby, the goal of this phase is to extend the functionality of the blog, leveraging the various tools offered by Gatsby and the general `javascript` ecosystem.
 
+- [ ] Add custom 404 page
 - [ ] Name all queries
+- [ ] Add canonical urls in head
 - [ ] Update Netlify CMS
 - [ ] [Add Gatsby plugin Netlify Cache](https://github.com/axe312ger/gatsby-plugin-netlify-cache)
 - [ ] Set all external links to open in new tab
