@@ -42,7 +42,7 @@ After completing the transition to Gatsby, the goal of this phase is to extend t
 - [ ] Add custom 404 page
 - [ ] Name all queries
 - [ ] Add canonical urls in head
-- [ ] [Add Gatsby plugin Netlify Cache](https://github.com/axe312ger/gatsby-plugin-netlify-cache)
+- [x] [Add Gatsby plugin Netlify Cache](https://github.com/axe312ger/gatsby-plugin-netlify-cache)
 - [ ] Set all external links to open in new tab
 - [ ] Update site to use tailwind for css: [Reference](https://www.jerriepelser.com/blog/using-tailwind-with-gatsby/)
 - [ ] Add syntax highlighting by language
