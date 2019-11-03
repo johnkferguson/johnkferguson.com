@@ -10,7 +10,7 @@ export const query = graphql`
     markdownRemark(fields: { slug: { eq: $slug } }) {
       frontmatter {
         title
-        date
+        date(formatString: "MMMM D, YYYY")
       }
       html
     }
@@ -24,9 +24,7 @@ const BlogPost = props => {
       <div class="post">
         <header className="post-header">
           <h1>{props.data.markdownRemark.frontmatter.title}</h1>
-          <p className="meta">
-            {formatDateFullMonth(props.data.markdownRemark.frontmatter.date)}
-          </p>
+          <p className="meta">{props.data.markdownRemark.frontmatter.date}</p>
         </header>
         <article
           className="post-content"

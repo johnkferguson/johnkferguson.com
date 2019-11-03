@@ -13,7 +13,7 @@ const IndexPage = () => {
           node {
             frontmatter {
               title
-              date
+              date(formatString: "MMM D, YYYY")
             }
             fields {
               slug
@@ -31,9 +31,7 @@ const IndexPage = () => {
         {data.allMarkdownRemark.edges.map(edge => {
           return (
             <li>
-              <span className="post-date">
-                {formatDateShortMonth(edge.node.frontmatter.date)}
-              </span>
+              <span className="post-date">{edge.node.frontmatter.date}</span>
               <Link className="post-link" to={edge.node.fields.slug}>
                 {edge.node.frontmatter.title}
               </Link>
