@@ -1,8 +1,8 @@
 {
-  "name": "gatsby-starter-hello-world",
+  "name": "www.johnkferguson.com",
   "private": true,
-  "description": "A simplified bare-bones starter for Gatsby",
-  "version": "0.1.0",
+  "description": "John K. Ferguson's personal site and blog.",
+  "version": "1.0.0",
   "license": "MIT",
   "scripts": {
     "build": "gatsby build",
