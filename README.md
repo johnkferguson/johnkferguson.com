@@ -4,6 +4,13 @@ This blog is built using [gatsby](https://github.com/gatsbyjs/gatsby) and is dep
 
 The first version of this blog was built using [Octopress](https://github.com/imathis/octopress), which was later dropped in favor of using [Jekyll](https://github.com/jekyll/jekyll) by itself.
 
+## Performance Testing
+
+To performance test the site, the following resources are helpful:
+
+- [Google Page Speed Insights](https://developers.google.com/speed/pagespeed/insights/)
+- [Web Page Test](https://webpagetest.org/)
+
 ## Planned Blog Improvements
 
 This project is currently in the process of making several improvements, which shall proceed in three distinct phases.
