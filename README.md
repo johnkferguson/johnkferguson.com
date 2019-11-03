@@ -26,7 +26,7 @@ The goal of this phase is to complete the transition from using `jekyll` to usin
 - [x] Add robots.txt
 - [x] Add gatsby helmet
 - [x] Format header based upon jekyll's `header.html`
-- [ ] Remove gatsby favicon
+- [x] Remove gatsby favicon
 - [ ] Change date formatting to use graphql
 - [ ] Confirm that gatsby site has all jekyll elements in it properly set up
 - [ ] Get rid of all jekyll components
