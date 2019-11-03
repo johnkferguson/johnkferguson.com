@@ -30,7 +30,7 @@ The goal of this phase is to complete the transition from using `jekyll` to usin
 - [x] Change date formatting to use graphql
 - [x] Confirm that gatsby site has all jekyll elements in it properly set up
 - [x] Get rid of all jekyll components
-- [ ] Update Netlify build instructions (locally in file, netlify.toml)
+- [x] Update Netlify build instructions (locally in file, netlify.toml)
 - [ ] Update package.json info with real site info
 - [ ] Merge and deploy
 
