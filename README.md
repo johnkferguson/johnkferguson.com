@@ -46,7 +46,6 @@ The goal of this phase is to complete the transition from using `jekyll` to usin
 After completing the transition to Gatsby, the goal of this phase is to extend the functionality of the blog, leveraging the various tools offered by Gatsby and the general `javascript` ecosystem.
 
 - [x] Remove Netlify CMS
-- [ ] Add custom 404 page
 - [ ] Name all queries
 - [ ] Add canonical urls in head
 - [x] [Add Gatsby plugin Netlify Cache](https://github.com/axe312ger/gatsby-plugin-netlify-cache)

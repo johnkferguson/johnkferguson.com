@@ -22,6 +22,7 @@ module.exports = {
   },
   plugins: [
     "gatsby-plugin-react-helmet",
+    "gatsby-plugin-netlify",
     "gatsby-plugin-sitemap",
     "gatsby-plugin-sass",
     "gatsby-plugin-netlify-cache",
