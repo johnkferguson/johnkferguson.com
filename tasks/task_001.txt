@@ -1,0 +1,14 @@
+# Task ID: 1
+# Title: Isolate Existing Gatsby Project
+# Status: done
+# Dependencies: None
+# Priority: high
+# Description: Move Gatsby-specific files and directories (configs, src, static, content, package.json) into a 'gatsby/' subdirectory to prepare for Next.js installation at the root.
+# Details:
+1. Create a 'gatsby/' directory.
+2. Move gatsby-*.js config files into 'gatsby/'.
+3. Move 'src/', 'static/', 'content/' directories into 'gatsby/'.
+4. Move 'package.json' and 'package-lock.json' to 'gatsby/' (e.g., as package.json.old).
+
+# Test Strategy:
+Verify that all essential Gatsby project files are inside the 'gatsby/' directory and the root directory is clean for Next.js installation.

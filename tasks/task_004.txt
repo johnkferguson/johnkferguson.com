@@ -1,0 +1,16 @@
+# Task ID: 4
+# Title: Implement Markdown Content Processing
+# Status: pending
+# Dependencies: 2
+# Priority: high
+# Description: Set up utilities to read and parse Markdown blog posts from the `gatsby/content/blog` directory.
+# Details:
+1. Install necessary libraries: `gray-matter`, `remark`, `remark-html`.
+2. Create utility functions in `src/lib/posts.ts` (or similar) to:
+   - Read files from `gatsby/content/blog`.
+   - Parse frontmatter using `gray-matter`.
+   - Convert Markdown content to HTML using `remark`.
+   - Generate slugs from filenames (e.g., removing date prefixes).
+
+# Test Strategy:
+Write unit tests for the utility functions. Test reading a sample Markdown file and verify correct parsing of frontmatter and HTML content generation.

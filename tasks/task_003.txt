@@ -1,0 +1,14 @@
+# Task ID: 3
+# Title: Configure Core Layout and Styling
+# Status: pending
+# Dependencies: 2
+# Priority: high
+# Description: Set up the main application layout, global styles, and integrate Tailwind CSS.
+# Details:
+1. Create a root layout component in `src/app/layout.tsx`.
+2. Import global CSS (including Tailwind directives) in the root layout.
+3. Define basic page structure (header, main content area, footer) within the layout.
+4. Apply initial Tailwind classes for typography, background, etc. Set up Google Fonts 'PT Serif' and 'Fira Code' using `next/font`.
+
+# Test Strategy:
+Verify the basic layout structure appears on the home page. Check that Tailwind utility classes are being applied correctly. Verify fonts load.

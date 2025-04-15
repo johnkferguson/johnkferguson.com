@@ -1,0 +1,15 @@
+# Task ID: 9
+# Title: Migrate Static Pages and Assets
+# Status: pending
+# Dependencies: 3
+# Priority: medium
+# Description: Migrate any non-blog static pages (e.g., About) and handle static assets.
+# Details:
+1. Identify static pages in the original `gatsby/src/pages`.
+2. Create corresponding page components in `src/app/` (e.g., `src/app/about/page.tsx`).
+3. Move required static assets (images, fonts) from `gatsby/static` to the Next.js `public/` directory.
+4. Update asset references in components and styles.
+5. Apply Tailwind CSS for styling.
+
+# Test Strategy:
+Verify static pages render correctly with proper styling and assets.
