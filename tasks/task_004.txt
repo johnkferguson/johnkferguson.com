@@ -1,6 +1,6 @@
 # Task ID: 4
 # Title: Implement Markdown Content Processing
-# Status: pending
+# Status: done
 # Dependencies: 2
 # Priority: high
 # Description: Set up utilities to read and parse Markdown blog posts from the `gatsby/content/blog` directory.

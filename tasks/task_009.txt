@@ -1,6 +1,6 @@
 # Task ID: 9
 # Title: Migrate Static Pages and Assets
-# Status: pending
+# Status: done
 # Dependencies: 3
 # Priority: medium
 # Description: Migrate any non-blog static pages (e.g., About) and handle static assets.

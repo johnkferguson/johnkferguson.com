@@ -1,6 +1,6 @@
 # Task ID: 7
 # Title: Implement RSS Feed Generation
-# Status: pending
+# Status: done
 # Dependencies: 4
 # Priority: medium
 # Description: Create an RSS feed at `/rss.xml` containing all blog posts.

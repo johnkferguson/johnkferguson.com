@@ -1,6 +1,6 @@
 # Task ID: 6
 # Title: Create Dynamic Blog Post Pages
-# Status: pending
+# Status: done
 # Dependencies: 3, 4
 # Priority: high
 # Description: Build the template to display individual blog posts at `/blog/[slug]`.

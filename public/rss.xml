@@ -1,0 +1,766 @@
+<?xml version="1.0" encoding="utf-8"?>
+<rss version="2.0" xmlns:dc="http://purl.org/dc/elements/1.1/" xmlns:content="http://purl.org/rss/1.0/modules/content/">
+    <channel>
+        <title>John Ferguson's Blog</title>
+        <link>https://johnkferguson.com</link>
+        <description>Thoughts on web development, technology, and life.</description>
+        <lastBuildDate>Tue, 15 Apr 2025 04:40:27 GMT</lastBuildDate>
+        <docs>https://validator.w3.org/feed/docs/rss2.html</docs>
+        <generator>Feed for johnkferguson.com</generator>
+        <copyright>All rights reserved 2025, John Ferguson</copyright>
+        <item>
+            <title><![CDATA[The Cure for Sleepy Heroku Dynos]]></title>
+            <link>https://johnkferguson.com/posts/the-cure-for-sleepy-heroku-dynos</link>
+            <guid>https://johnkferguson.com/posts/the-cure-for-sleepy-heroku-dynos</guid>
+            <pubDate>Sun, 25 May 2014 01:21:00 GMT</pubDate>
+            <content:encoded><![CDATA[<p>If your application on Heroku has been having slow initial page load times, the
+most likely cause is a
+<a href="https://devcenter.heroku.com/articles/dynos#dyno-sleeping">sleeping dyno</a>.</p>
+<p>Dynos are Heroku's own lightweight virtualized containers that are used to house
+and serve your app. When using only one dyno, such as with Heroku's free plan,
+Heroku will put your dyno to sleep when there has no been no activity on your
+app for over an hour. This often occurs when no visitors have been to your site
+in a while.</p>
+<p>When Heroku puts your dyno to sleep, it takes its allotted resources, such as
+processors and memory, and re-allocates them elsewhere. While sleeping, your
+application is idle and is unable to do anything. However, once a new request
+comes back into your application, Heroku will give back the resources to your
+app. During this process, your app will go through the process of booting up
+and any visitor to your site will have to endure a very long initial page load
+time.</p>
+<p>To prevent this from happening, all that has to be done is to automatically
+trigger a http request to your site at least once a hour. With such a scheduled
+request, there will be no opportunity for you app to go to sleep and for users
+to experience such slow page load times.</p>
+<p>There are various ways to ping your site via a scheduled http request, such as
+through using a <a href="http://en.wikipedia.org/wiki/Cron">cron</a> job that curls your
+app, <a href="https://docs.newrelic.com/docs/alert-policies/availability-monitoring">New Relic's availability monitoring</a>
+or <a href="http://uptimerobot.com/">various</a> <a href="http://kaffeine.herokuapp.com/">other</a>
+<a href="http://unidler.herokuapp.com/">free services</a>.</p>
+<p>One of the simplest solutions out there is to use Heroku's own
+<a href="https://addons.heroku.com/scheduler">Heroku Scheduler</a> to set up a repeating
+curl request directed at your application's url. This post will cover how to
+properly configure such a solution.</p>
+<h2>Setting up Heroku Scheduler</h2>
+<p>Assuming you already have an app set up on Heroku, you'll need to get the Heroku
+Scheduler add-on.</p>
+<p>To do so, from within your app's page on heroku, click on the Get Add-ons button.</p>
+<p><img src="/images/posts/the-cure-for-sleepy-heroku-dynos/heroku_get_add_ons.png" alt="Add-on Button"></p>
+<p>Scroll down the page to the Workers and Queueing section of the Add-Ons page
+and click on Heroku Scheduler.</p>
+<p><img src="/images/posts/the-cure-for-sleepy-heroku-dynos/heroku_workers_and_queueing.png" alt="Workers and Queueing"></p>
+<p>On the Heroku Scheduler's add-on page, select the app you'd like to use the
+scheduler with and click the add button.</p>
+<p><img src="/images/posts/the-cure-for-sleepy-heroku-dynos/heroku_scheduler_page.png" alt="Heroku Scheduler Page"></p>
+<p>Navigate to your App's Page in Heroku and click on the Heroku Scheduler icon.</p>
+<p><img src="/images/posts/the-cure-for-sleepy-heroku-dynos/heroku_add_ons_list.png" alt="Heroku Add Ons List"></p>
+<p>From within the Heroku Scheduler's configuration page, click on the add job
+button. Next, enter in the url of the app you'd like to prevent from sleeping
+(in this example I've used <code>my-app.herokuapp.com</code>). This should be a page that
+is publicly accessible. Finally, set the frequency to 'Every 10 minutes'
+and click Save.</p>
+<p><img src="/images/posts/the-cure-for-sleepy-heroku-dynos/heroku_scheduler_config.png" alt="Heroku Scheduler Configuration">            ss</p>
+<p>That's it, you're all set. Your Heroku app won't go to sleep again.</p>
+<p>If you'd like to explore other options on how to keep your app from going to
+sleep, check out
+<a href="http://stackoverflow.com/questions/5480337/easy-way-to-prevent-heroku-idling">this question</a>
+on StackOverflow.</p>
+]]></content:encoded>
+        </item>
+        <item>
+            <title><![CDATA[Five Great Gems To Use During Rails Development]]></title>
+            <link>https://johnkferguson.com/posts/five-great-gems-to-use-during-rails-development</link>
+            <guid>https://johnkferguson.com/posts/five-great-gems-to-use-during-rails-development</guid>
+            <pubDate>Thu, 17 Oct 2013 19:20:00 GMT</pubDate>
+            <content:encoded><![CDATA[<p>When deciding whether to use a gem during Rails Development, the questions you
+should be asking yourself are: "Will this gem make me more efficient?",
+"Will it make me more productive?", or "Will it enable me to make better
+decisions?" If the answer to any of these questions is yes, then you should
+add that gem to your Gemfile.</p>
+<p>Now, of course, this is a very different process than what goes into deciding
+whether to use a gem outside of your development environment. In those
+situations, you are making decisions about the design of the app and its
+infrastructure. Those types of decisions have much more far-reaching
+consequences. Because of this, you have to take into consideration things
+like, "Is this gem flexible and will it be able to adapt to the evolving demands
+of our application?" or "How difficult would it be to roll our own solution?"
+and "Is this gem being actively maintained and supported?"</p>
+<p>However, these concerns become much less important when figuring out your
+development process. This is because it is a question of workflow and not one
+of application design. A workflow can adapt and evolve more easily than the
+structure of your app. As a consequence, development gems have a much more
+modular quality to them. They can easily be added in or taken out without
+affecting the rest of your app. However, this is not true for gems outside of
+development. As an example, let's say you have decided to use
+<a href="https://github.com/plataformatec/devise">Devise</a> as your authentication
+solution. If at some point in the future, you decide you no longer want to
+use Devise, you can't just remove it from your Gemfile and expect things to
+work. Much of the app would have to be changed to accomodate this change while
+still providing the same functionality. However, if you are using a gem
+like <a href="(https://github.com/brentd/xray-rails)">xray-rails</a> in development, you
+can add it or remove it as you please with no far-reaching implications.</p>
+<p>I use quite a few gems as a default during Rails development and testing as you
+can see in the following gist. Instead of explaining all of
+them, I thought it'd be best to cover my five favorites.</p>
+<h2>5. <a href="https://github.com/evrone/quiet_assets">quiet_assets</a></h2>
+<p><a href="https://github.com/evrone/quiet_assets">quiet_assets</a> does one thing and does
+it well: it turns off all of the noisy Rails asset_pipeline message that show
+up in your development log.</p>
+<p>Before installing quiet_assets, you may find that a simple web request will
+produce something like the following in your Rails server log:</p>
+<pre><code class="language-ruby">Started GET "/" for 127.0.0.1 at 2013-10-16 16:32:29 -0400
+  ActiveRecord::SchemaMigration Load (2.3ms)  SELECT "schema_migrations".* FROM "schema_migrations"
+Processing by SessionsController#new as HTML
+  Rendered sessions/_form.html.haml (92.0ms)
+  Rendered sessions/new.html.haml within layouts/application (100.6ms)
+  Rendered shared/_nav.html.haml (2.5ms)
+Completed 200 OK in 312ms (Views: 244.0ms | ActiveRecord: 3.2ms)
+Started GET "/assets/application.css?body=1" for 127.0.0.1 at 2013-10-16 16:32:31 -0400
+Started GET "/assets/scaffolds.css?body=1" for 127.0.0.1 at 2013-10-16 16:32:31 -0400
+Started GET "/assets/sessions.css?body=1" for 127.0.0.1 at 2013-10-16 16:32:31 -0400
+Started GET "/assets/users.css?body=1" for 127.0.0.1 at 2013-10-16 16:32:31 -0400
+Started GET "/assets/jquery.js?body=1" for 127.0.0.1 at 2013-10-16 16:32:31 -0400
+Started GET "/assets/xray.js?body=1" for 127.0.0.1 at 2013-10-16 16:32:31 -0400
+Started GET "/assets/jquery_ujs.js?body=1" for 127.0.0.1 at 2013-10-16 16:32:31 -0400
+Started GET "/assets/turbolinks.js?body=1" for 127.0.0.1 at 2013-10-16 16:32:31 -0400
+Started GET "/assets/xray.css?body=1" for 127.0.0.1 at 2013-10-16 16:32:31 -0400
+Started GET "/assets/sessions.js?body=1" for 127.0.0.1 at 2013-10-16 16:32:31 -0400
+Started GET "/assets/users.js?body=1" for 127.0.0.1 at 2013-10-16 16:32:31 -0400
+Started GET "/assets/application.js?body=1" for 127.0.0.1 at 2013-10-16 16:32:31 -0400
+</code></pre>
+<p>After installing quiet_assets, the output will be much more manageable and look like the following:</p>
+<pre><code class="language-ruby">Started GET "/" for 127.0.0.1 at 2013-10-16 16:35:15 -0400
+  ActiveRecord::SchemaMigration Load (1.4ms)  SELECT "schema_migrations".* FROM "schema_migrations"
+Processing by SessionsController#new as HTML
+  Rendered sessions/_form.html.haml (91.2ms)
+  Rendered sessions/new.html.haml within layouts/application (98.6ms)
+  Rendered shared/_nav.html.haml (2.2ms)
+Completed 200 OK in 285ms (Views: 225.3ms | ActiveRecord: 2.6ms)
+</code></pre>
+<p>The result is that it's now much easier to track things down in your log,
+like SQL queries or ajax requests.</p>
+<h2>4. <a href="https://github.com/Springest/terminal-notifier-guard">terminal-notifier-guard</a></h2>
+<p><a href="https://github.com/Springest/terminal-notifier-guard">terminal-notifier-guard</a>
+is a sweet little plugin for <a href="https://github.com/guard/guard">Guard</a>. I decided
+to include it in this list instead of Guard since Guard is so commonly used.
+If you are not familiar with Guard, it's a command line tool used by Ruby
+developers to "easily handle events on file system modifications." What this
+means is that Guard can be configured to monitor files for changes. When a file
+changes, Guard can trigger certain actions, such as automatically running the
+corresponding Rspec tests. In order for Guard to automatically run those Rspec
+tests, you'll need the <a href="https://github.com/guard/guard-rspec">guard-rspec</a>
+plugin. There are many other plugins available that all do different things.
+A full list can be seen <a href="https://rubygems.org/search?query=guard-">here</a>.
+One such plugin that works in conjunction with guard-rspec is
+<code>terminal-notifier-guard</code>.</p>
+<p>What <code>terminal-notifier-guard</code> does is simple: it displays a system
+notifications in OS X 10.8 telling you the result whenever guard runs. The
+notification looks like this:</p>
+<p><img src="/images/posts/five-great-gems-to-use-during-rails-development/terminal_notifier_guard.png" alt="terminal-notifier-guard notification"></p>
+<p>This can be particularly nice if you are working on a small screen or laptop.
+In that case, you don't have to ALT+TAB into Terminal to see the results of your
+tests and can just look at your system notification. Of course, it's also good
+if you are working on a setup with a bigger monitor(s).</p>
+<p>To use terminal-notifier-guard, you simply have to add it to your Gemfile and
+be using OS X 10.8. If you are using a different OS, then there are other Guard
+notification plugins that will work for your system, a full list of which is
+<a href="https://github.com/guard/guard/wiki/System-notifications#terminal-notifier">here</a>.</p>
+<p>If you'd like to learn more about Guard, check out this <a href="https://github.com/guard/guard">RailsCast</a>.</p>
+<h2>3. <a href="https://github.com/brentd/xray-rails">xray-rails</a></h2>
+<p><a href="https://github.com/brentd/xray-rails">xray-rails</a> is the most underused and
+underrated gem on this list. <code>xray-rails</code> allows you to see which files are
+being rendered in your view. So, if you are looking at one of your site's pages
+on your local machine, you can use the keyboard shortcut <code>cmd + shift + x</code>
+(on OS X) or <code>ctrl + shift + x</code> to see all of the partials and other files
+being rendered in your view. The result of which looks like this.</p>
+<p><img src="/images/posts/five-great-gems-to-use-during-rails-development/xray-screenshot.png" alt="xray-rails in action"></p>
+<p>From there, you can click on any of the overlays to open the corresponding file
+in your text editor. xray-rails sets Sublime Text as the default editor but
+<a href="https://github.com/brentd/xray-rails#configuration">can easily be configured to work with your text editor of choice</a>.</p>
+<p>Installing xray-rails is simple. Just add it to your Gemfile:</p>
+<pre><code class="language-ruby">group :development do
+  gem 'xray-rails'
+end
+</code></pre>
+<p>Then bundle and delete your cached assets:</p>
+<pre><code class="language-bash">$ bundle &#x26;&#x26; rm -rf tmp/cache/assets
+</code></pre>
+<p>Restart your app and you're ready to go.</p>
+<h2>2. <a href="https://github.com/cldwalker/debugger">debugger</a></h2>
+<p><a href="https://github.com/cldwalker/debugger">debugger</a> is a great way to get inside
+of your code while it executes and see what's really going on. The gem is
+well-named as its best use case is for, appropriately enough, debugging code.
+To use debugger, simply place a <code>debugger</code> inside one of the methods that you
+want to debug. When that line of code is executed, you will be transported into
+a terminal session inside of the block of code. I find this to be really helpful
+and use it often when working with Rails, particularly when trying to figure out
+issues with a controller. I'll explain with an example.</p>
+<p>In the code below, a user is being created in the UsersController using the
+create action. There are different user types, and depending on the type of
+user that is being created, that user will be redirected to a particular path.</p>
+<p>Now, let's say for some reason, users are not being directed to the appropriate
+path based upon their type. This is a situation where I might use debugger to
+dig into the code and see what's going on. In this example, I would place the
+debugger after setting the <code>@user</code> instance variable. You can see it in the code
+below:</p>
+<pre><code class="language-ruby">class UsersController &#x3C; ApplicationController
+  def create
+    @user = User.new(params[:user])
+    debugger # this is a good spot to put the debugger
+    if @user.save
+      session[:user_id] = @user.id
+      if @user.is_buyer? || @user.is_agent?
+        redirect_to new_wanted_listing_path
+      elsif @user.is_homeowner?
+        redirect_to new_claim_path
+      end
+    else
+      render 'new', notice: 'Sorry, an error occured. Please complete the form again'
+    end
+  end
+ end
+</code></pre>
+<p>Then, when the create action is triggered, I would be put inside of a debugger
+session starting where the debugger is placed. I could then move through the
+code line by line and follow the logical flow to see where things are going
+wrong.</p>
+<p>In addition to regular debugger, I may choose to use a tool like pry instead.
+To learn more about pry, check out my previous blog post,
+<a href="http://johnwritecode.com/five-ways-to-get-more-out-of-pry/">"Five Ways to Get More Out of Pry"</a>.</p>
+<p>One plugin which I did not mention in that blog post is
+<a href="https://github.com/deivid-rodriguez/pry-byebug">pry-byebug</a>, which adds
+debugger like functionality to pry, meaning you can place a <code>binding.pry</code> in
+your code and move through it just as you would with debugger. I use both
+<code>debugger</code> and <code>pry-byebug</code> when working with Rails and have included them in
+my default Gemfile at the beginning of this post.</p>
+<p>If you'd like to learn more about using debugger in Rails, check out
+<a href="http://railscasts.com/episodes/54-debugging-ruby-revised">the following RailsCast</a>.</p>
+<h2>1. <a href="https://github.com/charliesome/better_errors">better_errors</a></h2>
+<p><code>better_errors</code> is the one gem I couldn't live without when developing in Rails.
+<code>better_errors</code> replaces the standard Rails error page with a much better and
+more useful error page. It looks like this:</p>
+<p><img src="/images/posts/five-great-gems-to-use-during-rails-development/better_errors.png" alt="better_errors page"></p>
+<p>The added features of better_errors are quite powerful and include
+(from the <a href="https://github.com/charliesome/better_errors#features">better_errors documentation</a>):</p>
+<ul>
+<li>Full stack trace</li>
+<li>Source code inspection for all stack frames (with highlighting)</li>
+<li>Local and instance variable inspection</li>
+<li>Live REPL on every stack frame</li>
+</ul>
+<p>The live REPL is of course the most powerful of these features and the one that
+I use the most. Anytime I am presented with an error page, I have instant access
+to a REPL where I can check out different variables and execute various bits of
+code.</p>
+<p>The live REPL feature does not come as a default with <code>better_errors</code>. To get
+the live REPL feature (and you definitely want to), you will also need to
+include the <code>binding_of_caller</code> gem in your Gemfile. After doing so, your
+Gemfile should include the following:</p>
+<pre><code class="language-ruby">group :development do
+  gem "better_errors"
+  gem "binding_of_caller"
+end
+</code></pre>
+<p>One trick I like to use with <code>better_errors</code> is to use <code>raise params.inspect</code>
+in my controller actions in order to trigger a <code>better_errors</code> page.</p>
+<p>As an example, let's say I want to figure out what's going on with the <code>update</code>
+action in the <code>UsersController</code>. I could use a <code>debugger</code> or <code>binding.pry</code>
+like I discussed previously, but I can also use <code>raise params.inspect</code> to
+trigger the rendering of the <code>better_errors</code> page. The following code shows how.</p>
+<pre><code class="language-ruby">class UsersController &#x3C; ApplicationController
+  def update
+    raise params.inspect
+  end
+end
+</code></pre>
+<p>Then, once the update action is triggered, the browser will render the
+corresponding <code>better_errors</code> page.</p>
+<p>As with many of the other gems mentioned, there's a
+<a href="http://railscasts.com/episodes/402-better-errors-railspanel">great RailsCast about better_errors</a>
+that gives a good overview of how to best use the gem.</p>
+<h2>Conclusion</h2>
+<p>That covers some of my favorite gems to use during Rails development.</p>
+<p>What are some of your favorites?</p>
+]]></content:encoded>
+        </item>
+        <item>
+            <title><![CDATA[Five Ways to Get More Out of Pry]]></title>
+            <link>https://johnkferguson.com/posts/five-ways-to-get-more-out-of-pry</link>
+            <guid>https://johnkferguson.com/posts/five-ways-to-get-more-out-of-pry</guid>
+            <pubDate>Tue, 14 May 2013 04:20:00 GMT</pubDate>
+            <content:encoded><![CDATA[<p><img src="/images/posts/five-ways-to-get-more-out-of-pry/pry_logo_350.png" alt="Pry"></p>
+<h2>What is Pry?</h2>
+<p>Pry is an awesome IRB replacement that offers a ton of powerful features.
+This post will highlight five of the most useful, so you can get more out of Pry.</p>
+<h3>Getting Started</h3>
+<p>To install Pry, type the following into your terminal:</p>
+<pre><code class="language-bash">$ gem install pry
+</code></pre>
+<p>To start Pry from the terminal, simply enter in Pry like so:</p>
+<pre><code class="language-bash">$ pry
+[1] pry(main)>
+</code></pre>
+<p>Once in Pry, you can start interacting with Ruby as you would with irb,
+but with other added features.</p>
+<h3>1. Use Shell Commands while in Pry</h3>
+<p>When inside a Pry session, it's possible to execute normal shell commands,
+such as <code>pwd</code>, <code>cd</code>, or <code>ls</code>. You can even run more advanced commands like
+<code>bundle</code> or even run rails commands like <code>rails generate</code> or <code>rails server</code>.</p>
+<p>To do so, simply prepend a <code>.</code> to the start of the shell command you would
+like to run. Here's some examples:</p>
+<pre><code class="language-bash">[1] pry(main)> .pwd
+/Users/Username
+[2] pry(main)> .ls
+Desktop   Development Dropbox   Movies    Pictures
+Development Downloads Library   Music
+[3] pry(main)> .cd Development
+[4] pry(main)> .pwd
+/Users/Username/Development
+[5] pry(main)> .ls
+ruby_rocks.rb      Folder
+</code></pre>
+<h3>2. Make Full Use of Pry's Methods</h3>
+<p>Pry has a bunch of different methods that can really help you understand your
+code. Here are a few of the best:</p>
+<p>1.<code>cd</code> lets you move into a new context, such as an object or scope. Here's
+how it looks in action</p>
+<pre><code class="language-bash">[1] pry(main)> self
+main
+[2] pry(main)> class Dog
+[2] pry(main)*   def bark
+[2] pry(main)*     puts "woof"
+[2] pry(main)*   end
+[2] pry(main)* end
+nil
+[3] pry(main)> cd Dog
+[4] pry(Dog):1> self
+Dog &#x3C; Object
+</code></pre>
+<p>In the above example, we are now inside the Dog class object. We can perform
+other actions while inside an object, such as <code>ls</code>.</p>
+<p>2.<code>ls</code> allows you to list all the various methods that an object can perform.
+We can see how it works by continuing our example</p>
+<pre><code class="language-bash">[5] pry(Dog):1> ls
+Object.methods: yaml_tag
+Dog#methods: bark
+locals: _  __  _dir_  _ex_  _file_  _in_  _out_  _pry_
+</code></pre>
+<p>As we can see, typing <code>ls</code> shows us what methods an object has. In
+this example, we see that Dog has the <code>bark</code> method.</p>
+<p>3.<code>show-method</code> lets us see the original code of a method. This can be
+of great value when trying to understand what it is a method does.
+Continuing with our example, we can see the original bark method.</p>
+<pre><code class="language-bash">[6] pry(Dog):1> show-method bark
+From: (pry) @ line 3:
+Owner: Dog
+Visibility: public
+Number of lines: 3
+def bark
+  puts "woof"
+end
+</code></pre>
+<p>4.<code>nesting</code> can be used to help orient yourself in understanding the
+scope and inheritance of the current object. Here's how <code>nesting</code>
+works in our ongoing example.</p>
+<pre><code class="language-bash">[7] pry(Dog):1> nesting
+Nesting status:
+--
+0 main (Pry top level)
+1 Dog
+</code></pre>
+<ol start="5">
+<li>Finally, <code>help</code> can list out all the other methods that Pry offers
+that won't be covered in this blog post. Try it out within Pry yourself
+to see all the different options.</li>
+</ol>
+<h3>3. Dive Into Running Code with binding.pry</h3>
+<p><code>binding.pry</code> can be used to start a Pry session at any point in your
+application. This can be great to use to really dive into code and
+understand scope, methods and any sort of errors. Here's how it works.</p>
+<p>Let's say we have a file, pry-example.rb, with the following code:</p>
+<pre><code class="language-ruby">require 'pry'
+
+class Example
+  def how_binding_works
+    binding.pry
+  end
+end
+
+demonstration = Example.new
+demonstration.how_binding_works
+</code></pre>
+<p>We then run the file within the terminal:</p>
+<pre><code class="language-bash">$ ruby pry-example.rb
+</code></pre>
+<p>After running the file, we are then put into the code at the point
+where <code>binding.pry</code> is located.</p>
+<pre><code class="language-bash">From: /Users/Username/pry-example.rb @ line 6 Example#how_binding_works:
+
+    5: def how_binding_works
+ => 6:   binding.pry
+    7: end
+
+[1] pry(#&#x3C;Example>)>
+</code></pre>
+<p>We can then execute whatever commands we want in order to understand
+this place in the code.</p>
+<pre><code class="language-bash">[1] pry(#&#x3C;Example>)> ls
+Example#methods: how_binding_works
+locals: _  __  _dir_  _ex_  _file_  _in_  _out_  _pry_
+[2] pry(#&#x3C;Example>)> self
+#&#x3C;Example:0x007fde422f8fc8>
+</code></pre>
+<h3>4. Use Pry with Rails</h3>
+<p>It's possible to use Pry with your rails app instead of the default rails
+console. There are a few options for how to do so. One of the simplest is to
+use the <a href="https://github.com/rweng/pry-rails">pry-rails</a> gem with your
+application. Doing so will cause <code>rails console</code> to load Pry instead of IRB,
+yet will still retain all of your rails informatin, such as your models,
+and all the information in your database.</p>
+<p>To set up your rails app to use Pry, simply add the following code to your
+gemfile:</p>
+<pre><code class="language-ruby">gem 'pry-rails', :group => :development
+</code></pre>
+<p>Then run <code>bundle install</code> and the next time you invoke the <code>rails console</code>,
+you'll be brought into Pry.</p>
+<p>Pry-rails also comes with two additional methods that extend the functionality
+of Pry with your rails app. They are:</p>
+<ol>
+<li>
+<p><code>show-routes</code> - This shows all of your routes for your application in the
+same way that typing <code>rake routes</code> in the shell would do.</p>
+</li>
+<li>
+<p><code>show-models</code> - This lists all of the models along with all of their column
+name. It is the same as if viewing the schema.rb of your application. However,
+in addition, it will also show any associations your models have, such as
+<code>belongs_to</code> or <code>has_many</code>.</p>
+</li>
+</ol>
+<h3>5. Explore All of Pry's Awesome Documentation &#x26; Resources</h3>
+<p>Pry has some of the best documentation and resources around. Here are some of
+the best places to start with to get a deeper understanding of Pry.</p>
+<ol>
+<li>
+<p><a href="http://pryrepl.org/">Pry's Main Site</a> gives a great overview of the project.</p>
+</li>
+<li>
+<p>The <a href="http://vimeo.com/26391171">Pry Intoductory Screencast</a> is easy to
+follow and does a wonderful job of demonstrating the power of Pry.</p>
+</li>
+<li>
+<p>The RailsCasts episode, <a href="http://railscasts.com/episodes/280-pry-with-rails">Pry with Rails</a>,
+covers some great ways to use Pry with Rails.</p>
+</li>
+<li>
+<p>The <a href="https://github.com/pry/pry/wiki">Pry Wiki</a> on <a href="https://github.com/pry/pry">Pry's Github Repository</a>
+is fantastic and provides links to other worthwhile resources as well as clear
+documentation on all of Pry's capabilities.</p>
+</li>
+</ol>
+]]></content:encoded>
+        </item>
+        <item>
+            <title><![CDATA[The Basics of Collaborating on Github]]></title>
+            <link>https://johnkferguson.com/posts/basics-of-collaborating-on-github</link>
+            <guid>https://johnkferguson.com/posts/basics-of-collaborating-on-github</guid>
+            <pubDate>Wed, 03 Apr 2013 04:10:00 GMT</pubDate>
+            <content:encoded><![CDATA[<p><img src="/images/posts/basics-of-collaborating-on-github/github-collabocats.jpg" alt="Collabocats"></p>
+<p><a href="https://github.com/">Github</a> provides an incredible platform for
+collaborating on software projects. Features such as forks, pull-requests,
+issues, and wikis make Github a flexible tool suitable for various workflows.
+This tutorial will provide an introduction to collaborating on Github
+and highlight different options for maximizing productivity.</p>
+<h2>Adding Collaborators to a Repository</h2>
+<p>On Github, a collaborator is someone who has read/write access to a repository.
+This means they have the ability to make changes to the repository's codebase,
+push any changes to Github, as well as accept pull requests.</p>
+<p>For most projects, it is often best to add team members as collaborators.
+However, there are some cases, such as with large open-source projects,
+where collaboration can still take place even if the person contributing
+code is not listed as an official collaborator.</p>
+<p>In these cases, the way to contribute to a project is to fork its repository,
+make any changes and then submit a pull request. The project's owner or one of
+the collaborators can then decide whether to accept the pull request or not.</p>
+<p>Working with pull requests will be covered later. Right now, let's cover
+the process for adding collaborators to a repository.</p>
+<h3>How to add collaborators:</h3>
+<ol>
+<li>
+<p>From the repository's main page, click on the settings tab.
+<img src="/images/posts/basics-of-collaborating-on-github/github-settings.png" alt="Github Repository Settings"></p>
+</li>
+<li>
+<p>Click on Collaborators from the left sidebar.
+<img src="/images/posts/basics-of-collaborating-on-github/github-collaborators.png" alt="Github Repository Collaborators"></p>
+</li>
+<li>
+<p>Enter in the usernames of any collaborators you would like to add to a
+project and click the add button.
+<img src="/images/posts/basics-of-collaborating-on-github/manage-collaborators.png" alt="Github Repository Collaborators"></p>
+</li>
+</ol>
+<h2>Deciding on a Workflow</h2>
+<p>After setting up a project's collaborators, it's important to come to
+an agreed upon workflow. The main purpose of the workflow is to detail
+how to structure and work with branches, to decide how and when to push to
+master, as well as decide whether to utilize pull requests, and if so, how
+to do so. From this, a multitude of workflow options emerge. Two popular,
+established choices are:</p>
+<h4><a href="http://nvie.com/posts/a-successful-git-branching-model/">Git-Flow</a></h4>
+<p>Git-Flow uses a multiple branch strategy to section off work into appropriate
+branches, such as a branch for development, one for hotfixes, another for
+releases, and one for features. To manage all of these various branches,
+strict rules are enforced about where and how to merge, push or pull.
+Given the complex nature of this workflow, developers often use
+<a href="https://github.com/nvie/gitflow">a helper script</a> to make sure they are
+following the process correctly. For most small projects, Git-Flow may be
+overly strict and complicated to the point that it interferes with productivity.</p>
+<h4><a href="http://scottchacon.com/2011/08/31/github-flow.html">Github Flow</a></h4>
+<p>Github Flow is the workflow used by Github. It is much simpler than Git-flow,
+and is built around the following basic premises:</p>
+<ol>
+<li>Master is always deployable and should be kept clean.</li>
+<li>Always work on small branches.</li>
+<li>When you need feedback or help, or you think the branch is ready for
+merging, open a pull request.</li>
+</ol>
+<p>That's it. One of the advantages of this workflow is its simplicity and clarity.
+Since pull requests are utilized as a sort of code review, developers are able
+to maintain quality code while being kept in the loop about what features
+are being actively developed.</p>
+<p>For a more detailed explanation of Github Flow in action, check out Zach
+Holman's talk, "How Github Uses Github to Build Github" below:</p>
+<iframe width="560" height="315" src="https://www.youtube.com/embed/qyz3jkOBbQY" frameborder="0" allowfullscreen></iframe>
+<h3>Suggested Workflow Rules</h3>
+<p>Whatever workflow you choose, there are certain rules that should almost always
+be employed. They include:</p>
+<ol>
+<li>
+<p><strong>Don't work on master.</strong> Master should always be kept clean and be ready
+to deployed. Use whatever other workflow you need to ensure that the code in
+master is always ready to be deployed.</p>
+</li>
+<li>
+<p><strong>Keep commits small.</strong> Large commits can be overwhelming to go through
+and understand. By keeping commits small, you make changes intelligible. In
+addition, small commits make it much easier to track down problems when
+something breaks.</p>
+</li>
+<li>
+<p><strong>Be descriptive with your commit messages.</strong> Commit messages should
+clearly articulate what changes the commit introduces. Clarity in commit
+messages makes it much easier to navigate through the history of messages and
+find the relevant commit.</p>
+</li>
+<li>
+<p><strong>Whenever possible, use descriptive names for branches.</strong> Succinct
+branch names makes it easier for your team members to know what features you
+are working on. In addition, taking the time to properly name your branch
+can provide focus for what you should actually be working on.</p>
+</li>
+</ol>
+<h2>Pull Requests</h2>
+<p>Pull Requests are not just limited to forked repositories, but can also be used
+between branches on the same project. This means that if you are a collaborator
+on a project, you can work on a feature branch, and then open a pull request
+whenever you need feedback or help, or you think the branch is ready for merging
+into master. Once the pull request has been opened, other collaborators on
+the project can review your code, and provide feedback or ideas.</p>
+<p>Pull requests can be opened even if your code is not ready to be merged. This
+is one of the amazing features about pull requests. It provides a great platform
+where code can be reviewed and improved upon. If you find yourself stuck with
+a bit of code, submit a pull request and ask for help. Then once it's been
+fixed and everything looks good, the pull request can be approved and merged
+into master.</p>
+<p>There are several benefits to this process. First, since code is reviewed before
+being merged into master, the quality of code is kept high. In addition, pull
+requests make code changes transparent thereby keeping all team members up to
+date of any changes. Lastly, pull requests provide a great jumping off point
+for fleshing out a feature or making code right.</p>
+<p>If you've never submitted a pull request, follow along with the pictures to
+see how it works in action.</p>
+<h4>From the repository page, click on the pull request button.</h4>
+<p><img src="/images/posts/basics-of-collaborating-on-github/pull-request-from-main-page.png" alt=""></p>
+<h4>Select the branch that will be the source of the pull request and its destination.</h4>
+<p><img src="/images/posts/basics-of-collaborating-on-github/pull-request-source-destination.png" alt=""></p>
+<h4>Enter in a title for the pull request, fill in some comments and submit it.</h4>
+<p><img src="/images/posts/basics-of-collaborating-on-github/pull-request-description.png" alt=""></p>
+<h4>This is what your submitted pull request will look like.</h4>
+<p><em>(Notice the three main tabs: Discussion, Commits, Files Changed.)</em>
+<img src="/images/posts/basics-of-collaborating-on-github/pull-request-discussion.png" alt=""></p>
+<h4>The commits tab lists all the commits. You can click on the link to any commit to see it in detail.</h4>
+<p><img src="/images/posts/basics-of-collaborating-on-github/initial-commits.png" alt=""></p>
+<h4>The files changed tab shows all the code that has changed.</h4>
+<p><em>(You can add inline comments to the code by clicking on the blue plus button
+that appears when you move your mouse near the line numbers.)</em>
+<img src="/images/posts/basics-of-collaborating-on-github/add-comments.png" alt=""></p>
+<h4>Comments appear in the Files Changed section as well as in the Discussion area.</h4>
+<p><img src="/images/posts/basics-of-collaborating-on-github/code-comments-discussion.png" alt=""></p>
+<h4>Any future commits from the same branch pushed to github will be included with the pull request.</h4>
+<p><img src="/images/posts/basics-of-collaborating-on-github/push-second-commit.png" alt=""></p>
+<h4>The commits tab will include the new commit.</h4>
+<p><img src="/images/posts/basics-of-collaborating-on-github/second-commits-tab.png" alt=""></p>
+<h4>The Files changed tab will also include the code from the new commit.</h4>
+<p><img src="/images/posts/basics-of-collaborating-on-github/files-changed-2.png" alt=""></p>
+<p>The entire Github pull request system provides an incredible way to review and discuss code.</p>
+]]></content:encoded>
+        </item>
+        <item>
+            <title><![CDATA[Autojump Around the Command Line]]></title>
+            <link>https://johnkferguson.com/posts/autojump-around-command-line</link>
+            <guid>https://johnkferguson.com/posts/autojump-around-command-line</guid>
+            <pubDate>Mon, 11 Mar 2013 04:05:00 GMT</pubDate>
+            <content:encoded><![CDATA[<p><a href="https://github.com/joelthelion/Autojump">Autojump</a> is a sweet little command
+line tool that makes it super easy to move around directories without having
+to <code>cd</code> through its entire file path.</p>
+<p>As an example, if we wanted to move from our octopress directory to our
+Documents directory, we could use the standard <code>cd</code> command:</p>
+<pre><code class="language-bash">$ pwd
+/Users/MyUsername/Development/code/octopress
+$ cd /Users/MyUsername/Documents
+$ pwd
+/Users/MyUsername/Documents
+</code></pre>
+<p>Or we could use Autojump, and accomplish the same thing in a lot less keystrokes:</p>
+<pre><code class="language-bash">$ pwd
+/Users/MyUsername/Development/code/octopress
+$ j doc
+$ pwd
+/Users/MyUsername/Documents
+</code></pre>
+<p>Autojump does this by matching our input against a ranked database of the
+directories we spend time in most. We'll delve deeper into how Autojump works
+later and also cover how to best use it, but first, let's install Autojump.</p>
+<h2>Installation</h2>
+<p>If you're on OS X, the best way to install Autojump is via
+<a href="http://mxcl.github.com/homebrew/">Homebrew</a>w. If you'd prefer to do it manually
+or on a Linux machine, check out
+<a href="https://github.com/joelthelion/Autojump#readme">Autojump's documentation</a>
+on their Github repo.</p>
+<p>If you already have Homebrew installed, then skip to step 2 to install or
+update Python. If you already have Homebrew and Python v2.6+ installed,
+then move on to step 3.</p>
+<ol>
+<li>
+<p>Homebrew is an OS X package manager for OS X that can install any additional
+libraries you may need. If you don't already have Homebrew, enter the following
+code into a terminal prompt to install it:</p>
+<pre><code class="language-bash">$ ruby -e "$(curl -fsSL https://raw.github.com/mxcl/homebrew/go)"
+</code></pre>
+</li>
+<li>
+<p>To check if we have Python v2.6+ installed, type the following into the terminal:
+<code>python -V</code> This will give you the version number of Python. If it's less
+than 2.6, then run the following in the terminal <code>brew install python</code></p>
+</li>
+<li>
+<p>With Python and Homebrew already installed, all that's left is installing
+Autojump, which can be  To do that, enter the following command
+<code>brew install autojump</code></p>
+</li>
+</ol>
+<h2>Jumping Around</h2>
+<p>So we've got Autojump installed, but we can't start jumping around between
+directories just yet. First Autojump needs to build a database of the
+directories we spend time in most. Autojump starts doing this from the
+moment it is installed. However, it will have no memory of what directories
+we visited prior to its installation and hence will have no database initially.</p>
+<p>To demonstrate this, let's see what Autojump's database of directories looks
+like right after installation. This can be done through the following
+command: <code>j -s</code></p>
+<p>Since we haven't changed directories yet, Autojump's database is empty.
+So let's change directories to start populating Autojump's database:</p>
+<pre><code class="language-bash">$ cd /Users/MyUsername/Downloads
+</code></pre>
+<p>Now when we use <code>j -s</code>, we should see the following:</p>
+<pre><code class="language-bash">20.0: /Users/MyUsername/Downloads
+Total key weight: 20. Number of stored dirs: 1
+</code></pre>
+<p>Let's move to the desktop. Since it's not in the Autojump database, we can't
+jump to it yet. So we'll cd into it:</p>
+<pre><code class="language-bash">$ cd /Users/MyUsername/Desktop
+</code></pre>
+<p>We'll run <code>j -s</code> again to see Autojump's database:</p>
+<pre><code class="language-bash">20.0: /Users/MyUsername/Downloads
+20.0 /Users/MyUsername/Desktop
+Total key weight: 40. Number of stored dirs: 2
+</code></pre>
+<p>Now Autojump has 2 entries in its database and we can jump to them from
+anywhere in our filesystem. To move to the Downloads directory, either of the
+following commands would work <code>j dow</code> or <code>j do</code>.</p>
+<p>Once in the Downloads directory, let's hop back to the desktop with either of
+the following commands <code>j des</code> or <code>j de</code>. Of course, we could enter more
+characters to accomplish the same thing. This often becomes necessary if our
+database is large and our target directory is ranked low.</p>
+<h3>Understanding Rank</h3>
+<p>As we continue to use the command line as normal, Autojump's database will keep
+populating with new directories. In addition, Autojump will increase the rank
+of directories we spend time in most, while decreasing the rank of directories
+we don't visit that often. After using Autojump for a while, our database might
+look like the following:</p>
+<pre><code class="language-bash">4.8: /Users/MyUsername/Library
+12.7: /Users/MyUsername/Music
+13.1: /Users/MyUsername/Documents
+18.0: /Users/MyUsername/Development/code/octopress/public
+23.3: /Users/MyUsername/Dropbox
+24.0: /Users/MyUsername/Development/code/octopress/source
+28.5: /Users/MyUsername/Pictures
+32.1: /Users/MyUsername/Development
+33.8: /Users/MyUsername/Development/code/octopress
+36.0: /Users/MyUsername/Desktop
+45.7: /Users/MyUsername/Downloads
+58.0: /Users/MyUsername/Development/code/octopress/source/_posts
+64.1: /Users/MyUsername/Development/code
+Total key weight: 394.1. Number of stored dirs: 13
+</code></pre>
+<p>In the above, <code>/Users/MyUsername/Development/code</code> has a key weight of 64.1.
+A directory's key weight determines its rank. A higher key weight means a
+higher rank, while a lower key weight means a lower rank. Rank is used when
+making a fuzzy match between a user's input and Autojump's database of
+directories. Higher ranked directories are matched against the user's input
+first before other lower ranked directories.</p>
+<h3>Tab Auto-completion</h3>
+<p>Autojump also supports tab auto-completion. To use tab auto-completion, type in
+the first few letters of the directory you want to visit and press tab to have
+the complete directory filled in. This is great to use if you are uncertain
+about what directory Autojump will hop to based upon your input. In addition,
+when there are multiple possible directories after tab is pressed, Autojump
+will display all such options. For example:
+<code>j d</code> + <strong>TAB</strong> will reveal a list of possible directories:</p>
+<pre><code class="language-bash">d__1__/Users/MyUsername/Development/code
+d__2__/Users/MyUsername/Downloads
+d__3__/Users/MyUsername/Development
+d__4__/Users/MyUsername/Dropbox
+d__5__/Users/MyUsername/Documents
+</code></pre>
+<p>Our command line prompt will then read as:</p>
+<pre><code class="language-bash">$ j d_
+</code></pre>
+<p>All we have to do is enter in the number of the directory we want to go to and
+press <strong>TAB</strong> to have it auto-completed and press enter to jump to it.</p>
+<h3>Jumping to a directory and listing its files</h3>
+<p>We can extend the functionality of autojump to list the files of a directory we
+jump to by adding a simple function to our bash profile. Here's how:</p>
+<ol>
+<li>
+<p>Open your Bash profile in your favorite text editor. Your bash profile will
+typically be found in your home directory as a hidden file, often with the
+file path of <code>/Users/'Your_Name_Here'/.bash_profile</code></p>
+</li>
+<li>
+<p>Once in your Bash profile, add the following line:</p>
+<pre><code class="language-bash">function jl(){ j "$@" &#x26;&#x26; ls; }
+</code></pre>
+</li>
+<li>
+<p>Source your terminal to reflect the changes to your Bash profile. This can
+be done by entering <code>source /Users/'Your_Name_Here'/.bash_profile</code> into the
+terminal.</p>
+</li>
+</ol>
+<p>Now you can use the alias <code>jl</code> to jump into a directory and <code>ls</code> all of its contents.</p>
+]]></content:encoded>
+        </item>
+    </channel>
+</rss>

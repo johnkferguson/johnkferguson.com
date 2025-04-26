@@ -1,6 +1,6 @@
 # Task ID: 2
 # Title: Initialize Next.js Project with Tailwind CSS
-# Status: pending
+# Status: done
 # Dependencies: 1
 # Priority: high
 # Description: Set up a new Next.js project with Tailwind CSS and configure essential development tools.

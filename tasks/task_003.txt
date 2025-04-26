@@ -1,6 +1,6 @@
 # Task ID: 3
 # Title: Configure Core Layout and Styling
-# Status: pending
+# Status: done
 # Dependencies: 2
 # Priority: high
 # Description: Set up the main application layout, global styles, and integrate Tailwind CSS.

@@ -1,0 +1,299 @@
+@import "tailwindcss";
+
+/* 
+ * Variables 
+ */
+:root {
+  --heading-color: #333333;
+  --code-background: #f8f8f8;
+  --code-border: #d5d5e9;
+  --code-color: #bf616a;
+  --date-color: #818181;
+}
+
+/* 
+ * Base Settings 
+ */
+* {
+  margin: 0;
+  padding: 0;
+}
+
+html {
+  font-family: 'PT Serif', serif;
+  font-size: 16px;
+}
+
+@media (min-width: 44em) {
+  html {
+    font-size: 21px;
+  }
+}
+
+body {
+  line-height: 1.5;
+  font-weight: 400;
+  background-color: #fff;
+  color: #555555;
+}
+
+p {
+  margin: 0 0 1rem;
+}
+
+h1, h2, h3, h4, h5, h6 {
+  margin-top: 0;
+  margin-bottom: 0.5rem;
+  font-weight: bold;
+  line-height: 1.1;
+  color: var(--heading-color);
+  letter-spacing: -0.033rem;
+}
+
+h1, h2, h3 {
+  margin-top: 1.5rem;
+}
+
+h4, h5, h6 {
+  margin-top: 1.2rem;
+}
+
+h1 {
+  font-size: 2rem;
+}
+
+h2 {
+  font-size: 1.6rem;
+}
+
+h3 {
+  font-size: 1.4rem;
+}
+
+h4 {
+  font-size: 1.2rem;
+}
+
+a {
+  font-weight: inherit;
+  line-height: inherit;
+  color: #222;
+  text-decoration: none;
+  transition: all .2s ease-in-out;
+}
+
+a:hover {
+  color: #000000;
+}
+
+img {
+  max-width: 100%;
+  border-radius: 0.25rem;
+}
+
+blockquote {
+  border-left: 0.2rem solid #e8e8e8;
+  padding-left: 1rem;
+  font-size: 0.9rem;
+  opacity: .6;
+  font-style: italic;
+  margin: 1.5rem 0;
+}
+
+/* 
+ * Code Styles 
+ */
+pre, code {
+  background-color: var(--code-background);
+  font-size: 0.75rem;
+  overflow: auto;
+  border-radius: 0.25rem;
+}
+
+pre {
+  margin: 0 0 1rem;
+}
+
+code {
+  padding: 0.05rem 0.25rem;
+  font-family: 'Fira Code', monospace;
+  color: var(--code-color);
+}
+
+pre code {
+  color: inherit;
+  border: 0;
+  padding: 0;
+}
+
+.gist {
+  font-size: 0.75rem;
+}
+
+.gist table {
+  background-color: var(--code-background);
+}
+
+/* 
+ * Global Settings 
+ */
+.wrap {
+  padding: 0 0.75rem;
+  max-width: 30rem;
+  margin: 0 auto;
+  zoom: 1;
+}
+
+.page-content {
+  padding: 2rem 0rem;
+}
+
+.page-content a {
+  border-bottom: 1px solid #ddd;
+}
+
+.page-content a:hover {
+  border-bottom-color: #000;
+}
+
+/* 
+ * Header Styles 
+ */
+.site-header {
+  border-top: 1px solid var(--heading-color);
+  padding-top: 0.5rem;
+  min-height: 2.4rem;
+  line-height: 2.1rem;
+}
+
+.site-title {
+  display: block;
+  color: #000;
+  font-size: 1.5rem;
+  letter-spacing: -1px;
+  float: left;
+  position: relative;
+  border-bottom: 1px solid #000;
+  z-index: 1;
+}
+
+.site-nav {
+  float: right;
+}
+
+.site-nav .menu-icon {
+  display: none;
+}
+
+.site-nav .page-link {
+  color: #727272;
+  letter-spacing: -0.033rem;
+  padding: 0.5rem;
+}
+
+/* 
+ * Footer Styles 
+ */
+.site-footer {
+  border-top: 1px solid #e8e8e8;
+  background-color: #fdfdfd;
+  padding: 1.7rem 0;
+  text-align: center;
+}
+
+.social-icons li {
+  height: 3.45rem;
+  display: inline;
+  list-style-type: none;
+}
+
+.social-icons li.github {
+  padding-left: 1rem;
+  padding-right: 1rem;
+}
+
+.github-icon-svg, .twitter-icon-svg, .email-icon-svg {
+  width: 2.3rem;
+  height: 2.3rem;
+  position: relative;
+}
+
+.github-icon-svg path, .twitter-icon-svg path, .email-icon-svg path {
+  fill: #C2C2C2;
+}
+
+.github-icon-svg:hover path {
+  fill: #000;
+}
+
+.twitter-icon-svg:hover path {
+  fill: #9AE4E8;
+}
+
+.email-icon-svg:hover path {
+  fill: #e24f43;
+}
+
+/* 
+ * Posts Index Page 
+ */
+.posts {
+  list-style-type: none;
+}
+
+.posts li {
+  margin-bottom: 1.4rem;
+}
+
+.posts .post-link {
+  font-size: 1.2rem;
+  letter-spacing: -0.04rem;
+  line-height: 1;
+}
+
+.posts .post-date {
+  display: block;
+  font-size: 0.7rem;
+  color: var(--date-color);
+}
+
+/* 
+ * Posts Style 
+ */
+.post-header {
+  margin-bottom: 1.2rem;
+}
+
+.post-header h1 {
+  margin-top: 0;
+}
+
+.post-header .meta {
+  color: var(--date-color);
+}
+
+.post ul, .post ol {
+  margin-left: 1.35em;
+  padding-left: 1rem;
+}
+
+/* 
+ * About Page 
+ */
+.about .post-content p:first-child {
+  float: left;
+  margin-bottom: 0;
+  margin-right: 1rem;
+}
+
+.about .post-content p:first-child img {
+  width: 210px;
+}
+
+@media (min-width: 44em) {
+  .about .post-content p:first-child > img {
+    width: 100%;
+  }
+}
+
+/* Media Queries were commented out in the original file */

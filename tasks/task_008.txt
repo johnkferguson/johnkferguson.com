@@ -1,6 +1,6 @@
 # Task ID: 8
 # Title: Implement Sitemap and Robots.txt Generation
-# Status: pending
+# Status: done
 # Dependencies: 5, 6
 # Priority: medium
 # Description: Create sitemap.xml and robots.txt files.
