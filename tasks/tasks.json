@@ -1,0 +1,179 @@
+{
+  "tasks": [
+    {
+      "id": 1,
+      "title": "Isolate Existing Gatsby Project",
+      "description": "Move Gatsby-specific files and directories (configs, src, static, content, package.json) into a 'gatsby/' subdirectory to prepare for Next.js installation at the root.",
+      "status": "done",
+      "dependencies": [],
+      "priority": "high",
+      "details": "1. Create a 'gatsby/' directory.\n2. Move gatsby-*.js config files into 'gatsby/'.\n3. Move 'src/', 'static/', 'content/' directories into 'gatsby/'.\n4. Move 'package.json' and 'package-lock.json' to 'gatsby/' (e.g., as package.json.old).",
+      "testStrategy": "Verify that all essential Gatsby project files are inside the 'gatsby/' directory and the root directory is clean for Next.js installation.",
+      "subtasks": []
+    },
+    {
+      "id": 2,
+      "title": "Initialize Next.js Project with Tailwind CSS",
+      "description": "Set up a new Next.js project with Tailwind CSS and configure essential development tools.",
+      "status": "done",
+      "dependencies": [
+        1
+      ],
+      "priority": "high",
+      "details": "1. Run `npx create-next-app@latest . --ts --eslint --tailwind --src-dir --app --use-npm --no-customize-alias` in the project root.\n2. Verify the basic project structure is created.\n3. Confirm Tailwind CSS is configured correctly.\n4. Ensure ESLint and TypeScript setups are functional.",
+      "testStrategy": "Run `npm run dev` and ensure the default Next.js page loads without errors. Check for the presence of `tailwind.config.js`, `tsconfig.json`, and `.eslintrc.json`.",
+      "subtasks": []
+    },
+    {
+      "id": 3,
+      "title": "Configure Core Layout and Styling",
+      "description": "Set up the main application layout, global styles, and integrate Tailwind CSS.",
+      "status": "done",
+      "dependencies": [
+        2
+      ],
+      "priority": "high",
+      "details": "1. Create a root layout component in `src/app/layout.tsx`.\n2. Import global CSS (including Tailwind directives) in the root layout.\n3. Define basic page structure (header, main content area, footer) within the layout.\n4. Apply initial Tailwind classes for typography, background, etc. Set up Google Fonts 'PT Serif' and 'Fira Code' using `next/font`.",
+      "testStrategy": "Verify the basic layout structure appears on the home page. Check that Tailwind utility classes are being applied correctly. Verify fonts load.",
+      "subtasks": []
+    },
+    {
+      "id": 4,
+      "title": "Implement Markdown Content Processing",
+      "description": "Set up utilities to read and parse Markdown blog posts from the `gatsby/content/blog` directory.",
+      "status": "done",
+      "dependencies": [
+        2
+      ],
+      "priority": "high",
+      "details": "1. Install necessary libraries: `gray-matter`, `remark`, `remark-html`.\n2. Create utility functions in `src/lib/posts.ts` (or similar) to:\n   - Read files from `gatsby/content/blog`.\n   - Parse frontmatter using `gray-matter`.\n   - Convert Markdown content to HTML using `remark`.\n   - Generate slugs from filenames (e.g., removing date prefixes).",
+      "testStrategy": "Write unit tests for the utility functions. Test reading a sample Markdown file and verify correct parsing of frontmatter and HTML content generation.",
+      "subtasks": []
+    },
+    {
+      "id": 5,
+      "title": "Create Blog Index Page",
+      "description": "Build the main page (`/`) to list all blog posts.",
+      "status": "done",
+      "dependencies": [
+        3,
+        4
+      ],
+      "priority": "high",
+      "details": "1. Create the main page component at `src/app/page.tsx`.\n2. Use the content processing utilities (Task 4) to fetch sorted post data (slug, title, date, excerpt).\n3. Render a list of post previews, each linking to the post's future dynamic route.\n4. Apply Tailwind CSS for styling the list and previews.",
+      "testStrategy": "Verify the home page loads and displays a list of posts fetched from the Markdown files. Check that links point to the correct slug paths (e.g., `/blog/[slug]`).",
+      "subtasks": []
+    },
+    {
+      "id": 6,
+      "title": "Create Dynamic Blog Post Pages",
+      "description": "Build the template to display individual blog posts at `/blog/[slug]`.",
+      "status": "done",
+      "dependencies": [
+        3,
+        4
+      ],
+      "priority": "high",
+      "details": "1. Create the dynamic route page component at `src/app/blog/[slug]/page.tsx`.\n2. Implement `generateStaticParams` to define all possible blog post slugs.\n3. Implement the page component to fetch full post data (including HTML content) for a given slug using Task 4 utilities.\n4. Render the post title, metadata, and HTML content using `dangerouslySetInnerHTML`. Handle image path resolution/optimization (`next/image`). Handle code blocks.\n5. \\nApply Tailwind CSS for post styling.",
+      "testStrategy": "Navigate to individual blog post URLs. Verify title, metadata, and content render correctly. Ensure basic Markdown formatting (headings, lists, code blocks, images) is preserved.",
+      "subtasks": []
+    },
+    {
+      "id": 7,
+      "title": "Implement RSS Feed Generation",
+      "description": "Create an RSS feed at `/rss.xml` containing all blog posts.",
+      "status": "done",
+      "dependencies": [
+        4
+      ],
+      "priority": "medium",
+      "details": "1. Create an API route handler (e.g., `src/app/rss.xml/route.ts`).\n2. Use the content processing utilities (Task 4) to fetch all post data.\n3. Install and use a library like `feed`.\n4. Generate the RSS feed XML with appropriate channel info and post items.\n5. Return the XML with the correct content type header.",
+      "testStrategy": "Access `/rss.xml` in the browser or via curl. Validate the feed using an online validator. Ensure all posts are included with correct links and metadata.",
+      "subtasks": []
+    },
+    {
+      "id": 8,
+      "title": "Implement Sitemap and Robots.txt Generation",
+      "description": "Create sitemap.xml and robots.txt files.",
+      "status": "done",
+      "dependencies": [
+        5,
+        6
+      ],
+      "priority": "medium",
+      "details": "1. **Sitemap:** Create an API route handler (e.g., `src/app/sitemap.xml/route.ts`) that generates an XML sitemap including the home page and all blog post pages with last modification dates.\n2. **Robots.txt:** Create a static file `public/robots.txt` with appropriate rules, potentially referencing the sitemap.",
+      "testStrategy": "Access `/sitemap.xml` and `/robots.txt` directly. Verify correct formatting and inclusion of all relevant URLs. Validate the sitemap using an online validator.",
+      "subtasks": []
+    },
+    {
+      "id": 9,
+      "title": "Migrate Static Pages and Assets",
+      "description": "Migrate any non-blog static pages (e.g., About) and handle static assets.",
+      "status": "done",
+      "dependencies": [
+        3
+      ],
+      "priority": "medium",
+      "details": "1. Identify static pages in the original `gatsby/src/pages`.\n2. Create corresponding page components in `src/app/` (e.g., `src/app/about/page.tsx`).\n3. Move required static assets (images, fonts) from `gatsby/static` to the Next.js `public/` directory.\n4. Update asset references in components and styles.\n5. Apply Tailwind CSS for styling.",
+      "testStrategy": "Verify static pages render correctly with proper styling and assets.",
+      "subtasks": []
+    },
+    {
+      "id": 10,
+      "title": "Implement SEO Components and Metadata",
+      "description": "Create SEO components to handle page titles, meta descriptions, and Open Graph tags.",
+      "status": "done",
+      "dependencies": [
+        5,
+        6
+      ],
+      "priority": "medium",
+      "details": "1. Create an SEO component or utilize Next.js Metadata API in layouts/pages.\n2. Implement dynamic metadata for blog posts based on frontmatter.\n3. Add Open Graph tags for social sharing.",
+      "testStrategy": "Use browser dev tools to inspect head elements. Test with social media preview tools.",
+      "subtasks": []
+    },
+    {
+      "id": 11,
+      "title": "Configure Deployment and Analytics",
+      "description": "Configure Netlify deployment settings and potentially set up analytics.",
+      "status": "done",
+      "dependencies": [
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8,
+        9,
+        10
+      ],
+      "priority": "low",
+      "details": "1. Update `netlify.toml` with Next.js build command (`npm run build`) and publish directory (`.next`).\n2. Configure environment variables in Netlify if needed.\n3. Add any necessary redirects or headers in `netlify.toml` or `next.config.js`.\n4. Optionally, integrate an analytics solution.",
+      "testStrategy": "Trigger a deploy preview build on Netlify. Verify successful build and deployment. Test the deployed preview site thoroughly.",
+      "subtasks": []
+    },
+    {
+      "id": 12,
+      "title": "Refine Styling and Visual Parity",
+      "description": "Review and refine Tailwind CSS styling across the site to ensure visual parity with the original Gatsby site.",
+      "status": "pending",
+      "dependencies": [
+        3,
+        5,
+        6,
+        9
+      ],
+      "priority": "medium",
+      "details": "1. Compare each page and component with the original site screenshots or live version.\n2. Adjust Tailwind classes to fix discrepancies in layout, spacing, typography, and colors.\n3. Ensure responsiveness across different screen sizes.\n4. Pay attention to details like link states (hover, active), image presentation, and code block styling.",
+      "testStrategy": "Perform thorough visual regression testing (manual comparison or using automated tools). Test on multiple browsers and devices.",
+      "subtasks": []
+    }
+  ],
+  "metadata": {
+    "projectName": "Gatsby to Next.js Migration",
+    "totalTasks": 12,
+    "sourceFile": "scripts/prd.txt",
+    "generatedAt": "2023-11-12"
+  }
+}

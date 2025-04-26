@@ -1,0 +1,67 @@
+# Product Requirements Document: Gatsby to Next.js Migration
+
+## 1. Project Goal
+Migrate the existing Gatsby-based blog (johnkferguson.com) to Next.js, utilizing Tailwind CSS for styling, while ensuring full retention of existing content, functionality (including RSS feed), and SEO value.
+
+## 2. Key Requirements
+
+### 2.1. Core Technology Stack
+- Framework: Next.js (replacing Gatsby)
+- Styling: Tailwind CSS (replacing existing SASS implementation)
+- Content: Markdown files (maintain existing source in `src/`)
+
+### 2.2. Project Setup
+- Initialize a new Next.js project.
+- Install and configure Tailwind CSS according to Next.js best practices.
+- Set up basic project structure (pages, components, styles, lib/utils).
+- Configure necessary Next.js features (e.g., TypeScript if desired, ESLint, Prettier).
+
+### 2.3. Content Migration & Handling
+- Develop a strategy for sourcing Markdown content within Next.js (e.g., using `glob` to find files, `gray-matter` for frontmatter, `remark`/`rehype` or `next-mdx-remote` for rendering).
+- Implement logic to read and parse existing Markdown files for blog posts.
+- Ensure all existing posts, including metadata (title, date, tags, etc.), are correctly processed and displayed.
+- Handle relative image paths referenced within Markdown files correctly in the new setup.
+- Migrate any static pages (e.g., About, Contact) if they exist.
+
+### 2.4. Feature Parity
+- **Routing:** Replicate the existing URL structure. Blog posts should be available at `/<slug>`, where `<slug>` is derived from the Markdown filename by removing the `YYYY-MM-DD-` prefix (matching `gatsby-node.js` logic). Implement using Next.js App Router or Pages Router.
+- **Layout & Components:** Recreate the main site layout (header, footer, navigation) using Next.js and Tailwind CSS. Migrate/rebuild existing React components (e.g., those found in `src/components`, Post previews derived from `src/templates/blog-post.js`) using Next.js patterns and Tailwind.
+- **Styling:** Replace existing SASS styles with Tailwind CSS utility classes to achieve visual parity.
+- **Image Handling:** Implement image optimization using `next/image`. Ensure correct handling of images referenced within Markdown, comparable to `gatsby-remark-images` and `gatsby-remark-relative-images`.
+- **SEO:** Ensure all critical SEO elements are carried over or re-implemented:
+    - Page titles and meta descriptions (using Next.js Metadata API instead of `react-helmet`).
+    - Open Graph tags.
+    - Structured data (if applicable).
+    - Generation of `sitemap.xml` (replicating `gatsby-plugin-sitemap`).
+    - Generation of `robots.txt` (replicating `gatsby-plugin-robots-txt`, including specific rules for Netlify environments like production, branch-deploy, deploy-preview).
+- **RSS Feed:** Re-implement RSS feed generation, ensuring it's available at `/rss.xml` (replicating `gatsby-plugin-feed`).
+- **Fonts:** Migrate Google Font loading for 'PT Serif' and 'Fira Code' using `next/font` (replacing `gatsby-plugin-prefetch-google-fonts`).
+- **Analytics:** Integrate analytics (e.g., Google Analytics) if used on the current site.
+
+### 2.5. Static Assets
+- Migrate static assets (images, fonts, downloadable files) to the Next.js `public` directory or appropriate location.
+- Update references to these assets throughout the codebase.
+
+### 2.6. Development Workflow
+- Establish local development environment setup instructions.
+- Configure environment variables (similar to `.env.development`).
+
+### 2.7. Deployment
+- Configure the project for deployment on Netlify (or alternative if desired).
+- Review and update deployment settings in `netlify.toml` for Next.js build commands and outputs.
+- Replicate necessary environment variable handling for production builds (similar to Netlify env context in `gatsby-config.js`).
+
+### 2.8. Testing
+- Perform thorough testing to ensure:
+    - All pages render correctly (including `/`, `/blog/[slug]`, `/rss.xml`, `/sitemap.xml`, `/robots.txt`).
+    - All links work.
+    - Content displays accurately.
+    - Responsive design is functional across devices.
+    - Visual parity with the original site is acceptable.
+    - Core functionality (navigation, content loading) works as expected.
+    - SEO elements are present and correct.
+
+## 3. Non-Goals
+- Adding significant new features beyond what's required for migration.
+- Major redesign unrelated to the Tailwind implementation.
+- Changing the content management source from Markdown files.

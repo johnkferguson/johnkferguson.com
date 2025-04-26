@@ -1,0 +1,15 @@
+# Task ID: 6
+# Title: Create Dynamic Blog Post Pages
+# Status: done
+# Dependencies: 3, 4
+# Priority: high
+# Description: Build the template to display individual blog posts at `/blog/[slug]`.
+# Details:
+1. Create the dynamic route page component at `src/app/blog/[slug]/page.tsx`.
+2. Implement `generateStaticParams` to define all possible blog post slugs.
+3. Implement the page component to fetch full post data (including HTML content) for a given slug using Task 4 utilities.
+4. Render the post title, metadata, and HTML content using `dangerouslySetInnerHTML`. Handle image path resolution/optimization (`next/image`). Handle code blocks.
+5. \nApply Tailwind CSS for post styling.
+
+# Test Strategy:
+Navigate to individual blog post URLs. Verify title, metadata, and content render correctly. Ensure basic Markdown formatting (headings, lists, code blocks, images) is preserved.

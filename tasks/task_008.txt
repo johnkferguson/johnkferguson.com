@@ -1,0 +1,12 @@
+# Task ID: 8
+# Title: Implement Sitemap and Robots.txt Generation
+# Status: done
+# Dependencies: 5, 6
+# Priority: medium
+# Description: Create sitemap.xml and robots.txt files.
+# Details:
+1. **Sitemap:** Create an API route handler (e.g., `src/app/sitemap.xml/route.ts`) that generates an XML sitemap including the home page and all blog post pages with last modification dates.
+2. **Robots.txt:** Create a static file `public/robots.txt` with appropriate rules, potentially referencing the sitemap.
+
+# Test Strategy:
+Access `/sitemap.xml` and `/robots.txt` directly. Verify correct formatting and inclusion of all relevant URLs. Validate the sitemap using an online validator.

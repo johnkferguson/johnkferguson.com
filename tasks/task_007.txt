@@ -1,0 +1,15 @@
+# Task ID: 7
+# Title: Implement RSS Feed Generation
+# Status: done
+# Dependencies: 4
+# Priority: medium
+# Description: Create an RSS feed at `/rss.xml` containing all blog posts.
+# Details:
+1. Create an API route handler (e.g., `src/app/rss.xml/route.ts`).
+2. Use the content processing utilities (Task 4) to fetch all post data.
+3. Install and use a library like `feed`.
+4. Generate the RSS feed XML with appropriate channel info and post items.
+5. Return the XML with the correct content type header.
+
+# Test Strategy:
+Access `/rss.xml` in the browser or via curl. Validate the feed using an online validator. Ensure all posts are included with correct links and metadata.

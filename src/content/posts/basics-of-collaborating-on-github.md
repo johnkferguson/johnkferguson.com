@@ -3,7 +3,7 @@ layout: post
 title: "The Basics of Collaborating on Github"
 date: 2013-04-03 00:10
 ---
-![Collabocats](./github-collabocats.jpg)
+![Collabocats](/images/posts/basics-of-collaborating-on-github/github-collabocats.jpg)
 
 [Github](https://github.com/) provides an incredible platform for
 collaborating on software projects. Features such as forks, pull-requests,
@@ -34,14 +34,14 @@ the process for adding collaborators to a repository.
 ### How to add collaborators:
 
 1. From the repository's main page, click on the settings tab.
-![Github Repository Settings](./github-settings.png)
+![Github Repository Settings](/images/posts/basics-of-collaborating-on-github/github-settings.png)
 
 2. Click on Collaborators from the left sidebar.
-![Github Repository Collaborators](./github-collaborators.png)
+![Github Repository Collaborators](/images/posts/basics-of-collaborating-on-github/github-collaborators.png)
 
 3. Enter in the usernames of any collaborators you would like to add to a
 project and click the add button.
-![Github Repository Collaborators](./manage-collaborators.png)
+![Github Repository Collaborators](/images/posts/basics-of-collaborating-on-github/manage-collaborators.png)
 
 ## Deciding on a Workflow
 
@@ -134,36 +134,36 @@ If you've never submitted a pull request, follow along with the pictures to
 see how it works in action.
 
 #### From the repository page, click on the pull request button.
-![](./pull-request-from-main-page.png)
+![](/images/posts/basics-of-collaborating-on-github/pull-request-from-main-page.png)
 
 #### Select the branch that will be the source of the pull request and its destination.
-![](./pull-request-source-destination.png)
+![](/images/posts/basics-of-collaborating-on-github/pull-request-source-destination.png)
 
 #### Enter in a title for the pull request, fill in some comments and submit it.
-![](./pull-request-description.png)
+![](/images/posts/basics-of-collaborating-on-github/pull-request-description.png)
 
 #### This is what your submitted pull request will look like.
 *(Notice the three main tabs: Discussion, Commits, Files Changed.)*
-![](./pull-request-discussion.png)
+![](/images/posts/basics-of-collaborating-on-github/pull-request-discussion.png)
 
 #### The commits tab lists all the commits. You can click on the link to any commit to see it in detail.
-![](./initial-commits.png)
+![](/images/posts/basics-of-collaborating-on-github/initial-commits.png)
 
 #### The files changed tab shows all the code that has changed.
 *(You can add inline comments to the code by clicking on the blue plus button
 that appears when you move your mouse near the line numbers.)*
-![](./add-comments.png)
+![](/images/posts/basics-of-collaborating-on-github/add-comments.png)
 
 #### Comments appear in the Files Changed section as well as in the Discussion area.
-![](./code-comments-discussion.png)
+![](/images/posts/basics-of-collaborating-on-github/code-comments-discussion.png)
 
 #### Any future commits from the same branch pushed to github will be included with the pull request.
-![](./push-second-commit.png)
+![](/images/posts/basics-of-collaborating-on-github/push-second-commit.png)
 
 #### The commits tab will include the new commit.
-![](./second-commits-tab.png)
+![](/images/posts/basics-of-collaborating-on-github/second-commits-tab.png)
 
 #### The Files changed tab will also include the code from the new commit.
-![](./files-changed-2.png)
+![](/images/posts/basics-of-collaborating-on-github/files-changed-2.png)
 
 The entire Github pull request system provides an incredible way to review and discuss code.
