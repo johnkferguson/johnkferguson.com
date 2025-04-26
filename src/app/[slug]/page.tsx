@@ -2,6 +2,7 @@
 import { notFound } from 'next/navigation';
 import type { Metadata } from 'next';
 import { getPostData, getAllPostSlugs } from '@/lib/posts';
+import MarkdownRenderer from '@/components/MarkdownRenderer';
 
 // Generate params for all posts at build time
 export function generateStaticParams(): { slug: string }[] {
@@ -87,10 +88,9 @@ export default async function PostPage({ params }: { params: { slug: string } })
             <h1>{postData.title}</h1>
             <p className="meta">{formattedDate}</p>
           </header>
-          <article
-            className="post-content"
-            dangerouslySetInnerHTML={{ __html: postData.contentHtml }}
-          ></article>
+          <article className="post-content">
+            <MarkdownRenderer content={postData.contentMarkdown} blurMap={postData.blurMap} />
+          </article>
         </div>
       </div>
     </div>

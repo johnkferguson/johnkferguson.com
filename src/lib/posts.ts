@@ -123,9 +123,11 @@ export function getSortedPostsData(): ({ slug: string; excerpt: string } & PostF
 }
 
 /**
- * Gets full post data including processed HTML content for a single post page.
+ * Gets full post data including both raw Markdown and processed HTML content for a single post page.
  */
-export async function getPostData(slug: string): Promise<({ slug: string, contentHtml: string } & PostFrontMatter) | null> {
+import { getPlaiceholder } from 'plaiceholder';
+
+export async function getPostData(slug: string): Promise<({ slug: string, contentHtml: string, contentMarkdown: string, blurMap: Record<string, { blurDataURL: string; width: number; height: number }> } & PostFrontMatter) | null> {
   // Construct the full path to the markdown file directly
   const fullPath = path.join(postsDirectory, `${slug}.md`); // Assuming .md
 
@@ -155,6 +157,42 @@ export async function getPostData(slug: string): Promise<({ slug: string, conten
     .use(html, { sanitize: false }) // Keep sanitize false if you trust your MD content or handle elsewhere
     .process(matterResult.content);
   const contentHtml = processedContent.toString();
+  const contentMarkdown = matterResult.content;
+
+  // --- Blur Map Generation for Markdown Images ---
+  // Find all Markdown images: ![alt](src)
+  const imageRegex = /!\[[^\]]*\]\(([^)]+)\)/g;
+  const blurMap: Record<string, { blurDataURL: string; width: number; height: number }> = {};
+  const matches = [...contentMarkdown.matchAll(imageRegex)];
+  for (const match of matches) {
+    const imgSrc = match[1];
+    // Only process local images (public/)
+    if (imgSrc.startsWith('/')) {
+      try {
+        // Remove query/hash if present
+        const cleanSrc = imgSrc.split('?')[0].split('#')[0];
+        // Resolve to absolute path
+        const absPath = path.join(process.cwd(), 'public', cleanSrc);
+        const result = await getPlaiceholder(absPath as any);
+        if (
+          result &&
+          result.metadata &&
+          typeof result.metadata.width === 'number' &&
+          typeof result.metadata.height === 'number'
+        ) {
+          blurMap[imgSrc] = {
+            blurDataURL: result.base64,
+            width: result.metadata.width,
+            height: result.metadata.height,
+          };
+        } else {
+          console.warn(`Could not generate blurDataURL or dimensions for image: ${imgSrc} (plaiceholder returned no metadata or missing width/height)`);
+        }
+      } catch (err) {
+        console.warn(`Could not generate blurDataURL for image: ${imgSrc}`, err);
+      }
+    }
+  }
 
   // Type assertion for frontmatter - ensure required fields exist
   const frontmatter = matterResult.data as PostFrontMatter;
@@ -164,10 +202,12 @@ export async function getPostData(slug: string): Promise<({ slug: string, conten
     return null;
   }
 
-  // Combine the data with the id and contentHtml
+  // Combine the data with the id, contentHtml, contentMarkdown, and blurMap
   return {
     slug,
     contentHtml,
+    contentMarkdown,
+    blurMap,
     ...frontmatter,
   };
 }
