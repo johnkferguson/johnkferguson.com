@@ -20,7 +20,7 @@
 }
 
 html {
-  font-family: 'PT Serif', serif;
+  font-family: var(--font-pt-serif), serif;
   font-size: 16px;
 }
 
