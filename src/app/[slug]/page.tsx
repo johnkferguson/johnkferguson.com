@@ -14,10 +14,11 @@ export function generateStaticParams(): { slug: string }[] {
 
 // Generate metadata for the page
 export async function generateMetadata(
-  { params }: { params: { slug: string } }
+  { params }: { params: Promise<{ slug: string }> }
 ): Promise<Metadata> {
   // read route params
-  const slug = params.slug;
+  const awaitedParams = await params;
+  const slug = awaitedParams.slug;
   const post = await getPostData(slug);
   const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://johnkferguson.com';
   const postUrl = `${siteUrl}/${slug}`; // URL for this specific post
@@ -66,8 +67,9 @@ export async function generateMetadata(
 }
 
 // The Page component
-export default async function PostPage({ params }: { params: { slug: string } }) {
-  const postData = await getPostData(params.slug);
+export default async function PostPage({ params }: { params: Promise<{ slug: string }> }) {
+  const awaitedParams = await params;
+  const postData = await getPostData(awaitedParams.slug);
 
   if (!postData) {
     notFound(); // Trigger 404 if post not found
