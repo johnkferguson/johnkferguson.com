@@ -76,24 +76,22 @@ export default async function PostPage({ params }: { params: Promise<{ slug: str
   }
 
   // Format date manually to match the original site style
-  const formattedDate = new Date(postData.date).toLocaleDateString('en-US', { 
-    month: 'long', 
-    day: 'numeric', 
-    year: 'numeric' 
+  const formattedDate = new Date(postData.date).toLocaleDateString('en-US', {
+    month: 'long',
+    day: 'numeric',
+    year: 'numeric'
   });
 
   return (
-    <div className="page-content">
-      <div className="wrap">
-        <div className="post">
-          <header className="post-header">
-            <h1>{postData.title}</h1>
-            <p className="meta">{formattedDate}</p>
-          </header>
-          <article className="post-content">
-            <MarkdownRenderer content={postData.contentMarkdown} blurMap={postData.blurMap} />
-          </article>
-        </div>
+    <div className="pt-0 pb-8">
+      <div className="max-w-[30rem] mx-auto px-3">
+        <header className="mb-[1.2rem]">
+          <h1 className="text-2xl font-bold leading-tight mb-2">{postData.title}</h1>
+          <p className="text-sm text-gray-500 mt-1">{formattedDate}</p>
+        </header>
+        <article className="max-w-none">
+          <MarkdownRenderer content={postData.contentMarkdown} blurMap={postData.blurMap} />
+        </article>
       </div>
     </div>
   );

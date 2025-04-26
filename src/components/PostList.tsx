@@ -26,23 +26,23 @@ export default function PostList({ posts }: PostListProps) {
   };
 
   return (
-    <div className="page-content">
-      <div className="wrap">
-        <ul className="posts">
-          {posts.map((post) => (
-            <li key={post.slug}>
-              <span className="post-date">{formatDate(post.date)}</span>
-              <Link 
-                href={`/${post.slug}`} 
-                className="post-link"
+    <div className="py-8">
+      <div className="max-w-[95vw] md:max-w-[630px] mx-auto px-4 md:px-[15.75px]">
+        <ul className="list-none p-0 m-0">
+          {posts.map((post, idx) => (
+            <li key={post.slug} className="mb-[1.4rem]">
+              <span className="block text-[0.7rem] text-[#818181] leading-none">{formatDate(post.date)}</span>
+              <Link
+                href={`/${post.slug}`}
+                className="text-[1rem] md:text-[1.2rem] tracking-[-0.04em] leading-none font-normal text-gray-900 hover:text-black border-b border-[#ddd] hover:border-black transition-colors"
               >
                 {post.title}
               </Link>
             </li>
           ))}
         </ul>
-        <p className="rss-subscribe">
-          subscribe <a href="/rss.xml">via RSS</a>
+        <p className="text-[16px] leading-[24px] mb-[21px] text-gray-400 md:text-[21px] md:leading-[31.5px]">
+          subscribe <a href="/rss.xml" className="text-blue-700 hover:underline">via RSS</a>
         </p>
       </div>
     </div>

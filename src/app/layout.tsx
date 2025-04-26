@@ -79,12 +79,10 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" className={`${ptSerif.variable} ${firaCode.variable}`}>
-      <body>
-        <div>
-          <SiteHeader />
-          {children}
-          <SiteFooter />
-        </div>
+      <body className="bg-white text-[#555] font-normal leading-[1.5]">
+        <SiteHeader />
+        {children}
+        <SiteFooter />
       </body>
     </html>
   );

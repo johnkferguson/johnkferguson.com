@@ -1,0 +1,193 @@
+# Task ID: 13
+# Title: Migrate Global CSS to Tailwind Utility Classes
+# Status: pending
+# Dependencies: None
+# Priority: high
+# Description: Extract and migrate styles from globals.css to inline Tailwind CSS classes across all components, following Tailwind v4 best practices.
+# Details:
+This task involves a systematic migration from global CSS to Tailwind utility classes:
+
+1. **Audit Phase**:
+   - Create an inventory of all styles in src/app/globals.css
+   - Categorize styles into: layout, typography, colors, animations, responsive styles, etc.
+   - Identify which styles have direct Tailwind equivalents and which might need theme extensions
+   - Audit which components and pages use each global class (e.g., .wrap, .page-content, .post, .post-header, .meta, .post-content, .site-header, .site-footer, .social-icons, etc.)
+
+2. **Migration Planning**:
+   - Create a mapping document that shows each global CSS rule and its Tailwind equivalent
+   - Reference the mapping document in docs/globals-css-to-tailwind-mapping.md
+   - For each component/page, create a migration checklist mapping each global class to its Tailwind v4 utility equivalent
+   - Determine if any styles need to be maintained as CSS variables in the Tailwind config
+
+3. **Implementation**:
+   - Update the Tailwind config to include any necessary theme extensions
+   - Begin migration with the blog post page ([slug]/page.tsx), demonstrating how to replace each global class with the mapped Tailwind v4 utilities inline
+   - Systematically update each component to use Tailwind classes instead of relying on globals.css
+   - Repeat for other key components (header, footer, etc.), removing global CSS as each is migrated
+   - For complex styles without direct Tailwind equivalents, use the @apply directive in component-specific CSS modules
+   - For repeated patterns, consider creating Tailwind component classes in the config
+
+4. **Cleanup**:
+   - Remove migrated styles from globals.css
+   - Verify no component styling breaks after removal
+   - Ensure that any remaining global styles are only those that cannot be represented with Tailwind v4 utilities
+
+Ensure backward compatibility throughout the migration process by implementing and testing changes incrementally.
+
+# Test Strategy:
+To verify successful migration:
+
+1. **Visual Regression Testing**:
+   - Take screenshots of key UI components before migration
+   - Compare with post-migration screenshots to ensure visual consistency
+   - Test across multiple viewport sizes to verify responsive behavior
+   - Test visual parity and responsive behavior after each migration step
+
+2. **Component Testing**:
+   - Create a checklist of components affected by globals.css
+   - Verify each component renders correctly with Tailwind classes
+   - Test component states (hover, focus, active, disabled) to ensure all styles are properly migrated
+
+3. **Browser Compatibility**:
+   - Test in Chrome, Firefox, Safari, and Edge to ensure cross-browser compatibility
+   - Verify mobile rendering on iOS and Android devices
+
+4. **Performance Checks**:
+   - Compare bundle sizes before and after migration
+   - Measure CSS specificity improvements
+   - Verify reduced CSS file size after removing globals.css
+
+5. **Validation Steps**:
+   - Run the application with globals.css completely removed to verify no styling dependencies remain
+   - Use browser dev tools to confirm styles are applied via Tailwind classes
+   - Verify no unexpected CSS cascading issues occur
+   - Check for any console errors related to missing styles
+
+# Subtasks:
+## 1. Audit and Inventory Global CSS Styles [done]
+### Dependencies: None
+### Description: Create a comprehensive inventory of all styles in src/app/globals.css, categorizing them by type and identifying Tailwind v4 equivalents.
+### Details:
+1. Create a spreadsheet or document with columns for: CSS selector, CSS properties, category (layout, typography, colors, etc.), Tailwind v4 equivalent, and affected components.
+2. Analyze globals.css line by line, documenting each style rule.
+3. Categorize styles into: layout, typography, colors, spacing, animations, responsive styles, and custom utilities.
+4. For each style, identify the direct Tailwind v4 equivalent using the official documentation.
+5. Mark styles that don't have direct equivalents for potential theme extension.
+6. Use browser developer tools to identify which components are affected by each global style.
+7. Document any CSS variables that might need to be preserved in the Tailwind config.
+8. Testing approach: Create a visual inventory of key UI elements before migration to use as reference during verification.
+
+## 6. Audit Component and Page Usage of Global Classes [done]
+### Dependencies: 13.1
+### Description: Identify which components and pages use each global class defined in globals.css to create a comprehensive usage map.
+### Details:
+1. Create a spreadsheet that maps each global class (e.g., .wrap, .page-content, .post, .post-header, .meta, .post-content, .site-header, .site-footer, .social-icons, etc.) to the components and pages that use it.
+2. Use a combination of code search, browser developer tools, and manual inspection to identify all usages.
+3. For each global class, document:
+   a. The components/pages that use it
+   b. How the class is applied (directly, conditionally, dynamically)
+   c. Any variations or modifications to the base style
+4. Identify patterns of reuse across components to help prioritize migration efforts.
+5. Document any dependencies between global classes (e.g., nested selectors or combined selectors).
+6. Create a visual reference of how each global class appears in the UI to aid in verification later.
+7. Testing approach: Create a test plan that covers all identified components using global classes.
+
+## 2. Configure Tailwind v4 with Theme Extensions [done]
+### Dependencies: 13.1
+### Description: Set up Tailwind v4 configuration with necessary theme extensions and CSS variables to support the migration from global styles.
+### Details:
+1. Update Tailwind dependencies to v4 using `npx @tailwindcss/upgrade` if not already done.
+2. Create a new CSS file that imports Tailwind and uses the new `@theme` directive to define design tokens identified in the audit:
+```css
+@import "tailwindcss";
+
+@theme {
+  /* Define color variables */
+  --color-primary: #...; /* Use actual values from audit */
+  /* Define spacing, typography, etc. */
+}
+```
+3. For complex utilities without direct Tailwind equivalents, create custom utilities using the `@theme` directive.
+4. If absolutely necessary, extend the Tailwind config for edge cases that can't be handled with `@theme`.
+5. Document all theme extensions and custom utilities for team reference.
+6. Testing approach: Create a simple test page that demonstrates all theme extensions and custom utilities are working correctly.
+
+## 7. Create Component-Specific Migration Checklists [done]
+### Dependencies: 13.1, 13.6
+### Description: For each component and page, create a detailed migration checklist mapping global classes to Tailwind v4 utility equivalents.
+### Details:
+1. Create a migration checklist template with columns for: global class, affected elements, Tailwind v4 equivalent utilities, migration status, and verification notes.
+2. Reference the mapping document in docs/globals-css-to-tailwind-mapping.md for consistent Tailwind equivalents.
+3. For each component/page identified in the audit:
+   a. List all global classes used by the component
+   b. Map each class to its specific Tailwind v4 utility equivalent
+   c. Note any component-specific considerations or edge cases
+   d. Include before/after code snippets as examples
+4. Prioritize components based on complexity and dependencies.
+5. Include responsive considerations for each global class (how it behaves at different breakpoints).
+6. Document any interactive states (hover, focus, etc.) that need special attention.
+7. Testing approach: For each component, define specific visual checks to verify successful migration.
+
+## 8. Migrate Blog Post Page ([slug]/page.tsx) [in-progress]
+### Dependencies: 13.2, 13.7
+### Description: Begin the migration process with the blog post page, replacing global classes with mapped Tailwind v4 utilities.
+### Details:
+1. Use the component-specific migration checklist for the blog post page ([slug]/page.tsx).
+2. Take screenshots of the page at various viewport sizes before migration for comparison.
+3. Systematically replace each global class with its Tailwind v4 utility equivalent:
+   a. .post → [Tailwind equivalent from mapping doc]
+   b. .post-header → [Tailwind equivalent from mapping doc]
+   c. .meta → [Tailwind equivalent from mapping doc]
+   d. .post-content → [Tailwind equivalent from mapping doc]
+   e. Any other global classes used by this page
+4. Ensure all responsive behaviors are maintained using Tailwind's responsive prefixes.
+5. Test the page at various viewport sizes to verify visual parity with the original.
+6. Document any challenges or patterns discovered during this migration to inform subsequent component migrations.
+7. Testing approach: Compare before/after screenshots and verify all interactive elements and responsive behaviors work as expected.
+
+## 3. Migrate Component Styling to Tailwind Classes [in-progress]
+### Dependencies: 13.1, 13.2, 13.8
+### Description: Systematically update each component to use Tailwind utility classes instead of relying on global CSS styles.
+### Details:
+1. Following the successful migration of the blog post page, continue with other key components in this order:
+   a. Header component (site-header)
+   b. Footer component (site-footer)
+   c. Social icons component (social-icons)
+   d. Other components based on the prioritized list
+2. For each component:
+   a. Reference its specific migration checklist created in subtask 7
+   b. Replace class references with equivalent Tailwind utility classes
+   c. Test the component in isolation and in context to ensure visual consistency
+   d. Document any component-specific patterns or solutions
+3. For complex or repeated patterns, use Tailwind's group syntax or consider component extraction.
+4. For repeated utility combinations, use the `@apply` directive in component-specific CSS modules only when absolutely necessary.
+5. Update any dynamic class generation logic to use Tailwind's conditional class utilities.
+6. For responsive styles, use Tailwind's responsive prefixes (sm:, md:, lg:, etc.).
+7. Testing approach: Compare each component visually before and after migration, and test across different viewport sizes to ensure responsive behavior is preserved.
+
+## 4. Remove Migrated Styles and Clean Up globals.css [done]
+### Dependencies: 13.3
+### Description: Incrementally remove unused or migrated styles from globals.css and verify that all styling is handled by Tailwind or component-scoped CSS.
+### Details:
+1. Create a backup of the original globals.css file.
+2. Based on the audit spreadsheet, mark each style as 'migrated' once its Tailwind equivalent has been applied to all affected components.
+3. Group styles in globals.css by migration status (migrated vs. still needed).
+4. Remove migrated styles in small batches, testing the application after each removal to ensure no visual regressions.
+5. For any remaining necessary global styles that cannot be migrated to Tailwind (like third-party component styles or complex animations), consolidate them at the top of globals.css with clear comments.
+6. Run the application in different browsers to verify cross-browser compatibility after style removal.
+7. Use browser developer tools to confirm that removed styles are no longer being applied and that Tailwind classes are correctly rendering.
+8. Testing approach: Create before/after screenshots of key pages and components to verify visual parity after style removal.
+
+## 10. Verify All Styling is Handled by Tailwind or Component-Scoped CSS [done]
+### Dependencies: 13.4
+### Description: Perform comprehensive testing to ensure all styling is properly handled by Tailwind or component-scoped CSS after globals.css cleanup.
+### Details:
+1. Create a test plan covering all UI components and pages to verify styling integrity.
+2. Systematically check each component to ensure all styles are properly applied through Tailwind classes or component-scoped CSS.
+3. Test the application with globals.css completely disabled to identify any remaining dependencies.
+4. For any styling issues discovered, determine whether they should be addressed with Tailwind utilities or component-scoped CSS.
+5. Verify that all responsive behaviors are maintained across different viewport sizes.
+6. Check all interactive states (hover, focus, active) to ensure they're correctly styled with Tailwind classes.
+7. Test the application across different browsers to ensure cross-browser compatibility.
+8. Create a final report documenting any remaining global CSS dependencies and why they couldn't be migrated.
+

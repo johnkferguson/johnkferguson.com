@@ -1,11 +1,15 @@
 import React from 'react';
 
-const TwitterIcon: React.FC = () => {
+interface TwitterIconProps {
+  className?: string;
+}
+
+const TwitterIcon: React.FC<TwitterIconProps> = ({ className }) => {
   return (
-    <span className="icon twitter">
-      <svg
-        version="1.1"
-        className="twitter-icon-svg"
+    <svg
+      version="1.1"
+      className={className}
+
         xmlns="http://www.w3.org/2000/svg"
         xmlnsXlink="http://www.w3.org/1999/xlink"
         x="0px"
@@ -23,7 +27,6 @@ const TwitterIcon: React.FC = () => {
               c6.015,0,9.304-4.983,9.304-9.304c0-0.142-0.003-0.283-0.009-0.423C14.976,4.29,15.531,3.714,15.969,3.058z"
         />
       </svg>
-    </span>
   );
 };
 

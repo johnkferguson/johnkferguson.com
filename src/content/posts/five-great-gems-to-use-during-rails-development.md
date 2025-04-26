@@ -34,8 +34,7 @@ still providing the same functionality. However, if you are using a gem
 like [xray-rails]((https://github.com/brentd/xray-rails)) in development, you
 can add it or remove it as you please with no far-reaching implications.
 
-I use quite a few gems as a default during Rails development and testing as you
-can see in the following gist. Instead of explaining all of
+I use quite a few gems as a default during Rails development and testing. Instead of explaining all of
 them, I thought it'd be best to cover my five favorites.
 
 

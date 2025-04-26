@@ -1,11 +1,15 @@
 import React from 'react';
 
-const GithubIcon: React.FC = () => {
+interface GithubIconProps {
+  className?: string;
+}
+
+const GithubIcon: React.FC<GithubIconProps> = ({ className }) => {
   return (
-    <span className="icon github">
-      <svg
-        version="1.1"
-        className="github-icon-svg"
+    <svg
+      version="1.1"
+      className={className}
+
         xmlns="http://www.w3.org/2000/svg"
         xmlnsXlink="http://www.w3.org/1999/xlink"
         x="0px"
@@ -27,7 +31,6 @@ const GithubIcon: React.FC = () => {
               c0,0.208,0.14,0.449,0.534,0.373c3.081-1.028,5.302-3.935,5.302-7.362C15.76,3.906,12.285,0.431,7.999,0.431z"
         />
       </svg>
-    </span>
   );
 };
 
