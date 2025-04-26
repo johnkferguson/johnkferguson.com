@@ -1,5 +1,7 @@
 import React from 'react';
 import ReactMarkdown from 'react-markdown';
+import rehypeRaw from 'rehype-raw'; // Allows raw HTML (like iframes)
+// import rehypeSanitize from 'rehype-sanitize'; // (Optional) Add for extra security
 import Image from 'next/image';
 
 interface MarkdownRendererProps {
@@ -38,6 +40,7 @@ const MarkdownRenderer: React.FC<MarkdownRendererProps> = ({ content, blurMap = 
           );
         },
       }}
+      rehypePlugins={[rehypeRaw /*, rehypeSanitize */]}
     >
       {content}
     </ReactMarkdown>
