@@ -1,7 +1,9 @@
 import { getSortedPostsData } from "@/lib/posts"
 import { NextResponse } from "next/server"
 
-export const revalidate = 0 // Ensure static generation for Next.js static export
+export const dynamic = "force-static";
+export const output = "export";
+export const revalidate = 0; // Ensure static generation for Next.js static export
 
 export async function GET() {
   const siteUrl =
