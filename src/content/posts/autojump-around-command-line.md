@@ -3,6 +3,7 @@ layout: post
 title: "Autojump Around the Command Line"
 date: 2013-03-11 00:05
 ---
+
 [Autojump](https://github.com/joelthelion/Autojump) is a sweet little command
 line tool that makes it super easy to move around directories without having
 to `cd` through its entire file path.
@@ -33,6 +34,7 @@ directories we spend time in most. We'll delve deeper into how Autojump works
 later and also cover how to best use it, but first, let's install Autojump.
 
 ## Installation
+
 If you're on OS X, the best way to install Autojump is via
 [Homebrew](http://mxcl.github.com/homebrew/)w. If you'd prefer to do it manually
 or on a Linux machine, check out
@@ -43,21 +45,21 @@ If you already have Homebrew installed, then skip to step 2 to install or
 update Python. If you already have Homebrew and Python v2.6+ installed,
 then move on to step 3.
 
-1. Homebrew is an OS X package manager for OS X that can install any additional
-libraries you may need. If you don't already have Homebrew, enter the following
-code into a terminal prompt to install it:
+1.  Homebrew is an OS X package manager for OS X that can install any additional
+    libraries you may need. If you don't already have Homebrew, enter the following
+    code into a terminal prompt to install it:
 
-    ```bash
-    $ ruby -e "$(curl -fsSL https://raw.github.com/mxcl/homebrew/go)"
-    ```
+        ```bash
+        $ ruby -e "$(curl -fsSL https://raw.github.com/mxcl/homebrew/go)"
+        ```
 
-2. To check if we have Python v2.6+ installed, type the following into the terminal:
-`python -V` This will give you the version number of Python. If it's less
-than 2.6, then run the following in the terminal `brew install python`
+2.  To check if we have Python v2.6+ installed, type the following into the terminal:
+    `python -V` This will give you the version number of Python. If it's less
+    than 2.6, then run the following in the terminal `brew install python`
 
-3. With Python and Homebrew already installed, all that's left is installing
-Autojump, which can be  To do that, enter the following command
-`brew install autojump`
+3.  With Python and Homebrew already installed, all that's left is installing
+    Autojump, which can be To do that, enter the following command
+    `brew install autojump`
 
 ## Jumping Around
 
@@ -164,6 +166,7 @@ Our command line prompt will then read as:
 ```bash
 $ j d_
 ```
+
 All we have to do is enter in the number of the directory we want to go to and
 press **TAB** to have it auto-completed and press enter to jump to it.
 
@@ -173,17 +176,17 @@ We can extend the functionality of autojump to list the files of a directory we
 jump to by adding a simple function to our bash profile. Here's how:
 
 1. Open your Bash profile in your favorite text editor. Your bash profile will
-typically be found in your home directory as a hidden file, often with the
-file path of `/Users/'Your_Name_Here'/.bash_profile`
+   typically be found in your home directory as a hidden file, often with the
+   file path of `/Users/'Your_Name_Here'/.bash_profile`
 
 2. Once in your Bash profile, add the following line:
 
-    ```bash
-    function jl(){ j "$@" && ls; }
-    ```
+   ```bash
+   function jl(){ j "$@" && ls; }
+   ```
 
 3. Source your terminal to reflect the changes to your Bash profile. This can
-be done by entering `source /Users/'Your_Name_Here'/.bash_profile` into the
-terminal.
+   be done by entering `source /Users/'Your_Name_Here'/.bash_profile` into the
+   terminal.
 
 Now you can use the alias `jl` to jump into a directory and `ls` all of its contents.

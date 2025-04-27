@@ -9,11 +9,11 @@
  */
 
 // Add at the very beginning of the file
-if (process.env.DEBUG === '1') {
-	console.error('DEBUG - dev.js received args:', process.argv.slice(2));
+if (process.env.DEBUG === "1") {
+  console.error("DEBUG - dev.js received args:", process.argv.slice(2))
 }
 
-import { runCLI } from './modules/commands.js';
+import { runCLI } from "./modules/commands.js"
 
 // Run the CLI with the process arguments
-runCLI(process.argv);
+runCLI(process.argv)

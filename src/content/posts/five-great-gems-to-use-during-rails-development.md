@@ -31,12 +31,11 @@ solution. If at some point in the future, you decide you no longer want to
 use Devise, you can't just remove it from your Gemfile and expect things to
 work. Much of the app would have to be changed to accomodate this change while
 still providing the same functionality. However, if you are using a gem
-like [xray-rails]((https://github.com/brentd/xray-rails)) in development, you
+like [xray-rails](<(https://github.com/brentd/xray-rails)>) in development, you
 can add it or remove it as you please with no far-reaching implications.
 
 I use quite a few gems as a default during Rails development and testing. Instead of explaining all of
 them, I thought it'd be best to cover my five favorites.
-
 
 ## 5. [quiet_assets](https://github.com/evrone/quiet_assets)
 
@@ -118,7 +117,6 @@ notification plugins that will work for your system, a full list of which is
 
 If you'd like to learn more about Guard, check out this [RailsCast](https://github.com/guard/guard).
 
-
 ## 3. [xray-rails](https://github.com/brentd/xray-rails)
 
 [xray-rails](https://github.com/brentd/xray-rails) is the most underused and
@@ -149,7 +147,6 @@ $ bundle && rm -rf tmp/cache/assets
 ```
 
 Restart your app and you're ready to go.
-
 
 ## 2. [debugger](https://github.com/cldwalker/debugger)
 
@@ -210,7 +207,6 @@ my default Gemfile at the beginning of this post.
 If you'd like to learn more about using debugger in Rails, check out
 [the following RailsCast](http://railscasts.com/episodes/54-debugging-ruby-revised).
 
-
 ## 1. [better_errors](https://github.com/charliesome/better_errors)
 
 `better_errors` is the one gem I couldn't live without when developing in Rails.
@@ -222,10 +218,10 @@ more useful error page. It looks like this:
 The added features of better_errors are quite powerful and include
 (from the [better_errors documentation](https://github.com/charliesome/better_errors#features)):
 
-* Full stack trace
-* Source code inspection for all stack frames (with highlighting)
-* Local and instance variable inspection
-* Live REPL on every stack frame
+- Full stack trace
+- Source code inspection for all stack frames (with highlighting)
+- Local and instance variable inspection
+- Live REPL on every stack frame
 
 The live REPL is of course the most powerful of these features and the one that
 I use the most. Anytime I am presented with an error page, I have instant access
@@ -252,7 +248,6 @@ action in the `UsersController`. I could use a `debugger` or `binding.pry`
 like I discussed previously, but I can also use `raise params.inspect` to
 trigger the rendering of the `better_errors` page. The following code shows how.
 
-
 ```ruby
 class UsersController < ApplicationController
   def update
@@ -267,7 +262,6 @@ corresponding `better_errors` page.
 As with many of the other gems mentioned, there's a
 [great RailsCast about better_errors](http://railscasts.com/episodes/402-better-errors-railspanel)
 that gives a good overview of how to best use the gem.
-
 
 ## Conclusion
 

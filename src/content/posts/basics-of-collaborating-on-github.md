@@ -3,6 +3,7 @@ layout: post
 title: "The Basics of Collaborating on Github"
 date: 2013-04-03 00:10
 ---
+
 ![Collabocats](/images/posts/basics-of-collaborating-on-github/github-collabocats.jpg)
 
 [Github](https://github.com/) provides an incredible platform for
@@ -10,7 +11,6 @@ collaborating on software projects. Features such as forks, pull-requests,
 issues, and wikis make Github a flexible tool suitable for various workflows.
 This tutorial will provide an introduction to collaborating on Github
 and highlight different options for maximizing productivity.
-
 
 ## Adding Collaborators to a Repository
 
@@ -30,18 +30,17 @@ the collaborators can then decide whether to accept the pull request or not.
 Working with pull requests will be covered later. Right now, let's cover
 the process for adding collaborators to a repository.
 
-
 ### How to add collaborators:
 
 1. From the repository's main page, click on the settings tab.
-![Github Repository Settings](/images/posts/basics-of-collaborating-on-github/github-settings.png)
+   ![Github Repository Settings](/images/posts/basics-of-collaborating-on-github/github-settings.png)
 
 2. Click on Collaborators from the left sidebar.
-![Github Repository Collaborators](/images/posts/basics-of-collaborating-on-github/github-collaborators.png)
+   ![Github Repository Collaborators](/images/posts/basics-of-collaborating-on-github/github-collaborators.png)
 
 3. Enter in the usernames of any collaborators you would like to add to a
-project and click the add button.
-![Github Repository Collaborators](/images/posts/basics-of-collaborating-on-github/manage-collaborators.png)
+   project and click the add button.
+   ![Github Repository Collaborators](/images/posts/basics-of-collaborating-on-github/manage-collaborators.png)
 
 ## Deciding on a Workflow
 
@@ -63,7 +62,6 @@ Given the complex nature of this workflow, developers often use
 following the process correctly. For most small projects, Git-Flow may be
 overly strict and complicated to the point that it interferes with productivity.
 
-
 #### [Github Flow](http://scottchacon.com/2011/08/31/github-flow.html)
 
 Github Flow is the workflow used by Github. It is much simpler than Git-flow,
@@ -72,7 +70,7 @@ and is built around the following basic premises:
 1. Master is always deployable and should be kept clean.
 2. Always work on small branches.
 3. When you need feedback or help, or you think the branch is ready for
-merging, open a pull request.
+   merging, open a pull request.
 
 That's it. One of the advantages of this workflow is its simplicity and clarity.
 Since pull requests are utilized as a sort of code review, developers are able
@@ -90,23 +88,23 @@ Whatever workflow you choose, there are certain rules that should almost always
 be employed. They include:
 
 1. **Don't work on master.** Master should always be kept clean and be ready
-to deployed. Use whatever other workflow you need to ensure that the code in
-master is always ready to be deployed.
+   to deployed. Use whatever other workflow you need to ensure that the code in
+   master is always ready to be deployed.
 
 2. **Keep commits small.** Large commits can be overwhelming to go through
-and understand. By keeping commits small, you make changes intelligible. In
-addition, small commits make it much easier to track down problems when
-something breaks.
+   and understand. By keeping commits small, you make changes intelligible. In
+   addition, small commits make it much easier to track down problems when
+   something breaks.
 
 3. **Be descriptive with your commit messages.** Commit messages should
-clearly articulate what changes the commit introduces. Clarity in commit
-messages makes it much easier to navigate through the history of messages and
-find the relevant commit.
+   clearly articulate what changes the commit introduces. Clarity in commit
+   messages makes it much easier to navigate through the history of messages and
+   find the relevant commit.
 
 4. **Whenever possible, use descriptive names for branches.** Succinct
-branch names makes it easier for your team members to know what features you
-are working on. In addition, taking the time to properly name your branch
-can provide focus for what you should actually be working on.
+   branch names makes it easier for your team members to know what features you
+   are working on. In addition, taking the time to properly name your branch
+   can provide focus for what you should actually be working on.
 
 ## Pull Requests
 
@@ -114,8 +112,8 @@ Pull Requests are not just limited to forked repositories, but can also be used
 between branches on the same project. This means that if you are a collaborator
 on a project, you can work on a feature branch, and then open a pull request
 whenever you need feedback or help, or you think the branch is ready for merging
- into master. Once the pull request has been opened, other collaborators on
- the project can review your code, and provide feedback or ideas.
+into master. Once the pull request has been opened, other collaborators on
+the project can review your code, and provide feedback or ideas.
 
 Pull requests can be opened even if your code is not ready to be merged. This
 is one of the amazing features about pull requests. It provides a great platform
@@ -134,36 +132,46 @@ If you've never submitted a pull request, follow along with the pictures to
 see how it works in action.
 
 #### From the repository page, click on the pull request button.
+
 ![](/images/posts/basics-of-collaborating-on-github/pull-request-from-main-page.png)
 
 #### Select the branch that will be the source of the pull request and its destination.
+
 ![](/images/posts/basics-of-collaborating-on-github/pull-request-source-destination.png)
 
 #### Enter in a title for the pull request, fill in some comments and submit it.
+
 ![](/images/posts/basics-of-collaborating-on-github/pull-request-description.png)
 
 #### This is what your submitted pull request will look like.
-*(Notice the three main tabs: Discussion, Commits, Files Changed.)*
+
+_(Notice the three main tabs: Discussion, Commits, Files Changed.)_
 ![](/images/posts/basics-of-collaborating-on-github/pull-request-discussion.png)
 
 #### The commits tab lists all the commits. You can click on the link to any commit to see it in detail.
+
 ![](/images/posts/basics-of-collaborating-on-github/initial-commits.png)
 
 #### The files changed tab shows all the code that has changed.
-*(You can add inline comments to the code by clicking on the blue plus button
-that appears when you move your mouse near the line numbers.)*
+
+_(You can add inline comments to the code by clicking on the blue plus button
+that appears when you move your mouse near the line numbers.)_
 ![](/images/posts/basics-of-collaborating-on-github/add-comments.png)
 
 #### Comments appear in the Files Changed section as well as in the Discussion area.
+
 ![](/images/posts/basics-of-collaborating-on-github/code-comments-discussion.png)
 
 #### Any future commits from the same branch pushed to github will be included with the pull request.
+
 ![](/images/posts/basics-of-collaborating-on-github/push-second-commit.png)
 
 #### The commits tab will include the new commit.
+
 ![](/images/posts/basics-of-collaborating-on-github/second-commits-tab.png)
 
 #### The Files changed tab will also include the code from the new commit.
+
 ![](/images/posts/basics-of-collaborating-on-github/files-changed-2.png)
 
 The entire Github pull request system provides an incredible way to review and discuss code.

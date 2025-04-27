@@ -38,7 +38,6 @@ One of the simplest solutions out there is to use Heroku's own
 curl request directed at your application's url. This post will cover how to
 properly configure such a solution.
 
-
 ## Setting up Heroku Scheduler
 
 Assuming you already have an app set up on Heroku, you'll need to get the Heroku
@@ -68,7 +67,7 @@ button. Next, enter in the url of the app you'd like to prevent from sleeping
 is publicly accessible. Finally, set the frequency to 'Every 10 minutes'
 and click Save.
 
-![Heroku Scheduler Configuration](/images/posts/the-cure-for-sleepy-heroku-dynos/heroku_scheduler_config.png)            ss
+![Heroku Scheduler Configuration](/images/posts/the-cure-for-sleepy-heroku-dynos/heroku_scheduler_config.png) ss
 
 That's it, you're all set. Your Heroku app won't go to sleep again.
 

@@ -1,26 +1,27 @@
-import type { Metadata } from "next";
-import { PT_Serif, Fira_Code } from "next/font/google";
-import "./globals.css";
+import type { Metadata } from "next"
+import { PT_Serif, Fira_Code } from "next/font/google"
+import "./globals.css"
 
-import SiteHeader from '@/components/SiteHeader';
-import SiteFooter from '@/components/SiteFooter';
+import SiteHeader from "@/components/SiteHeader"
+import SiteFooter from "@/components/SiteFooter"
 
 const ptSerif = PT_Serif({
   variable: "--font-pt-serif",
   weight: ["400", "700"],
   subsets: ["latin"],
   style: ["normal", "italic"],
-});
+})
 
 const firaCode = Fira_Code({
   variable: "--font-fira-code",
   weight: ["400", "700"],
   subsets: ["latin"],
-});
+})
 
-const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://johnkferguson.com';
-const siteTitle = "John K. Ferguson | Software Engineer";
-const siteDescription = "Personal website and blog of John K. Ferguson, exploring software development, technology, and more.";
+const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || "https://johnkferguson.com"
+const siteTitle = "John K. Ferguson | Software Engineer"
+const siteDescription =
+  "Personal website and blog of John K. Ferguson, exploring software development, technology, and more."
 
 export const metadata: Metadata = {
   metadataBase: new URL(siteUrl),
@@ -34,8 +35,8 @@ export const metadata: Metadata = {
     description: siteDescription,
     url: siteUrl,
     siteName: "John K. Ferguson's Site",
-    type: 'website',
-    locale: 'en_US',
+    type: "website",
+    locale: "en_US",
     // Add an og:image later if you have a default site image
     // images: [
     //   {
@@ -70,12 +71,12 @@ export const metadata: Metadata = {
   // alternates: {
   //   canonical: siteUrl,
   // },
-};
+}
 
 export default function RootLayout({
   children,
 }: Readonly<{
-  children: React.ReactNode;
+  children: React.ReactNode
 }>) {
   return (
     <html lang="en" className={`${ptSerif.variable} ${firaCode.variable}`}>
@@ -85,5 +86,5 @@ export default function RootLayout({
         <SiteFooter />
       </body>
     </html>
-  );
+  )
 }

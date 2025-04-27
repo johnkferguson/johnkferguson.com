@@ -1,5 +1,5 @@
-import React from 'react';
-import Link from 'next/link';
+import React from "react"
+import Link from "next/link"
 
 export default function SiteHeader() {
   return (
@@ -12,11 +12,9 @@ export default function SiteHeader() {
           John K. Ferguson
         </Link>
         <nav>
-          <div>
-            {/* Navigation links can be added here */}
-          </div>
+          <div>{/* Navigation links can be added here */}</div>
         </nav>
       </div>
     </header>
-  );
+  )
 }

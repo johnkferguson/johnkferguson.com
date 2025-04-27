@@ -3,13 +3,13 @@ layout: post
 title: "Five Ways to Get More Out of Pry"
 date: 2013-05-14 00:20
 ---
+
 ![Pry](/images/posts/five-ways-to-get-more-out-of-pry/pry_logo_350.png)
 
 ## What is Pry?
 
 Pry is an awesome IRB replacement that offers a ton of powerful features.
 This post will highlight five of the most useful, so you can get more out of Pry.
-
 
 ### Getting Started
 
@@ -28,7 +28,6 @@ $ pry
 
 Once in Pry, you can start interacting with Ruby as you would with irb,
 but with other added features.
-
 
 ### 1. Use Shell Commands while in Pry
 
@@ -51,7 +50,6 @@ Development Downloads Library   Music
 [5] pry(main)> .ls
 ruby_rocks.rb      Folder
 ```
-
 
 ### 2. Make Full Use of Pry's Methods
 
@@ -119,9 +117,8 @@ Nesting status:
 ```
 
 5. Finally, `help` can list out all the other methods that Pry offers
-that won't be covered in this blog post. Try it out within Pry yourself
-to see all the different options.
-
+   that won't be covered in this blog post. Try it out within Pry yourself
+   to see all the different options.
 
 ### 3. Dive Into Running Code with binding.pry
 
@@ -174,7 +171,6 @@ locals: _  __  _dir_  _ex_  _file_  _in_  _out_  _pry_
 #<Example:0x007fde422f8fc8>
 ```
 
-
 ### 4. Use Pry with Rails
 
 It's possible to use Pry with your rails app instead of the default rails
@@ -198,13 +194,12 @@ Pry-rails also comes with two additional methods that extend the functionality
 of Pry with your rails app. They are:
 
 1. `show-routes` - This shows all of your routes for your application in the
-same way that typing `rake routes` in the shell would do.
+   same way that typing `rake routes` in the shell would do.
 
 2. `show-models` - This lists all of the models along with all of their column
-name. It is the same as if viewing the schema.rb of your application. However,
-in addition, it will also show any associations your models have, such as
-`belongs_to` or `has_many`.
-
+   name. It is the same as if viewing the schema.rb of your application. However,
+   in addition, it will also show any associations your models have, such as
+   `belongs_to` or `has_many`.
 
 ### 5. Explore All of Pry's Awesome Documentation & Resources
 
@@ -214,10 +209,10 @@ the best places to start with to get a deeper understanding of Pry.
 1. [Pry's Main Site](http://pryrepl.org/) gives a great overview of the project.
 
 2. The [Pry Intoductory Screencast](http://vimeo.com/26391171) is easy to
-follow and does a wonderful job of demonstrating the power of Pry.
+   follow and does a wonderful job of demonstrating the power of Pry.
 
 3. The RailsCasts episode, [Pry with Rails](http://railscasts.com/episodes/280-pry-with-rails),
-covers some great ways to use Pry with Rails.
+   covers some great ways to use Pry with Rails.
 4. The [Pry Wiki](https://github.com/pry/pry/wiki) on [Pry's Github Repository](https://github.com/pry/pry)
-is fantastic and provides links to other worthwhile resources as well as clear
-documentation on all of Pry's capabilities.
+   is fantastic and provides links to other worthwhile resources as well as clear
+   documentation on all of Pry's capabilities.

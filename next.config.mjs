@@ -2,7 +2,7 @@
 
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  output: 'export', // Enable static export for Netlify
-};
+  output: "export", // Enable static export for Netlify
+}
 
-export default nextConfig;
+export default nextConfig
