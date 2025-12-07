@@ -30,7 +30,7 @@ const MarkdownRenderer: React.FC<MarkdownRendererProps> = ({
     <ReactMarkdown
       components={{
         img: ({ node, ...props }) => {
-          const src = props.src || ""
+          const src = typeof props.src === "string" ? props.src : ""
           const imageMeta = blurMap[src]
           const width = imageMeta?.width || 600
           const height = imageMeta?.height || 400
