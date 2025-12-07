@@ -12,15 +12,6 @@ interface MarkdownRendererProps {
   >
 }
 
-// Helper: Try to extract width/height from Markdown image alt text or fallback
-function getImageSize(src: string) {
-  // You may want to improve this for your use-case
-  // Default sizes (can be overridden by convention)
-  if (src.includes("/images/posts/")) {
-    return { width: 800, height: 500 }
-  }
-  return { width: 600, height: 400 }
-}
 
 const MarkdownRenderer: React.FC<MarkdownRendererProps> = ({
   content,
@@ -29,7 +20,7 @@ const MarkdownRenderer: React.FC<MarkdownRendererProps> = ({
   return (
     <ReactMarkdown
       components={{
-        img: ({ node, ...props }) => {
+        img: ({ ...props }) => {
           const src = typeof props.src === "string" ? props.src : ""
           const imageMeta = blurMap[src]
           const width = imageMeta?.width || 600

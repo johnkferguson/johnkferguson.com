@@ -204,7 +204,8 @@ export async function getPostData(
         const cleanSrc = imgSrc.split("?")[0].split("#")[0]
         // Resolve to absolute path
         const absPath = path.join(process.cwd(), "public", cleanSrc)
-        const result = await getPlaiceholder(absPath as any)
+        const imageBuffer = fs.readFileSync(absPath)
+        const result = await getPlaiceholder(imageBuffer)
         if (
           result &&
           result.metadata &&

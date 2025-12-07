@@ -19,7 +19,7 @@ export default function PostList({ posts }: PostListProps) {
         day: "numeric",
         year: "numeric",
       })
-    } catch (e) {
+    } catch {
       console.error("Invalid date string:", dateString)
       return dateString // Return the original if parsing fails
     }
@@ -29,7 +29,7 @@ export default function PostList({ posts }: PostListProps) {
     <div className="py-8">
       <div className="max-w-[95vw] md:max-w-[630px] mx-auto px-4 md:px-[15.75px]">
         <ul className="list-none p-0 m-0">
-          {posts.map((post, idx) => (
+          {posts.map((post) => (
             <li key={post.slug} className="mb-[1.4rem]">
               <span className="block text-[0.7rem] text-[#818181] leading-none">
                 {formatDate(post.date)}

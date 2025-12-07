@@ -4,7 +4,7 @@
         <title>John Ferguson's Blog</title>
         <link>https://johnkferguson.com</link>
         <description>Thoughts on web development, technology, and life.</description>
-        <lastBuildDate>Tue, 15 Apr 2025 04:40:27 GMT</lastBuildDate>
+        <lastBuildDate>Sun, 07 Dec 2025 02:55:25 GMT</lastBuildDate>
         <docs>https://validator.w3.org/feed/docs/rss2.html</docs>
         <generator>Feed for johnkferguson.com</generator>
         <copyright>All rights reserved 2025, John Ferguson</copyright>
@@ -59,7 +59,7 @@ button. Next, enter in the url of the app you'd like to prevent from sleeping
 (in this example I've used <code>my-app.herokuapp.com</code>). This should be a page that
 is publicly accessible. Finally, set the frequency to 'Every 10 minutes'
 and click Save.</p>
-<p><img src="/images/posts/the-cure-for-sleepy-heroku-dynos/heroku_scheduler_config.png" alt="Heroku Scheduler Configuration">            ss</p>
+<p><img src="/images/posts/the-cure-for-sleepy-heroku-dynos/heroku_scheduler_config.png" alt="Heroku Scheduler Configuration"> ss</p>
 <p>That's it, you're all set. Your Heroku app won't go to sleep again.</p>
 <p>If you'd like to explore other options on how to keep your app from going to
 sleep, check out
@@ -99,8 +99,7 @@ work. Much of the app would have to be changed to accomodate this change while
 still providing the same functionality. However, if you are using a gem
 like <a href="(https://github.com/brentd/xray-rails)">xray-rails</a> in development, you
 can add it or remove it as you please with no far-reaching implications.</p>
-<p>I use quite a few gems as a default during Rails development and testing as you
-can see in the following gist. Instead of explaining all of
+<p>I use quite a few gems as a default during Rails development and testing. Instead of explaining all of
 them, I thought it'd be best to cover my five favorites.</p>
 <h2>5. <a href="https://github.com/evrone/quiet_assets">quiet_assets</a></h2>
 <p><a href="https://github.com/evrone/quiet_assets">quiet_assets</a> does one thing and does
@@ -646,7 +645,9 @@ then move on to step 3.</p>
 <p>Homebrew is an OS X package manager for OS X that can install any additional
 libraries you may need. If you don't already have Homebrew, enter the following
 code into a terminal prompt to install it:</p>
-<pre><code class="language-bash">$ ruby -e "$(curl -fsSL https://raw.github.com/mxcl/homebrew/go)"
+<pre><code>```bash
+$ ruby -e "$(curl -fsSL https://raw.github.com/mxcl/homebrew/go)"
+```
 </code></pre>
 </li>
 <li>
@@ -656,7 +657,7 @@ than 2.6, then run the following in the terminal <code>brew install python</code
 </li>
 <li>
 <p>With Python and Homebrew already installed, all that's left is installing
-Autojump, which can be  To do that, enter the following command
+Autojump, which can be To do that, enter the following command
 <code>brew install autojump</code></p>
 </li>
 </ol>
