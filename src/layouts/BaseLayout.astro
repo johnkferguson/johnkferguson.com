@@ -26,8 +26,16 @@ const { title, description, type = "website", pubDate, author } = Astro.props;
   <head>
     <Head title={title} description={description} type={type} pubDate={pubDate} />
     <JsonLd type={type} title={title} description={description} pubDate={pubDate} author={author} />
+    <script is:inline>
+      (function() {
+        var theme = localStorage.getItem('theme');
+        if (theme !== 'light') {
+          document.documentElement.classList.add('dark');
+        }
+      })();
+    </script>
   </head>
-  <body class="bg-white text-[#555] font-normal leading-[1.5]">
+  <body class="font-normal leading-[1.5] transition-colors duration-200" style="background-color: var(--bg); color: var(--text-color);">
     <SiteHeader />
     <slot />
     <SiteFooter />
