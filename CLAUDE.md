@@ -36,5 +36,5 @@ When previewing changes locally, prefer `bun run dev` over `build + preview` —
 
 ## Git Conventions
 
-- Commit on a feature branch, not main/master
+- Commit on a feature branch, not main
 - Conventional commits: `type(scope): description`
