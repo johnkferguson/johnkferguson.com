@@ -6,11 +6,13 @@ Personal blog at johnkferguson.com. Static site built with Astro 6, Tailwind CSS
 
 ## Commands
 
-- `bun run dev` - Start dev server (port 4321)
+- `bun run dev` - Start dev server (port 4321) with hot reload
 - `bun run build` - Production build to `dist/`
-- `bun run preview` - Preview production build
+- `bun run preview` - Preview production build (no hot reload)
 - `bun run check` - Lint with Biome
 - `bun run check:fix` - Auto-fix lint issues
+
+When previewing changes locally, prefer `bun run dev` over `build + preview` — it watches for file changes and reloads automatically.
 
 ## Architecture
 
