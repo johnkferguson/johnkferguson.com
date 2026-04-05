@@ -1,0 +1,12 @@
+exclude = [
+  # 404 canonical self-reference (file is 404.html, not /404)
+  "/404$",
+  # Dead external links in old posts
+  "kaffeine\\.herokuapp\\.com",
+  "unidler\\.herokuapp\\.com",
+  "scottchacon\\.com",
+  "johnwritecode\\.com",
+  "mxcl\\.github\\.com",
+  "uptimerobot\\.com",
+  "docs\\.newrelic\\.com/docs/alert-policies",
+]

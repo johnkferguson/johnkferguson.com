@@ -31,7 +31,7 @@ solution. If at some point in the future, you decide you no longer want to
 use Devise, you can't just remove it from your Gemfile and expect things to
 work. Much of the app would have to be changed to accomodate this change while
 still providing the same functionality. However, if you are using a gem
-like [xray-rails](<(https://github.com/brentd/xray-rails)>) in development, you
+like [xray-rails](https://github.com/brentd/xray-rails) in development, you
 can add it or remove it as you please with no far-reaching implications.
 
 I use quite a few gems as a default during Rails development and testing. Instead of explaining all of

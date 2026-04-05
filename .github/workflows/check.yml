@@ -1,0 +1,29 @@
+name: Check
+
+on:
+  pull_request:
+  push:
+    branches: [master]
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - uses: oven-sh/setup-bun@v2
+      - run: bun install
+      - run: bunx biome check .
+      - run: bunx astro check
+      - run: bun run build
+      - uses: actions/cache@v4
+        with:
+          path: .lycheecache
+          key: lychee-${{ github.sha }}
+          restore-keys: lychee-
+      - uses: lycheeverse/lychee-action@v2
+        with:
+          args: "--config .lychee.toml --root-dir ./dist --remap 'https://johnkferguson\\.com file://${{ github.workspace }}/dist' --cache --max-cache-age 1d --no-progress './dist/**/*.html'"
+          fail: true

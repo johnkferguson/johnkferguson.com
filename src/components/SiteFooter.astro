@@ -1,0 +1,43 @@
+---
+import EmailIcon from "./icons/EmailIcon.astro";
+import GithubIcon from "./icons/GithubIcon.astro";
+import TwitterIcon from "./icons/TwitterIcon.astro";
+
+const emailAddress = "hello@johnkellyferguson.com";
+const githubUsername = "johnkferguson";
+const twitterUsername = "johnkferguson";
+---
+
+<footer class="border-t border-[#e8e8e8] bg-[#fdfdfd] py-[1.7rem] text-center">
+  <div class="max-w-[30rem] mx-auto px-3 text-left">
+    <ul class="flex flex-row justify-start gap-[0.25rem] p-0">
+      <li class="h-[3.45rem] list-none">
+        <a
+          href={`https://twitter.com/${twitterUsername}`}
+          aria-label="Twitter"
+          class="flex items-center justify-center"
+        >
+          <TwitterIcon class="w-[2.3rem] h-[2.3rem] fill-[#c2c2c2] hover:fill-[#9ae4e8] transition-colors" />
+        </a>
+      </li>
+      <li class="github px-4">
+        <a
+          href={`https://github.com/${githubUsername}`}
+          aria-label="GitHub"
+          class="flex items-center justify-center"
+        >
+          <GithubIcon class="w-[2.3rem] h-[2.3rem] fill-[#c2c2c2] hover:fill-black transition-colors" />
+        </a>
+      </li>
+      <li>
+        <a
+          href={`mailto:${emailAddress}`}
+          aria-label="Email"
+          class="flex items-center justify-center"
+        >
+          <EmailIcon class="w-[2.3rem] h-[2.3rem] fill-[#c2c2c2] hover:fill-[#000] transition-colors" />
+        </a>
+      </li>
+    </ul>
+  </div>
+</footer>
