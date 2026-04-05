@@ -1,24 +1,19 @@
 ---
 interface Props {
-  title: string;
-  description: string;
-  type?: "website" | "article";
-  pubDate?: Date;
+	title: string;
+	description: string;
+	type?: "website" | "article";
+	pubDate?: Date;
 }
 
-const {
-  title,
-  description,
-  type = "website",
-  pubDate,
-} = Astro.props;
+const { title, description, type = "website", pubDate } = Astro.props;
 
 const canonicalURL = new URL(Astro.url.pathname, Astro.site).href;
 const siteName = "John K. Ferguson";
 const fullTitle =
-  title === siteName
-    ? `${title} | Software Engineer`
-    : `${title} | ${siteName}`;
+	title === siteName
+		? `${title} | Software Engineer`
+		: `${title} | ${siteName}`;
 ---
 
 <meta charset="utf-8" />

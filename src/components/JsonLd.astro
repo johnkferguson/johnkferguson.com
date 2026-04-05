@@ -1,60 +1,60 @@
 ---
 interface Props {
-  type: "website" | "article";
-  title: string;
-  description: string;
-  pubDate?: Date;
-  author?: string;
+	type: "website" | "article";
+	title: string;
+	description: string;
+	pubDate?: Date;
+	author?: string;
 }
 
 const {
-  type,
-  title,
-  description,
-  pubDate,
-  author = "John K. Ferguson",
+	type,
+	title,
+	description,
+	pubDate,
+	author = "John K. Ferguson",
 } = Astro.props;
 
 const url = new URL(Astro.url.pathname, Astro.site).href;
 const siteUrl = Astro.site?.href ?? "https://johnkferguson.com";
 
 const personSchema = {
-  "@type": "Person",
-  name: "John K. Ferguson",
-  url: siteUrl,
+	"@type": "Person",
+	name: "John K. Ferguson",
+	url: siteUrl,
 };
 
 const websiteSchema = {
-  "@context": "https://schema.org",
-  "@type": "WebSite",
-  name: "John K. Ferguson",
-  url: siteUrl,
-  author: personSchema,
+	"@context": "https://schema.org",
+	"@type": "WebSite",
+	name: "John K. Ferguson",
+	url: siteUrl,
+	author: personSchema,
 };
 
 const pageSchema =
-  type === "article"
-    ? {
-        "@context": "https://schema.org",
-        "@type": "Article",
-        headline: title,
-        description,
-        url,
-        author: {
-          "@type": "Person",
-          name: author,
-        },
-        ...(pubDate && { datePublished: pubDate.toISOString() }),
-        mainEntityOfPage: url,
-      }
-    : {
-        "@context": "https://schema.org",
-        "@type": "WebPage",
-        name: title,
-        description,
-        url,
-        author: personSchema,
-      };
+	type === "article"
+		? {
+				"@context": "https://schema.org",
+				"@type": "Article",
+				headline: title,
+				description,
+				url,
+				author: {
+					"@type": "Person",
+					name: author,
+				},
+				...(pubDate && { datePublished: pubDate.toISOString() }),
+				mainEntityOfPage: url,
+			}
+		: {
+				"@context": "https://schema.org",
+				"@type": "WebPage",
+				name: title,
+				description,
+				url,
+				author: personSchema,
+			};
 ---
 
 <script is:inline type="application/ld+json" set:html={JSON.stringify(websiteSchema)} />

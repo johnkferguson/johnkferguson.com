@@ -6,16 +6,16 @@ import "@fontsource/fira-code/400.css";
 import "@fontsource/fira-code/700.css";
 import "../styles/global.css";
 import Head from "../components/Head.astro";
-import SiteHeader from "../components/SiteHeader.astro";
-import SiteFooter from "../components/SiteFooter.astro";
 import JsonLd from "../components/JsonLd.astro";
+import SiteFooter from "../components/SiteFooter.astro";
+import SiteHeader from "../components/SiteHeader.astro";
 
 interface Props {
-  title: string;
-  description: string;
-  type?: "website" | "article";
-  pubDate?: Date;
-  author?: string;
+	title: string;
+	description: string;
+	type?: "website" | "article";
+	pubDate?: Date;
+	author?: string;
 }
 
 const { title, description, type = "website", pubDate, author } = Astro.props;
