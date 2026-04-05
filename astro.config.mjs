@@ -3,6 +3,7 @@
 import mdx from "@astrojs/mdx";
 import sitemap from "@astrojs/sitemap";
 import tailwindcss from "@tailwindcss/vite";
+import rehypeExternalLinks from "rehype-external-links";
 import { defineConfig } from "astro/config";
 
 export default defineConfig({
@@ -21,5 +22,11 @@ export default defineConfig({
   },
   markdown: {
     syntaxHighlight: false,
+    rehypePlugins: [
+      [
+        rehypeExternalLinks,
+        { target: "_blank", rel: ["noopener", "noreferrer"] },
+      ],
+    ],
   },
 });
