@@ -1,13 +1,18 @@
-<header class="border-t border-[color:var(--heading-color)] pt-2 min-h-[2.4rem] leading-[2.1rem]">
-  <div class="max-w-[30rem] mx-auto px-3 flex items-start justify-between">
+---
+import ThemeToggle from "./ThemeToggle.astro";
+---
+
+<header class="border-t pt-2 min-h-[2.4rem] leading-[2.1rem]" style="border-color: var(--heading-color);">
+  <div class="max-w-[30rem] mx-auto px-3 flex items-center justify-between">
     <a
       href="/"
-      class="block text-black text-[1.5rem] tracking-[-1px] relative border-b border-black z-[1] font-normal"
+      class="block text-[1.5rem] tracking-[-1px] relative border-b z-[1] font-normal"
+      style="color: var(--heading-color); border-color: var(--heading-color);"
     >
       John K. Ferguson
     </a>
     <nav>
-      <div></div>
+      <ThemeToggle />
     </nav>
   </div>
 </header>

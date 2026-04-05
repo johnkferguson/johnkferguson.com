@@ -25,21 +25,21 @@ function formatDate(date: Date): string {
       <ul class="list-none p-0 m-0">
         {sortedPosts.map((post) => (
           <li class="mb-[1.4rem]">
-            <span class="block text-[0.7rem] text-[#818181] leading-none">
+            <span class="block text-[0.7rem] leading-none text-[var(--date-color)]">
               {formatDate(post.data.date)}
             </span>
             <a
               href={`/${post.id}`}
-              class="text-[1rem] md:text-[1.2rem] tracking-[-0.04em] leading-none font-normal text-gray-900 hover:text-black border-b border-[#ddd] hover:border-black transition-colors"
+              class="text-[1rem] md:text-[1.2rem] tracking-[-0.04em] leading-none font-normal link-underline post-title-link transition-colors"
             >
               {post.data.title}
             </a>
           </li>
         ))}
       </ul>
-      <p class="text-[16px] leading-[24px] mb-[21px] text-gray-400 md:text-[21px] md:leading-[31.5px]">
+      <p class="text-[16px] leading-[24px] mb-[21px] text-[var(--date-color)] md:text-[21px] md:leading-[31.5px]">
         subscribe{" "}
-        <a href="/rss.xml" class="text-blue-700 hover:underline">via RSS</a>
+        <a href="/rss.xml" class="text-blue-700 dark:text-blue-400 hover:underline">via RSS</a>
       </p>
     </div>
   </div>
