@@ -7,16 +7,6 @@ const sortedPosts = allPosts.sort(
   (a, b) => b.data.date.valueOf() - a.data.date.valueOf(),
 );
 
-function createExcerpt(content: string, maxLength = 160): string {
-  if (!content) return "";
-  const plain = content.replace(/(\*\*|\*|_|`|>|#|\[|\]|\(|\))/g, "");
-  if (plain.length <= maxLength) return plain;
-  let truncated = plain.substring(0, maxLength);
-  const lastSpace = truncated.lastIndexOf(" ");
-  if (lastSpace > 0) truncated = truncated.substring(0, lastSpace);
-  return `${truncated}\u2026`;
-}
-
 function formatDate(date: Date): string {
   return date.toLocaleDateString("en-US", {
     month: "long",
