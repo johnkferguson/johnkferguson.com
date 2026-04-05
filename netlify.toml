@@ -1,6 +1,3 @@
 [build]
-publish = "out"           # Use Next.js static export output directory
-command = "npm run build"
-
-[build.environment]
-NEXT_DISABLE_LINTING = "true"
+publish = "dist"
+command = "bun run build"

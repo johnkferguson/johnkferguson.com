@@ -1,0 +1,152 @@
+@import "tailwindcss";
+@plugin "@tailwindcss/typography";
+
+@theme {
+  --font-serif: "PT Serif", serif;
+  --font-mono: "Fira Code", monospace;
+  --default-font-family: "PT Serif", serif;
+  --default-mono-font-family: "Fira Code", monospace;
+}
+
+/*
+ * Variables
+ */
+:root {
+  --heading-color: #333333;
+  --code-background: #f8f8f8;
+  --code-border: #d5d5e9;
+  --code-color: #bf616a;
+  --date-color: #818181;
+}
+
+/*
+ * Base Settings
+ */
+
+html {
+  font-family: var(--font-serif);
+  font-size: 16px;
+}
+
+@media (min-width: 44em) {
+  html {
+    font-size: 21px;
+  }
+}
+
+@media (min-width: 44em) {
+  p:first-child > img {
+    width: 100%;
+  }
+}
+
+p {
+  margin: 0 0 1rem;
+}
+
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+  margin-bottom: 0.5rem;
+  font-weight: bold;
+  line-height: 1.1;
+  color: var(--heading-color);
+  letter-spacing: -0.033rem;
+}
+
+h1,
+h2,
+h3 {
+  margin-top: 1.5rem;
+}
+h4,
+h5,
+h6 {
+  margin-top: 1.2rem;
+}
+
+h1 {
+  font-size: 2rem;
+}
+
+h2 {
+  font-size: 1.6rem;
+}
+
+h3 {
+  font-size: 1.4rem;
+}
+
+h4 {
+  font-size: 1.2rem;
+}
+
+a {
+  font-weight: inherit;
+  line-height: inherit;
+  color: #222;
+  text-decoration: none;
+  transition: all 0.2s ease-in-out;
+}
+
+a:hover {
+  color: #000000;
+}
+
+img {
+  max-width: 100%;
+  height: auto;
+  border-radius: 0.25rem;
+}
+
+blockquote {
+  border-left: 0.2rem solid #e8e8e8;
+  padding-left: 1rem;
+  font-size: 0.9rem;
+  opacity: 0.6;
+  font-style: italic;
+  margin: 1.5rem 0;
+}
+
+/* For Articles */
+article a {
+  @apply border-b transition-colors duration-200;
+  border-color: #ddd;
+}
+article a:hover {
+  @apply border-b;
+  border-color: #000;
+}
+
+article ul {
+  @apply ml-[1.35em] pl-4 list-disc list-inside;
+}
+article ol {
+  @apply ml-[1.35em] pl-4 list-decimal list-outside;
+}
+
+article blockquote {
+  @apply border-l-[0.2rem] pl-4 text-[0.9rem] opacity-60 italic my-6;
+  border-left-color: #e8e8e8;
+}
+
+article pre {
+  @apply text-[0.75rem] overflow-auto rounded p-4 my-4;
+  background-color: var(--code-background);
+}
+
+article code {
+  @apply text-[0.75rem] overflow-auto rounded;
+  background-color: var(--code-background);
+}
+
+article code {
+  @apply px-1 font-mono text-[var(--code-color)];
+}
+
+article pre code {
+  @apply text-inherit border-0 p-0;
+}

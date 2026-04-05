@@ -1,0 +1,56 @@
+---
+import { getCollection } from "astro:content";
+import BaseLayout from "../layouts/BaseLayout.astro";
+
+const allPosts = await getCollection("posts");
+const sortedPosts = allPosts.sort(
+  (a, b) => b.data.date.valueOf() - a.data.date.valueOf(),
+);
+
+function createExcerpt(content: string, maxLength = 160): string {
+  if (!content) return "";
+  const plain = content.replace(/(\*\*|\*|_|`|>|#|\[|\]|\(|\))/g, "");
+  if (plain.length <= maxLength) return plain;
+  let truncated = plain.substring(0, maxLength);
+  const lastSpace = truncated.lastIndexOf(" ");
+  if (lastSpace > 0) truncated = truncated.substring(0, lastSpace);
+  return `${truncated}\u2026`;
+}
+
+function formatDate(date: Date): string {
+  return date.toLocaleDateString("en-US", {
+    month: "long",
+    day: "numeric",
+    year: "numeric",
+  });
+}
+---
+
+<BaseLayout
+  title="John K. Ferguson"
+  description="Personal website and blog of John K. Ferguson, exploring software development, technology, and more."
+>
+  <div class="py-8">
+    <div class="max-w-[95vw] md:max-w-[630px] mx-auto px-4 md:px-[15.75px]">
+      <ul class="list-none p-0 m-0">
+        {sortedPosts.map((post) => (
+          <li class="mb-[1.4rem]">
+            <span class="block text-[0.7rem] text-[#818181] leading-none">
+              {formatDate(post.data.date)}
+            </span>
+            <a
+              href={`/${post.id}`}
+              class="text-[1rem] md:text-[1.2rem] tracking-[-0.04em] leading-none font-normal text-gray-900 hover:text-black border-b border-[#ddd] hover:border-black transition-colors"
+            >
+              {post.data.title}
+            </a>
+          </li>
+        ))}
+      </ul>
+      <p class="text-[16px] leading-[24px] mb-[21px] text-gray-400 md:text-[21px] md:leading-[31.5px]">
+        subscribe{" "}
+        <a href="/rss.xml" class="text-blue-700 hover:underline">via RSS</a>
+      </p>
+    </div>
+  </div>
+</BaseLayout>

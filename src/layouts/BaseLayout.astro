@@ -1,0 +1,35 @@
+---
+import "@fontsource/pt-serif/400.css";
+import "@fontsource/pt-serif/400-italic.css";
+import "@fontsource/pt-serif/700.css";
+import "@fontsource/fira-code/400.css";
+import "@fontsource/fira-code/700.css";
+import "../styles/global.css";
+import Head from "../components/Head.astro";
+import SiteHeader from "../components/SiteHeader.astro";
+import SiteFooter from "../components/SiteFooter.astro";
+import JsonLd from "../components/JsonLd.astro";
+
+interface Props {
+  title: string;
+  description: string;
+  type?: "website" | "article";
+  pubDate?: Date;
+  author?: string;
+}
+
+const { title, description, type = "website", pubDate, author } = Astro.props;
+---
+
+<!doctype html>
+<html lang="en">
+  <head>
+    <Head title={title} description={description} type={type} pubDate={pubDate} />
+    <JsonLd type={type} title={title} description={description} pubDate={pubDate} author={author} />
+  </head>
+  <body class="bg-white text-[#555] font-normal leading-[1.5]">
+    <SiteHeader />
+    <slot />
+    <SiteFooter />
+  </body>
+</html>
