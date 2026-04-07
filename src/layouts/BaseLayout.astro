@@ -13,19 +13,29 @@ import SiteHeader from "../components/SiteHeader.astro";
 interface Props {
 	title: string;
 	description: string;
+	image?: string;
 	type?: "website" | "article";
 	pubDate?: Date;
 	author?: string;
+	noindex?: boolean;
 }
 
-const { title, description, type = "website", pubDate, author } = Astro.props;
+const {
+	title,
+	description,
+	image,
+	type = "website",
+	pubDate,
+	author,
+	noindex,
+} = Astro.props;
 ---
 
 <!doctype html>
 <html lang="en">
   <head>
-    <Head title={title} description={description} type={type} pubDate={pubDate} />
-    <JsonLd type={type} title={title} description={description} pubDate={pubDate} author={author} />
+    <Head title={title} description={description} image={image} type={type} pubDate={pubDate} noindex={noindex} />
+    <JsonLd type={type} title={title} description={description} image={image} pubDate={pubDate} author={author} />
     <script is:inline>
       (function() {
         var theme = localStorage.getItem('theme');

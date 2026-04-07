@@ -1,23 +1,35 @@
 ---
+import { SITE_NAME, THEME_COLOR, TWITTER_HANDLE } from "../consts";
+
 interface Props {
 	title: string;
 	description: string;
+	image?: string;
 	type?: "website" | "article";
 	pubDate?: Date;
+	noindex?: boolean;
 }
 
-const { title, description, type = "website", pubDate } = Astro.props;
+const {
+	title,
+	description,
+	image = "/assets/og-image.png",
+	type = "website",
+	pubDate,
+	noindex,
+} = Astro.props;
 
 const canonicalURL = new URL(Astro.url.pathname, Astro.site).href;
-const siteName = "John K. Ferguson";
+const ogImageURL = new URL(image, Astro.site).href;
 const fullTitle =
-	title === siteName
+	title === SITE_NAME
 		? `${title} | Software Engineer`
-		: `${title} | ${siteName}`;
+		: `${title} | ${SITE_NAME}`;
 ---
 
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
+<meta name="theme-color" content={THEME_COLOR} />
 <meta name="generator" content={Astro.generator} />
 
 <!-- Primary Meta Tags -->
@@ -25,29 +37,34 @@ const fullTitle =
 <meta name="title" content={fullTitle} />
 <meta name="description" content={description} />
 <link rel="canonical" href={canonicalURL} />
+{noindex && <meta name="robots" content="noindex" />}
 
 <!-- Open Graph -->
 <meta property="og:type" content={type} />
 <meta property="og:url" content={canonicalURL} />
 <meta property="og:title" content={fullTitle} />
 <meta property="og:description" content={description} />
-<meta property="og:site_name" content={siteName} />
+<meta property="og:image" content={ogImageURL} />
+<meta property="og:site_name" content={SITE_NAME} />
 <meta property="og:locale" content="en_US" />
 
 <!-- Twitter -->
-<meta name="twitter:card" content="summary" />
+<meta name="twitter:card" content="summary_large_image" />
 <meta name="twitter:url" content={canonicalURL} />
 <meta name="twitter:title" content={fullTitle} />
 <meta name="twitter:description" content={description} />
+<meta name="twitter:image" content={ogImageURL} />
+<meta name="twitter:site" content={TWITTER_HANDLE} />
+<meta name="twitter:creator" content={TWITTER_HANDLE} />
 
 <!-- Article-specific -->
 {pubDate && <meta property="article:published_time" content={pubDate.toISOString()} />}
 
 <!-- RSS -->
-<link rel="alternate" type="application/rss+xml" href="/rss.xml" title="John K. Ferguson's Blog" />
+<link rel="alternate" type="application/rss+xml" href="/rss.xml" title={`${SITE_NAME}'s Blog`} />
 
 <!-- LLM discoverability -->
 <link rel="alternate" type="text/plain" href={new URL("/llms.txt", Astro.site).href} title="LLM-friendly site summary" />
 
 <!-- Favicon -->
-<link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+<link rel="icon" type="image/svg+xml" href="/assets/favicon.svg" />

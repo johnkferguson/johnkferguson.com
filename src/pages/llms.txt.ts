@@ -1,5 +1,6 @@
 import { getCollection } from "astro:content";
 import type { APIRoute } from "astro";
+import { SITE_DESCRIPTION, SITE_NAME } from "../consts";
 
 export const GET: APIRoute = async ({ site }) => {
 	const siteUrl = site?.href ?? "https://johnkferguson.com";
@@ -11,9 +12,9 @@ export const GET: APIRoute = async ({ site }) => {
 	);
 
 	const lines = [
-		"# John K. Ferguson",
+		`# ${SITE_NAME}`,
 		"",
-		"> Personal website and blog of John K. Ferguson, exploring software development, technology, and more.",
+		`> ${SITE_DESCRIPTION}`,
 		"",
 		"## Posts",
 		"",

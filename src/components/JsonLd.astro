@@ -1,8 +1,11 @@
 ---
+import { SITE_DESCRIPTION, SITE_NAME } from "../consts";
+
 interface Props {
 	type: "website" | "article";
 	title: string;
 	description: string;
+	image?: string;
 	pubDate?: Date;
 	author?: string;
 }
@@ -11,23 +14,29 @@ const {
 	type,
 	title,
 	description,
+	image,
 	pubDate,
-	author = "John K. Ferguson",
+	author = SITE_NAME,
 } = Astro.props;
 
 const url = new URL(Astro.url.pathname, Astro.site).href;
 const siteUrl = Astro.site?.href ?? "https://johnkferguson.com";
+const ogImageURL = image
+	? new URL(image, Astro.site).href
+	: new URL("/assets/og-image.png", Astro.site).href;
 
 const personSchema = {
 	"@type": "Person",
-	name: "John K. Ferguson",
+	"@id": `${siteUrl}#person`,
+	name: SITE_NAME,
 	url: siteUrl,
 };
 
 const websiteSchema = {
 	"@context": "https://schema.org",
 	"@type": "WebSite",
-	name: "John K. Ferguson",
+	name: SITE_NAME,
+	description: SITE_DESCRIPTION,
 	url: siteUrl,
 	author: personSchema,
 };
@@ -40,12 +49,13 @@ const pageSchema =
 				headline: title,
 				description,
 				url,
+				image: ogImageURL,
 				author: {
 					"@type": "Person",
 					name: author,
 				},
 				...(pubDate && { datePublished: pubDate.toISOString() }),
-				mainEntityOfPage: url,
+				mainEntityOfPage: { "@id": url },
 			}
 		: {
 				"@context": "https://schema.org",

@@ -1,5 +1,6 @@
 import { getCollection } from "astro:content";
 import type { APIRoute } from "astro";
+import { SITE_DESCRIPTION, SITE_NAME } from "../consts";
 
 export const GET: APIRoute = async () => {
 	const posts = await getCollection("posts");
@@ -8,9 +9,9 @@ export const GET: APIRoute = async () => {
 	);
 
 	const sections = [
-		"# John K. Ferguson - Full Content",
+		`# ${SITE_NAME} - Full Content`,
 		"",
-		"> Personal website and blog of John K. Ferguson, exploring software development, technology, and more.",
+		`> ${SITE_DESCRIPTION}`,
 		"",
 		"---",
 		"",
