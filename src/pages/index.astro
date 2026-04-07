@@ -1,5 +1,6 @@
 ---
 import { getCollection } from "astro:content";
+import { SITE_DESCRIPTION, SITE_NAME } from "../consts";
 import BaseLayout from "../layouts/BaseLayout.astro";
 
 const allPosts = await getCollection("posts");
@@ -12,13 +13,14 @@ function formatDate(date: Date): string {
 		month: "long",
 		day: "numeric",
 		year: "numeric",
+		timeZone: "UTC",
 	});
 }
 ---
 
 <BaseLayout
-  title="John K. Ferguson"
-  description="Personal website and blog of John K. Ferguson, exploring software development, technology, and more."
+  title={SITE_NAME}
+  description={SITE_DESCRIPTION}
 >
   <div class="py-8">
     <div class="max-w-[95vw] md:max-w-[630px] mx-auto px-4 md:px-[15.75px]">

@@ -3,6 +3,7 @@ import rss from "@astrojs/rss";
 import type { APIContext } from "astro";
 import MarkdownIt from "markdown-it";
 import sanitizeHtml from "sanitize-html";
+import { SITE_DESCRIPTION, SITE_NAME } from "../consts";
 
 const parser = new MarkdownIt();
 
@@ -13,8 +14,8 @@ export async function GET(context: APIContext) {
 	);
 
 	return rss({
-		title: "John Ferguson's Blog",
-		description: "Thoughts on web development, technology, and life.",
+		title: `${SITE_NAME}'s Blog`,
+		description: SITE_DESCRIPTION,
 		site: context.site as URL,
 		items: sortedPosts.map((post) => ({
 			title: post.data.title,

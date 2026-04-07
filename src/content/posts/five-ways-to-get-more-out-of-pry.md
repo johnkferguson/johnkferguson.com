@@ -16,7 +16,7 @@ This post will highlight five of the most useful, so you can get more out of Pry
 To install Pry, type the following into your terminal:
 
 ```bash
-$ gem install pry
+gem install pry
 ```
 
 To start Pry from the terminal, simply enter in Pry like so:
@@ -116,7 +116,7 @@ Nesting status:
 1 Dog
 ```
 
-5. Finally, `help` can list out all the other methods that Pry offers
+1. Finally, `help` can list out all the other methods that Pry offers
    that won't be covered in this blog post. Try it out within Pry yourself
    to see all the different options.
 
@@ -144,7 +144,7 @@ demonstration.how_binding_works
 We then run the file within the terminal:
 
 ```bash
-$ ruby pry-example.rb
+ruby pry-example.rb
 ```
 
 After running the file, we are then put into the code at the point
@@ -206,7 +206,7 @@ of Pry with your rails app. They are:
 Pry has some of the best documentation and resources around. Here are some of
 the best places to start with to get a deeper understanding of Pry.
 
-1. [Pry's Main Site](http://pryrepl.org/) gives a great overview of the project.
+1. [Pry's Main Site](https://pry.github.io/) gives a great overview of the project.
 
 2. The [Pry Intoductory Screencast](http://vimeo.com/26391171) is easy to
    follow and does a wonderful job of demonstrating the power of Pry.
