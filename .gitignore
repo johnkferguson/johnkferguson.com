@@ -28,3 +28,6 @@ node_modules/
 
 # Debug
 dev-debug.log
+
+# Local files
+.local/*
