@@ -1,0 +1,26 @@
+---
+import { getEntry, render } from "astro:content";
+import { SITE_NAME } from "../consts";
+import BaseLayout from "../layouts/BaseLayout.astro";
+
+const page = await getEntry("pages", "about");
+if (!page) {
+	throw new Error("Missing content/pages/about.md");
+}
+const { Content } = await render(page);
+
+const title = `${page.data.title} — ${SITE_NAME}`;
+---
+
+<BaseLayout title={title} description={page.data.description ?? ""}>
+  <div class="pt-0 pb-8">
+    <div class="max-w-120 mx-auto px-3">
+      <header class="mb-[1.2rem]">
+        <h1 class="text-2xl font-bold leading-tight mb-2">{page.data.title}</h1>
+      </header>
+      <article class="max-w-none">
+        <Content />
+      </article>
+    </div>
+  </div>
+</BaseLayout>
