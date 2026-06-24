@@ -12,7 +12,14 @@ import ThemeToggle from "./ThemeToggle.astro";
     >
       {SITE_NAME}
     </a>
-    <nav>
+    <nav class="flex items-center gap-4">
+      <a
+        href="/about"
+        class="text-[1rem] link-underline transition-colors"
+        style="color: var(--heading-color);"
+      >
+        About
+      </a>
       <ThemeToggle />
     </nav>
   </div>
