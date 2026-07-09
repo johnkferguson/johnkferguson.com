@@ -23,6 +23,7 @@
 	--lab-hatch: rgba(0, 0, 0, 0.45);
 	--lab-grid: #efefef;
 	--lab-on-accent: #ffffff;
+	--lab-slider: #1c1917;
 
 	--lab-panel: var(--code-background);
 	--lab-panel2: var(--bg);
@@ -42,4 +43,5 @@
 	--lab-hatch: rgba(255, 255, 255, 0.55);
 	--lab-grid: #2e2a27;
 	--lab-on-accent: #1c1917;
+	--lab-slider: #f0ebe5;
 }

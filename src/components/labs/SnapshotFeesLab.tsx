@@ -90,7 +90,7 @@ function Param({ name, val, set, min, max, stp, suffix, hint }: ParamProps) {
 					step={stp}
 					value={val}
 					onChange={(e) => set(+(e.currentTarget as HTMLInputElement).value)}
-					style={{ width: 84, accentColor: C.fee }}
+					style={{ width: 84, accentColor: "var(--lab-slider)" }}
 				/>
 				<span
 					style={{
@@ -1030,65 +1030,65 @@ export default function SnapshotFeesLab() {
 					{/* key — its own strip below the price axis */}
 					<g pointerEvents="none" style={{ fontFamily: mono }}>
 						<rect
-							x={243}
-							y={PB + 37}
-							width={12}
-							height={12}
+							x={212}
+							y={PB + 35}
+							width={14}
+							height={14}
 							rx={2}
 							style={{ fill: C.bid }}
 						/>
 						<text
-							x={261}
+							x={233}
 							y={PB + 48}
-							fontSize={14}
+							fontSize={16}
 							style={{ fill: C.dim, fontFamily: mono }}
 						>
 							Bids
 						</text>
 						<rect
-							x={323}
-							y={PB + 37}
-							width={12}
-							height={12}
+							x={301}
+							y={PB + 35}
+							width={14}
+							height={14}
 							rx={2}
 							style={{ fill: C.ask }}
 						/>
 						<text
-							x={341}
+							x={322}
 							y={PB + 48}
-							fontSize={14}
+							fontSize={16}
 							style={{ fill: C.dim, fontFamily: mono }}
 						>
 							Asks
 						</text>
 						<rect
-							x={403}
-							y={PB + 37}
-							width={12}
-							height={12}
+							x={390}
+							y={PB + 35}
+							width={14}
+							height={14}
 							fill="url(#sf-hatch)"
 							strokeWidth={0.5}
 							style={{ stroke: C.dim }}
 						/>
 						<text
-							x={421}
+							x={411}
 							y={PB + 48}
-							fontSize={14}
+							fontSize={16}
 							style={{ fill: C.dim, fontFamily: mono }}
 						>
 							Directional
 						</text>
 						<circle
-							cx={546}
-							cy={PB + 43}
-							r={5}
+							cx={553}
+							cy={PB + 42}
+							r={6}
 							strokeWidth={1}
 							style={{ fill: C.fee, stroke: C.panel }}
 						/>
 						<text
-							x={557}
+							x={566}
 							y={PB + 48}
-							fontSize={14}
+							fontSize={16}
 							style={{ fill: C.dim, fontFamily: mono }}
 						>
 							Fee If Fully Filled
@@ -1151,8 +1151,8 @@ export default function SnapshotFeesLab() {
 					{mHover &&
 						(() => {
 							const xT = Math.min(
-								Math.max(xOfPrice(model.M), PL + 170),
-								PR - 170,
+								Math.max(xOfPrice(model.M), PL + 190),
+								PR - 190,
 							);
 							const top = PT + 8;
 							if (model.frozen) {
@@ -1164,10 +1164,10 @@ export default function SnapshotFeesLab() {
 								return (
 									<g pointerEvents="none">
 										<rect
-											x={xT - 145}
+											x={xT - 165}
 											y={top}
-											width={290}
-											height={14 + rows.length * 17}
+											width={330}
+											height={16 + rows.length * 19}
 											rx={6}
 											strokeWidth={0.75}
 											style={{ fill: C.panel2, stroke: C.mark }}
@@ -1175,9 +1175,9 @@ export default function SnapshotFeesLab() {
 										{rows.map((r, k) => (
 											<text
 												key={r.t}
-												x={xT - 133}
-												y={top + 20 + k * 17}
-												fontSize={12}
+												x={xT - 151}
+												y={top + 22 + k * 19}
+												fontSize={14}
 												style={{ fill: r.c, fontFamily: mono }}
 											>
 												{r.t}
@@ -1213,20 +1213,20 @@ export default function SnapshotFeesLab() {
 							const L = colOf("bid");
 							const R = colOf("ask");
 							const nRows = Math.max(L.length, R.length, 1);
-							const headY = top + 38;
-							const rowY = (k: number) => top + 56 + k * 15;
-							const resY = rowY(nRows - 1) + 19;
-							const footY = resY + 21;
-							const noteY = footY + 16;
-							const h = noteY + 8 - top;
-							const colL = xT - 150;
-							const colR = xT + 14;
+							const headY = top + 44;
+							const rowY = (k: number) => top + 64 + k * 17;
+							const resY = rowY(nRows - 1) + 21;
+							const footY = resY + 23;
+							const noteY = footY + 18;
+							const h = noteY + 10 - top;
+							const colL = xT - 168;
+							const colR = xT + 16;
 							return (
 								<g pointerEvents="none" style={{ fontFamily: mono }}>
 									<rect
-										x={xT - 162}
+										x={xT - 180}
 										y={top}
-										width={324}
+										width={360}
 										height={h}
 										rx={6}
 										strokeWidth={0.75}
@@ -1234,9 +1234,9 @@ export default function SnapshotFeesLab() {
 									/>
 									<text
 										x={xT}
-										y={top + 20}
+										y={top + 22}
 										textAnchor="middle"
-										fontSize={12}
+										fontSize={14}
 										style={{ fill: C.dim, fontFamily: mono }}
 									>
 										M — the mark price of this snapshot
@@ -1244,14 +1244,14 @@ export default function SnapshotFeesLab() {
 									<line
 										x1={xT}
 										x2={xT}
-										y1={top + 28}
+										y1={top + 32}
 										y2={resY + 4}
 										style={{ stroke: C.line }}
 									/>
 									<text
 										x={colL}
 										y={headY}
-										fontSize={11.5}
+										fontSize={13.5}
 										style={{ fill: C.bid, fontFamily: mono }}
 									>
 										sell {fmt$(T)} → bids
@@ -1259,7 +1259,7 @@ export default function SnapshotFeesLab() {
 									<text
 										x={colR}
 										y={headY}
-										fontSize={11.5}
+										fontSize={13.5}
 										style={{ fill: C.ask, fontFamily: mono }}
 									>
 										buy {fmt$(T)} → asks
@@ -1269,7 +1269,7 @@ export default function SnapshotFeesLab() {
 											key={r.t}
 											x={colL}
 											y={rowY(k)}
-											fontSize={11.5}
+											fontSize={13.5}
 											style={{ fill: r.c, fontFamily: mono }}
 										>
 											{r.t}
@@ -1280,7 +1280,7 @@ export default function SnapshotFeesLab() {
 											key={r.t}
 											x={colR}
 											y={rowY(k)}
-											fontSize={11.5}
+											fontSize={13.5}
 											style={{ fill: r.c, fontFamily: mono }}
 										>
 											{r.t}
@@ -1289,7 +1289,7 @@ export default function SnapshotFeesLab() {
 									<text
 										x={colL}
 										y={resY}
-										fontSize={12}
+										fontSize={14}
 										style={{ fill: C.bid, fontFamily: mono }}
 									>
 										gets → {model.iBid != null ? fmtPx(model.iBid) : "—"}
@@ -1297,7 +1297,7 @@ export default function SnapshotFeesLab() {
 									<text
 										x={colR}
 										y={resY}
-										fontSize={12}
+										fontSize={14}
 										style={{ fill: C.ask, fontFamily: mono }}
 									>
 										pays → {model.iAsk != null ? fmtPx(model.iAsk) : "—"}
@@ -1306,7 +1306,7 @@ export default function SnapshotFeesLab() {
 										x={xT}
 										y={footY}
 										textAnchor="middle"
-										fontSize={12}
+										fontSize={14}
 										style={{ fill: C.mark, fontFamily: mono }}
 									>
 										M = ({model.iBid != null ? fmtPx(model.iBid) : "—"} +{" "}
@@ -1317,10 +1317,10 @@ export default function SnapshotFeesLab() {
 										x={xT}
 										y={noteY}
 										textAnchor="middle"
-										fontSize={10.5}
+										fontSize={12}
 										style={{ fill: C.faint, fontFamily: mono }}
 									>
-										gold slices = the depth each walk consumed
+										purple slices = the depth each walk consumed
 									</text>
 								</g>
 							);
@@ -1370,22 +1370,22 @@ export default function SnapshotFeesLab() {
 								rows.push({
 									t: `(${fmt$(b.claimedBefore)} of coverage went to better bars)`,
 									c: C.faint,
-									s: 10.5,
+									s: 12,
 								});
 							rows.push({
 								t: `fee ${fmtBp(b.final)} → $${((b.final / 10000) * b.q).toFixed(2)} · ${((b.final / F) * 100).toFixed(0)}% of a taker`,
 								c: C.fee,
 							});
-							const xT = Math.min(Math.max(xAt(lv.i), PL + 165), PR - 165);
-							const h = 14 + rows.length * 16;
+							const xT = Math.min(Math.max(xAt(lv.i), PL + 195), PR - 195);
+							const h = 16 + rows.length * 18;
 							const dotY = yFee(b.final);
 							const yT = dotY - h - 14 > PT + 4 ? dotY - h - 14 : dotY + 14;
 							return (
 								<g pointerEvents="none">
 									<rect
-										x={xT - 165}
+										x={xT - 190}
 										y={yT}
-										width={330}
+										width={380}
 										height={h}
 										rx={6}
 										strokeWidth={0.75}
@@ -1394,9 +1394,9 @@ export default function SnapshotFeesLab() {
 									{rows.map((r, k) => (
 										<text
 											key={r.t}
-											x={xT - 153}
-											y={yT + 20 + k * 16}
-											fontSize={r.s ?? 11.5}
+											x={xT - 178}
+											y={yT + 22 + k * 18}
+											fontSize={r.s ?? 13.5}
 											style={{ fill: r.c, fontFamily: mono }}
 										>
 											{r.t}
