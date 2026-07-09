@@ -153,6 +153,7 @@ export default function SnapshotFeesLab() {
 	const [sel, setSel] = useState(CENTER - 1);
 	const [showHelp, setShowHelp] = useState(true);
 	const [showFormula, setShowFormula] = useState(true);
+	const [mHover, setMHover] = useState(false);
 	const lastM = useRef(100);
 	const drag = useRef<DragState | null>(null);
 
@@ -175,12 +176,14 @@ export default function SnapshotFeesLab() {
 	}, [model.M, model.frozen]);
 
 	// —— chart geometry ——
+	// Top strip (y 0…PT) hosts the Mark carriage and band-edge labels so the
+	// bottom stays clear for the price axis.
 	const W = 960;
-	const H = 470;
+	const H = 446;
 	const PL = 62;
 	const PR = 906;
-	const PT = 26;
-	const PB = 396; // plot box
+	const PT = 46;
+	const PB = 416; // plot box
 	const AXIS_Y = PB + 4;
 	const step = (PR - PL) / (N - 1);
 	const xAt = (i: number) => PL + i * step;
@@ -833,6 +836,33 @@ export default function SnapshotFeesLab() {
 						strokeDasharray="3 4"
 						style={{ stroke: C.bandEdge, transition: "all 220ms ease" }}
 					/>
+					{/* band-edge labels — anchored outward so they clear the M carriage */}
+					<text
+						x={xOfPrice(model.edgeBid) - 5}
+						y={PT - 6}
+						textAnchor="end"
+						fontSize={12}
+						style={{
+							fill: C.fee,
+							fontFamily: mono,
+							transition: "all 220ms ease",
+						}}
+					>
+						{fmtPx(model.edgeBid)}
+					</text>
+					<text
+						x={xOfPrice(model.edgeAsk) + 5}
+						y={PT - 6}
+						textAnchor="start"
+						fontSize={12}
+						style={{
+							fill: C.fee,
+							fontFamily: mono,
+							transition: "all 220ms ease",
+						}}
+					>
+						{fmtPx(model.edgeAsk)}
+					</text>
 
 					{/* fixed center */}
 					<line
@@ -998,10 +1028,13 @@ export default function SnapshotFeesLab() {
 						</g>
 					))}
 
-					{/* Mark carriage — the signature */}
+					{/* Mark carriage — the signature. Rides the top strip; hover for
+					    the walk that produced it. */}
 					<g
 						style={{ transition: "transform 220ms ease" }}
 						transform={`translate(${xOfPrice(model.M)},0)`}
+						onPointerEnter={() => setMHover(true)}
+						onPointerLeave={() => setMHover(false)}
 					>
 						<line
 							x1={0}
@@ -1013,21 +1046,21 @@ export default function SnapshotFeesLab() {
 							style={{ stroke: C.mark }}
 						/>
 						<path
-							d={`M0,${PB + 6} l -6,10 l 12,0 z`}
+							d={`M0,${PT - 3} l -6,-10 l 12,0 z`}
 							style={{ fill: C.mark }}
 						/>
 						<rect
 							x={-58}
-							y={PB + 34}
+							y={4}
 							width={116}
-							height={20}
+							height={22}
 							rx={4}
 							strokeWidth={0.75}
 							style={{ fill: C.panel2, stroke: C.mark }}
 						/>
 						<text
 							x={0}
-							y={PB + 49}
+							y={20}
 							textAnchor="middle"
 							fontSize={13.5}
 							style={{ fill: C.mark, fontFamily: mono }}
@@ -1035,49 +1068,94 @@ export default function SnapshotFeesLab() {
 							M {fmtPx(model.M)}
 							{model.frozen ? " ❄" : ""}
 						</text>
+						{/* hover hit zones: label box + the line itself */}
+						<rect
+							x={-58}
+							y={2}
+							width={116}
+							height={PT - 2}
+							fill="transparent"
+							style={{ cursor: "help" }}
+						/>
+						<rect
+							x={-10}
+							y={PT}
+							width={20}
+							height={PB - PT}
+							fill="transparent"
+							style={{ cursor: "help" }}
+						/>
 					</g>
+
+					{/* Mark tooltip — how M was measured, from this snapshot */}
+					{mHover &&
+						(() => {
+							const xT = Math.min(
+								Math.max(xOfPrice(model.M), PL + 150),
+								PR - 150,
+							);
+							const rows: { t: string; c: string; s?: number }[] = model.frozen
+								? [
+										{ t: "M frozen — a side is empty", c: C.danger },
+										{ t: "no two-sided walk possible;", c: C.dim },
+										{
+											t: `showing last computed M ${fmtPx(model.M)}`,
+											c: C.dim,
+										},
+									]
+								: [
+										{ t: "M — fair value, measured at size", c: C.dim },
+										{
+											t: `buy ${fmt$(T)} → pays ${model.iAsk != null ? fmtPx(model.iAsk) : "—"}`,
+											c: C.ask,
+										},
+										{
+											t: `sell ${fmt$(T)} → gets ${model.iBid != null ? fmtPx(model.iBid) : "—"}`,
+											c: C.bid,
+										},
+										{ t: `M = midpoint → ${fmtPx(model.M)}`, c: C.mark },
+										{
+											t: "gold slices = the depth each walk used",
+											c: C.faint,
+											s: 11,
+										},
+									];
+							const h = 14 + rows.length * 17;
+							return (
+								<g pointerEvents="none">
+									<rect
+										x={xT - 145}
+										y={PT + 8}
+										width={290}
+										height={h}
+										rx={6}
+										strokeWidth={0.75}
+										style={{ fill: C.panel2, stroke: C.mark }}
+									/>
+									{rows.map((r, k) => (
+										<text
+											key={r.t}
+											x={xT - 133}
+											y={PT + 28 + k * 17}
+											fontSize={r.s ?? 12}
+											style={{ fill: r.c, fontFamily: mono }}
+										>
+											{r.t}
+										</text>
+									))}
+								</g>
+							);
+						})()}
 				</svg>
 			</div>
 
-			{/* status chips */}
-			<div
-				style={{
-					display: "flex",
-					gap: 14,
-					flexWrap: "wrap",
-					margin: "10px 2px",
-					fontFamily: mono,
-					fontSize: 11.5,
-				}}
-			>
-				<span style={{ color: C.mark }}>
-					M {fmtPx(model.M)}
-					{model.frozen && (
-						<span style={{ color: C.danger }}> · frozen (side empty)</span>
-					)}
-				</span>
-				<span style={{ color: C.bid }}>
-					impact bid {model.iBid ? fmtPx(model.iBid) : "—"}
-				</span>
-				<span style={{ color: C.ask }}>
-					impact ask {model.iAsk ? fmtPx(model.iAsk) : "—"}
-				</span>
-				<span style={{ color: C.fee }}>
-					band {fmtPx(model.edgeBid)} – {fmtPx(model.edgeAsk)}
-				</span>
-				<span style={{ color: C.dim }}>
-					hatched = unpaired after spillover → prices at F
-				</span>
-				<span style={{ color: C.faint }}>
-					drag bars to reshape · click a bar for its derivation
-				</span>
-			</div>
+			{/* legend — the chart carries M, the band, and the walk itself */}
 			<div
 				style={{
 					display: "flex",
 					gap: 16,
 					flexWrap: "wrap",
-					margin: "0 2px 10px",
+					margin: "10px 2px",
 					fontSize: 12,
 					color: C.dim,
 					alignItems: "center",
@@ -1104,12 +1182,10 @@ export default function SnapshotFeesLab() {
 					/>
 					uncovered size → pays full F
 				</span>
-				<span style={{ color: C.mark }}>▲ Mark M — slides with the book</span>
-				<span style={{ color: C.mark }}>
-					▢ gold-edged slice — the size the Mark walk consumed (this is what
-					sets M)
+				<span style={{ color: C.faint }}>
+					drag bars to reshape · click a bar for its derivation · hover M for
+					its walk
 				</span>
-				<span>▒ band — the free zone, stamps = 0</span>
 			</div>
 
 			{/* derivation ledger */}
