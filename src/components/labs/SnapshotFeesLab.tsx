@@ -80,6 +80,28 @@ const SCENARIOS: Scenario[] = [
 		},
 	},
 	{
+		key: "thin",
+		title: "Thin Side, Moving Mark",
+		blurb:
+			"Ask depth sits far from the mid while the bids crowd it, so the measuring walk pays up to reach it — M slides toward the heavy side and the band follows, leaving every bid a touch below the new standard. Even in-band asks pay a faint echo of their partners' stamps: placement is judged against the Mark this snapshot produces, not the mid you quoted around.",
+		book: () => {
+			const a = Array(N).fill(0);
+			const bids = [
+				1500, 2000, 4000, 5500, 6200, 7000, 8000, 9700, 12000, 13200,
+			];
+			const asks = [
+				1500, 1700, 1500, 1700, 2200, 3200, 5200, 14000, 17000, 21000,
+			];
+			bids.forEach((v, k) => {
+				a[k] = v;
+			});
+			asks.forEach((v, k) => {
+				a[11 + k] = v;
+			});
+			return a;
+		},
+	},
+	{
 		key: "half",
 		title: "Half-Covered",
 		blurb:
@@ -104,20 +126,6 @@ const SCENARIOS: Scenario[] = [
 				[CENTER - 2]: 6000,
 				[CENTER - 3]: 6000,
 				[CENTER + 1]: 9000,
-			}),
-	},
-	{
-		key: "thin",
-		title: "Thin Side, Moving Mark",
-		blurb:
-			"The ask side is scarce, so the measuring walk executes at worse prices there — M slides toward the scarcity and drags the band with it. The heavy side pushes the Mark away.",
-		book: () =>
-			bookOf({
-				[CENTER - 1]: 6000,
-				[CENTER - 2]: 6000,
-				[CENTER - 3]: 4000,
-				[CENTER + 3]: 1500,
-				[CENTER + 6]: 2500,
 			}),
 	},
 ];
