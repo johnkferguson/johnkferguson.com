@@ -415,14 +415,13 @@ export default function SnapshotFeesLab() {
 					}}
 				>
 					<Param
-						name="Typical trade · T"
-						val={T}
-						set={touch(setT)}
-						min={1000}
-						max={30000}
-						stp={500}
-						suffix="$"
-						hint="Measuring size for M: where a $T trade would really execute on each side."
+						name="Compound λ · D1"
+						val={lambda}
+						set={touch(setLambda)}
+						min={0}
+						max={1}
+						stp={0.05}
+						hint="How a bar's two charges merge: 0 = worse of the two only, 1 = both added in full."
 					/>
 					<Param
 						name="Stamp slope"
@@ -442,16 +441,6 @@ export default function SnapshotFeesLab() {
 						max={2}
 						stp={0.25}
 						hint="1 = linear distance charge; 2 = far placement charged disproportionately."
-					/>
-					<Param
-						name="Inside comp (parked)"
-						val={comp}
-						set={touch(setComp)}
-						min={0}
-						max={0.5}
-						stp={0.05}
-						suffix="bp"
-						hint="Experimental reward near M, funded by taker fees — a separate channel; base fees never go below zero."
 					/>
 					<div
 						style={{
@@ -704,13 +693,14 @@ export default function SnapshotFeesLab() {
 						hint="The ceiling every fee runs toward."
 					/>
 					<Param
-						name="Compound λ · D1"
-						val={lambda}
-						set={touch(setLambda)}
-						min={0}
-						max={1}
-						stp={0.05}
-						hint="How a bar's two charges merge."
+						name="Typical trade · T"
+						val={T}
+						set={touch(setT)}
+						min={1000}
+						max={30000}
+						stp={500}
+						suffix="$"
+						hint="The measuring size for M's walk."
 					/>
 					<div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
 						<span style={label}>Compare</span>
