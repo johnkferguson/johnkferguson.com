@@ -24,6 +24,86 @@ const priceAt = (i: number) => +(100 + (i - CENTER) * TICK).toFixed(3);
 const sideAt = (i: number): Side =>
 	i < CENTER ? "bid" : i > CENTER ? "ask" : "mid";
 
+interface Scenario {
+	key: string;
+	title: string;
+	blurb: string;
+	book: () => number[];
+}
+
+const bookOf = (fill: Record<number, number>): number[] => {
+	const a = Array(N).fill(0);
+	for (const [i, v] of Object.entries(fill)) a[+i] = v;
+	return a;
+};
+
+// The guided tour: each scenario is a market condition with a caption that
+// says what to notice. Tweak freely — titles, blurbs, and books are data.
+const SCENARIOS: Scenario[] = [
+	{
+		key: "perfect",
+		title: "The Perfect Maker",
+		blurb:
+			"Balanced size on both sides, placed inside the band: fully matched and precisely placed. Every fee dot sits at zero — this book trades free.",
+		book: () =>
+			bookOf({
+				[CENTER - 1]: 9000,
+				[CENTER - 2]: 7000,
+				[CENTER + 1]: 9000,
+				[CENTER + 2]: 7000,
+			}),
+	},
+	{
+		key: "taker",
+		title: "The Patient Taker",
+		blurb:
+			"Only bids, with nothing standing behind them. Every dollar is directional, so a fill pays the full taker rate F — a one-sided resting order is a taker who waits. With one side empty, M freezes at its last value (❄).",
+		book: () =>
+			bookOf({ [CENTER - 1]: 6000, [CENTER - 2]: 5000, [CENTER - 3]: 4000 }),
+	},
+	{
+		key: "half",
+		title: "Half-Covered",
+		blurb:
+			"A $10,000 bid against $5,000 of asks: half the bid is matched, half is directional, so its fee lands halfway to F. The small side is fully matched and still trades free.",
+		book: () => bookOf({ [CENTER - 1]: 10000, [CENTER + 1]: 5000 }),
+	},
+	{
+		key: "wide",
+		title: "Quoting Wide",
+		blurb:
+			"Two-sided and fully matched — but placed outside the band, so the only charge is the stamp for imprecision. Widen S and watch the band swallow the quotes and the fees fall away.",
+		book: () => bookOf({ 1: 8000, 3: 6000, 17: 6000, 19: 8000 }),
+	},
+	{
+		key: "spill",
+		title: "Spillover",
+		blurb:
+			"Three equal bids share one ask. The best bid claims coverage first and trades free; the middle one gets half; the last gets nothing and pays like a taker. Coverage is consumed, never reused — hover the dots to watch it drain.",
+		book: () =>
+			bookOf({
+				[CENTER - 1]: 6000,
+				[CENTER - 2]: 6000,
+				[CENTER - 3]: 6000,
+				[CENTER + 1]: 9000,
+			}),
+	},
+	{
+		key: "thin",
+		title: "Thin Side, Moving Mark",
+		blurb:
+			"The ask side is scarce, so the measuring walk executes at worse prices there — M slides toward the scarcity and drags the band with it. The heavy side pushes the Mark away.",
+		book: () =>
+			bookOf({
+				[CENTER - 1]: 6000,
+				[CENTER - 2]: 6000,
+				[CENTER - 3]: 4000,
+				[CENTER + 3]: 1500,
+				[CENTER + 6]: 2500,
+			}),
+	},
+];
+
 // Theme roles — resolved per light/dark mode in snapshot-fees-lab.css
 const C = {
 	panel: "var(--lab-panel)",
@@ -130,19 +210,12 @@ export default function SnapshotFeesLab() {
 	const [lambda, setLambda] = useState(0.5); // D1 compounding: 1 = additive, 0 = worse-of
 	const [comp, setComp] = useState(0); // inside compensation max, bps (parked module)
 
-	const [sizes, setSizes] = useState<number[]>(() => {
-		const a = Array(N).fill(0);
-		a[CENTER - 1] = 9000;
-		a[CENTER - 2] = 7000;
-		a[CENTER - 4] = 8000; // bids
-		a[CENTER + 1] = 9000;
-		a[CENTER + 2] = 7000;
-		a[CENTER + 4] = 8000; // asks
-		return a;
-	});
+	const [sizes, setSizes] = useState<number[]>(() => SCENARIOS[0].book());
 	const [sel, setSel] = useState(CENTER - 1);
-	const [showHelp, setShowHelp] = useState(true);
-	const [showFormula, setShowFormula] = useState(true);
+	const [showFormula, setShowFormula] = useState(false);
+	const [showAdvanced, setShowAdvanced] = useState(false);
+	const [scenario, setScenario] = useState<string | null>(SCENARIOS[0].key);
+	const [pinned, setPinned] = useState<{ i: number; v: number }[] | null>(null);
 	const [mHover, setMHover] = useState(false);
 	const [feeHover, setFeeHover] = useState<number | null>(null);
 	const lastM = useRef(100);
@@ -197,7 +270,10 @@ export default function SnapshotFeesLab() {
 		const d = drag.current;
 		if (!d) return;
 		const dy = d.y0 - e.clientY;
-		if (Math.abs(dy) > 4) d.moved = true;
+		if (Math.abs(dy) > 4 && !d.moved) {
+			d.moved = true;
+			setScenario(null);
+		}
 		if (!d.moved) return;
 		const perPx = MAX_DEPTH / (PB - depthTop);
 		let v = d.v0 + dy * perPx;
@@ -214,39 +290,10 @@ export default function SnapshotFeesLab() {
 		else if (d) setSel(d.i);
 	};
 
-	const presets: Record<string, () => number[]> = {
-		Balanced: () => {
-			const a = Array(N).fill(0);
-			a[CENTER - 1] = 9000;
-			a[CENTER - 2] = 7000;
-			a[CENTER - 4] = 8000;
-			a[CENTER + 1] = 9000;
-			a[CENTER + 2] = 7000;
-			a[CENTER + 4] = 8000;
-			return a;
-		},
-		"Ask-scarce": () => {
-			const a = Array(N).fill(0);
-			a[CENTER - 1] = 6000;
-			a[CENTER - 2] = 6000;
-			a[CENTER - 3] = 4000;
-			a[CENTER + 3] = 1500;
-			a[CENTER + 6] = 2500;
-			return a;
-		},
-		"One-sided": () => {
-			const a = Array(N).fill(0);
-			a[CENTER - 1] = 6000;
-			a[CENTER - 2] = 5000;
-			a[CENTER - 3] = 4000;
-			return a;
-		},
-	};
-
 	const btn = (active: boolean) => ({
-		background: active ? C.fee : C.panel2,
-		border: `1px solid ${active ? C.fee : C.line}`,
-		color: active ? C.onAccent : C.dim,
+		background: active ? C.text : C.panel2,
+		border: `1px solid ${active ? C.text : C.line}`,
+		color: active ? C.panel2 : C.dim,
 		fontSize: 11,
 		padding: "4px 10px",
 		borderRadius: 5,
@@ -290,389 +337,7 @@ export default function SnapshotFeesLab() {
 						Snapshot Fees
 					</div>
 				</div>
-				<div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
-					<button
-						type="button"
-						onClick={() => setShowHelp((h) => !h)}
-						style={btn(showHelp)}
-					>
-						{showHelp ? "Hide guide" : "How this works"}
-					</button>
-					<button
-						type="button"
-						onClick={() => setShowFormula((h) => !h)}
-						style={btn(showFormula)}
-					>
-						{showFormula ? "Hide formulas" : "Formulas"}
-					</button>
-				</div>
 			</div>
-
-			{/* guide */}
-			{showHelp && (
-				<div
-					style={{
-						background: C.panel,
-						border: `1px solid ${C.line}`,
-						borderRadius: 8,
-						padding: "12px 16px",
-						marginBottom: 12,
-						fontSize: 14,
-						color: C.text,
-						lineHeight: 1.65,
-					}}
-				>
-					<div style={{ ...label, marginBottom: 6 }}>How this works</div>
-					<p style={{ margin: "0 0 8px" }}>
-						<b>You are the only market maker</b> in one batch-auction window.
-						The bars are your resting quotes — bids (green) below the fixed
-						100.00 center, asks (orange) above. Drag a bar to resize it; drag
-						upward on an empty level to quote there. Prices step by 0.005, and
-						at $100 one cent equals one basis point (bp).
-					</p>
-					<p style={{ margin: "0 0 8px" }}>
-						<b>The Mark (M, purple arrow)</b> is fair value measured at real
-						size: the average price a $T buy would actually pay walking up your
-						asks, and a $T sell would receive walking down your bids — averaged.
-						The purple-edged slice on each bar is the size that walk actually
-						consumed; only that size has a voice in M. Thin out one side and M
-						walks toward the scarcity. It is computed fresh from this snapshot;
-						nothing about you is remembered.
-					</p>
-					<p style={{ margin: "0 0 8px" }}>
-						<b>The band (shaded)</b> is M ± S/2 — the market's declared standard
-						for acceptable quoting. Placement inside it is free. Each bp beyond
-						the edge earns a <b>stamp</b> of slope × distance^curvature, capped
-						at F. A stamp is a charge for imprecision: quoting wider than the
-						standard.
-					</p>
-					<p style={{ margin: "0 0 8px" }}>
-						<b>A bar's fee (violet dot)</b> answers one question: if the sweep
-						reached this bar and it fully filled, what rate would it pay? Its
-						dollars net against your own opposite side, best prices first — and
-						that coverage is <b>consumed</b>: your better-priced bars claim it
-						before this one does, so uncovered size spills outward. Covered
-						dollars pay their partner's stamp; uncovered dollars (hatched) pay
-						the full taker rate F — with nothing standing behind them, they are
-						simply a directional trade.
-					</p>
-					<p style={{ margin: "0 0 8px" }}>
-						<b>Two charges, one fee.</b> A filled bar's own stamp and its
-						coverage charge merge as{" "}
-						<span style={{ fontFamily: mono }}>
-							min(F, bigger + λ × smaller)
-						</span>{" "}
-						— the λ slider is design decision D1. Width pressure = slope × (1 +
-						λ), the fee's total charge per bp of double-sided width. In a
-						uniform-price batch your quote is a participation threshold, not
-						your execution price — wide quotes fill at the same clearing price
-						as tight ones, just less often — so width earns far less than the
-						CLOB's bp-for-bp. Settings below 1.0 are the deliberate{" "}
-						<b>gentle</b> regime: the fee takes a cut of what width captures,
-						never more, and the band works as an attractor rather than a wall.
-					</p>
-					<p style={{ margin: 0 }}>
-						<b>The one-sentence version:</b> your fee is F × how directional
-						your fill really was. A fully covered two-sided maker trades free; a
-						one-sided fill pays what a taker pays.{" "}
-						<i>Directionality is the price.</i>
-					</p>
-				</div>
-			)}
-
-			{/* params */}
-			<div
-				style={{
-					background: C.panel,
-					border: `1px solid ${C.line}`,
-					borderRadius: 8,
-					padding: "10px 14px",
-					display: "flex",
-					flexWrap: "wrap",
-					gap: "12px 22px",
-					alignItems: "flex-start",
-					marginBottom: 12,
-				}}
-			>
-				<Param
-					name="Spread standard · S"
-					val={S}
-					set={setS}
-					min={1}
-					max={10}
-					stp={0.5}
-					suffix="bp"
-					hint="Width of the free band, M ± S/2. The market's declared quoting standard."
-				/>
-				<Param
-					name="Typical trade · T"
-					val={T}
-					set={setT}
-					min={1000}
-					max={30000}
-					stp={500}
-					suffix="$"
-					hint="Measuring size for M: where a $T trade would really execute on each side."
-				/>
-				<div style={{ width: 1, alignSelf: "stretch", background: C.line }} />
-				<Param
-					name="Cap / taker rate · F"
-					val={F}
-					set={setF}
-					min={5}
-					max={30}
-					stp={0.5}
-					suffix="bp"
-					hint="The ceiling. Takers pay it in full; every fee runs 0 → F by directionality."
-				/>
-				<Param
-					name="Stamp slope"
-					val={slope}
-					set={setSlope}
-					min={0.25}
-					max={3}
-					stp={0.25}
-					suffix="×"
-					hint="Stamp bps charged per bp of placement beyond the band edge."
-				/>
-				<Param
-					name="Curvature"
-					val={expo}
-					set={setExpo}
-					min={1}
-					max={2}
-					stp={0.25}
-					hint="1 = linear distance charge; 2 = far placement charged disproportionately."
-				/>
-				<Param
-					name="Inside comp (parked)"
-					val={comp}
-					set={setComp}
-					min={0}
-					max={0.5}
-					stp={0.05}
-					suffix="bp"
-					hint="Experimental reward near M, funded by taker fees — a separate channel; base fees never go below zero."
-				/>
-				<Param
-					name="Compound λ · D1"
-					val={lambda}
-					set={setLambda}
-					min={0}
-					max={1}
-					stp={0.05}
-					hint="How a bar's two charges merge: 0 = worse of the two only, 1 = both added in full."
-				/>
-				<div
-					style={{
-						display: "flex",
-						flexDirection: "column",
-						gap: 4,
-						maxWidth: 172,
-					}}
-				>
-					<span style={label}>Width pressure</span>
-					<span style={{ fontFamily: mono, fontSize: 12, color: C.text }}>
-						{(slope * (1 + lambda)).toFixed(2)}×
-						<span style={{ color: C.dim }}>
-							{" · "}
-							{slope * (1 + lambda) < 0.98
-								? "gentle"
-								: slope * (1 + lambda) > 1.02
-									? "leaning"
-									: "full clawback"}
-						</span>
-					</span>
-					<span style={{ fontSize: 11, color: C.faint, lineHeight: 1.45 }}>
-						slope × (1 + λ): total charge per bp of double-sided width. Below
-						1.0 = gentle — net still rises with width, just slower than gross.
-						Above = the fee leans quotes toward the band.
-					</span>
-				</div>
-			</div>
-
-			{/* formulas */}
-			{showFormula &&
-				(() => {
-					const half = (S / 2).toFixed(2);
-					const stampEx = (d: number) => Math.min(F, slope * d ** expo);
-					const dCap = (F / slope) ** (1 / expo);
-					const dMax = Math.max(6, Math.ceil(dCap) + 2);
-					const pts = Array.from({ length: 41 }, (_, k) => {
-						const d = (dMax * k) / 40;
-						return `${10 + (d / dMax) * 150},${60 - (Math.min(F, slope * d ** expo) / F) * 48}`;
-					}).join(" ");
-					const row = { marginBottom: 10 };
-					const eyebrow = { ...label, color: C.fee, marginRight: 10 };
-					const note = {
-						fontFamily: "inherit",
-						fontSize: 12,
-						color: C.faint,
-						lineHeight: 1.5,
-					};
-					return (
-						<div
-							style={{
-								background: C.panel,
-								border: `1px solid ${C.line}`,
-								borderRadius: 8,
-								padding: "12px 16px",
-								marginBottom: 12,
-								fontFamily: mono,
-								fontSize: 12.5,
-								lineHeight: 1.6,
-								overflowX: "auto",
-							}}
-						>
-							<div style={{ ...label, marginBottom: 8 }}>
-								The pipeline — general form, with your settings substituted
-							</div>
-
-							<div style={row}>
-								<span style={eyebrow}>1 · Mark</span>M = (impactBid(T) +
-								impactAsk(T)) / 2
-								<div style={note}>
-									impact price = volume-weighted price of trading $
-									{T.toLocaleString()} into that side, best levels first ·
-									quotes more than {8 * S}bp behind a side's best are ignored
-								</div>
-								{model.iBid != null && model.iAsk != null && (
-									<div style={{ color: C.mark }}>
-										right now: M = ({fmtPx(model.iBid)} + {fmtPx(model.iAsk)}) /
-										2 = {fmtPx(model.M)}
-									</div>
-								)}
-							</div>
-
-							<div style={row}>
-								<span style={eyebrow}>2 · Band</span>edges = M ± S/2 = M ±{" "}
-								{half}bp → {fmtPx(model.edgeBid)} … {fmtPx(model.edgeAsk)}
-								<div style={note}>
-									the declared free zone — placement inside it stamps at zero
-								</div>
-							</div>
-
-							<div
-								style={{
-									...row,
-									display: "flex",
-									gap: 18,
-									flexWrap: "wrap",
-									alignItems: "flex-start",
-								}}
-							>
-								<div style={{ flex: "1 1 320px" }}>
-									<span style={eyebrow}>3 · Stamp</span>stamp(d) = min(F, slope
-									× d^curv) = min({F}, {slope} × d^{expo})
-									<div style={note}>
-										d = bp of placement beyond your side's edge (0 if inside).
-										Slope sets how fast the charge rises; curvature bends it.
-									</div>
-									<div style={{ color: C.text }}>
-										d=1 → {fmtBp(stampEx(1))} · d=2 → {fmtBp(stampEx(2))} · d=4
-										→ {fmtBp(stampEx(4))} · hits the cap at d ={" "}
-										{dCap.toFixed(1)}bp
-									</div>
-								</div>
-								<svg
-									width={172}
-									height={78}
-									style={{ flex: "0 0 auto" }}
-									role="img"
-									aria-label={`Stamp curve: fee rises from 0 to the ${F}bp cap over ${dCap.toFixed(1)}bp of distance`}
-								>
-									<line
-										x1={10}
-										y1={60}
-										x2={162}
-										y2={60}
-										style={{ stroke: C.line }}
-									/>
-									<line
-										x1={10}
-										y1={12}
-										x2={10}
-										y2={60}
-										style={{ stroke: C.line }}
-									/>
-									<line
-										x1={10}
-										y1={12}
-										x2={162}
-										y2={12}
-										strokeDasharray="3 3"
-										style={{ stroke: C.faint }}
-									/>
-									<polyline
-										points={pts}
-										fill="none"
-										strokeWidth={2}
-										style={{ stroke: C.fee }}
-									/>
-									<text
-										x={14}
-										y={11}
-										fontSize={9}
-										style={{ fill: C.faint, fontFamily: mono }}
-									>
-										cap F = {F}bp
-									</text>
-									<text
-										x={162}
-										y={72}
-										fontSize={9}
-										textAnchor="end"
-										style={{ fill: C.faint, fontFamily: mono }}
-									>
-										d (bp beyond edge) → {dMax}
-									</text>
-									<text
-										x={10}
-										y={72}
-										fontSize={9}
-										style={{ fill: C.dim, fontFamily: mono }}
-									>
-										stamp(d)
-									</text>
-								</svg>
-							</div>
-
-							<div style={row}>
-								<span style={eyebrow}>4 · Pairing</span>pairing = (Σ coveredᵢ ×
-								stampᵢ + uncovered × F) / size
-								<div style={note}>
-									coverage = your own opposite side, consumed inside-first —
-									better-priced bars claim it before this one (spillover).
-									Uncovered dollars are directional and pay F in full.
-								</div>
-							</div>
-
-							<div style={row}>
-								<span style={eyebrow}>5 · Combine</span>fee = min(F, max(own,
-								pairing) + λ × min(own, pairing)) = min({F}, bigger +{" "}
-								{lambda.toFixed(2)} × smaller)
-								<div style={note}>
-									D1 — width pressure = slope × (1 + λ) ={" "}
-									{(slope * (1 + lambda)).toFixed(2)}× · below 1.0 = gentle
-									(profit still rises with width, at reduced slope) · 1.0 = full
-									clawback of CLOB-style width gains · above = leaning on the
-									band
-								</div>
-							</div>
-
-							<div style={{ marginBottom: 0 }}>
-								<span style={eyebrow}>6 · Dollars</span>fee$ = rate × size ÷
-								10,000
-								{comp > 0 && (
-									<span>
-										{" "}
-										− insideComp × max(0, 1 − dist/(S/2)) × size ÷ 10,000
-									</span>
-								)}
-							</div>
-						</div>
-					);
-				})()}
 
 			{/* chart */}
 			<div
@@ -950,6 +615,24 @@ export default function SnapshotFeesLab() {
 								{bk.final.toFixed(2)}
 							</text>
 						</g>
+					)}
+
+					{/* pinned ghost curve — freeze-frame for comparison */}
+					{pinned && pinned.length > 1 && (
+						<path
+							d={pinned
+								.map(
+									(g, k) =>
+										`${k ? "L" : "M"}${xAt(g.i)},${Math.max(PT, Math.min(PB, yFee(g.v)))}`,
+								)
+								.join(" ")}
+							fill="none"
+							strokeWidth={2}
+							strokeDasharray="7 5"
+							opacity={0.5}
+							pointerEvents="none"
+							style={{ stroke: C.fee }}
+						/>
 					)}
 
 					{/* fee curve */}
@@ -1418,9 +1101,78 @@ export default function SnapshotFeesLab() {
 							);
 						})()}
 				</svg>
+
+				{/* the dials that shape the story — attached to the instrument */}
+				<div
+					style={{
+						display: "flex",
+						flexWrap: "wrap",
+						gap: "12px 26px",
+						alignItems: "flex-start",
+						borderTop: `1px solid ${C.line}`,
+						margin: "4px 10px 0",
+						padding: "10px 4px 10px",
+					}}
+				>
+					<Param
+						name="Spread standard · S"
+						val={S}
+						set={setS}
+						min={1}
+						max={10}
+						stp={0.5}
+						suffix="bp"
+						hint="The free band, M ± S/2."
+					/>
+					<Param
+						name="Cap / taker rate · F"
+						val={F}
+						set={setF}
+						min={5}
+						max={30}
+						stp={0.5}
+						suffix="bp"
+						hint="The ceiling every fee runs toward."
+					/>
+					<Param
+						name="Compound λ · D1"
+						val={lambda}
+						set={setLambda}
+						min={0}
+						max={1}
+						stp={0.05}
+						hint="How a bar's two charges merge."
+					/>
+					<div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+						<span style={label}>Compare</span>
+						<button
+							type="button"
+							onClick={() =>
+								setPinned(
+									pinned
+										? null
+										: feePts.map((l) => ({ i: l.i, v: l.bk?.final ?? 0 })),
+								)
+							}
+							style={btn(!!pinned)}
+						>
+							{pinned ? "Unpin ghost" : "Pin curve"}
+						</button>
+						<span
+							style={{
+								fontSize: 11,
+								color: C.faint,
+								lineHeight: 1.45,
+								maxWidth: 160,
+							}}
+						>
+							Freeze the fee curve, change anything, compare.
+						</span>
+					</div>
+				</div>
 			</div>
 
-			{/* book presets — they reshape the graph, so they live right under it */}
+			{/* scenarios — the guided tour */}
 			<div
 				style={{
 					display: "flex",
@@ -1429,41 +1181,325 @@ export default function SnapshotFeesLab() {
 					margin: "10px 2px 0",
 				}}
 			>
-				{Object.keys(presets).map((k) => (
+				{SCENARIOS.map((sc) => (
 					<button
+						key={sc.key}
 						type="button"
-						key={k}
-						onClick={() => setSizes(presets[k]())}
-						style={btn(false)}
+						onClick={() => {
+							setSizes(sc.book());
+							setScenario(sc.key);
+						}}
+						style={btn(scenario === sc.key)}
 					>
-						{k}
+						{sc.title}
 					</button>
 				))}
 				<button
 					type="button"
-					onClick={() => setSizes(Array(N).fill(0))}
+					onClick={() => {
+						setSizes(Array(N).fill(0));
+						setScenario(null);
+					}}
 					style={{ ...btn(false), background: "transparent", color: C.faint }}
 				>
 					Clear
 				</button>
 			</div>
-
 			<div
 				style={{
-					marginTop: 10,
-					color: C.faint,
-					fontSize: 12,
+					background: C.panel,
+					border: `1px solid ${C.line}`,
+					borderRadius: 8,
+					padding: "10px 14px",
+					margin: "8px 0 0",
+					fontSize: 14,
 					lineHeight: 1.6,
+					color: C.dim,
 				}}
 			>
-				M = midpoint of impact bid/ask: walk T dollars into each side,
-				volume-weighted (quotes beyond 8×S of a side's best are invisible to the
-				walk). Band = M ± S/2; in-band placement stamps at zero. A level's fee
-				assumes the sweep reaches it: your better-priced same-side bars fill
-				first and consume your opposite-side stock, so uncovered size spills
-				outward — each level pairs against what remains. Directionality is the
-				price.
+				{scenario
+					? SCENARIOS.find((sc) => sc.key === scenario)?.blurb
+					: "Custom book — shaped by hand. Pick a scenario for a guided setup, or keep dragging bars."}
 			</div>
+
+			{/* deeper layers, tucked away */}
+			<div style={{ display: "flex", gap: 6, margin: "12px 2px 8px" }}>
+				<button
+					type="button"
+					onClick={() => setShowAdvanced((v) => !v)}
+					style={btn(showAdvanced)}
+				>
+					{showAdvanced ? "Hide advanced dials" : "Advanced dials"}
+				</button>
+				<button
+					type="button"
+					onClick={() => setShowFormula((v) => !v)}
+					style={btn(showFormula)}
+				>
+					{showFormula ? "Hide the math" : "Show the math"}
+				</button>
+			</div>
+			{showAdvanced && (
+				<div
+					style={{
+						background: C.panel,
+						border: `1px solid ${C.line}`,
+						borderRadius: 8,
+						padding: "10px 14px",
+						display: "flex",
+						flexWrap: "wrap",
+						gap: "12px 22px",
+						alignItems: "flex-start",
+						marginBottom: 12,
+					}}
+				>
+					<Param
+						name="Typical trade · T"
+						val={T}
+						set={setT}
+						min={1000}
+						max={30000}
+						stp={500}
+						suffix="$"
+						hint="Measuring size for M: where a $T trade would really execute on each side."
+					/>
+					<Param
+						name="Stamp slope"
+						val={slope}
+						set={setSlope}
+						min={0.25}
+						max={3}
+						stp={0.25}
+						suffix="×"
+						hint="Stamp bps charged per bp of placement beyond the band edge."
+					/>
+					<Param
+						name="Curvature"
+						val={expo}
+						set={setExpo}
+						min={1}
+						max={2}
+						stp={0.25}
+						hint="1 = linear distance charge; 2 = far placement charged disproportionately."
+					/>
+					<Param
+						name="Inside comp (parked)"
+						val={comp}
+						set={setComp}
+						min={0}
+						max={0.5}
+						stp={0.05}
+						suffix="bp"
+						hint="Experimental reward near M, funded by taker fees — a separate channel; base fees never go below zero."
+					/>
+					<div
+						style={{
+							display: "flex",
+							flexDirection: "column",
+							gap: 4,
+							maxWidth: 172,
+						}}
+					>
+						<span style={label}>Width pressure</span>
+						<span style={{ fontFamily: mono, fontSize: 12, color: C.text }}>
+							{(slope * (1 + lambda)).toFixed(2)}×
+							<span style={{ color: C.dim }}>
+								{" · "}
+								{slope * (1 + lambda) < 0.98
+									? "gentle"
+									: slope * (1 + lambda) > 1.02
+										? "leaning"
+										: "full clawback"}
+							</span>
+						</span>
+						<span style={{ fontSize: 11, color: C.faint, lineHeight: 1.45 }}>
+							slope × (1 + λ): total charge per bp of double-sided width.
+						</span>
+					</div>
+				</div>
+			)}
+			{/* formulas — the full pipeline, on demand */}
+			{showFormula &&
+				(() => {
+					const half = (S / 2).toFixed(2);
+					const stampEx = (d: number) => Math.min(F, slope * d ** expo);
+					const dCap = (F / slope) ** (1 / expo);
+					const dMax = Math.max(6, Math.ceil(dCap) + 2);
+					const pts = Array.from({ length: 41 }, (_, k) => {
+						const d = (dMax * k) / 40;
+						return `${10 + (d / dMax) * 150},${60 - (Math.min(F, slope * d ** expo) / F) * 48}`;
+					}).join(" ");
+					const row = { marginBottom: 10 };
+					const eyebrow = { ...label, color: C.fee, marginRight: 10 };
+					const note = {
+						fontFamily: "inherit",
+						fontSize: 12,
+						color: C.faint,
+						lineHeight: 1.5,
+					};
+					return (
+						<div
+							style={{
+								background: C.panel,
+								border: `1px solid ${C.line}`,
+								borderRadius: 8,
+								padding: "12px 16px",
+								marginBottom: 12,
+								fontFamily: mono,
+								fontSize: 12.5,
+								lineHeight: 1.6,
+								overflowX: "auto",
+							}}
+						>
+							<div style={{ ...label, marginBottom: 8 }}>
+								The pipeline — general form, with your settings substituted
+							</div>
+
+							<div style={row}>
+								<span style={eyebrow}>1 · Mark</span>M = (impactBid(T) +
+								impactAsk(T)) / 2
+								<div style={note}>
+									impact price = volume-weighted price of trading $
+									{T.toLocaleString()} into that side, best levels first ·
+									quotes more than {8 * S}bp behind a side's best are ignored
+								</div>
+								{model.iBid != null && model.iAsk != null && (
+									<div style={{ color: C.mark }}>
+										right now: M = ({fmtPx(model.iBid)} + {fmtPx(model.iAsk)}) /
+										2 = {fmtPx(model.M)}
+									</div>
+								)}
+							</div>
+
+							<div style={row}>
+								<span style={eyebrow}>2 · Band</span>edges = M ± S/2 = M ±{" "}
+								{half}bp → {fmtPx(model.edgeBid)} … {fmtPx(model.edgeAsk)}
+								<div style={note}>
+									the declared free zone — placement inside it stamps at zero
+								</div>
+							</div>
+
+							<div
+								style={{
+									...row,
+									display: "flex",
+									gap: 18,
+									flexWrap: "wrap",
+									alignItems: "flex-start",
+								}}
+							>
+								<div style={{ flex: "1 1 320px" }}>
+									<span style={eyebrow}>3 · Stamp</span>stamp(d) = min(F, slope
+									× d^curv) = min({F}, {slope} × d^{expo})
+									<div style={note}>
+										d = bp of placement beyond your side's edge (0 if inside).
+										Slope sets how fast the charge rises; curvature bends it.
+									</div>
+									<div style={{ color: C.text }}>
+										d=1 → {fmtBp(stampEx(1))} · d=2 → {fmtBp(stampEx(2))} · d=4
+										→ {fmtBp(stampEx(4))} · hits the cap at d ={" "}
+										{dCap.toFixed(1)}bp
+									</div>
+								</div>
+								<svg
+									width={172}
+									height={78}
+									style={{ flex: "0 0 auto" }}
+									role="img"
+									aria-label={`Stamp curve: fee rises from 0 to the ${F}bp cap over ${dCap.toFixed(1)}bp of distance`}
+								>
+									<line
+										x1={10}
+										y1={60}
+										x2={162}
+										y2={60}
+										style={{ stroke: C.line }}
+									/>
+									<line
+										x1={10}
+										y1={12}
+										x2={10}
+										y2={60}
+										style={{ stroke: C.line }}
+									/>
+									<line
+										x1={10}
+										y1={12}
+										x2={162}
+										y2={12}
+										strokeDasharray="3 3"
+										style={{ stroke: C.faint }}
+									/>
+									<polyline
+										points={pts}
+										fill="none"
+										strokeWidth={2}
+										style={{ stroke: C.fee }}
+									/>
+									<text
+										x={14}
+										y={11}
+										fontSize={9}
+										style={{ fill: C.faint, fontFamily: mono }}
+									>
+										cap F = {F}bp
+									</text>
+									<text
+										x={162}
+										y={72}
+										fontSize={9}
+										textAnchor="end"
+										style={{ fill: C.faint, fontFamily: mono }}
+									>
+										d (bp beyond edge) → {dMax}
+									</text>
+									<text
+										x={10}
+										y={72}
+										fontSize={9}
+										style={{ fill: C.dim, fontFamily: mono }}
+									>
+										stamp(d)
+									</text>
+								</svg>
+							</div>
+
+							<div style={row}>
+								<span style={eyebrow}>4 · Pairing</span>pairing = (Σ coveredᵢ ×
+								stampᵢ + uncovered × F) / size
+								<div style={note}>
+									coverage = your own opposite side, consumed inside-first —
+									better-priced bars claim it before this one (spillover).
+									Uncovered dollars are directional and pay F in full.
+								</div>
+							</div>
+
+							<div style={row}>
+								<span style={eyebrow}>5 · Combine</span>fee = min(F, max(own,
+								pairing) + λ × min(own, pairing)) = min({F}, bigger +{" "}
+								{lambda.toFixed(2)} × smaller)
+								<div style={note}>
+									D1 — width pressure = slope × (1 + λ) ={" "}
+									{(slope * (1 + lambda)).toFixed(2)}× · below 1.0 = gentle
+									(profit still rises with width, at reduced slope) · 1.0 = full
+									clawback of CLOB-style width gains · above = leaning on the
+									band
+								</div>
+							</div>
+
+							<div style={{ marginBottom: 0 }}>
+								<span style={eyebrow}>6 · Dollars</span>fee$ = rate × size ÷
+								10,000
+								{comp > 0 && (
+									<span>
+										{" "}
+										− insideComp × max(0, 1 − dist/(S/2)) × size ÷ 10,000
+									</span>
+								)}
+							</div>
+						</div>
+					);
+				})()}
 		</div>
 	);
 }
