@@ -16,8 +16,9 @@
 	--lab-fee: #4a3aa7;
 	--lab-mark: #c98500;
 	--lab-danger: #d03b3b;
-	--lab-band: rgba(74, 58, 167, 0.07);
-	--lab-band-edge: rgba(74, 58, 167, 0.45);
+	/* band = M ± S/2, so it wears the Mark's gold — violet stays fee-only */
+	--lab-band: rgba(201, 133, 0, 0.06);
+	--lab-band-edge: rgba(201, 133, 0, 0.5);
 	--lab-mark-slice: rgba(201, 133, 0, 0.14);
 	--lab-hatch: rgba(0, 0, 0, 0.45);
 	--lab-grid: #efefef;
@@ -34,8 +35,8 @@
 
 .dark .sf-lab {
 	--lab-fee: #9085e9;
-	--lab-band: rgba(144, 133, 233, 0.12);
-	--lab-band-edge: rgba(144, 133, 233, 0.5);
+	--lab-band: rgba(201, 133, 0, 0.1);
+	--lab-band-edge: rgba(201, 133, 0, 0.55);
 	--lab-mark-slice: rgba(201, 133, 0, 0.18);
 	--lab-hatch: rgba(255, 255, 255, 0.55);
 	--lab-grid: #2e2a27;

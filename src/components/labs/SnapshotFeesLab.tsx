@@ -59,16 +59,6 @@ const label = {
 	textTransform: "uppercase",
 } as const;
 
-const sw = (c: string) => ({
-	display: "inline-block",
-	width: 9,
-	height: 9,
-	background: c,
-	borderRadius: 2,
-	marginRight: 5,
-	verticalAlign: "-1px",
-});
-
 interface ParamProps {
 	name: string;
 	val: number;
@@ -177,14 +167,14 @@ export default function SnapshotFeesLab() {
 	}, [model.M, model.frozen]);
 
 	// —— chart geometry ——
-	// Top strip (y 0…PT) hosts the Mark carriage and band-edge labels so the
-	// bottom stays clear for the price axis.
+	// Top strip: title row (y 0…28), then the Mark carriage and band-edge
+	// labels (y 28…PT). Below the price axis, a key strip closes the frame.
 	const W = 960;
-	const H = 446;
-	const PL = 62;
-	const PR = 906;
-	const PT = 46;
-	const PB = 416; // plot box
+	const H = 504;
+	const PL = 84;
+	const PR = 884;
+	const PT = 74;
+	const PB = 444; // plot box
 	const AXIS_Y = PB + 4;
 	const step = (PR - PL) / (N - 1);
 	const xAt = (i: number) => PL + i * step;
@@ -733,7 +723,7 @@ export default function SnapshotFeesLab() {
 							/>
 							{(selFeeY == null || Math.abs(yFee(v) - selFeeY) > 13) && (
 								<text
-									x={PL - 8}
+									x={PL - 18}
 									y={yFee(v) + 4.5}
 									textAnchor="end"
 									fontSize={13}
@@ -769,7 +759,7 @@ export default function SnapshotFeesLab() {
 					{[0, 5000, 10000, 15000, 20000, 25000].map((v) => (
 						<text
 							key={v}
-							x={PR + 8}
+							x={PR + 18}
 							y={yDepth(v) + 4.5}
 							fontSize={13}
 							style={{ fill: C.faint, fontFamily: mono }}
@@ -827,7 +817,7 @@ export default function SnapshotFeesLab() {
 						textAnchor="middle"
 						fontSize={12}
 						style={{
-							fill: C.fee,
+							fill: C.mark,
 							fontFamily: mono,
 							transition: "all 220ms ease",
 						}}
@@ -840,7 +830,7 @@ export default function SnapshotFeesLab() {
 						textAnchor="middle"
 						fontSize={12}
 						style={{
-							fill: C.fee,
+							fill: C.mark,
 							fontFamily: mono,
 							transition: "all 220ms ease",
 						}}
@@ -951,7 +941,7 @@ export default function SnapshotFeesLab() {
 								style={{ stroke: C.fee, transition: "all 150ms" }}
 							/>
 							<text
-								x={PL - 8}
+								x={PL - 18}
 								y={yFee(bk.final) + 4.5}
 								textAnchor="end"
 								fontSize={13}
@@ -1025,6 +1015,86 @@ export default function SnapshotFeesLab() {
 						</g>
 					))}
 
+					{/* chart title — centered, in its own strip above the plot */}
+					<text
+						x={W / 2}
+						y={22}
+						textAnchor="middle"
+						fontSize={16}
+						letterSpacing="0.08em"
+						style={{ fill: C.text, fontFamily: mono }}
+					>
+						SINGLE MARKET MAKER BATCH AUCTION FEES
+					</text>
+
+					{/* key — its own strip below the price axis */}
+					<g pointerEvents="none" style={{ fontFamily: mono }}>
+						<rect
+							x={229}
+							y={PB + 40}
+							width={9}
+							height={9}
+							rx={2}
+							style={{ fill: C.bid }}
+						/>
+						<text
+							x={243}
+							y={PB + 48}
+							fontSize={11}
+							style={{ fill: C.dim, fontFamily: mono }}
+						>
+							your bids
+						</text>
+						<rect
+							x={326}
+							y={PB + 40}
+							width={9}
+							height={9}
+							rx={2}
+							style={{ fill: C.ask }}
+						/>
+						<text
+							x={340}
+							y={PB + 48}
+							fontSize={11}
+							style={{ fill: C.dim, fontFamily: mono }}
+						>
+							your asks
+						</text>
+						<circle
+							cx={427}
+							cy={PB + 44.5}
+							r={3.5}
+							strokeWidth={1}
+							style={{ fill: C.fee, stroke: C.panel }}
+						/>
+						<text
+							x={437}
+							y={PB + 48}
+							fontSize={11}
+							style={{ fill: C.dim, fontFamily: mono }}
+						>
+							fee if it fully fills
+						</text>
+						<rect
+							x={600}
+							y={PB + 40}
+							width={9}
+							height={9}
+							fill="url(#sf-hatch)"
+							strokeWidth={0.5}
+							style={{ stroke: C.dim }}
+						/>
+						<text
+							x={614}
+							y={PB + 48}
+							fontSize={11}
+							style={{ fill: C.dim, fontFamily: mono }}
+						>
+							uncovered → pays F
+						</text>
+					</g>
+
 					{/* Mark carriage — the signature. Rides the top strip; hover for
 					    the walk that produced it. */}
 					<g
@@ -1047,7 +1117,7 @@ export default function SnapshotFeesLab() {
 						/>
 						<rect
 							x={-58}
-							y={4}
+							y={32}
 							width={116}
 							height={22}
 							rx={4}
@@ -1056,7 +1126,7 @@ export default function SnapshotFeesLab() {
 						/>
 						<text
 							x={0}
-							y={20}
+							y={48}
 							textAnchor="middle"
 							fontSize={13.5}
 							style={{ fill: C.mark, fontFamily: mono }}
@@ -1067,9 +1137,9 @@ export default function SnapshotFeesLab() {
 						{/* hover hit zone: the label box and arrow only, not the line */}
 						<rect
 							x={-58}
-							y={2}
+							y={30}
 							width={116}
-							height={PT - 2}
+							height={PT - 31}
 							fill="transparent"
 							onPointerEnter={() => setMHover(true)}
 							onPointerLeave={() => setMHover(false)}
@@ -1366,42 +1436,15 @@ export default function SnapshotFeesLab() {
 				</button>
 			</div>
 
-			{/* legend — the chart carries M, the band, and the walk itself */}
+			{/* the key lives inside the chart; only the interaction hint sits here */}
 			<div
 				style={{
-					display: "flex",
-					gap: 16,
-					flexWrap: "wrap",
 					margin: "8px 2px",
 					fontSize: 12,
-					color: C.dim,
-					alignItems: "center",
+					color: C.faint,
 				}}
 			>
-				<span>
-					<i style={sw(C.bid)} />
-					your bids
-				</span>
-				<span>
-					<i style={sw(C.ask)} />
-					your asks
-				</span>
-				<span style={{ color: C.fee }}>
-					● fee this bar pays if it fully fills
-				</span>
-				<span>
-					<i
-						style={{
-							...sw("transparent"),
-							border: `1px solid ${C.dim}`,
-							backgroundImage: `repeating-linear-gradient(45deg, var(--lab-hatch) 0 1px, transparent 1px 4px)`,
-						}}
-					/>
-					uncovered size → pays full F
-				</span>
-				<span style={{ color: C.faint }}>
-					drag bars to reshape · hover ● for its fee · hover M for its walk
-				</span>
+				drag bars to reshape · hover ● for its fee · hover M for its walk
 			</div>
 
 			<div
