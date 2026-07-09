@@ -205,7 +205,7 @@ interface DragState {
 
 export default function SnapshotFeesLab() {
 	// —— market standard ——
-	const [S, setS] = useState(3); // spread standard, bps
+	const [S, setS] = useState(2); // spread standard, bps
 	const [T, setT] = useState(20000); // typical trade size, $
 	// —— fee schedule ——
 	const [F, setF] = useState(15); // cap / taker rate, bps
@@ -292,7 +292,7 @@ export default function SnapshotFeesLab() {
 	// touching any dial (or dragging a bar) drops you into Custom.
 	const applyScenario = (sc: Scenario) => {
 		setSizes(sc.book());
-		setS(3);
+		setS(2);
 		setT(20000);
 		setF(15);
 		setSlope(0.5);
