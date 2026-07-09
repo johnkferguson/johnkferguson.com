@@ -41,21 +41,25 @@ const bookOf = (fill: Record<number, number>): number[] => {
 // says what to notice. Tweak freely — titles, blurbs, and books are data.
 const SCENARIOS: Scenario[] = [
 	{
-		key: "perfect",
-		title: "The Perfect Maker",
+		key: "balanced",
+		title: "Balanced Maker",
 		blurb:
-			"Balanced size on both sides, placed inside the band: fully matched and precisely placed. Every fee dot sits at zero — this book trades free.",
-		book: () =>
-			bookOf({
-				[CENTER - 1]: 9000,
-				[CENTER - 2]: 7000,
-				[CENTER + 1]: 9000,
-				[CENTER + 2]: 7000,
-			}),
+			"A mirrored ladder across every price level. Everything is matched, so each level pays only its placement: fees sit at zero near M and rise gently with distance — even the farthest quote pays a small fraction of the taker rate. Using every price level stays cheap.",
+		book: () => {
+			const a = Array(N).fill(0);
+			const ladder = [
+				5000, 6500, 8000, 9500, 11000, 12500, 14000, 15500, 17500, 20000,
+			];
+			ladder.forEach((v, k) => {
+				a[CENTER - 1 - k] = v;
+				a[CENTER + 1 + k] = v;
+			});
+			return a;
+		},
 	},
 	{
 		key: "taker",
-		title: "The Patient Taker",
+		title: "One-Sided Book",
 		blurb:
 			"Only bids, with nothing standing behind them. Every dollar is directional, so a fill pays the full taker rate F — a one-sided resting order is a taker who waits. With one side empty, M freezes at its last value (❄).",
 		book: () =>
@@ -284,6 +288,24 @@ export default function SnapshotFeesLab() {
 		);
 		setSizes((s) => (s[d.i] === v ? s : s.map((x, k) => (k === d.i ? v : x))));
 	};
+	// Selecting a scenario resets the dials so its caption stays true;
+	// touching any dial (or dragging a bar) drops you into Custom.
+	const applyScenario = (sc: Scenario) => {
+		setSizes(sc.book());
+		setS(3);
+		setT(20000);
+		setF(15);
+		setSlope(0.5);
+		setExpo(1);
+		setLambda(0.5);
+		setComp(0);
+		setScenario(sc.key);
+	};
+	const touch = (fn: (v: number) => void) => (v: number) => {
+		fn(v);
+		setScenario(null);
+	};
+
 	const onUp = (_e: PointerEvent, i: number) => {
 		const d = drag.current;
 		drag.current = null;
@@ -373,7 +395,7 @@ export default function SnapshotFeesLab() {
 					<Param
 						name="Typical trade · T"
 						val={T}
-						set={setT}
+						set={touch(setT)}
 						min={1000}
 						max={30000}
 						stp={500}
@@ -383,7 +405,7 @@ export default function SnapshotFeesLab() {
 					<Param
 						name="Stamp slope"
 						val={slope}
-						set={setSlope}
+						set={touch(setSlope)}
 						min={0.25}
 						max={3}
 						stp={0.25}
@@ -393,7 +415,7 @@ export default function SnapshotFeesLab() {
 					<Param
 						name="Curvature"
 						val={expo}
-						set={setExpo}
+						set={touch(setExpo)}
 						min={1}
 						max={2}
 						stp={0.25}
@@ -402,7 +424,7 @@ export default function SnapshotFeesLab() {
 					<Param
 						name="Inside comp (parked)"
 						val={comp}
-						set={setComp}
+						set={touch(setComp)}
 						min={0}
 						max={0.5}
 						stp={0.05}
@@ -642,7 +664,7 @@ export default function SnapshotFeesLab() {
 					<Param
 						name="Spread standard · S"
 						val={S}
-						set={setS}
+						set={touch(setS)}
 						min={1}
 						max={10}
 						stp={0.5}
@@ -652,7 +674,7 @@ export default function SnapshotFeesLab() {
 					<Param
 						name="Cap / taker rate · F"
 						val={F}
-						set={setF}
+						set={touch(setF)}
 						min={5}
 						max={25}
 						stp={0.5}
@@ -662,7 +684,7 @@ export default function SnapshotFeesLab() {
 					<Param
 						name="Compound λ · D1"
 						val={lambda}
-						set={setLambda}
+						set={touch(setLambda)}
 						min={0}
 						max={1}
 						stp={0.05}
@@ -1486,15 +1508,19 @@ export default function SnapshotFeesLab() {
 					<button
 						key={sc.key}
 						type="button"
-						onClick={() => {
-							setSizes(sc.book());
-							setScenario(sc.key);
-						}}
+						onClick={() => applyScenario(sc)}
 						style={btn(scenario === sc.key)}
 					>
 						{sc.title}
 					</button>
 				))}
+				<button
+					type="button"
+					onClick={() => setScenario(null)}
+					style={btn(scenario === null)}
+				>
+					Custom
+				</button>
 				<button
 					type="button"
 					onClick={() => {
@@ -1520,7 +1546,7 @@ export default function SnapshotFeesLab() {
 			>
 				{scenario
 					? SCENARIOS.find((sc) => sc.key === scenario)?.blurb
-					: "Custom book — shaped by hand. Pick a scenario for a guided setup, or keep dragging bars."}
+					: "Custom setup — yours to shape. Drag bars and dials freely; pick a scenario to reset."}
 			</div>
 		</div>
 	);
