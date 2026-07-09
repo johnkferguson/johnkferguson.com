@@ -59,11 +59,25 @@ const SCENARIOS: Scenario[] = [
 	},
 	{
 		key: "taker",
-		title: "One-Sided Book",
+		title: "Directional Maker",
 		blurb:
-			"Only bids, with nothing standing behind them. Every dollar is directional, so a fill pays the full taker rate F — a one-sided resting order is a taker who waits. With one side empty, M freezes at its last value (❄).",
-		book: () =>
-			bookOf({ [CENTER - 1]: 6000, [CENTER - 2]: 5000, [CENTER - 3]: 4000 }),
+			"The same bid ladder, but the asks thin out toward the edge. The inner book is unchanged — M stays put and near quotes still trade free — but the missing ask depth strands the outermost bids: whatever has no match behind it pays like a taker, and the farthest bid hits F in full. Directional size is priced as the taker it is, level by level.",
+		book: () => {
+			const a = Array(N).fill(0);
+			const bids = [
+				5000, 6500, 8000, 9500, 11000, 12500, 14000, 15500, 17500, 20000,
+			];
+			const asks = [
+				5000, 6500, 8000, 8500, 9000, 9500, 10000, 10500, 11000, 12000,
+			];
+			bids.forEach((v, k) => {
+				a[CENTER - 1 - k] = v;
+			});
+			asks.forEach((v, k) => {
+				a[CENTER + 1 + k] = v;
+			});
+			return a;
+		},
 	},
 	{
 		key: "half",
