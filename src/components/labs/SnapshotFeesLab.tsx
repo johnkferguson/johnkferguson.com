@@ -256,7 +256,8 @@ export default function SnapshotFeesLab() {
 	const depthTop = PT; // depth scale spans the full plot: $25k = top gridline
 	const yDepth = (v: number) => PB - (v / MAX_DEPTH) * (PB - depthTop);
 	const feeMin = comp > 0 ? -Math.max(0.6, comp * 1.25) : 0;
-	const feeMax = F; // the cap is the ceiling — top gridline is reachable
+	// Fixed scale: rescaling with F made unchanged fees look like they moved.
+	const feeMax = 25;
 	const yFee = (v: number) =>
 		PB - ((v - feeMin) / (feeMax - feeMin)) * (PB - PT);
 
@@ -337,7 +338,285 @@ export default function SnapshotFeesLab() {
 						Snapshot Fees
 					</div>
 				</div>
+				<div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
+					<button
+						type="button"
+						onClick={() => setShowAdvanced((v) => !v)}
+						style={btn(showAdvanced)}
+					>
+						{showAdvanced ? "Hide advanced dials" : "Advanced dials"}
+					</button>
+					<button
+						type="button"
+						onClick={() => setShowFormula((v) => !v)}
+						style={btn(showFormula)}
+					>
+						{showFormula ? "Hide the math" : "Show the math"}
+					</button>
+				</div>
 			</div>
+
+			{showAdvanced && (
+				<div
+					style={{
+						background: C.panel,
+						border: `1px solid ${C.line}`,
+						borderRadius: 8,
+						padding: "10px 14px",
+						display: "flex",
+						flexWrap: "wrap",
+						gap: "12px 22px",
+						alignItems: "flex-start",
+						marginBottom: 12,
+					}}
+				>
+					<Param
+						name="Typical trade · T"
+						val={T}
+						set={setT}
+						min={1000}
+						max={30000}
+						stp={500}
+						suffix="$"
+						hint="Measuring size for M: where a $T trade would really execute on each side."
+					/>
+					<Param
+						name="Stamp slope"
+						val={slope}
+						set={setSlope}
+						min={0.25}
+						max={3}
+						stp={0.25}
+						suffix="×"
+						hint="Stamp bps charged per bp of placement beyond the band edge."
+					/>
+					<Param
+						name="Curvature"
+						val={expo}
+						set={setExpo}
+						min={1}
+						max={2}
+						stp={0.25}
+						hint="1 = linear distance charge; 2 = far placement charged disproportionately."
+					/>
+					<Param
+						name="Inside comp (parked)"
+						val={comp}
+						set={setComp}
+						min={0}
+						max={0.5}
+						stp={0.05}
+						suffix="bp"
+						hint="Experimental reward near M, funded by taker fees — a separate channel; base fees never go below zero."
+					/>
+					<div
+						style={{
+							display: "flex",
+							flexDirection: "column",
+							gap: 4,
+							maxWidth: 172,
+						}}
+					>
+						<span style={label}>Width pressure</span>
+						<span style={{ fontFamily: mono, fontSize: 12, color: C.text }}>
+							{(slope * (1 + lambda)).toFixed(2)}×
+							<span style={{ color: C.dim }}>
+								{" · "}
+								{slope * (1 + lambda) < 0.98
+									? "gentle"
+									: slope * (1 + lambda) > 1.02
+										? "leaning"
+										: "full clawback"}
+							</span>
+						</span>
+						<span style={{ fontSize: 11, color: C.faint, lineHeight: 1.45 }}>
+							slope × (1 + λ): total charge per bp of double-sided width.
+						</span>
+					</div>
+				</div>
+			)}
+			{/* formulas — the full pipeline, on demand */}
+			{showFormula &&
+				(() => {
+					const half = (S / 2).toFixed(2);
+					const stampEx = (d: number) => Math.min(F, slope * d ** expo);
+					const dCap = (F / slope) ** (1 / expo);
+					const dMax = Math.max(6, Math.ceil(dCap) + 2);
+					const pts = Array.from({ length: 41 }, (_, k) => {
+						const d = (dMax * k) / 40;
+						return `${10 + (d / dMax) * 150},${60 - (Math.min(F, slope * d ** expo) / F) * 48}`;
+					}).join(" ");
+					const row = { marginBottom: 10 };
+					const eyebrow = { ...label, color: C.fee, marginRight: 10 };
+					const note = {
+						fontFamily: "inherit",
+						fontSize: 12,
+						color: C.faint,
+						lineHeight: 1.5,
+					};
+					return (
+						<div
+							style={{
+								background: C.panel,
+								border: `1px solid ${C.line}`,
+								borderRadius: 8,
+								padding: "12px 16px",
+								marginBottom: 12,
+								fontFamily: mono,
+								fontSize: 12.5,
+								lineHeight: 1.6,
+								overflowX: "auto",
+							}}
+						>
+							<div style={{ ...label, marginBottom: 8 }}>
+								The pipeline — general form, with your settings substituted
+							</div>
+
+							<div style={row}>
+								<span style={eyebrow}>1 · Mark</span>M = (impactBid(T) +
+								impactAsk(T)) / 2
+								<div style={note}>
+									impact price = volume-weighted price of trading $
+									{T.toLocaleString()} into that side, best levels first ·
+									quotes more than {8 * S}bp behind a side's best are ignored
+								</div>
+								{model.iBid != null && model.iAsk != null && (
+									<div style={{ color: C.mark }}>
+										right now: M = ({fmtPx(model.iBid)} + {fmtPx(model.iAsk)}) /
+										2 = {fmtPx(model.M)}
+									</div>
+								)}
+							</div>
+
+							<div style={row}>
+								<span style={eyebrow}>2 · Band</span>edges = M ± S/2 = M ±{" "}
+								{half}bp → {fmtPx(model.edgeBid)} … {fmtPx(model.edgeAsk)}
+								<div style={note}>
+									the declared free zone — placement inside it stamps at zero
+								</div>
+							</div>
+
+							<div
+								style={{
+									...row,
+									display: "flex",
+									gap: 18,
+									flexWrap: "wrap",
+									alignItems: "flex-start",
+								}}
+							>
+								<div style={{ flex: "1 1 320px" }}>
+									<span style={eyebrow}>3 · Stamp</span>stamp(d) = min(F, slope
+									× d^curv) = min({F}, {slope} × d^{expo})
+									<div style={note}>
+										d = bp of placement beyond your side's edge (0 if inside).
+										Slope sets how fast the charge rises; curvature bends it.
+									</div>
+									<div style={{ color: C.text }}>
+										d=1 → {fmtBp(stampEx(1))} · d=2 → {fmtBp(stampEx(2))} · d=4
+										→ {fmtBp(stampEx(4))} · hits the cap at d ={" "}
+										{dCap.toFixed(1)}bp
+									</div>
+								</div>
+								<svg
+									width={172}
+									height={78}
+									style={{ flex: "0 0 auto" }}
+									role="img"
+									aria-label={`Stamp curve: fee rises from 0 to the ${F}bp cap over ${dCap.toFixed(1)}bp of distance`}
+								>
+									<line
+										x1={10}
+										y1={60}
+										x2={162}
+										y2={60}
+										style={{ stroke: C.line }}
+									/>
+									<line
+										x1={10}
+										y1={12}
+										x2={10}
+										y2={60}
+										style={{ stroke: C.line }}
+									/>
+									<line
+										x1={10}
+										y1={12}
+										x2={162}
+										y2={12}
+										strokeDasharray="3 3"
+										style={{ stroke: C.faint }}
+									/>
+									<polyline
+										points={pts}
+										fill="none"
+										strokeWidth={2}
+										style={{ stroke: C.fee }}
+									/>
+									<text
+										x={14}
+										y={11}
+										fontSize={9}
+										style={{ fill: C.faint, fontFamily: mono }}
+									>
+										cap F = {F}bp
+									</text>
+									<text
+										x={162}
+										y={72}
+										fontSize={9}
+										textAnchor="end"
+										style={{ fill: C.faint, fontFamily: mono }}
+									>
+										d (bp beyond edge) → {dMax}
+									</text>
+									<text
+										x={10}
+										y={72}
+										fontSize={9}
+										style={{ fill: C.dim, fontFamily: mono }}
+									>
+										stamp(d)
+									</text>
+								</svg>
+							</div>
+
+							<div style={row}>
+								<span style={eyebrow}>4 · Pairing</span>pairing = (Σ coveredᵢ ×
+								stampᵢ + uncovered × F) / size
+								<div style={note}>
+									coverage = your own opposite side, consumed inside-first —
+									better-priced bars claim it before this one (spillover).
+									Uncovered dollars are directional and pay F in full.
+								</div>
+							</div>
+
+							<div style={row}>
+								<span style={eyebrow}>5 · Combine</span>fee = min(F, max(own,
+								pairing) + λ × min(own, pairing)) = min({F}, bigger +{" "}
+								{lambda.toFixed(2)} × smaller)
+								<div style={note}>
+									D1 — width pressure = slope × (1 + λ) ={" "}
+									{(slope * (1 + lambda)).toFixed(2)}× · below 1.0 = gentle
+									(profit still rises with width, at reduced slope) · 1.0 = full
+									clawback of CLOB-style width gains · above = leaning on the
+									band
+								</div>
+							</div>
+
+							<div style={{ marginBottom: 0 }}>
+								<span style={eyebrow}>6 · Dollars</span>fee$ = rate × size ÷
+								10,000
+								{comp > 0 && (
+									<span>
+										{" "}
+										− insideComp × max(0, 1 − dist/(S/2)) × size ÷ 10,000
+									</span>
+								)}
+							</div>
+						</div>
+					);
+				})()}
 
 			{/* chart */}
 			<div
@@ -348,6 +627,74 @@ export default function SnapshotFeesLab() {
 					padding: "6px 4px 2px",
 				}}
 			>
+				{/* the dials that shape the story — on top of the instrument */}
+				<div
+					style={{
+						display: "flex",
+						flexWrap: "wrap",
+						gap: "12px 26px",
+						alignItems: "flex-start",
+						borderBottom: `1px solid ${C.line}`,
+						margin: "0 10px 4px",
+						padding: "10px 4px 10px",
+					}}
+				>
+					<Param
+						name="Spread standard · S"
+						val={S}
+						set={setS}
+						min={1}
+						max={10}
+						stp={0.5}
+						suffix="bp"
+						hint="The free band, M ± S/2."
+					/>
+					<Param
+						name="Cap / taker rate · F"
+						val={F}
+						set={setF}
+						min={5}
+						max={25}
+						stp={0.5}
+						suffix="bp"
+						hint="The ceiling every fee runs toward."
+					/>
+					<Param
+						name="Compound λ · D1"
+						val={lambda}
+						set={setLambda}
+						min={0}
+						max={1}
+						stp={0.05}
+						hint="How a bar's two charges merge."
+					/>
+					<div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+						<span style={label}>Compare</span>
+						<button
+							type="button"
+							onClick={() =>
+								setPinned(
+									pinned
+										? null
+										: feePts.map((l) => ({ i: l.i, v: l.bk?.final ?? 0 })),
+								)
+							}
+							style={btn(!!pinned)}
+						>
+							{pinned ? "Unpin ghost" : "Pin curve"}
+						</button>
+						<span
+							style={{
+								fontSize: 11,
+								color: C.faint,
+								lineHeight: 1.45,
+								maxWidth: 160,
+							}}
+						>
+							Freeze the fee curve, change anything, compare.
+						</span>
+					</div>
+				</div>
 				<svg
 					viewBox={`0 0 ${W} ${H}`}
 					style={{ width: "100%", display: "block", touchAction: "none" }}
@@ -441,6 +788,29 @@ export default function SnapshotFeesLab() {
 							strokeDasharray="4 4"
 							style={{ stroke: C.faint }}
 						/>
+					)}
+					{F < feeMax && (
+						<g pointerEvents="none">
+							<line
+								x1={PL}
+								x2={PR}
+								y1={yFee(F)}
+								y2={yFee(F)}
+								strokeDasharray="4 4"
+								opacity={0.45}
+								style={{ stroke: C.fee }}
+							/>
+							<text
+								x={PR - 5}
+								y={yFee(F) - 5}
+								textAnchor="end"
+								fontSize={11.5}
+								opacity={0.8}
+								style={{ fill: C.fee, fontFamily: mono }}
+							>
+								cap F
+							</text>
+						</g>
 					)}
 
 					{/* band (slides with M) */}
@@ -1101,75 +1471,6 @@ export default function SnapshotFeesLab() {
 							);
 						})()}
 				</svg>
-
-				{/* the dials that shape the story — attached to the instrument */}
-				<div
-					style={{
-						display: "flex",
-						flexWrap: "wrap",
-						gap: "12px 26px",
-						alignItems: "flex-start",
-						borderTop: `1px solid ${C.line}`,
-						margin: "4px 10px 0",
-						padding: "10px 4px 10px",
-					}}
-				>
-					<Param
-						name="Spread standard · S"
-						val={S}
-						set={setS}
-						min={1}
-						max={10}
-						stp={0.5}
-						suffix="bp"
-						hint="The free band, M ± S/2."
-					/>
-					<Param
-						name="Cap / taker rate · F"
-						val={F}
-						set={setF}
-						min={5}
-						max={30}
-						stp={0.5}
-						suffix="bp"
-						hint="The ceiling every fee runs toward."
-					/>
-					<Param
-						name="Compound λ · D1"
-						val={lambda}
-						set={setLambda}
-						min={0}
-						max={1}
-						stp={0.05}
-						hint="How a bar's two charges merge."
-					/>
-					<div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
-						<span style={label}>Compare</span>
-						<button
-							type="button"
-							onClick={() =>
-								setPinned(
-									pinned
-										? null
-										: feePts.map((l) => ({ i: l.i, v: l.bk?.final ?? 0 })),
-								)
-							}
-							style={btn(!!pinned)}
-						>
-							{pinned ? "Unpin ghost" : "Pin curve"}
-						</button>
-						<span
-							style={{
-								fontSize: 11,
-								color: C.faint,
-								lineHeight: 1.45,
-								maxWidth: 160,
-							}}
-						>
-							Freeze the fee curve, change anything, compare.
-						</span>
-					</div>
-				</div>
 			</div>
 
 			{/* scenarios — the guided tour */}
@@ -1221,285 +1522,6 @@ export default function SnapshotFeesLab() {
 					? SCENARIOS.find((sc) => sc.key === scenario)?.blurb
 					: "Custom book — shaped by hand. Pick a scenario for a guided setup, or keep dragging bars."}
 			</div>
-
-			{/* deeper layers, tucked away */}
-			<div style={{ display: "flex", gap: 6, margin: "12px 2px 8px" }}>
-				<button
-					type="button"
-					onClick={() => setShowAdvanced((v) => !v)}
-					style={btn(showAdvanced)}
-				>
-					{showAdvanced ? "Hide advanced dials" : "Advanced dials"}
-				</button>
-				<button
-					type="button"
-					onClick={() => setShowFormula((v) => !v)}
-					style={btn(showFormula)}
-				>
-					{showFormula ? "Hide the math" : "Show the math"}
-				</button>
-			</div>
-			{showAdvanced && (
-				<div
-					style={{
-						background: C.panel,
-						border: `1px solid ${C.line}`,
-						borderRadius: 8,
-						padding: "10px 14px",
-						display: "flex",
-						flexWrap: "wrap",
-						gap: "12px 22px",
-						alignItems: "flex-start",
-						marginBottom: 12,
-					}}
-				>
-					<Param
-						name="Typical trade · T"
-						val={T}
-						set={setT}
-						min={1000}
-						max={30000}
-						stp={500}
-						suffix="$"
-						hint="Measuring size for M: where a $T trade would really execute on each side."
-					/>
-					<Param
-						name="Stamp slope"
-						val={slope}
-						set={setSlope}
-						min={0.25}
-						max={3}
-						stp={0.25}
-						suffix="×"
-						hint="Stamp bps charged per bp of placement beyond the band edge."
-					/>
-					<Param
-						name="Curvature"
-						val={expo}
-						set={setExpo}
-						min={1}
-						max={2}
-						stp={0.25}
-						hint="1 = linear distance charge; 2 = far placement charged disproportionately."
-					/>
-					<Param
-						name="Inside comp (parked)"
-						val={comp}
-						set={setComp}
-						min={0}
-						max={0.5}
-						stp={0.05}
-						suffix="bp"
-						hint="Experimental reward near M, funded by taker fees — a separate channel; base fees never go below zero."
-					/>
-					<div
-						style={{
-							display: "flex",
-							flexDirection: "column",
-							gap: 4,
-							maxWidth: 172,
-						}}
-					>
-						<span style={label}>Width pressure</span>
-						<span style={{ fontFamily: mono, fontSize: 12, color: C.text }}>
-							{(slope * (1 + lambda)).toFixed(2)}×
-							<span style={{ color: C.dim }}>
-								{" · "}
-								{slope * (1 + lambda) < 0.98
-									? "gentle"
-									: slope * (1 + lambda) > 1.02
-										? "leaning"
-										: "full clawback"}
-							</span>
-						</span>
-						<span style={{ fontSize: 11, color: C.faint, lineHeight: 1.45 }}>
-							slope × (1 + λ): total charge per bp of double-sided width.
-						</span>
-					</div>
-				</div>
-			)}
-			{/* formulas — the full pipeline, on demand */}
-			{showFormula &&
-				(() => {
-					const half = (S / 2).toFixed(2);
-					const stampEx = (d: number) => Math.min(F, slope * d ** expo);
-					const dCap = (F / slope) ** (1 / expo);
-					const dMax = Math.max(6, Math.ceil(dCap) + 2);
-					const pts = Array.from({ length: 41 }, (_, k) => {
-						const d = (dMax * k) / 40;
-						return `${10 + (d / dMax) * 150},${60 - (Math.min(F, slope * d ** expo) / F) * 48}`;
-					}).join(" ");
-					const row = { marginBottom: 10 };
-					const eyebrow = { ...label, color: C.fee, marginRight: 10 };
-					const note = {
-						fontFamily: "inherit",
-						fontSize: 12,
-						color: C.faint,
-						lineHeight: 1.5,
-					};
-					return (
-						<div
-							style={{
-								background: C.panel,
-								border: `1px solid ${C.line}`,
-								borderRadius: 8,
-								padding: "12px 16px",
-								marginBottom: 12,
-								fontFamily: mono,
-								fontSize: 12.5,
-								lineHeight: 1.6,
-								overflowX: "auto",
-							}}
-						>
-							<div style={{ ...label, marginBottom: 8 }}>
-								The pipeline — general form, with your settings substituted
-							</div>
-
-							<div style={row}>
-								<span style={eyebrow}>1 · Mark</span>M = (impactBid(T) +
-								impactAsk(T)) / 2
-								<div style={note}>
-									impact price = volume-weighted price of trading $
-									{T.toLocaleString()} into that side, best levels first ·
-									quotes more than {8 * S}bp behind a side's best are ignored
-								</div>
-								{model.iBid != null && model.iAsk != null && (
-									<div style={{ color: C.mark }}>
-										right now: M = ({fmtPx(model.iBid)} + {fmtPx(model.iAsk)}) /
-										2 = {fmtPx(model.M)}
-									</div>
-								)}
-							</div>
-
-							<div style={row}>
-								<span style={eyebrow}>2 · Band</span>edges = M ± S/2 = M ±{" "}
-								{half}bp → {fmtPx(model.edgeBid)} … {fmtPx(model.edgeAsk)}
-								<div style={note}>
-									the declared free zone — placement inside it stamps at zero
-								</div>
-							</div>
-
-							<div
-								style={{
-									...row,
-									display: "flex",
-									gap: 18,
-									flexWrap: "wrap",
-									alignItems: "flex-start",
-								}}
-							>
-								<div style={{ flex: "1 1 320px" }}>
-									<span style={eyebrow}>3 · Stamp</span>stamp(d) = min(F, slope
-									× d^curv) = min({F}, {slope} × d^{expo})
-									<div style={note}>
-										d = bp of placement beyond your side's edge (0 if inside).
-										Slope sets how fast the charge rises; curvature bends it.
-									</div>
-									<div style={{ color: C.text }}>
-										d=1 → {fmtBp(stampEx(1))} · d=2 → {fmtBp(stampEx(2))} · d=4
-										→ {fmtBp(stampEx(4))} · hits the cap at d ={" "}
-										{dCap.toFixed(1)}bp
-									</div>
-								</div>
-								<svg
-									width={172}
-									height={78}
-									style={{ flex: "0 0 auto" }}
-									role="img"
-									aria-label={`Stamp curve: fee rises from 0 to the ${F}bp cap over ${dCap.toFixed(1)}bp of distance`}
-								>
-									<line
-										x1={10}
-										y1={60}
-										x2={162}
-										y2={60}
-										style={{ stroke: C.line }}
-									/>
-									<line
-										x1={10}
-										y1={12}
-										x2={10}
-										y2={60}
-										style={{ stroke: C.line }}
-									/>
-									<line
-										x1={10}
-										y1={12}
-										x2={162}
-										y2={12}
-										strokeDasharray="3 3"
-										style={{ stroke: C.faint }}
-									/>
-									<polyline
-										points={pts}
-										fill="none"
-										strokeWidth={2}
-										style={{ stroke: C.fee }}
-									/>
-									<text
-										x={14}
-										y={11}
-										fontSize={9}
-										style={{ fill: C.faint, fontFamily: mono }}
-									>
-										cap F = {F}bp
-									</text>
-									<text
-										x={162}
-										y={72}
-										fontSize={9}
-										textAnchor="end"
-										style={{ fill: C.faint, fontFamily: mono }}
-									>
-										d (bp beyond edge) → {dMax}
-									</text>
-									<text
-										x={10}
-										y={72}
-										fontSize={9}
-										style={{ fill: C.dim, fontFamily: mono }}
-									>
-										stamp(d)
-									</text>
-								</svg>
-							</div>
-
-							<div style={row}>
-								<span style={eyebrow}>4 · Pairing</span>pairing = (Σ coveredᵢ ×
-								stampᵢ + uncovered × F) / size
-								<div style={note}>
-									coverage = your own opposite side, consumed inside-first —
-									better-priced bars claim it before this one (spillover).
-									Uncovered dollars are directional and pay F in full.
-								</div>
-							</div>
-
-							<div style={row}>
-								<span style={eyebrow}>5 · Combine</span>fee = min(F, max(own,
-								pairing) + λ × min(own, pairing)) = min({F}, bigger +{" "}
-								{lambda.toFixed(2)} × smaller)
-								<div style={note}>
-									D1 — width pressure = slope × (1 + λ) ={" "}
-									{(slope * (1 + lambda)).toFixed(2)}× · below 1.0 = gentle
-									(profit still rises with width, at reduced slope) · 1.0 = full
-									clawback of CLOB-style width gains · above = leaning on the
-									band
-								</div>
-							</div>
-
-							<div style={{ marginBottom: 0 }}>
-								<span style={eyebrow}>6 · Dollars</span>fee$ = rate × size ÷
-								10,000
-								{comp > 0 && (
-									<span>
-										{" "}
-										− insideComp × max(0, 1 − dist/(S/2)) × size ÷ 10,000
-									</span>
-								)}
-							</div>
-						</div>
-					);
-				})()}
 		</div>
 	);
 }
