@@ -1030,7 +1030,7 @@ export default function SnapshotFeesLab() {
 					{/* key — its own strip below the price axis */}
 					<g pointerEvents="none" style={{ fontFamily: mono }}>
 						<rect
-							x={260}
+							x={238}
 							y={PB + 40}
 							width={9}
 							height={9}
@@ -1038,15 +1038,15 @@ export default function SnapshotFeesLab() {
 							style={{ fill: C.bid }}
 						/>
 						<text
-							x={274}
+							x={252}
 							y={PB + 48}
-							fontSize={11}
+							fontSize={12.5}
 							style={{ fill: C.dim, fontFamily: mono }}
 						>
 							Bids
 						</text>
 						<rect
-							x={324}
+							x={306}
 							y={PB + 40}
 							width={9}
 							height={9}
@@ -1054,15 +1054,15 @@ export default function SnapshotFeesLab() {
 							style={{ fill: C.ask }}
 						/>
 						<text
-							x={338}
+							x={320}
 							y={PB + 48}
-							fontSize={11}
+							fontSize={12.5}
 							style={{ fill: C.dim, fontFamily: mono }}
 						>
 							Asks
 						</text>
 						<rect
-							x={388}
+							x={374}
 							y={PB + 40}
 							width={9}
 							height={9}
@@ -1071,24 +1071,24 @@ export default function SnapshotFeesLab() {
 							style={{ stroke: C.dim }}
 						/>
 						<text
-							x={402}
+							x={388}
 							y={PB + 48}
-							fontSize={11}
+							fontSize={12.5}
 							style={{ fill: C.dim, fontFamily: mono }}
 						>
 							Directional: Full Fee
 						</text>
 						<circle
-							cx={549}
+							cx={574}
 							cy={PB + 44.5}
 							r={3.5}
 							strokeWidth={1}
 							style={{ fill: C.fee, stroke: C.panel }}
 						/>
 						<text
-							x={559}
+							x={584}
 							y={PB + 48}
-							fontSize={11}
+							fontSize={12.5}
 							style={{ fill: C.dim, fontFamily: mono }}
 						>
 							Fee If Fully Filled
