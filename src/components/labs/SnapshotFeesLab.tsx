@@ -1030,7 +1030,7 @@ export default function SnapshotFeesLab() {
 					{/* key — its own strip below the price axis */}
 					<g pointerEvents="none" style={{ fontFamily: mono }}>
 						<rect
-							x={229}
+							x={260}
 							y={PB + 40}
 							width={9}
 							height={9}
@@ -1038,15 +1038,15 @@ export default function SnapshotFeesLab() {
 							style={{ fill: C.bid }}
 						/>
 						<text
-							x={243}
+							x={274}
 							y={PB + 48}
 							fontSize={11}
 							style={{ fill: C.dim, fontFamily: mono }}
 						>
-							your bids
+							Bids
 						</text>
 						<rect
-							x={326}
+							x={324}
 							y={PB + 40}
 							width={9}
 							height={9}
@@ -1054,30 +1054,15 @@ export default function SnapshotFeesLab() {
 							style={{ fill: C.ask }}
 						/>
 						<text
-							x={340}
+							x={338}
 							y={PB + 48}
 							fontSize={11}
 							style={{ fill: C.dim, fontFamily: mono }}
 						>
-							your asks
-						</text>
-						<circle
-							cx={427}
-							cy={PB + 44.5}
-							r={3.5}
-							strokeWidth={1}
-							style={{ fill: C.fee, stroke: C.panel }}
-						/>
-						<text
-							x={437}
-							y={PB + 48}
-							fontSize={11}
-							style={{ fill: C.dim, fontFamily: mono }}
-						>
-							fee if it fully fills
+							Asks
 						</text>
 						<rect
-							x={600}
+							x={388}
 							y={PB + 40}
 							width={9}
 							height={9}
@@ -1086,12 +1071,27 @@ export default function SnapshotFeesLab() {
 							style={{ stroke: C.dim }}
 						/>
 						<text
-							x={614}
+							x={402}
 							y={PB + 48}
 							fontSize={11}
 							style={{ fill: C.dim, fontFamily: mono }}
 						>
-							uncovered → pays F
+							Directional: Full Fee
+						</text>
+						<circle
+							cx={549}
+							cy={PB + 44.5}
+							r={3.5}
+							strokeWidth={1}
+							style={{ fill: C.fee, stroke: C.panel }}
+						/>
+						<text
+							x={559}
+							y={PB + 48}
+							fontSize={11}
+							style={{ fill: C.dim, fontFamily: mono }}
+						>
+							Fee If Fully Filled
 						</text>
 					</g>
 
@@ -1358,12 +1358,12 @@ export default function SnapshotFeesLab() {
 							];
 							if (cov > 0)
 								rows.push({
-									t: `covered ${fmt$(cov)} · partner stamps ≈ ${fmtBp(avg)}`,
+									t: `matched ${fmt$(cov)} · partner stamps ≈ ${fmtBp(avg)}`,
 									c: C.text,
 								});
 							if (b.unpaired > 0)
 								rows.push({
-									t: `uncovered ${fmt$(b.unpaired)} · pays taker rate ${fmtBp(F)}`,
+									t: `directional ${fmt$(b.unpaired)} · pays taker rate ${fmtBp(F)}`,
 									c: C.ask,
 								});
 							if (b.claimedBefore > 0)
