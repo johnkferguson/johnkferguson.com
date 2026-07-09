@@ -170,10 +170,10 @@ export default function SnapshotFeesLab() {
 	// Top strip: title row (y 0…28), then the Mark carriage and band-edge
 	// labels (y 28…PT). Below the price axis, a key strip closes the frame.
 	const W = 960;
-	const H = 528;
+	const H = 546;
 	const PL = 84;
 	const PR = 884;
-	const PT = 74;
+	const PT = 84;
 	const PB = 444; // plot box
 	const AXIS_Y = PB + 4;
 	const step = (PR - PL) / (N - 1);
@@ -1031,7 +1031,7 @@ export default function SnapshotFeesLab() {
 					<g pointerEvents="none" style={{ fontFamily: mono }}>
 						<rect
 							x={212}
-							y={PB + 35}
+							y={PB + 46}
 							width={14}
 							height={14}
 							rx={2}
@@ -1039,7 +1039,7 @@ export default function SnapshotFeesLab() {
 						/>
 						<text
 							x={233}
-							y={PB + 48}
+							y={PB + 59}
 							fontSize={16}
 							style={{ fill: C.dim, fontFamily: mono }}
 						>
@@ -1047,7 +1047,7 @@ export default function SnapshotFeesLab() {
 						</text>
 						<rect
 							x={301}
-							y={PB + 35}
+							y={PB + 46}
 							width={14}
 							height={14}
 							rx={2}
@@ -1055,7 +1055,7 @@ export default function SnapshotFeesLab() {
 						/>
 						<text
 							x={322}
-							y={PB + 48}
+							y={PB + 59}
 							fontSize={16}
 							style={{ fill: C.dim, fontFamily: mono }}
 						>
@@ -1063,7 +1063,7 @@ export default function SnapshotFeesLab() {
 						</text>
 						<rect
 							x={390}
-							y={PB + 35}
+							y={PB + 46}
 							width={14}
 							height={14}
 							fill="url(#sf-hatch)"
@@ -1072,7 +1072,7 @@ export default function SnapshotFeesLab() {
 						/>
 						<text
 							x={411}
-							y={PB + 48}
+							y={PB + 59}
 							fontSize={16}
 							style={{ fill: C.dim, fontFamily: mono }}
 						>
@@ -1080,14 +1080,14 @@ export default function SnapshotFeesLab() {
 						</text>
 						<circle
 							cx={553}
-							cy={PB + 42}
+							cy={PB + 53}
 							r={6}
 							strokeWidth={1}
 							style={{ fill: C.fee, stroke: C.panel }}
 						/>
 						<text
 							x={566}
-							y={PB + 48}
+							y={PB + 59}
 							fontSize={16}
 							style={{ fill: C.dim, fontFamily: mono }}
 						>
@@ -1095,7 +1095,7 @@ export default function SnapshotFeesLab() {
 						</text>
 						<text
 							x={W / 2}
-							y={PB + 74}
+							y={PB + 90}
 							textAnchor="middle"
 							fontSize={12.5}
 							style={{ fill: C.faint, fontFamily: mono, fontStyle: "italic" }}
@@ -1129,7 +1129,7 @@ export default function SnapshotFeesLab() {
 						/>
 						<rect
 							x={-58}
-							y={32}
+							y={42}
 							width={116}
 							height={22}
 							rx={4}
@@ -1138,7 +1138,7 @@ export default function SnapshotFeesLab() {
 						/>
 						<text
 							x={0}
-							y={48}
+							y={58}
 							textAnchor="middle"
 							fontSize={13.5}
 							style={{ fill: C.mark, fontFamily: mono }}
@@ -1149,9 +1149,9 @@ export default function SnapshotFeesLab() {
 						{/* hover hit zone: the label box and arrow only, not the line */}
 						<rect
 							x={-58}
-							y={30}
+							y={40}
 							width={116}
-							height={PT - 31}
+							height={PT - 41}
 							fill="transparent"
 							onPointerEnter={() => setMHover(true)}
 							onPointerLeave={() => setMHover(false)}
