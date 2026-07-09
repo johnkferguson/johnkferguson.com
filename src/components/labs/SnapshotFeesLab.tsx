@@ -697,9 +697,8 @@ export default function SnapshotFeesLab() {
 					);
 				})()}
 
-			{/* chart — breaks out of the post column to keep SVG text legible */}
+			{/* chart */}
 			<div
-				class="sf-breakout"
 				style={{
 					background: C.panel,
 					border: `1px solid ${C.line}`,
@@ -745,12 +744,12 @@ export default function SnapshotFeesLab() {
 								strokeWidth={1}
 								style={{ stroke: C.grid }}
 							/>
-							{(selFeeY == null || Math.abs(yFee(v) - selFeeY) > 11) && (
+							{(selFeeY == null || Math.abs(yFee(v) - selFeeY) > 13) && (
 								<text
 									x={PL - 8}
-									y={yFee(v) + 3.5}
+									y={yFee(v) + 4.5}
 									textAnchor="end"
-									fontSize={10}
+									fontSize={13}
 									style={{ fill: C.faint, fontFamily: mono }}
 								>
 									{v.toFixed(2)}
@@ -761,7 +760,7 @@ export default function SnapshotFeesLab() {
 					<text
 						x={16}
 						y={(PT + PB) / 2}
-						fontSize={10}
+						fontSize={12}
 						transform={`rotate(-90 16 ${(PT + PB) / 2})`}
 						textAnchor="middle"
 						letterSpacing="0.12em"
@@ -772,7 +771,7 @@ export default function SnapshotFeesLab() {
 					<text
 						x={W - 10}
 						y={(depthTop + PB) / 2}
-						fontSize={10}
+						fontSize={12}
 						transform={`rotate(90 ${W - 10} ${(depthTop + PB) / 2})`}
 						textAnchor="middle"
 						letterSpacing="0.12em"
@@ -784,8 +783,8 @@ export default function SnapshotFeesLab() {
 						<text
 							key={v}
 							x={PR + 8}
-							y={yDepth(v) + 3.5}
-							fontSize={10}
+							y={yDepth(v) + 4.5}
+							fontSize={13}
 							style={{ fill: C.faint, fontFamily: mono }}
 						>
 							{v / 1000}k
@@ -939,9 +938,9 @@ export default function SnapshotFeesLab() {
 							/>
 							<text
 								x={PL - 8}
-								y={yFee(bk.final) + 3.5}
+								y={yFee(bk.final) + 4.5}
 								textAnchor="end"
-								fontSize={10}
+								fontSize={13}
 								style={{ fill: C.fee, fontFamily: mono }}
 							>
 								{bk.final.toFixed(2)}
@@ -985,9 +984,9 @@ export default function SnapshotFeesLab() {
 							{lv.i % 2 === 0 && (
 								<text
 									x={xAt(lv.i)}
-									y={AXIS_Y + 14}
+									y={AXIS_Y + 15}
 									textAnchor="middle"
-									fontSize={9}
+									fontSize={12}
 									style={{
 										fill: lv.i === CENTER ? C.text : C.faint,
 										fontFamily: mono,
@@ -1028,9 +1027,9 @@ export default function SnapshotFeesLab() {
 						/>
 						<text
 							x={0}
-							y={PB + 48}
+							y={PB + 49}
 							textAnchor="middle"
-							fontSize={11}
+							fontSize={13.5}
 							style={{ fill: C.mark, fontFamily: mono }}
 						>
 							M {fmtPx(model.M)}

@@ -32,17 +32,6 @@
 	--lab-mono: var(--font-mono);
 }
 
-/*
- * Full-bleed breakout for the chart: the prose column stays at post width,
- * the figure escapes it — centered on the viewport, capped at its 960px
- * design width so SVG text renders at legible size.
- */
-.sf-lab .sf-breakout {
-	--sf-w: min(960px, calc(100vw - 1.5rem));
-	width: var(--sf-w);
-	margin-left: calc(50% - var(--sf-w) / 2);
-}
-
 .dark .sf-lab {
 	--lab-fee: #9085e9;
 	--lab-band: rgba(144, 133, 233, 0.12);
