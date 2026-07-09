@@ -1,0 +1,43 @@
+/*
+ * Snapshot-fees lab theme.
+ *
+ * Series colors are from the validated dataviz palette (aqua/orange/violet/
+ * amber), stepped per mode against the site surfaces (#ffffff / #1c1917):
+ *   light "#199e70,#d95926,#4a3aa7,#c98500" and
+ *   dark  "#199e70,#d95926,#9085e9,#c98500" both pass the palette validator
+ *   (all-pairs CVD; mark↔ask sits in the 8–12 floor band, mitigated by shape:
+ *   the mark is a labeled line, never a bar).
+ * Chrome colors reference the site's theme variables so they switch with the
+ * .dark class automatically.
+ */
+.sf-lab {
+	--lab-bid: #199e70;
+	--lab-ask: #d95926;
+	--lab-fee: #4a3aa7;
+	--lab-mark: #c98500;
+	--lab-danger: #d03b3b;
+	--lab-band: rgba(74, 58, 167, 0.07);
+	--lab-band-edge: rgba(74, 58, 167, 0.45);
+	--lab-mark-slice: rgba(201, 133, 0, 0.14);
+	--lab-hatch: rgba(0, 0, 0, 0.45);
+	--lab-grid: #efefef;
+	--lab-on-accent: #ffffff;
+
+	--lab-panel: var(--code-background);
+	--lab-panel2: var(--bg);
+	--lab-line: var(--border-color);
+	--lab-text: var(--heading-color);
+	--lab-dim: var(--text-color);
+	--lab-faint: var(--date-color);
+	--lab-mono: var(--font-mono);
+}
+
+.dark .sf-lab {
+	--lab-fee: #9085e9;
+	--lab-band: rgba(144, 133, 233, 0.12);
+	--lab-band-edge: rgba(144, 133, 233, 0.5);
+	--lab-mark-slice: rgba(201, 133, 0, 0.18);
+	--lab-hatch: rgba(255, 255, 255, 0.55);
+	--lab-grid: #2e2a27;
+	--lab-on-accent: #1c1917;
+}

@@ -1,0 +1,14 @@
+---
+import SnapshotFeesLab from "../../components/labs/SnapshotFeesLab";
+import BaseLayout from "../../layouts/BaseLayout.astro";
+---
+
+<BaseLayout
+	title="Lab · Snapshot Fees"
+	description="Interactive playground for the snapshot-fees mechanism — a single-maker batch-auction fee laboratory."
+	noindex={true}
+>
+	<main class="mx-auto w-full max-w-[1040px] px-4 py-8">
+		<SnapshotFeesLab client:load />
+	</main>
+</BaseLayout>
