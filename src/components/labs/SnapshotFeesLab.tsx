@@ -170,7 +170,7 @@ export default function SnapshotFeesLab() {
 	// Top strip: title row (y 0…28), then the Mark carriage and band-edge
 	// labels (y 28…PT). Below the price axis, a key strip closes the frame.
 	const W = 960;
-	const H = 504;
+	const H = 528;
 	const PL = 84;
 	const PR = 884;
 	const PT = 74;
@@ -1091,7 +1091,19 @@ export default function SnapshotFeesLab() {
 							fontSize={16}
 							style={{ fill: C.dim, fontFamily: mono }}
 						>
-							Fee If Fully Filled
+							Fee if Fully Filled
+						</text>
+						<text
+							x={W / 2}
+							y={PB + 74}
+							textAnchor="middle"
+							fontSize={12.5}
+							style={{ fill: C.faint, fontFamily: mono, fontStyle: "italic" }}
+						>
+							Instructions: Drag each bar to adjust order book. Hover{" "}
+							<tspan style={{ fill: C.fee }}>●</tspan> to view fee calculations.
+							Hover <tspan style={{ fill: C.mark }}>M</tspan> to view its
+							calculations.
 						</text>
 					</g>
 
@@ -1434,17 +1446,6 @@ export default function SnapshotFeesLab() {
 				>
 					Clear
 				</button>
-			</div>
-
-			{/* the key lives inside the chart; only the interaction hint sits here */}
-			<div
-				style={{
-					margin: "8px 2px",
-					fontSize: 12,
-					color: C.faint,
-				}}
-			>
-				drag bars to reshape · hover ● for its fee · hover M for its walk
 			</div>
 
 			<div
