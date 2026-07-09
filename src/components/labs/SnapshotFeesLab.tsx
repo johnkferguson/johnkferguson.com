@@ -1030,65 +1030,65 @@ export default function SnapshotFeesLab() {
 					{/* key — its own strip below the price axis */}
 					<g pointerEvents="none" style={{ fontFamily: mono }}>
 						<rect
-							x={238}
-							y={PB + 40}
-							width={9}
-							height={9}
+							x={243}
+							y={PB + 37}
+							width={12}
+							height={12}
 							rx={2}
 							style={{ fill: C.bid }}
 						/>
 						<text
-							x={252}
+							x={261}
 							y={PB + 48}
-							fontSize={12.5}
+							fontSize={14}
 							style={{ fill: C.dim, fontFamily: mono }}
 						>
 							Bids
 						</text>
 						<rect
-							x={306}
-							y={PB + 40}
-							width={9}
-							height={9}
+							x={323}
+							y={PB + 37}
+							width={12}
+							height={12}
 							rx={2}
 							style={{ fill: C.ask }}
 						/>
 						<text
-							x={320}
+							x={341}
 							y={PB + 48}
-							fontSize={12.5}
+							fontSize={14}
 							style={{ fill: C.dim, fontFamily: mono }}
 						>
 							Asks
 						</text>
 						<rect
-							x={374}
-							y={PB + 40}
-							width={9}
-							height={9}
+							x={403}
+							y={PB + 37}
+							width={12}
+							height={12}
 							fill="url(#sf-hatch)"
 							strokeWidth={0.5}
 							style={{ stroke: C.dim }}
 						/>
 						<text
-							x={388}
+							x={421}
 							y={PB + 48}
-							fontSize={12.5}
+							fontSize={14}
 							style={{ fill: C.dim, fontFamily: mono }}
 						>
-							Directional: Full Fee
+							Directional
 						</text>
 						<circle
-							cx={574}
-							cy={PB + 44.5}
-							r={4}
+							cx={546}
+							cy={PB + 43}
+							r={5}
 							strokeWidth={1}
 							style={{ fill: C.fee, stroke: C.panel }}
 						/>
 						<text
-							x={584}
+							x={557}
 							y={PB + 48}
-							fontSize={12.5}
+							fontSize={14}
 							style={{ fill: C.dim, fontFamily: mono }}
 						>
 							Fee If Fully Filled
