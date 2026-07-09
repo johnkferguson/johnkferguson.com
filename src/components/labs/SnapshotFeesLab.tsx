@@ -331,10 +331,10 @@ export default function SnapshotFeesLab() {
 						at $100 one cent equals one basis point (bp).
 					</p>
 					<p style={{ margin: "0 0 8px" }}>
-						<b>The Mark (M, gold arrow)</b> is fair value measured at real size:
-						the average price a $T buy would actually pay walking up your asks,
-						and a $T sell would receive walking down your bids — averaged. The
-						gold-edged slice on each bar is the size that walk actually
+						<b>The Mark (M, purple arrow)</b> is fair value measured at real
+						size: the average price a $T buy would actually pay walking up your
+						asks, and a $T sell would receive walking down your bids — averaged.
+						The purple-edged slice on each bar is the size that walk actually
 						consumed; only that size has a voice in M. Thin out one side and M
 						walks toward the scarcity. It is computed fresh from this snapshot;
 						nothing about you is remembered.
