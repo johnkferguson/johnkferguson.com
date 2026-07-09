@@ -957,7 +957,7 @@ export default function SnapshotFeesLab() {
 						<path
 							d={feePath}
 							fill="none"
-							strokeWidth={2}
+							strokeWidth={2.75}
 							pointerEvents="none"
 							style={{ stroke: C.fee, transition: "d 120ms" }}
 						/>
@@ -967,7 +967,7 @@ export default function SnapshotFeesLab() {
 							key={l.i}
 							cx={xAt(l.i)}
 							cy={yFee(l.bk?.final ?? 0)}
-							r={sel === l.i || feeHover === l.i ? 4.5 : 3}
+							r={sel === l.i || feeHover === l.i ? 5.5 : 4}
 							strokeWidth={1.5}
 							pointerEvents="none"
 							style={{ fill: C.fee, stroke: C.panel }}
@@ -1081,7 +1081,7 @@ export default function SnapshotFeesLab() {
 						<circle
 							cx={574}
 							cy={PB + 44.5}
-							r={3.5}
+							r={4}
 							strokeWidth={1}
 							style={{ fill: C.fee, stroke: C.panel }}
 						/>
@@ -1157,7 +1157,7 @@ export default function SnapshotFeesLab() {
 							const top = PT + 8;
 							if (model.frozen) {
 								const rows = [
-									{ t: "M frozen — a side is empty", c: C.danger },
+									{ t: "M frozen — a side is empty", c: C.text },
 									{ t: "no two-sided walk possible;", c: C.dim },
 									{ t: `showing last computed M ${fmtPx(model.M)}`, c: C.dim },
 								];

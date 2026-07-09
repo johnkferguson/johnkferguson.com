@@ -14,7 +14,7 @@
 .sf-lab {
 	--lab-bid: #199e70;
 	--lab-ask: #d95926;
-	--lab-fee: #2a78d6;
+	--lab-fee: #e34948;
 	--lab-mark: #4a3aa7;
 	--lab-danger: #d03b3b;
 	--lab-band: rgba(120, 120, 120, 0.12);
@@ -34,7 +34,7 @@
 }
 
 .dark .sf-lab {
-	--lab-fee: #256abf;
+	--lab-fee: #e66767;
 	--lab-mark: #9085e9;
 	--lab-band: rgba(255, 255, 255, 0.06);
 	--lab-band-edge: rgba(144, 133, 233, 0.6);
