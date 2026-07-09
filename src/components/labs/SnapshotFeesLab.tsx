@@ -154,6 +154,7 @@ export default function SnapshotFeesLab() {
 	const [showHelp, setShowHelp] = useState(true);
 	const [showFormula, setShowFormula] = useState(true);
 	const [mHover, setMHover] = useState(false);
+	const [feeHover, setFeeHover] = useState<number | null>(null);
 	const lastM = useRef(100);
 	const drag = useRef<DragState | null>(null);
 
@@ -313,23 +314,6 @@ export default function SnapshotFeesLab() {
 						style={btn(showFormula)}
 					>
 						{showFormula ? "Hide formulas" : "Formulas"}
-					</button>
-					{Object.keys(presets).map((k) => (
-						<button
-							type="button"
-							key={k}
-							onClick={() => setSizes(presets[k]())}
-							style={btn(false)}
-						>
-							{k}
-						</button>
-					))}
-					<button
-						type="button"
-						onClick={() => setSizes(Array(N).fill(0))}
-						style={{ ...btn(false), background: "transparent", color: C.faint }}
-					>
-						Clear
 					</button>
 				</div>
 			</div>
@@ -836,11 +820,11 @@ export default function SnapshotFeesLab() {
 						strokeDasharray="3 4"
 						style={{ stroke: C.bandEdge, transition: "all 220ms ease" }}
 					/>
-					{/* band-edge labels — anchored outward so they clear the M carriage */}
+					{/* band-edge labels — centered on their lines */}
 					<text
-						x={xOfPrice(model.edgeBid) - 5}
+						x={xOfPrice(model.edgeBid)}
 						y={PT - 6}
-						textAnchor="end"
+						textAnchor="middle"
 						fontSize={12}
 						style={{
 							fill: C.fee,
@@ -851,9 +835,9 @@ export default function SnapshotFeesLab() {
 						{fmtPx(model.edgeBid)}
 					</text>
 					<text
-						x={xOfPrice(model.edgeAsk) + 5}
+						x={xOfPrice(model.edgeAsk)}
 						y={PT - 6}
-						textAnchor="start"
+						textAnchor="middle"
 						fontSize={12}
 						style={{
 							fill: C.fee,
@@ -993,10 +977,23 @@ export default function SnapshotFeesLab() {
 							key={l.i}
 							cx={xAt(l.i)}
 							cy={yFee(l.bk?.final ?? 0)}
-							r={sel === l.i ? 4.5 : 3}
+							r={sel === l.i || feeHover === l.i ? 4.5 : 3}
 							strokeWidth={1.5}
 							pointerEvents="none"
 							style={{ fill: C.fee, stroke: C.panel }}
+						/>
+					))}
+					{/* fee hit zones — hover a dot for its breakdown */}
+					{feePts.map((l) => (
+						<circle
+							key={l.i}
+							cx={xAt(l.i)}
+							cy={yFee(l.bk?.final ?? 0)}
+							r={13}
+							fill="transparent"
+							onPointerEnter={() => setFeeHover(l.i)}
+							onPointerLeave={() => setFeeHover(null)}
+							style={{ cursor: "help" }}
 						/>
 					))}
 
@@ -1033,8 +1030,6 @@ export default function SnapshotFeesLab() {
 					<g
 						style={{ transition: "transform 220ms ease" }}
 						transform={`translate(${xOfPrice(model.M)},0)`}
-						onPointerEnter={() => setMHover(true)}
-						onPointerLeave={() => setMHover(false)}
 					>
 						<line
 							x1={0}
@@ -1043,6 +1038,7 @@ export default function SnapshotFeesLab() {
 							y2={PB}
 							strokeWidth={1}
 							opacity={0.5}
+							pointerEvents="none"
 							style={{ stroke: C.mark }}
 						/>
 						<path
@@ -1068,76 +1064,269 @@ export default function SnapshotFeesLab() {
 							M {fmtPx(model.M)}
 							{model.frozen ? " ❄" : ""}
 						</text>
-						{/* hover hit zones: label box + the line itself */}
+						{/* hover hit zone: the label box and arrow only, not the line */}
 						<rect
 							x={-58}
 							y={2}
 							width={116}
 							height={PT - 2}
 							fill="transparent"
-							style={{ cursor: "help" }}
-						/>
-						<rect
-							x={-10}
-							y={PT}
-							width={20}
-							height={PB - PT}
-							fill="transparent"
+							onPointerEnter={() => setMHover(true)}
+							onPointerLeave={() => setMHover(false)}
 							style={{ cursor: "help" }}
 						/>
 					</g>
 
-					{/* Mark tooltip — how M was measured, from this snapshot */}
+					{/* Mark tooltip — the walk that produced M, side by side */}
 					{mHover &&
 						(() => {
 							const xT = Math.min(
-								Math.max(xOfPrice(model.M), PL + 150),
-								PR - 150,
+								Math.max(xOfPrice(model.M), PL + 170),
+								PR - 170,
 							);
-							const rows: { t: string; c: string; s?: number }[] = model.frozen
-								? [
-										{ t: "M frozen — a side is empty", c: C.danger },
-										{ t: "no two-sided walk possible;", c: C.dim },
-										{
-											t: `showing last computed M ${fmtPx(model.M)}`,
-											c: C.dim,
-										},
-									]
-								: [
-										{ t: "M — fair value, measured at size", c: C.dim },
-										{
-											t: `buy ${fmt$(T)} → pays ${model.iAsk != null ? fmtPx(model.iAsk) : "—"}`,
-											c: C.ask,
-										},
-										{
-											t: `sell ${fmt$(T)} → gets ${model.iBid != null ? fmtPx(model.iBid) : "—"}`,
-											c: C.bid,
-										},
-										{ t: `M = midpoint → ${fmtPx(model.M)}`, c: C.mark },
-										{
-											t: "gold slices = the depth each walk used",
-											c: C.faint,
-											s: 11,
-										},
-									];
-							const h = 14 + rows.length * 17;
+							const top = PT + 8;
+							if (model.frozen) {
+								const rows = [
+									{ t: "M frozen — a side is empty", c: C.danger },
+									{ t: "no two-sided walk possible;", c: C.dim },
+									{ t: `showing last computed M ${fmtPx(model.M)}`, c: C.dim },
+								];
+								return (
+									<g pointerEvents="none">
+										<rect
+											x={xT - 145}
+											y={top}
+											width={290}
+											height={14 + rows.length * 17}
+											rx={6}
+											strokeWidth={0.75}
+											style={{ fill: C.panel2, stroke: C.mark }}
+										/>
+										{rows.map((r, k) => (
+											<text
+												key={r.t}
+												x={xT - 133}
+												y={top + 20 + k * 17}
+												fontSize={12}
+												style={{ fill: r.c, fontFamily: mono }}
+											>
+												{r.t}
+											</text>
+										))}
+									</g>
+								);
+							}
+							const walk = (side: Side) =>
+								model.levels
+									.filter(
+										(l) =>
+											l.side === side && (model.markUsed.get(l.i) ?? 0) > 0,
+									)
+									.sort((a, b) =>
+										side === "bid" ? b.price - a.price : a.price - b.price,
+									)
+									.map((l) => ({
+										t: `${fmtPx(l.price)} · ${fmt$(model.markUsed.get(l.i) ?? 0)}`,
+										c: C.text,
+									}));
+							const colOf = (side: Side) => {
+								const rows = walk(side);
+								const tot = model.levels.reduce(
+									(s, l) =>
+										s + (l.side === side ? (model.markUsed.get(l.i) ?? 0) : 0),
+									0,
+								);
+								if (tot < T - 0.5)
+									rows.push({ t: `only ${fmt$(tot)} deep`, c: C.faint });
+								return rows;
+							};
+							const L = colOf("bid");
+							const R = colOf("ask");
+							const nRows = Math.max(L.length, R.length, 1);
+							const headY = top + 38;
+							const rowY = (k: number) => top + 56 + k * 15;
+							const resY = rowY(nRows - 1) + 19;
+							const footY = resY + 21;
+							const noteY = footY + 16;
+							const h = noteY + 8 - top;
+							const colL = xT - 150;
+							const colR = xT + 14;
 							return (
-								<g pointerEvents="none">
+								<g pointerEvents="none" style={{ fontFamily: mono }}>
 									<rect
-										x={xT - 145}
-										y={PT + 8}
-										width={290}
+										x={xT - 162}
+										y={top}
+										width={324}
 										height={h}
 										rx={6}
 										strokeWidth={0.75}
 										style={{ fill: C.panel2, stroke: C.mark }}
 									/>
+									<text
+										x={xT}
+										y={top + 20}
+										textAnchor="middle"
+										fontSize={12}
+										style={{ fill: C.dim, fontFamily: mono }}
+									>
+										M — the mark price of this snapshot
+									</text>
+									<line
+										x1={xT}
+										x2={xT}
+										y1={top + 28}
+										y2={resY + 4}
+										style={{ stroke: C.line }}
+									/>
+									<text
+										x={colL}
+										y={headY}
+										fontSize={11.5}
+										style={{ fill: C.bid, fontFamily: mono }}
+									>
+										sell {fmt$(T)} → bids
+									</text>
+									<text
+										x={colR}
+										y={headY}
+										fontSize={11.5}
+										style={{ fill: C.ask, fontFamily: mono }}
+									>
+										buy {fmt$(T)} → asks
+									</text>
+									{L.map((r, k) => (
+										<text
+											key={r.t}
+											x={colL}
+											y={rowY(k)}
+											fontSize={11.5}
+											style={{ fill: r.c, fontFamily: mono }}
+										>
+											{r.t}
+										</text>
+									))}
+									{R.map((r, k) => (
+										<text
+											key={r.t}
+											x={colR}
+											y={rowY(k)}
+											fontSize={11.5}
+											style={{ fill: r.c, fontFamily: mono }}
+										>
+											{r.t}
+										</text>
+									))}
+									<text
+										x={colL}
+										y={resY}
+										fontSize={12}
+										style={{ fill: C.bid, fontFamily: mono }}
+									>
+										gets → {model.iBid != null ? fmtPx(model.iBid) : "—"}
+									</text>
+									<text
+										x={colR}
+										y={resY}
+										fontSize={12}
+										style={{ fill: C.ask, fontFamily: mono }}
+									>
+										pays → {model.iAsk != null ? fmtPx(model.iAsk) : "—"}
+									</text>
+									<text
+										x={xT}
+										y={footY}
+										textAnchor="middle"
+										fontSize={12}
+										style={{ fill: C.mark, fontFamily: mono }}
+									>
+										M = ({model.iBid != null ? fmtPx(model.iBid) : "—"} +{" "}
+										{model.iAsk != null ? fmtPx(model.iAsk) : "—"}) / 2 ={" "}
+										{fmtPx(model.M)}
+									</text>
+									<text
+										x={xT}
+										y={noteY}
+										textAnchor="middle"
+										fontSize={10.5}
+										style={{ fill: C.faint, fontFamily: mono }}
+									>
+										gold slices = the depth each walk consumed
+									</text>
+								</g>
+							);
+						})()}
+
+					{/* fee tooltip — the condensed derivation for one level */}
+					{feeHover != null &&
+						(() => {
+							const lv = model.levels[feeHover];
+							const b = lv?.bk;
+							if (!lv || !b || lv.side === "mid") return null;
+							const d = Math.max(
+								0,
+								(lv.side === "bid"
+									? model.edgeBid - lv.price
+									: lv.price - model.edgeAsk) / BP,
+							);
+							const cov = b.q - b.unpaired;
+							const avg =
+								cov > 0
+									? b.pairs.reduce((s, p) => s + p.matched * p.stamp, 0) / cov
+									: 0;
+							const rows: { t: string; c: string; s?: number }[] = [
+								{
+									t: `${lv.side} ${fmt$(b.q)} @ ${fmtPx(lv.price)} · full fill`,
+									c: lv.side === "bid" ? C.bid : C.ask,
+								},
+								{
+									t:
+										b.own > 0
+											? `own stamp ${fmtBp(b.own)} · ${d.toFixed(2)}bp outside band`
+											: "own stamp 0 · inside the band",
+									c: C.text,
+								},
+							];
+							if (cov > 0)
+								rows.push({
+									t: `covered ${fmt$(cov)} · partner stamps ≈ ${fmtBp(avg)}`,
+									c: C.text,
+								});
+							if (b.unpaired > 0)
+								rows.push({
+									t: `uncovered ${fmt$(b.unpaired)} · pays taker rate ${fmtBp(F)}`,
+									c: C.ask,
+								});
+							if (b.claimedBefore > 0)
+								rows.push({
+									t: `(${fmt$(b.claimedBefore)} of coverage went to better bars)`,
+									c: C.faint,
+									s: 10.5,
+								});
+							rows.push({
+								t: `fee ${fmtBp(b.final)} → $${((b.final / 10000) * b.q).toFixed(2)} · ${((b.final / F) * 100).toFixed(0)}% of a taker`,
+								c: C.fee,
+							});
+							const xT = Math.min(Math.max(xAt(lv.i), PL + 165), PR - 165);
+							const h = 14 + rows.length * 16;
+							const dotY = yFee(b.final);
+							const yT = dotY - h - 14 > PT + 4 ? dotY - h - 14 : dotY + 14;
+							return (
+								<g pointerEvents="none">
+									<rect
+										x={xT - 165}
+										y={yT}
+										width={330}
+										height={h}
+										rx={6}
+										strokeWidth={0.75}
+										style={{ fill: C.panel2, stroke: C.fee }}
+									/>
 									{rows.map((r, k) => (
 										<text
 											key={r.t}
-											x={xT - 133}
-											y={PT + 28 + k * 17}
-											fontSize={r.s ?? 12}
+											x={xT - 153}
+											y={yT + 20 + k * 16}
+											fontSize={r.s ?? 11.5}
 											style={{ fill: r.c, fontFamily: mono }}
 										>
 											{r.t}
@@ -1149,13 +1338,41 @@ export default function SnapshotFeesLab() {
 				</svg>
 			</div>
 
+			{/* book presets — they reshape the graph, so they live right under it */}
+			<div
+				style={{
+					display: "flex",
+					gap: 6,
+					flexWrap: "wrap",
+					margin: "10px 2px 0",
+				}}
+			>
+				{Object.keys(presets).map((k) => (
+					<button
+						type="button"
+						key={k}
+						onClick={() => setSizes(presets[k]())}
+						style={btn(false)}
+					>
+						{k}
+					</button>
+				))}
+				<button
+					type="button"
+					onClick={() => setSizes(Array(N).fill(0))}
+					style={{ ...btn(false), background: "transparent", color: C.faint }}
+				>
+					Clear
+				</button>
+			</div>
+
 			{/* legend — the chart carries M, the band, and the walk itself */}
 			<div
 				style={{
 					display: "flex",
 					gap: 16,
 					flexWrap: "wrap",
-					margin: "10px 2px",
+					margin: "8px 2px",
 					fontSize: 12,
 					color: C.dim,
 					alignItems: "center",
@@ -1183,135 +1400,8 @@ export default function SnapshotFeesLab() {
 					uncovered size → pays full F
 				</span>
 				<span style={{ color: C.faint }}>
-					drag bars to reshape · click a bar for its derivation · hover M for
-					its walk
+					drag bars to reshape · hover ● for its fee · hover M for its walk
 				</span>
-			</div>
-
-			{/* derivation ledger */}
-			<div
-				style={{
-					background: C.panel,
-					border: `1px solid ${C.line}`,
-					borderRadius: 8,
-					padding: 14,
-					fontFamily: mono,
-					fontSize: 12.5,
-					lineHeight: 1.65,
-					overflowX: "auto",
-				}}
-			>
-				{!selLv || selLv.side === "mid" || !bk ? (
-					<span style={{ color: C.faint }}>
-						Select a bar with size to see its full fee derivation. Empty level?
-						Drag upward to create liquidity there.
-					</span>
-				) : (
-					<>
-						<div style={{ ...label, marginBottom: 6 }}>
-							Fee derivation —{" "}
-							<span style={{ color: selLv.side === "bid" ? C.bid : C.ask }}>
-								{selLv.side}
-							</span>{" "}
-							{fmt$(bk.q)} @ {fmtPx(selLv.price)} (hypothetical full fill)
-						</div>
-						<div>
-							<span style={{ color: C.dim }}>1 · own stamp</span> — {selLv.side}{" "}
-							edge {fmtPx(selLv.side === "bid" ? model.edgeBid : model.edgeAsk)}{" "}
-							· d ={" "}
-							{Math.max(
-								0,
-								(selLv.side === "bid"
-									? model.edgeBid - selLv.price
-									: selLv.price - model.edgeAsk) / BP,
-							).toFixed(2)}
-							bp → min({F}, {slope} × d^{expo}) ={" "}
-							<span style={{ color: C.text }}>{fmtBp(bk.own)}</span>{" "}
-							<span style={{ color: C.faint }}>
-								· this order's own placement, measured from the band edge
-							</span>
-						</div>
-						<div style={{ color: C.dim, marginTop: 4 }}>
-							2 · pairing walk — against your{" "}
-							{selLv.side === "bid" ? "asks" : "bids"}, inside-first with
-							spillover:
-						</div>
-						{bk.claimedBefore > 0 && (
-							<div style={{ paddingLeft: 16, color: C.faint }}>
-								{fmt$(bk.claimedBefore)} of your{" "}
-								{selLv.side === "bid" ? "ask" : "bid"} stock already claimed by
-								your better-priced {selLv.side}s — this level pairs against what
-								remains
-							</div>
-						)}
-						{bk.pairs.length === 0 && (
-							<div style={{ paddingLeft: 16, color: C.danger }}>
-								nothing left to pair against
-							</div>
-						)}
-						{bk.pairs.map((p) => (
-							<div key={p.price} style={{ paddingLeft: 16 }}>
-								{fmtPx(p.price)} · {fmt$(p.matched)} (
-								{((p.matched / bk.q) * 100).toFixed(0)}%) · stamp{" "}
-								{fmtBp(p.stamp)} → {fmtBp((p.matched / bk.q) * p.stamp, 3)}
-							</div>
-						))}
-						{bk.unpaired > 0 && (
-							<div style={{ paddingLeft: 16, color: C.ask }}>
-								unpaired · {fmt$(bk.unpaired)} (
-								{((bk.unpaired / bk.q) * 100).toFixed(0)}%) × F {fmtBp(F)} →{" "}
-								{fmtBp((bk.unpaired / bk.q) * F, 3)}
-							</div>
-						)}
-						<div>
-							<span style={{ color: C.dim }}>3 · pairing rate</span> ={" "}
-							<span style={{ color: C.text }}>{fmtBp(bk.pairing)}</span>{" "}
-							<span style={{ color: C.faint }}>
-								· size-weighted average of the coverage charges above
-							</span>
-						</div>
-						<div>
-							<span style={{ color: C.dim }}>
-								4 · combine [λ = {lambda.toFixed(2)}]
-							</span>{" "}
-							— min(F, max({fmtBp(bk.own)}, {fmtBp(bk.pairing)}) +{" "}
-							{lambda.toFixed(2)} × min({fmtBp(bk.own)}, {fmtBp(bk.pairing)})) ={" "}
-							<span style={{ color: C.text }}>{fmtBp(bk.combined)}</span>
-							{bk.raw > F && (
-								<span style={{ color: C.faint }}> (cap binds)</span>
-							)}
-							<span style={{ color: C.faint }}>
-								{" "}
-								· D1: the bigger charge in full, the smaller at λ
-							</span>
-						</div>
-						{bk.insideComp > 0 && (
-							<div>
-								<span style={{ color: C.dim }}>5 · inside comp</span> −{" "}
-								{fmtBp(bk.insideComp)}{" "}
-								<span style={{ color: C.faint }}>
-									(parked module, reward channel)
-								</span>
-							</div>
-						)}
-						<div
-							style={{
-								marginTop: 6,
-								borderTop: `1px solid ${C.line}`,
-								paddingTop: 6,
-							}}
-						>
-							<span style={{ color: C.fee, fontWeight: 700 }}>
-								final {fmtBp(bk.final)}
-							</span>
-							<span style={{ color: C.dim }}>
-								{" "}
-								→ ${((bk.final / 10000) * bk.q).toFixed(2)} on this fill ·
-								shortfall {((bk.final / F) * 100).toFixed(0)}% of a taker
-							</span>
-						</div>
-					</>
-				)}
 			</div>
 
 			<div
