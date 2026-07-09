@@ -697,8 +697,9 @@ export default function SnapshotFeesLab() {
 					);
 				})()}
 
-			{/* chart */}
+			{/* chart — breaks out of the post column to keep SVG text legible */}
 			<div
+				class="sf-breakout"
 				style={{
 					background: C.panel,
 					border: `1px solid ${C.line}`,
