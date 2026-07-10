@@ -1499,6 +1499,7 @@ export default function SnapshotFeesLab() {
 								c?: string;
 								s?: number;
 								gap?: number;
+								indent?: number;
 								rule?: boolean;
 							}
 							const rows: TipRow[] = [];
@@ -1565,16 +1566,19 @@ export default function SnapshotFeesLab() {
 							});
 							rows.push({ rule: true, gap: 8 });
 							rows.push({
-								label: "IMPLIED VALUE",
+								label: "NET EDGE",
 								t: `${amt$(Math.abs(net), net >= 0 ? "+" : "−")} = ${dist.toFixed(2)}bps − ${fmtBp(b.final)}`,
 								c: C.text,
 								gap: 2,
 							});
 							rows.push({
 								label: "",
+								// starts under the equation's right-hand side, whose terms
+								// it defines: 12 mono chars (" +0.92bps = ") at 14px ≈ 101
+								indent: 101,
 								t: "(M Distance − Total Fee)",
 								c: C.faint,
-								s: 11.5,
+								s: 12,
 							});
 							if (feePinned === tipI && feeHover == null)
 								rows.push({
@@ -1590,7 +1594,7 @@ export default function SnapshotFeesLab() {
 								yAcc += 19;
 								return { ...r, y };
 							});
-							const h = yAcc + 6;
+							const h = yAcc - 2;
 							const xT = W / 2;
 							const yT = PT + 8;
 							return (
@@ -1633,7 +1637,10 @@ export default function SnapshotFeesLab() {
 													</text>
 												) : null}
 												<text
-													x={r.label !== undefined ? xT - 124 : xT - 228}
+													x={
+														(r.label !== undefined ? xT - 124 : xT - 228) +
+														(r.indent ?? 0)
+													}
 													y={yT + r.y}
 													fontSize={r.s ?? 14}
 													style={{
