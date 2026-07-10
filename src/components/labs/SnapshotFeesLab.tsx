@@ -185,7 +185,7 @@ function Param({ name, val, set, min, max, stp, suffix, hint }: ParamProps) {
 				flexDirection: "column",
 				gap: 4,
 				minWidth: 128,
-				maxWidth: 172,
+				maxWidth: 152,
 			}}
 		>
 			<span style={label}>{name}</span>
@@ -239,7 +239,6 @@ export default function SnapshotFeesLab() {
 	const [sizes, setSizes] = useState<number[]>(() => SCENARIOS[0].book());
 	const [sel, setSel] = useState(CENTER - 1);
 	const [showFormula, setShowFormula] = useState(false);
-	const [showAdvanced, setShowAdvanced] = useState(false);
 	const [scenario, setScenario] = useState<string | null>(SCENARIOS[0].key);
 	const [pinned, setPinned] = useState<{ i: number; v: number }[] | null>(null);
 	const [mHover, setMHover] = useState(false);
@@ -271,14 +270,14 @@ export default function SnapshotFeesLab() {
 	}, []);
 
 	// —— chart geometry ——
-	// Top strip: title row (y 0…28), then the Mark carriage and band-edge
-	// labels (y 28…PT). Below the price axis, a key strip closes the frame.
+	// Top strip (y 0…PT) holds the Mark carriage and band-edge labels; below
+	// the price axis, a key strip and instructions close the frame.
 	const W = 960;
-	const H = 546;
+	const H = 520;
 	const PL = 84;
 	const PR = 884;
-	const PT = 84;
-	const PB = 444; // plot box
+	const PT = 58;
+	const PB = 418; // plot box
 	const AXIS_Y = PB + 4;
 	const step = (PR - PL) / (N - 1);
 	const xAt = (i: number) => PL + i * step;
@@ -621,16 +620,28 @@ export default function SnapshotFeesLab() {
 					position: "relative",
 				}}
 			>
-				{/* the dials that shape the story — on top of the instrument */}
+				{/* title, then every dial in one place — no advanced split */}
+				<div
+					style={{
+						textAlign: "center",
+						fontFamily: mono,
+						fontSize: 13.5,
+						letterSpacing: "0.08em",
+						color: C.text,
+						padding: "10px 0 4px",
+					}}
+				>
+					SINGLE MARKET MAKER BATCH AUCTION FEES
+				</div>
 				<div
 					style={{
 						display: "flex",
 						flexWrap: "wrap",
-						gap: "12px 26px",
+						gap: "10px 20px",
 						alignItems: "flex-start",
-						borderBottom: `1px solid ${C.line}`,
-						margin: "0 10px 4px",
-						padding: "10px 4px 10px",
+						margin: "0 10px",
+						padding: "8px 4px 6px",
+						borderTop: `1px solid ${C.line}`,
 					}}
 				>
 					<Param
@@ -644,14 +655,14 @@ export default function SnapshotFeesLab() {
 						hint="The free band, M ± S/2."
 					/>
 					<Param
-						name="Fee Cap / Taker Rate · F"
+						name="Fee Cap · F"
 						val={F}
 						set={touch(setF)}
 						min={5}
 						max={25}
 						stp={0.5}
 						suffix="bps"
-						hint="The ceiling every fee runs toward."
+						hint="The taker rate — every fee's ceiling."
 					/>
 					<Param
 						name="Typical trade · T"
@@ -663,7 +674,53 @@ export default function SnapshotFeesLab() {
 						suffix="$"
 						hint="The measuring size for M's walk."
 					/>
-					<div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+					<Param
+						name="Stamp slope · k"
+						val={slope}
+						set={touch(setSlope)}
+						min={0.25}
+						max={3}
+						stp={0.05}
+						suffix="×"
+						hint="Fee per bps outside the band."
+					/>
+				</div>
+				<div
+					style={{
+						display: "flex",
+						flexWrap: "wrap",
+						gap: "10px 28px",
+						alignItems: "flex-start",
+						borderBottom: `1px solid ${C.line}`,
+						margin: "0 10px 4px",
+						padding: "4px 4px 10px",
+					}}
+				>
+					<div style={{ display: "flex", flexDirection: "column", gap: 3 }}>
+						<span style={label}>Full fee reached</span>
+						<span style={{ fontFamily: mono, fontSize: 12, color: C.text }}>
+							{(S / 2 + F / slope).toFixed(1)}bps from M
+							<span style={{ color: C.dim }}>
+								{" · "}
+								{slope < 0.98
+									? "gentle"
+									: slope > 1.02
+										? "leaning"
+										: "full clawback"}
+							</span>
+						</span>
+						<span
+							style={{
+								fontSize: 11,
+								color: C.faint,
+								lineHeight: 1.45,
+								maxWidth: 280,
+							}}
+						>
+							Past this, everything is priced as a taker — matched or not.
+						</span>
+					</div>
+					<div style={{ display: "flex", flexDirection: "column", gap: 3 }}>
 						<span style={label}>Compare</span>
 						<button
 							type="button"
@@ -683,73 +740,11 @@ export default function SnapshotFeesLab() {
 								fontSize: 11,
 								color: C.faint,
 								lineHeight: 1.45,
-								maxWidth: 160,
+								maxWidth: 280,
 							}}
 						>
 							Freeze the fee curve, change anything, compare.
 						</span>
-					</div>
-					<button
-						type="button"
-						class="sf-adv-toggle"
-						onClick={() => setShowAdvanced((v) => !v)}
-						style={btn(showAdvanced)}
-					>
-						{showAdvanced ? "Hide advanced" : "Show advanced"}
-					</button>
-				</div>
-				<div class={`sf-adv${showAdvanced ? " open" : ""}`}>
-					<div style={{ overflow: "hidden" }}>
-						<div
-							style={{
-								display: "flex",
-								flexWrap: "wrap",
-								gap: "12px 26px",
-								alignItems: "flex-start",
-								borderBottom: `1px solid ${C.line}`,
-								margin: "0 10px 4px",
-								padding: "10px 4px 10px",
-							}}
-						>
-							<Param
-								name="Stamp slope"
-								val={slope}
-								set={touch(setSlope)}
-								min={0.25}
-								max={3}
-								stp={0.05}
-								suffix="×"
-								hint="Stamp bps charged per bps of placement beyond the band edge."
-							/>
-							<div
-								style={{
-									display: "flex",
-									flexDirection: "column",
-									gap: 4,
-									maxWidth: 172,
-								}}
-							>
-								<span style={label}>Full fee reached</span>
-								<span style={{ fontFamily: mono, fontSize: 12, color: C.text }}>
-									{(S / 2 + F / slope).toFixed(1)}bps from M
-									<span style={{ color: C.dim }}>
-										{" · "}
-										{slope < 0.98
-											? "gentle"
-											: slope > 1.02
-												? "leaning"
-												: "full clawback"}
-									</span>
-								</span>
-								<span
-									style={{ fontSize: 11, color: C.faint, lineHeight: 1.45 }}
-								>
-									Past this point placement pays the full taker rate — and
-									backing no longer matters: matched or not, it is priced as a
-									taker.
-								</span>
-							</div>
-						</div>
 					</div>
 				</div>
 				<svg
@@ -1152,18 +1147,6 @@ export default function SnapshotFeesLab() {
 						</g>
 					))}
 
-					{/* chart title — centered, in its own strip above the plot */}
-					<text
-						x={W / 2}
-						y={22}
-						textAnchor="middle"
-						fontSize={16}
-						letterSpacing="0.08em"
-						style={{ fill: C.text, fontFamily: mono }}
-					>
-						SINGLE MARKET MAKER BATCH AUCTION FEES
-					</text>
-
 					{/* key — its own strip below the price axis */}
 					<g pointerEvents="none" style={{ fontFamily: mono }}>
 						<rect
@@ -1266,7 +1249,7 @@ export default function SnapshotFeesLab() {
 						/>
 						<rect
 							x={-58}
-							y={42}
+							y={16}
 							width={116}
 							height={22}
 							rx={4}
@@ -1275,7 +1258,7 @@ export default function SnapshotFeesLab() {
 						/>
 						<text
 							x={0}
-							y={58}
+							y={32}
 							textAnchor="middle"
 							fontSize={13.5}
 							style={{ fill: C.mark, fontFamily: mono }}
@@ -1286,9 +1269,9 @@ export default function SnapshotFeesLab() {
 						{/* hover hit zone: the label box and arrow only, not the line */}
 						<rect
 							x={-58}
-							y={40}
+							y={14}
 							width={116}
-							height={PT - 41}
+							height={PT - 15}
 							fill="transparent"
 							onPointerEnter={() => setMHover(true)}
 							onPointerLeave={() => setMHover(false)}
