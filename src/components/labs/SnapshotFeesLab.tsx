@@ -44,7 +44,7 @@ const SCENARIOS: Scenario[] = [
 		key: "balanced",
 		title: "Balanced Maker",
 		blurb:
-			"A mirrored ladder across every price level. Everything is matched, so each level pays only its placement: fees sit at zero near M and rise gently with distance — even the farthest quote pays a small fraction of the taker rate. Using every price level stays cheap.",
+			"A mirrored ladder across every price level. Everything is matched, so each level pays only its placement: fees sit at zero near M and rise gently with distance. Even the farthest quote pays a small fraction of the taker rate. Using every price level stays cheap.",
 		book: () => {
 			const a = Array(N).fill(0);
 			const ladder = [
@@ -61,7 +61,7 @@ const SCENARIOS: Scenario[] = [
 		key: "taker",
 		title: "Directional Maker",
 		blurb:
-			"The same bid ladder, but the asks thin out toward the edge. The inner book is unchanged — M stays put and near quotes still trade free — but the missing ask depth strands the outermost bids: whatever has no match behind it pays like a taker, and the farthest bid hits F in full. Directional size is priced as the taker it is, level by level.",
+			"The same bid ladder, but the asks thin out toward the edge. The inner book is unchanged, so M stays put and near quotes still trade free. But the missing ask depth strands the outermost bids: whatever has no match behind it pays like a taker, and the farthest bid hits F in full. Directional size is priced as the taker it is, level by level.",
 		book: () => {
 			const a = Array(N).fill(0);
 			const bids = [
@@ -83,7 +83,7 @@ const SCENARIOS: Scenario[] = [
 		key: "thin",
 		title: "Thin Side, Moving Mark",
 		blurb:
-			"Ask depth sits far from the mid while the bids crowd it, so the measuring walk pays up to reach it — M slides toward the heavy side and the band follows, leaving every bid a touch below the new standard. Even in-band asks pay a faint echo of their partners' stamps: placement is judged against the Mark this snapshot produces, not the mid you quoted around.",
+			"Ask depth sits far from the mid while the bids crowd it, so the measuring walk pays up to reach it: M slides toward the heavy side and the band follows, leaving every bid a touch below the new standard. Even in-band asks pay a faint echo of their partners' stamps: placement is judged against the Mark this snapshot produces, not the mid you quoted around.",
 		book: () => {
 			const a = Array(N).fill(0);
 			const bids = [
@@ -112,14 +112,14 @@ const SCENARIOS: Scenario[] = [
 		key: "wide",
 		title: "Quoting Wide",
 		blurb:
-			"Two-sided and fully matched — but placed outside the band, so the only charge is the stamp for imprecision. Widen S and watch the band swallow the quotes and the fees fall away.",
+			"Two-sided and fully matched, but placed outside the band, so the only charge is the stamp for imprecision. Widen S and watch the band swallow the quotes and the fees fall away.",
 		book: () => bookOf({ 1: 8000, 3: 6000, 17: 6000, 19: 8000 }),
 	},
 	{
 		key: "spill",
 		title: "Spillover",
 		blurb:
-			"Three equal bids share one ask. The best bid claims coverage first and trades free; the middle one gets half; the last gets nothing and pays like a taker. Coverage is consumed, never reused — hover the dots to watch it drain.",
+			"Three equal bids share one ask. The best bid claims coverage first and trades free; the middle one gets half; the last gets nothing and pays like a taker. Coverage is consumed, never reused. Hover the dots to watch it drain.",
 		book: () =>
 			bookOf({
 				[CENTER - 1]: 6000,
@@ -156,20 +156,20 @@ const mono = "var(--lab-mono)";
 // What each dial does, narrated as you move it
 const DIAL_EFFECT: Record<string, { up: string; down: string }> = {
 	S: {
-		up: "Wider band — more placement counts as standard and trades free.",
-		down: "Tighter band — precision is judged more strictly.",
+		up: "Wider band: more placement counts as standard and trades free.",
+		down: "Tighter band: precision is judged more strictly.",
 	},
 	F: {
-		up: "Higher cap — directional fills pay more, and the cap line rises.",
-		down: "Lower cap — even fully directional fills pay less.",
+		up: "Higher cap: directional fills pay more, and the cap line rises.",
+		down: "Lower cap: even fully directional fills pay less.",
 	},
 	T: {
-		up: "Bigger measuring trade — it takes more size near the touch to move M.",
-		down: "Smaller measuring trade — less size near the touch moves M.",
+		up: "Bigger measuring trade: it takes more size near the touch to move M.",
+		down: "Smaller measuring trade: less size near the touch moves M.",
 	},
 	k: {
-		up: "Steeper — each bps outside the band costs more; full fee arrives closer to M.",
-		down: "Gentler — width is taxed less; full fee moves further out.",
+		up: "Steeper: each bps outside the band costs more; full fee arrives closer to M.",
+		down: "Gentler: width is taxed less; full fee moves further out.",
 	},
 };
 
@@ -369,7 +369,7 @@ export default function SnapshotFeesLab() {
 			if (v === cur) return;
 			if (dial === "k" && v >= 1)
 				setEffect({
-					t: "k ≥ 1× — width beyond the band no longer pays.",
+					t: "k ≥ 1×: width beyond the band no longer pays.",
 					warn: true,
 				});
 			else
@@ -512,7 +512,7 @@ export default function SnapshotFeesLab() {
 							}}
 						>
 							<div style={{ ...label, marginBottom: 8 }}>
-								The pipeline — general form, with your settings substituted
+								The pipeline: general form, with your settings substituted
 							</div>
 
 							<div style={row}>
@@ -535,7 +535,7 @@ export default function SnapshotFeesLab() {
 								<span style={eyebrow}>2 · Band</span>edges = M ± S/2 = M ±{" "}
 								{half}bps → {fmtPx(model.edgeBid)} … {fmtPx(model.edgeAsk)}
 								<div style={note}>
-									the declared free zone — placement inside it stamps at zero
+									the declared free zone. Placement inside it stamps at zero
 								</div>
 							</div>
 
@@ -637,8 +637,8 @@ export default function SnapshotFeesLab() {
 								<span style={eyebrow}>5 · Fee</span>fee = (Σ matched × max(own
 								stamp, partner stamp) + unbacked × F) / size
 								<div style={note}>
-									each matched dollar pays its worse leg — a round trip is as
-									good as its worse leg — and unbacked dollars pay F. Width
+									each matched dollar pays its worse leg (a round trip is as
+									good as its worse leg) and unbacked dollars pay F. Width
 									pressure = slope; the full taker rate is reached{" "}
 									{(S / 2 + F / slope).toFixed(1)}bps from M, and past that
 									point backing no longer matters in either direction.
@@ -1304,7 +1304,7 @@ export default function SnapshotFeesLab() {
 							const top = PT + 8;
 							if (model.frozen) {
 								const rows = [
-									{ t: "M frozen — a side is empty", c: C.text },
+									{ t: "M frozen: a side is empty", c: C.text },
 									{ t: "no two-sided walk possible;", c: C.dim },
 									{ t: `showing last computed M ${fmtPx(model.M)}`, c: C.dim },
 								];
@@ -1386,7 +1386,7 @@ export default function SnapshotFeesLab() {
 										fontSize={14}
 										style={{ fill: C.dim, fontFamily: mono }}
 									>
-										M — the mark price of this snapshot
+										M: the mark price of this snapshot
 									</text>
 									<line
 										x1={xT}
@@ -1439,7 +1439,7 @@ export default function SnapshotFeesLab() {
 										fontSize={14}
 										style={{ fill: C.bid, fontFamily: mono }}
 									>
-										gets → {model.iBid != null ? fmtPx(model.iBid) : "—"}
+										gets → {model.iBid != null ? fmtPx(model.iBid) : "–"}
 									</text>
 									<text
 										x={colR}
@@ -1447,7 +1447,7 @@ export default function SnapshotFeesLab() {
 										fontSize={14}
 										style={{ fill: C.ask, fontFamily: mono }}
 									>
-										pays → {model.iAsk != null ? fmtPx(model.iAsk) : "—"}
+										pays → {model.iAsk != null ? fmtPx(model.iAsk) : "–"}
 									</text>
 									<text
 										x={xT}
@@ -1456,8 +1456,8 @@ export default function SnapshotFeesLab() {
 										fontSize={14}
 										style={{ fill: C.mark, fontFamily: mono }}
 									>
-										M = ({model.iBid != null ? fmtPx(model.iBid) : "—"} +{" "}
-										{model.iAsk != null ? fmtPx(model.iAsk) : "—"}) / 2 ={" "}
+										M = ({model.iBid != null ? fmtPx(model.iBid) : "–"} +{" "}
+										{model.iAsk != null ? fmtPx(model.iAsk) : "–"}) / 2 ={" "}
 										{fmtPx(model.M)}
 									</text>
 									<text
@@ -1580,7 +1580,7 @@ export default function SnapshotFeesLab() {
 							});
 							if (feePinned === tipI && feeHover == null)
 								rows.push({
-									t: "pinned — click the dot again or press Esc",
+									t: "pinned. Click the dot again or press Esc",
 									c: C.faint,
 									s: 11.5,
 									gap: 7,
@@ -1709,7 +1709,7 @@ export default function SnapshotFeesLab() {
 			>
 				{scenario
 					? SCENARIOS.find((sc) => sc.key === scenario)?.blurb
-					: "Custom setup — yours to shape. Drag bars and dials freely; pick a scenario to reset."}
+					: "Custom setup, yours to shape. Drag bars and dials freely; pick a scenario to reset."}
 			</div>
 		</div>
 	);
