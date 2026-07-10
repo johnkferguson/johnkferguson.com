@@ -148,6 +148,8 @@ const C = {
 	markSlice: "var(--lab-mark-slice)",
 	hatch: "var(--lab-hatch)",
 	danger: "var(--lab-danger)",
+	inset: "var(--lab-inset)",
+	hint: "var(--lab-hint)",
 	onAccent: "var(--lab-on-accent)",
 };
 
@@ -742,7 +744,7 @@ export default function SnapshotFeesLab() {
 						flexWrap: "wrap",
 						gap: "12px 34px",
 						alignItems: "flex-start",
-						background: C.panel2,
+						background: C.inset,
 						border: `1px solid ${C.line}`,
 						borderRadius: 6,
 						margin: "6px 10px 14px",
@@ -757,75 +759,54 @@ export default function SnapshotFeesLab() {
 							flex: "0 0 auto",
 						}}
 					>
-						<span style={label}>
-							<svg
-								width="12"
-								height="12"
-								viewBox="0 0 24 24"
-								fill="none"
-								stroke="currentColor"
-								strokeWidth="2"
-								strokeLinecap="round"
-								strokeLinejoin="round"
-								style={{
-									display: "inline",
-									verticalAlign: "-2px",
-									marginRight: 5,
-								}}
-								aria-hidden="true"
-							>
-								<path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z" />
-								<line x1="4" x2="4" y1="22" y2="15" />
-							</svg>
-							Full fee reached
-						</span>
+						<span style={label}>Full fee reached</span>
 						<span style={{ fontFamily: mono, fontSize: 12, color: C.text }}>
 							{(S / 2 + F / slope).toFixed(1)}bps from M
 						</span>
 					</div>
-					<div
-						style={{
-							display: "flex",
-							flexDirection: "column",
-							gap: 3,
-							flex: "1 1 260px",
-							minWidth: 220,
-						}}
-					>
-						<span style={label}>
+					{effect && (
+						<div
+							class="sf-effect"
+							style={{
+								display: "flex",
+								gap: 8,
+								alignItems: "flex-start",
+								flex: "1 1 260px",
+								minWidth: 220,
+							}}
+						>
 							<svg
-								class="sf-bulb"
-								width="12"
-								height="12"
+								width="14"
+								height="14"
 								viewBox="0 0 24 24"
 								fill="none"
 								stroke="currentColor"
 								strokeWidth="2"
 								strokeLinecap="round"
 								strokeLinejoin="round"
+								aria-hidden="true"
 								style={{
 									display: "inline",
-									verticalAlign: "-2px",
-									marginRight: 5,
+									color: C.hint,
+									flex: "0 0 auto",
+									marginTop: 2,
 								}}
-								aria-hidden="true"
 							>
 								<path d="M9 18h6" />
 								<path d="M10 22h4" />
 								<path d="M12 2a7 7 0 0 0-4 12.7c.6.5 1 1.4 1 2.3h6c0-.9.4-1.8 1-2.3A7 7 0 0 0 12 2z" />
 							</svg>
-							Effect
-						</span>
-						<span
-							style={{
-								fontSize: 12,
-								color: effect?.warn ? C.danger : C.dim,
-								lineHeight: 1.5,
-							}}
-						>
-							{effect?.t ?? "Adjust a dial and its effect appears here."}
-						</span>
-					</div>
+							<span
+								style={{
+									fontSize: 12.5,
+									color: effect.warn ? C.danger : C.text,
+									lineHeight: 1.5,
+								}}
+							>
+								{effect.t}
+							</span>
+						</div>
+					)}
 				</div>
 				<svg
 					viewBox={`0 0 ${W} ${H}`}

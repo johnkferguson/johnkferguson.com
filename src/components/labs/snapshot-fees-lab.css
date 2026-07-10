@@ -22,6 +22,8 @@
 	--lab-mark-slice: rgba(74, 58, 167, 0.09);
 	--lab-hatch: rgba(0, 0, 0, 0.45);
 	--lab-grid: #efefef;
+	--lab-inset: #ffffff;
+	--lab-hint: #c98500;
 	--lab-on-accent: #ffffff;
 	--lab-slider: #1c1917;
 
@@ -42,27 +44,27 @@
 	--lab-mark-slice: rgba(144, 133, 233, 0.14);
 	--lab-hatch: rgba(255, 255, 255, 0.55);
 	--lab-grid: #2e2a27;
+	--lab-inset: #332d29;
 	--lab-on-accent: #1c1917;
 	--lab-slider: #f0ebe5;
 }
 
-/* the Effect bulb breathes gently to signal a live readout */
-.sf-lab .sf-bulb {
-	animation: sf-bulb-pulse 3s ease-in-out infinite;
+/* the Effect readout fades in the first time a dial moves */
+.sf-lab .sf-effect {
+	animation: sf-fade-in 400ms ease;
 }
 
-@keyframes sf-bulb-pulse {
-	0%,
-	100% {
-		opacity: 0.5;
+@keyframes sf-fade-in {
+	from {
+		opacity: 0;
 	}
-	50% {
+	to {
 		opacity: 1;
 	}
 }
 
 @media (prefers-reduced-motion: reduce) {
-	.sf-lab .sf-bulb {
+	.sf-lab .sf-effect {
 		animation: none;
 	}
 }
