@@ -587,18 +587,6 @@ export default function SnapshotFeesLab() {
 					position: "relative",
 				}}
 			>
-				<button
-					type="button"
-					onClick={() => setShowAdvanced((v) => !v)}
-					style={{
-						...btn(showAdvanced),
-						position: "absolute",
-						top: 10,
-						right: 12,
-					}}
-				>
-					{showAdvanced ? "Hide advanced" : "Show advanced"}
-				</button>
 				{/* the dials that shape the story — on top of the instrument */}
 				<div
 					style={{
@@ -667,6 +655,14 @@ export default function SnapshotFeesLab() {
 							Freeze the fee curve, change anything, compare.
 						</span>
 					</div>
+					<button
+						type="button"
+						class="sf-adv-toggle"
+						onClick={() => setShowAdvanced((v) => !v)}
+						style={btn(showAdvanced)}
+					>
+						{showAdvanced ? "Hide advanced" : "Show advanced"}
+					</button>
 				</div>
 				{showAdvanced && (
 					<div
