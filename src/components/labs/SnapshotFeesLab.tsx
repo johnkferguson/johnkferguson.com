@@ -232,7 +232,7 @@ export default function SnapshotFeesLab() {
 	const [T, setT] = useState(20000); // typical trade size, $
 	// —— fee schedule ——
 	const [F, setF] = useState(15); // cap / taker rate, bps
-	const [slope, setSlope] = useState(0.75); // k: stamp bps per bp beyond edge
+	const [slope, setSlope] = useState(0.8); // k: stamp bps per bp beyond edge
 	const expo = 1; // stamp curvature — pinned linear; superlinear kills net edge mid-book
 	const [comp, setComp] = useState(0); // inside compensation max, bps (parked module)
 
@@ -322,7 +322,7 @@ export default function SnapshotFeesLab() {
 		setS(2);
 		setT(20000);
 		setF(15);
-		setSlope(0.75);
+		setSlope(0.8);
 		setComp(0);
 		setScenario(sc.key);
 	};
