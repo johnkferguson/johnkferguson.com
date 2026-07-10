@@ -688,6 +688,7 @@ export default function SnapshotFeesLab() {
 						flexWrap: "wrap",
 						gap: "10px 14px",
 						alignItems: "flex-start",
+						justifyContent: "space-between",
 						margin: "0 10px",
 						padding: "8px 4px 6px",
 						borderTop: `1px solid ${C.line}`,
@@ -739,11 +740,13 @@ export default function SnapshotFeesLab() {
 					style={{
 						display: "flex",
 						flexWrap: "wrap",
-						gap: "10px 28px",
+						gap: "12px 34px",
 						alignItems: "flex-start",
-						borderBottom: `1px solid ${C.line}`,
-						margin: "0 10px 4px",
-						padding: "4px 4px 10px",
+						background: C.panel2,
+						border: `1px solid ${C.line}`,
+						borderRadius: 6,
+						margin: "6px 10px 14px",
+						padding: "11px 16px",
 					}}
 				>
 					<div
@@ -754,7 +757,28 @@ export default function SnapshotFeesLab() {
 							flex: "0 0 auto",
 						}}
 					>
-						<span style={label}>Full fee reached</span>
+						<span style={label}>
+							<svg
+								width="12"
+								height="12"
+								viewBox="0 0 24 24"
+								fill="none"
+								stroke="currentColor"
+								strokeWidth="2"
+								strokeLinecap="round"
+								strokeLinejoin="round"
+								style={{
+									display: "inline",
+									verticalAlign: "-2px",
+									marginRight: 5,
+								}}
+								aria-hidden="true"
+							>
+								<path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z" />
+								<line x1="4" x2="4" y1="22" y2="15" />
+							</svg>
+							Full fee reached
+						</span>
 						<span style={{ fontFamily: mono, fontSize: 12, color: C.text }}>
 							{(S / 2 + F / slope).toFixed(1)}bps from M
 						</span>
@@ -768,7 +792,30 @@ export default function SnapshotFeesLab() {
 							minWidth: 220,
 						}}
 					>
-						<span style={label}>Effect</span>
+						<span style={label}>
+							<svg
+								class="sf-bulb"
+								width="12"
+								height="12"
+								viewBox="0 0 24 24"
+								fill="none"
+								stroke="currentColor"
+								strokeWidth="2"
+								strokeLinecap="round"
+								strokeLinejoin="round"
+								style={{
+									display: "inline",
+									verticalAlign: "-2px",
+									marginRight: 5,
+								}}
+								aria-hidden="true"
+							>
+								<path d="M9 18h6" />
+								<path d="M10 22h4" />
+								<path d="M12 2a7 7 0 0 0-4 12.7c.6.5 1 1.4 1 2.3h6c0-.9.4-1.8 1-2.3A7 7 0 0 0 12 2z" />
+							</svg>
+							Effect
+						</span>
 						<span
 							style={{
 								fontSize: 12,
