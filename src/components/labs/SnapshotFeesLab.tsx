@@ -1509,8 +1509,8 @@ export default function SnapshotFeesLab() {
 								label: "BASE FEE",
 								t:
 									b.own > 0
-										? `${amt$(b.own)} · ${d.toFixed(2)}bps outside the band`
-										: `${amt$(0)} · inside the band`,
+										? `${amt$(b.own)} · ${d.toFixed(2)}bps Outside the Band`
+										: `${amt$(0)} · Inside the Band`,
 								c: C.text,
 							});
 							const items: { amt: number; t: string; c: string }[] = [];
