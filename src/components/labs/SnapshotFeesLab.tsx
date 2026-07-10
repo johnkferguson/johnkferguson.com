@@ -1548,7 +1548,6 @@ export default function SnapshotFeesLab() {
 									label: k === 0 ? "SURCHARGES" : "",
 									t: it.t,
 									c: it.c,
-									s: 13.5,
 								});
 							});
 							if (b.claimedBefore > 0 && b.unpaired > 0)
@@ -1562,7 +1561,6 @@ export default function SnapshotFeesLab() {
 								label: "TOTAL FEE",
 								t: amt$(b.final),
 								c: C.fee,
-								s: 15,
 								gap: 6,
 							});
 							rows.push({ rule: true, gap: 8 });
@@ -1570,7 +1568,6 @@ export default function SnapshotFeesLab() {
 								label: "IMPLIED VALUE",
 								t: `${amt$(Math.abs(net), net >= 0 ? "+" : "−")} = ${dist.toFixed(2)}bps − ${fmtBp(b.final)}`,
 								c: C.text,
-								s: 14,
 								gap: 2,
 							});
 							rows.push({
