@@ -245,6 +245,7 @@ export default function SnapshotFeesLab() {
 	const [pinned, setPinned] = useState<{ i: number; v: number }[] | null>(null);
 	const [mHover, setMHover] = useState(false);
 	const [feeHover, setFeeHover] = useState<number | null>(null);
+	const [feePinned, setFeePinned] = useState<number | null>(null);
 	const lastM = useRef(100);
 	const drag = useRef<DragState | null>(null);
 
@@ -265,6 +266,14 @@ export default function SnapshotFeesLab() {
 	useEffect(() => {
 		if (!model.frozen) lastM.current = model.M;
 	}, [model.M, model.frozen]);
+
+	useEffect(() => {
+		const onKey = (e: KeyboardEvent) => {
+			if (e.key === "Escape") setFeePinned(null);
+		};
+		window.addEventListener("keydown", onKey);
+		return () => window.removeEventListener("keydown", onKey);
+	}, []);
 
 	// —— chart geometry ——
 	// Top strip: title row (y 0…28), then the Mark carriage and band-edge
@@ -1059,7 +1068,7 @@ export default function SnapshotFeesLab() {
 							key={l.i}
 							cx={xAt(l.i)}
 							cy={yFee(l.bk?.final ?? 0)}
-							r={sel === l.i || feeHover === l.i ? 5.5 : 4}
+							r={sel === l.i || feeHover === l.i || feePinned === l.i ? 5.5 : 4}
 							strokeWidth={1.5}
 							pointerEvents="none"
 							style={{ fill: C.fee, stroke: C.panel }}
@@ -1067,15 +1076,24 @@ export default function SnapshotFeesLab() {
 					))}
 					{/* fee hit zones — hover a dot for its breakdown */}
 					{feePts.map((l) => (
+						// biome-ignore lint/a11y/useSemanticElements: SVG hit area — a real <button> cannot exist inside <svg>
 						<circle
 							key={l.i}
 							cx={xAt(l.i)}
 							cy={yFee(l.bk?.final ?? 0)}
 							r={13}
 							fill="transparent"
+							role="button"
+							tabIndex={0}
+							aria-label={`Pin fee details for ${fmtPx(l.price)}`}
 							onPointerEnter={() => setFeeHover(l.i)}
 							onPointerLeave={() => setFeeHover(null)}
-							style={{ cursor: "help" }}
+							onClick={() => setFeePinned(feePinned === l.i ? null : l.i)}
+							onKeyDown={(e) => {
+								if (e.key === "Enter")
+									setFeePinned(feePinned === l.i ? null : l.i);
+							}}
+							style={{ cursor: "pointer" }}
 						/>
 					))}
 
@@ -1431,9 +1449,11 @@ export default function SnapshotFeesLab() {
 						})()}
 
 					{/* fee tooltip — headline fee, the receipt, and the net vs M */}
-					{feeHover != null &&
+					{(feeHover ?? feePinned) != null &&
 						(() => {
-							const lv = model.levels[feeHover];
+							const tipI = feeHover ?? feePinned;
+							if (tipI == null) return null;
+							const lv = model.levels[tipI];
 							const b = lv?.bk;
 							if (!lv || !b || lv.side === "mid") return null;
 							const d = Math.max(
@@ -1554,6 +1574,13 @@ export default function SnapshotFeesLab() {
 								s: 13,
 								gap: 9,
 							});
+							if (feePinned === tipI && feeHover == null)
+								rows.push({
+									t: "pinned — click the dot again or press Esc",
+									c: C.faint,
+									s: 10.5,
+									gap: 7,
+								});
 							let yAcc = 22;
 							const placed = rows.map((r) => {
 								yAcc += r.gap ?? 0;
@@ -1566,7 +1593,12 @@ export default function SnapshotFeesLab() {
 							const dotY = yFee(b.final);
 							const yT = dotY - h - 14 > PT + 4 ? dotY - h - 14 : dotY + 14;
 							return (
-								<g pointerEvents="none">
+								<g
+									pointerEvents={
+										feePinned === tipI && feeHover == null ? "auto" : "none"
+									}
+									style={{ userSelect: "text" }}
+								>
 									<rect
 										x={xT - 200}
 										y={yT}
