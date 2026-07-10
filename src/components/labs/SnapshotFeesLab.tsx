@@ -1430,7 +1430,7 @@ export default function SnapshotFeesLab() {
 							);
 						})()}
 
-					{/* fee tooltip — the condensed derivation for one level */}
+					{/* fee tooltip — headline fee, the receipt, and the net vs M */}
 					{feeHover != null &&
 						(() => {
 							const lv = model.levels[feeHover];
@@ -1442,69 +1442,162 @@ export default function SnapshotFeesLab() {
 									? model.edgeBid - lv.price
 									: lv.price - model.edgeAsk) / BP,
 							);
+							const dist = Math.abs(lv.price - model.M) / BP;
 							const cov = b.q - b.unpaired;
+							const covPct = Math.round((cov / b.q) * 100);
 							const avg =
 								cov > 0
-									? b.pairs.reduce((s, p) => s + p.matched * p.stamp, 0) / cov
+									? b.pairs.reduce((s, pr) => s + pr.matched * pr.stamp, 0) /
+										cov
 									: 0;
-							const rows: { t: string; c: string; s?: number }[] = [
+							const free = b.final < 0.05;
+							const capped = b.raw >= F;
+							const net = dist - b.final;
+							const verdict =
+								cov <= 0
+									? [
+											"Nothing stands behind this size:",
+											"it pays the full taker rate.",
+										]
+									: capped
+										? [
+												"Its charges reach the cap —",
+												"this fills at the taker rate.",
+											]
+										: b.unpaired > 0
+											? [
+													`${100 - covPct}% of this size is unbacked —`,
+													"that part pays the taker rate.",
+												]
+											: free
+												? [
+														"Fully matched, inside the band:",
+														"this trades free.",
+													]
+												: b.own >= b.pairing
+													? [
+															"Fully matched — the charge is its own",
+															"placement outside the band.",
+														]
+													: [
+															"Fully matched — the charge comes from",
+															"where its backing stands.",
+														];
+							interface TipRow {
+								label?: string;
+								t: string;
+								c: string;
+								s?: number;
+								gap?: number;
+							}
+							const rows: TipRow[] = [
 								{
-									t: `${lv.side} ${fmt$(b.q)} @ ${fmtPx(lv.price)} · full fill`,
-									c: lv.side === "bid" ? C.bid : C.ask,
+									t: `${fmtBp(b.final)} fee @ full fill`,
+									c: C.fee,
+									s: 14,
 								},
 								{
-									t:
-										b.own > 0
-											? `own stamp ${fmtBp(b.own)} · ${d.toFixed(2)}bp outside band`
-											: "own stamp 0 · inside the band",
-									c: C.text,
+									t: `${lv.side} @ ${fmtPx(lv.price)} · ${dist.toFixed(2)}bp from M`,
+									c: C.dim,
+									gap: 2,
 								},
 							];
+							verdict.forEach((t, k) => {
+								rows.push({ t, c: C.dim, gap: k === 0 ? 8 : 0 });
+							});
+							rows.push({
+								label: "PLACEMENT",
+								t:
+									b.own > 0
+										? `${d.toFixed(2)}bp outside the band → ${fmtBp(b.own)}`
+										: "inside the band → free",
+								c: C.text,
+								gap: 9,
+							});
 							if (cov > 0)
 								rows.push({
-									t: `matched ${fmt$(cov)} · partner stamps ≈ ${fmtBp(avg)}`,
+									label: "BACKING",
+									t: `${covPct}% matched · partners at ${fmtBp(avg)}`,
 									c: C.text,
 								});
 							if (b.unpaired > 0)
 								rows.push({
-									t: `directional ${fmt$(b.unpaired)} · pays taker rate ${fmtBp(F)}`,
+									label: cov > 0 ? "" : "BACKING",
+									t: `${100 - covPct}% unbacked → taker rate ${fmtBp(F)}`,
 									c: C.ask,
 								});
-							if (b.claimedBefore > 0)
+							if (cov > 0 && b.unpaired > 0)
 								rows.push({
-									t: `(${fmt$(b.claimedBefore)} of coverage went to better bars)`,
+									label: "",
+									t: `→ backing ${fmtBp(b.pairing)}`,
+									c: C.text,
+								});
+							if (b.claimedBefore > 0 && b.unpaired > 0)
+								rows.push({
+									label: "",
+									t: "(better-priced bars claimed the backing first)",
 									c: C.faint,
-									s: 12,
+									s: 11.5,
+								});
+							if (!free)
+								rows.push({
+									t: capped
+										? `fee = bigger + ${lambda.toFixed(2)} × smaller → capped at F`
+										: `fee = bigger + ${lambda.toFixed(2)} × smaller = ${fmtBp(b.combined)}`,
+									c: C.dim,
+									gap: 9,
 								});
 							rows.push({
-								t: `fee ${fmtBp(b.final)} → $${((b.final / 10000) * b.q).toFixed(2)} · ${((b.final / F) * 100).toFixed(0)}% of a taker`,
-								c: C.fee,
+								label: "NET",
+								t: `${dist.toFixed(2)}bp from M − ${fmtBp(b.final)} fee = ${net >= 0 ? "+" : ""}${net.toFixed(2)}bp`,
+								c: C.text,
+								s: 13,
+								gap: 9,
 							});
-							const xT = Math.min(Math.max(xAt(lv.i), PL + 195), PR - 195);
-							const h = 16 + rows.length * 18;
+							let yAcc = 22;
+							const placed = rows.map((r) => {
+								yAcc += r.gap ?? 0;
+								const y = yAcc;
+								yAcc += 17;
+								return { ...r, y };
+							});
+							const h = yAcc + 6;
+							const xT = Math.min(Math.max(xAt(lv.i), PL + 205), PR - 205);
 							const dotY = yFee(b.final);
 							const yT = dotY - h - 14 > PT + 4 ? dotY - h - 14 : dotY + 14;
 							return (
 								<g pointerEvents="none">
 									<rect
-										x={xT - 190}
+										x={xT - 200}
 										y={yT}
-										width={380}
+										width={400}
 										height={h}
 										rx={6}
 										strokeWidth={0.75}
 										style={{ fill: C.panel2, stroke: C.fee }}
 									/>
-									{rows.map((r, k) => (
-										<text
-											key={r.t}
-											x={xT - 178}
-											y={yT + 22 + k * 18}
-											fontSize={r.s ?? 13.5}
-											style={{ fill: r.c, fontFamily: mono }}
-										>
-											{r.t}
-										</text>
+									{placed.map((r) => (
+										<g key={`${r.t}${r.y}`}>
+											{r.label ? (
+												<text
+													x={xT - 188}
+													y={yT + r.y}
+													fontSize={10.5}
+													letterSpacing="0.08em"
+													style={{ fill: C.faint, fontFamily: mono }}
+												>
+													{r.label}
+												</text>
+											) : null}
+											<text
+												x={r.label !== undefined ? xT - 96 : xT - 188}
+												y={yT + r.y}
+												fontSize={r.s ?? 12.5}
+												style={{ fill: r.c, fontFamily: mono }}
+											>
+												{r.t}
+											</text>
+										</g>
 									))}
 								</g>
 							);
