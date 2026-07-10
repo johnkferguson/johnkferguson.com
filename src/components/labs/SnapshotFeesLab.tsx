@@ -153,6 +153,26 @@ const C = {
 
 const mono = "var(--lab-mono)";
 
+// What each dial does, narrated as you move it
+const DIAL_EFFECT: Record<string, { up: string; down: string }> = {
+	S: {
+		up: "Wider band — more placement counts as standard and trades free.",
+		down: "Tighter band — precision is judged more strictly.",
+	},
+	F: {
+		up: "Higher cap — directional fills pay more, and the cap line rises.",
+		down: "Lower cap — even fully directional fills pay less.",
+	},
+	T: {
+		up: "Bigger measuring trade — it takes more size near the touch to move M.",
+		down: "Smaller measuring trade — less size near the touch moves M.",
+	},
+	k: {
+		up: "Steeper — each bps outside the band costs more; full fee arrives closer to M.",
+		down: "Gentler — width is taxed less; full fee moves further out.",
+	},
+};
+
 const fmt$ = (v: number) => `$${Math.round(v).toLocaleString()}`;
 const fmtBp = (v: number, d = 2) => `${v.toFixed(d)}bps`;
 const fmtPx = (v: number) => v.toFixed(3);
@@ -196,7 +216,7 @@ function Param({
 				flexDirection: "column",
 				gap: 4,
 				minWidth: 128,
-				maxWidth: 152,
+				maxWidth: 150,
 			}}
 		>
 			<span style={label}>{name}</span>
@@ -254,7 +274,7 @@ export default function SnapshotFeesLab() {
 	const [sel, setSel] = useState(CENTER - 1);
 	const [showFormula, setShowFormula] = useState(false);
 	const [scenario, setScenario] = useState<string | null>(SCENARIOS[0].key);
-	const [pinned, setPinned] = useState<{ i: number; v: number }[] | null>(null);
+	const [effect, setEffect] = useState<string | null>(null);
 	const [mHover, setMHover] = useState(false);
 	const [feeHover, setFeeHover] = useState<number | null>(null);
 	const [feePinned, setFeePinned] = useState<number | null>(null);
@@ -339,10 +359,13 @@ export default function SnapshotFeesLab() {
 		setComp(0);
 		setScenario(sc.key);
 	};
-	const touch = (fn: (v: number) => void) => (v: number) => {
-		fn(v);
-		setScenario(null);
-	};
+	const touch =
+		(dial: keyof typeof DIAL_EFFECT, cur: number, fn: (v: number) => void) =>
+		(v: number) => {
+			fn(v);
+			setScenario(null);
+			if (v !== cur) setEffect(DIAL_EFFECT[dial][v > cur ? "up" : "down"]);
+		};
 
 	const onUp = (_e: PointerEvent, i: number) => {
 		const d = drag.current;
@@ -651,7 +674,7 @@ export default function SnapshotFeesLab() {
 					style={{
 						display: "flex",
 						flexWrap: "wrap",
-						gap: "10px 20px",
+						gap: "10px 14px",
 						alignItems: "flex-start",
 						margin: "0 10px",
 						padding: "8px 4px 6px",
@@ -661,7 +684,7 @@ export default function SnapshotFeesLab() {
 					<Param
 						name="Spread standard · S"
 						val={S}
-						set={touch(setS)}
+						set={touch("S", S, setS)}
 						min={1}
 						max={10}
 						stp={0.5}
@@ -671,7 +694,7 @@ export default function SnapshotFeesLab() {
 					<Param
 						name="Fee Cap · F"
 						val={F}
-						set={touch(setF)}
+						set={touch("F", F, setF)}
 						min={5}
 						max={25}
 						stp={0.5}
@@ -681,7 +704,7 @@ export default function SnapshotFeesLab() {
 					<Param
 						name="Typical trade · T"
 						val={T}
-						set={touch(setT)}
+						set={touch("T", T, setT)}
 						min={1000}
 						max={30000}
 						stp={500}
@@ -691,13 +714,13 @@ export default function SnapshotFeesLab() {
 					<Param
 						name="Fee Slope · k"
 						val={slope}
-						set={touch(setSlope)}
+						set={touch("k", slope, setSlope)}
 						min={0.25}
 						max={3}
 						stp={0.05}
 						suffix="×"
-						warn={slope > 1}
-						hint="Fee per bps outside the band. Above 1× width beyond the band loses money."
+						warn={slope >= 1}
+						hint="Fee per bps outside the band."
 					/>
 				</div>
 				<div
@@ -711,46 +734,43 @@ export default function SnapshotFeesLab() {
 						padding: "4px 4px 10px",
 					}}
 				>
-					<div style={{ display: "flex", flexDirection: "column", gap: 3 }}>
+					<div
+						style={{
+							display: "flex",
+							flexDirection: "column",
+							gap: 3,
+							flex: "0 0 auto",
+						}}
+					>
 						<span style={label}>Full fee reached</span>
 						<span style={{ fontFamily: mono, fontSize: 12, color: C.text }}>
 							{(S / 2 + F / slope).toFixed(1)}bps from M
 						</span>
-						<span
-							style={{
-								fontSize: 11,
-								color: C.faint,
-								lineHeight: 1.45,
-								maxWidth: 280,
-							}}
-						>
-							Past this, everything is priced as a taker — matched or not.
-						</span>
+						{slope >= 1 && (
+							<span
+								style={{
+									fontSize: 11,
+									color: C.danger,
+									lineHeight: 1.45,
+									maxWidth: 230,
+								}}
+							>
+								k ≥ 1× — width beyond the band no longer pays.
+							</span>
+						)}
 					</div>
-					<div style={{ display: "flex", flexDirection: "column", gap: 3 }}>
-						<span style={label}>Compare</span>
-						<button
-							type="button"
-							onClick={() =>
-								setPinned(
-									pinned
-										? null
-										: feePts.map((l) => ({ i: l.i, v: l.bk?.final ?? 0 })),
-								)
-							}
-							style={btn(!!pinned)}
-						>
-							{pinned ? "Unpin ghost" : "Pin curve"}
-						</button>
-						<span
-							style={{
-								fontSize: 11,
-								color: C.faint,
-								lineHeight: 1.45,
-								maxWidth: 280,
-							}}
-						>
-							Freeze the fee curve, change anything, compare.
+					<div
+						style={{
+							display: "flex",
+							flexDirection: "column",
+							gap: 3,
+							flex: "1 1 260px",
+							minWidth: 220,
+						}}
+					>
+						<span style={label}>Effect</span>
+						<span style={{ fontSize: 12, color: C.dim, lineHeight: 1.5 }}>
+							{effect ?? "Adjust a dial and its effect appears here."}
 						</span>
 					</div>
 				</div>
@@ -1062,24 +1082,6 @@ export default function SnapshotFeesLab() {
 								{bk.final.toFixed(2)}
 							</text>
 						</g>
-					)}
-
-					{/* pinned ghost curve — freeze-frame for comparison */}
-					{pinned && pinned.length > 1 && (
-						<path
-							d={pinned
-								.map(
-									(g, k) =>
-										`${k ? "L" : "M"}${xAt(g.i)},${Math.max(PT, Math.min(PB, yFee(g.v)))}`,
-								)
-								.join(" ")}
-							fill="none"
-							strokeWidth={2}
-							strokeDasharray="7 5"
-							opacity={0.5}
-							pointerEvents="none"
-							style={{ stroke: C.fee }}
-						/>
 					)}
 
 					{/* fee curve */}
