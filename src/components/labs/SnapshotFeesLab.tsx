@@ -1423,7 +1423,7 @@ export default function SnapshotFeesLab() {
 							);
 						})()}
 
-					{/* fee tooltip — headline fee, the receipt, and the net vs M */}
+					{/* fee tooltip — itemized: base fee, per-match surcharges, total */}
 					{(feeHover ?? feePinned) != null &&
 						(() => {
 							const tipI = feeHover ?? feePinned;
@@ -1438,46 +1438,7 @@ export default function SnapshotFeesLab() {
 									: lv.price - model.edgeAsk) / BP,
 							);
 							const dist = Math.abs(lv.price - model.M) / BP;
-							const cov = b.q - b.unpaired;
-							const covPct = Math.round((cov / b.q) * 100);
-							const avg =
-								cov > 0
-									? b.pairs.reduce((s, pr) => s + pr.matched * pr.stamp, 0) /
-										cov
-									: 0;
-							const free = b.final < 0.05;
-							const capped = b.combined >= F - 1e-9;
 							const net = dist - b.final;
-							const verdict =
-								cov <= 0
-									? [
-											"Nothing stands behind this size:",
-											"it pays the full taker rate.",
-										]
-									: capped
-										? [
-												"Its charges reach the cap —",
-												"this fills at the taker rate.",
-											]
-										: b.unpaired > 0
-											? [
-													`${100 - covPct}% of this size is unbacked —`,
-													"that part pays the taker rate.",
-												]
-											: free
-												? [
-														"Fully matched, inside the band:",
-														"this trades free.",
-													]
-												: b.own >= avg
-													? [
-															"Fully matched — the charge is its own",
-															"placement outside the band.",
-														]
-													: [
-															"Fully matched — the charge comes from",
-															"where its backing stands.",
-														];
 							interface TipRow {
 								label?: string;
 								t: string;
@@ -1489,7 +1450,7 @@ export default function SnapshotFeesLab() {
 								{
 									t: `${fmtBp(b.final)} fee @ full fill`,
 									c: C.fee,
-									s: 14,
+									s: 13,
 								},
 								{
 									t: `${lv.side} @ ${fmtPx(lv.price)} · ${dist.toFixed(2)}bps from M`,
@@ -1497,51 +1458,71 @@ export default function SnapshotFeesLab() {
 									gap: 2,
 								},
 							];
-							verdict.forEach((t, k) => {
-								rows.push({ t, c: C.dim, gap: k === 0 ? 8 : 0 });
-							});
 							rows.push({
-								label: "PLACEMENT",
+								label: "BASE FEE",
 								t:
 									b.own > 0
-										? `${d.toFixed(2)}bps outside the band → ${fmtBp(b.own)}`
-										: "inside the band → free",
+										? `${fmtBp(b.own)} · placement ${d.toFixed(2)}bps outside the band`
+										: `${fmtBp(0)} · placement inside the band`,
 								c: C.text,
-								gap: 9,
+								gap: 10,
 							});
-							if (cov > 0)
-								rows.push({
-									label: "BACKING",
-									t: `${covPct}% matched · partners at ${fmtBp(avg)}`,
-									c: C.text,
-								});
-							if (b.unpaired > 0)
-								rows.push({
-									label: cov > 0 ? "" : "BACKING",
-									t: `${100 - covPct}% unbacked → taker rate ${fmtBp(F)}`,
+							const items: { amt: number; t: string; c: string }[] = [];
+							for (const pr of b.pairs) {
+								const pct = Math.round((pr.matched / b.q) * 100);
+								const extra = Math.max(0, pr.stamp - b.own);
+								const amt = (pr.matched / b.q) * extra;
+								items.push(
+									extra > 0
+										? {
+												amt,
+												t: `+${amt.toFixed(2)}bps · ${pct}% vs ${fmtPx(pr.price)} · ${extra.toFixed(2)}bps worse`,
+												c: C.text,
+											}
+										: {
+												amt,
+												t: `+0.00bps · ${pct}% vs ${fmtPx(pr.price)} · at or inside`,
+												c: C.dim,
+											},
+								);
+							}
+							if (b.unpaired > 0) {
+								const pct = Math.round((b.unpaired / b.q) * 100);
+								const amt = (b.unpaired / b.q) * (F - b.own);
+								items.push({
+									amt,
+									t: `+${amt.toFixed(2)}bps · ${pct}% directional → taker rate`,
 									c: C.ask,
 								});
+							}
+							items.forEach((it, k) => {
+								rows.push({
+									label: k === 0 ? "SURCHARGES" : "",
+									t: it.t,
+									c: it.c,
+									s: 12,
+								});
+							});
 							if (b.claimedBefore > 0 && b.unpaired > 0)
 								rows.push({
 									label: "",
-									t: "(better-priced bars claimed the backing first)",
+									t: "(better-priced bars claimed the matches first)",
 									c: C.faint,
 									s: 11.5,
 								});
-							if (!free)
-								rows.push({
-									t: capped
-										? "every dollar pays its worse leg → the cap F"
-										: `each dollar pays its worse leg = ${fmtBp(b.combined)}`,
-									c: C.dim,
-									gap: 9,
-								});
+							rows.push({
+								label: "TOTAL FEE",
+								t: fmtBp(b.final),
+								c: C.fee,
+								s: 13,
+								gap: 6,
+							});
 							rows.push({
 								label: "NET",
 								t: `${dist.toFixed(2)}bps from M − ${fmtBp(b.final)} fee = ${net >= 0 ? "+" : ""}${net.toFixed(2)}bps`,
 								c: C.text,
-								s: 13,
-								gap: 9,
+								s: 12.5,
+								gap: 6,
 							});
 							if (feePinned === tipI && feeHover == null)
 								rows.push({
@@ -1558,7 +1539,7 @@ export default function SnapshotFeesLab() {
 								return { ...r, y };
 							});
 							const h = yAcc + 6;
-							const xT = Math.min(Math.max(xAt(lv.i), PL + 205), PR - 205);
+							const xT = Math.min(Math.max(xAt(lv.i), PL + 222), PR - 222);
 							const dotY = yFee(b.final);
 							const yT = dotY - h - 14 > PT + 4 ? dotY - h - 14 : dotY + 14;
 							return (
@@ -1569,9 +1550,9 @@ export default function SnapshotFeesLab() {
 									style={{ userSelect: "text" }}
 								>
 									<rect
-										x={xT - 200}
+										x={xT - 216}
 										y={yT}
-										width={400}
+										width={432}
 										height={h}
 										rx={6}
 										strokeWidth={0.75}
@@ -1581,7 +1562,7 @@ export default function SnapshotFeesLab() {
 										<g key={`${r.t}${r.y}`}>
 											{r.label ? (
 												<text
-													x={xT - 188}
+													x={xT - 204}
 													y={yT + r.y}
 													fontSize={10.5}
 													letterSpacing="0.08em"
@@ -1591,7 +1572,7 @@ export default function SnapshotFeesLab() {
 												</text>
 											) : null}
 											<text
-												x={r.label !== undefined ? xT - 96 : xT - 188}
+												x={r.label !== undefined ? xT - 108 : xT - 204}
 												y={yT + r.y}
 												fontSize={r.s ?? 12.5}
 												style={{ fill: r.c, fontFamily: mono }}
