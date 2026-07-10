@@ -352,6 +352,40 @@ export default function SnapshotFeesLab() {
 	const bk = selLv?.bk;
 	const selFeeY = bk ? yFee(bk.final) : null;
 
+	// —— partner highlighting: the exact dollars matched with the hovered
+	// level, located inside each partner bar via the spillover order ——
+	const tip = feeHover ?? feePinned;
+	const tipLv = tip != null ? model.levels[tip] : null;
+	const tipBk = tipLv?.bk ?? null;
+	let matchSlices: { i: number; from: number; to: number }[] = [];
+	if (tipLv && tipBk && tipLv.side !== "mid") {
+		const offset = new Map<number, number>();
+		const sameSide = model.levels
+			.filter((l) => l.side === tipLv.side && l.size > 0 && l.bk)
+			.sort((a, b) =>
+				tipLv.side === "bid" ? b.price - a.price : a.price - b.price,
+			);
+		for (const l of sameSide) {
+			if (l.i === tipLv.i) break;
+			for (const pr of l.bk?.pairs ?? [])
+				offset.set(pr.price, (offset.get(pr.price) ?? 0) + pr.matched);
+		}
+		matchSlices = tipBk.pairs.flatMap((pr) => {
+			const partner = model.levels.find(
+				(l) =>
+					l.side !== tipLv.side &&
+					l.side !== "mid" &&
+					Math.abs(l.price - pr.price) < 1e-9,
+			);
+			if (!partner) return [];
+			const from = offset.get(pr.price) ?? 0;
+			return [{ i: partner.i, from, to: from + pr.matched }];
+		});
+	}
+	const involved = new Set(matchSlices.map((sl) => sl.i));
+	if (tip != null) involved.add(tip);
+	const dimIf = (i: number) => (tip != null && !involved.has(i) ? 0.35 : 1);
+
 	const feePts = model.levels.filter((l) => l.size > 0 && l.side !== "mid");
 	const feePath = feePts
 		.map((l, k) => `${k ? "L" : "M"}${xAt(l.i)},${yFee(l.bk?.final ?? 0)}`)
@@ -930,7 +964,7 @@ export default function SnapshotFeesLab() {
 										y={yDepth(lv.size)}
 										width={barW}
 										height={PB - yDepth(lv.size)}
-										opacity={0.85}
+										opacity={0.85 * dimIf(lv.i)}
 										rx={2}
 										pointerEvents="none"
 										strokeWidth={sel === lv.i ? 1.5 : 0}
@@ -951,6 +985,7 @@ export default function SnapshotFeesLab() {
 										)}
 										strokeWidth={1.25}
 										rx={2}
+										opacity={dimIf(lv.i)}
 										pointerEvents="none"
 										style={{ fill: C.markSlice, stroke: C.mark }}
 									/>
@@ -966,6 +1001,7 @@ export default function SnapshotFeesLab() {
 										)}
 										fill="url(#sf-hatch)"
 										rx={2}
+										opacity={dimIf(lv.i)}
 										pointerEvents="none"
 									/>
 								)}
@@ -984,6 +1020,22 @@ export default function SnapshotFeesLab() {
 							</g>
 						),
 					)}
+
+					{/* partner highlight — the dollars matched with the hovered level */}
+					{matchSlices.map((sl) => (
+						<rect
+							key={sl.i}
+							x={xAt(sl.i) - barW / 2}
+							y={yDepth(sl.to)}
+							width={barW}
+							height={Math.max(0, yDepth(sl.from) - yDepth(sl.to))}
+							fill="none"
+							strokeWidth={1.75}
+							rx={1.5}
+							pointerEvents="none"
+							style={{ stroke: C.text }}
+						/>
+					))}
 
 					{/* selected-fee reference line */}
 					{selLv && bk && (
