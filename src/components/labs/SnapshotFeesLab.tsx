@@ -1470,23 +1470,26 @@ export default function SnapshotFeesLab() {
 								gap: 10,
 							});
 							const items: { amt: number; t: string; c: string }[] = [];
+							// matches at-or-inside the base fee collapse into one line
+							const atOrInside = b.pairs
+								.filter((pr) => pr.stamp <= b.own)
+								.reduce((sum, pr) => sum + pr.matched, 0);
+							if (atOrInside > 0)
+								items.push({
+									amt: 0,
+									t: `${amt$(0, "+")} · ${Math.round((atOrInside / b.q) * 100)}% ≤ Base Fee`,
+									c: C.dim,
+								});
 							for (const pr of b.pairs) {
-								const pct = Math.round((pr.matched / b.q) * 100);
 								const extra = Math.max(0, pr.stamp - b.own);
+								if (extra <= 0) continue;
+								const pct = Math.round((pr.matched / b.q) * 100);
 								const amt = (pr.matched / b.q) * extra;
-								items.push(
-									extra > 0
-										? {
-												amt,
-												t: `${amt$(amt, "+")} · ${pct}% vs ${fmtPx(pr.price)} · ${extra.toFixed(2)}bps worse`,
-												c: C.text,
-											}
-										: {
-												amt,
-												t: `${amt$(0, "+")} · ${pct}% vs ${fmtPx(pr.price)} · at or inside`,
-												c: C.dim,
-											},
-								);
+								items.push({
+									amt,
+									t: `${amt$(amt, "+")} · ${pct}% @ ${extra.toFixed(2)}bps > Base Fee`,
+									c: C.text,
+								});
 							}
 							if (b.unpaired > 0) {
 								const pct = Math.round((b.unpaired / b.q) * 100);
