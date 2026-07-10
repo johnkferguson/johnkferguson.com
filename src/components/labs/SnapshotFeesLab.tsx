@@ -664,72 +664,76 @@ export default function SnapshotFeesLab() {
 						{showAdvanced ? "Hide advanced" : "Show advanced"}
 					</button>
 				</div>
-				{showAdvanced && (
-					<div
-						style={{
-							display: "flex",
-							flexWrap: "wrap",
-							gap: "12px 26px",
-							alignItems: "flex-start",
-							borderBottom: `1px solid ${C.line}`,
-							margin: "0 10px 4px",
-							padding: "10px 4px 10px",
-						}}
-					>
-						<Param
-							name="Compound λ · D1"
-							val={lambda}
-							set={touch(setLambda)}
-							min={0}
-							max={1}
-							stp={0.05}
-							hint="How a bar's two charges merge: 0 = worse of the two only, 1 = both added in full."
-						/>
-						<Param
-							name="Stamp slope"
-							val={slope}
-							set={touch(setSlope)}
-							min={0.25}
-							max={3}
-							stp={0.25}
-							suffix="×"
-							hint="Stamp bps charged per bp of placement beyond the band edge."
-						/>
-						<Param
-							name="Curvature"
-							val={expo}
-							set={touch(setExpo)}
-							min={1}
-							max={2}
-							stp={0.25}
-							hint="1 = linear distance charge; 2 = far placement charged disproportionately."
-						/>
+				<div class={`sf-adv${showAdvanced ? " open" : ""}`}>
+					<div style={{ overflow: "hidden" }}>
 						<div
 							style={{
 								display: "flex",
-								flexDirection: "column",
-								gap: 4,
-								maxWidth: 172,
+								flexWrap: "wrap",
+								gap: "12px 26px",
+								alignItems: "flex-start",
+								borderBottom: `1px solid ${C.line}`,
+								margin: "0 10px 4px",
+								padding: "10px 4px 10px",
 							}}
 						>
-							<span style={label}>Width pressure</span>
-							<span style={{ fontFamily: mono, fontSize: 12, color: C.text }}>
-								{(slope * (1 + lambda)).toFixed(2)}×
-								<span style={{ color: C.dim }}>
-									{" · "}
-									{slope * (1 + lambda) < 0.98
-										? "gentle"
-										: slope * (1 + lambda) > 1.02
-											? "leaning"
-											: "full clawback"}
+							<Param
+								name="Compound λ · D1"
+								val={lambda}
+								set={touch(setLambda)}
+								min={0}
+								max={1}
+								stp={0.05}
+								hint="How a bar's two charges merge: 0 = worse of the two only, 1 = both added in full."
+							/>
+							<Param
+								name="Stamp slope"
+								val={slope}
+								set={touch(setSlope)}
+								min={0.25}
+								max={3}
+								stp={0.25}
+								suffix="×"
+								hint="Stamp bps charged per bp of placement beyond the band edge."
+							/>
+							<Param
+								name="Curvature"
+								val={expo}
+								set={touch(setExpo)}
+								min={1}
+								max={2}
+								stp={0.25}
+								hint="1 = linear distance charge; 2 = far placement charged disproportionately."
+							/>
+							<div
+								style={{
+									display: "flex",
+									flexDirection: "column",
+									gap: 4,
+									maxWidth: 172,
+								}}
+							>
+								<span style={label}>Width pressure</span>
+								<span style={{ fontFamily: mono, fontSize: 12, color: C.text }}>
+									{(slope * (1 + lambda)).toFixed(2)}×
+									<span style={{ color: C.dim }}>
+										{" · "}
+										{slope * (1 + lambda) < 0.98
+											? "gentle"
+											: slope * (1 + lambda) > 1.02
+												? "leaning"
+												: "full clawback"}
+									</span>
 								</span>
-							</span>
-							<span style={{ fontSize: 11, color: C.faint, lineHeight: 1.45 }}>
-								slope × (1 + λ): total charge per bp of double-sided width.
-							</span>
+								<span
+									style={{ fontSize: 11, color: C.faint, lineHeight: 1.45 }}
+								>
+									slope × (1 + λ): total charge per bp of double-sided width.
+								</span>
+							</div>
 						</div>
 					</div>
-				)}
+				</div>
 				<svg
 					viewBox={`0 0 ${W} ${H}`}
 					style={{ width: "100%", display: "block", touchAction: "none" }}

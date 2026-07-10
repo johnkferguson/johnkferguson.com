@@ -62,3 +62,14 @@
 		align-self: flex-start;
 	}
 }
+
+/* advanced dials slide open/closed */
+.sf-lab .sf-adv {
+	display: grid;
+	grid-template-rows: 0fr;
+	transition: grid-template-rows 280ms ease;
+}
+
+.sf-lab .sf-adv.open {
+	grid-template-rows: 1fr;
+}
