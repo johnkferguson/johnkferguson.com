@@ -163,6 +163,7 @@ const label = {
 	letterSpacing: "0.14em",
 	color: C.dim,
 	textTransform: "uppercase",
+	whiteSpace: "nowrap",
 } as const;
 
 interface ParamProps {
