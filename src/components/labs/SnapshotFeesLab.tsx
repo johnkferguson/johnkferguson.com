@@ -154,7 +154,7 @@ const C = {
 const mono = "var(--lab-mono)";
 
 const fmt$ = (v: number) => `$${Math.round(v).toLocaleString()}`;
-const fmtBp = (v: number, d = 2) => `${v.toFixed(d)}bp`;
+const fmtBp = (v: number, d = 2) => `${v.toFixed(d)}bps`;
 const fmtPx = (v: number) => v.toFixed(3);
 
 const label = {
@@ -439,7 +439,7 @@ export default function SnapshotFeesLab() {
 								<div style={note}>
 									impact price = volume-weighted price of trading $
 									{T.toLocaleString()} into that side, best levels first ·
-									quotes more than {8 * S}bp behind a side's best are ignored
+									quotes more than {8 * S}bps behind a side's best are ignored
 								</div>
 								{model.iBid != null && model.iAsk != null && (
 									<div style={{ color: C.mark }}>
@@ -451,7 +451,7 @@ export default function SnapshotFeesLab() {
 
 							<div style={row}>
 								<span style={eyebrow}>2 · Band</span>edges = M ± S/2 = M ±{" "}
-								{half}bp → {fmtPx(model.edgeBid)} … {fmtPx(model.edgeAsk)}
+								{half}bps → {fmtPx(model.edgeBid)} … {fmtPx(model.edgeAsk)}
 								<div style={note}>
 									the declared free zone — placement inside it stamps at zero
 								</div>
@@ -470,13 +470,13 @@ export default function SnapshotFeesLab() {
 									<span style={eyebrow}>3 · Stamp</span>stamp(d) = min(F, slope
 									× d) = min({F}, {slope} × d)
 									<div style={note}>
-										d = bp of placement beyond your side's edge (0 if inside).
-										Slope is the price of every bp of imprecision.
+										d = bps of placement beyond your side's edge (0 if inside).
+										Slope is the price of every bps of imprecision.
 									</div>
 									<div style={{ color: C.text }}>
 										d=1 → {fmtBp(stampEx(1))} · d=2 → {fmtBp(stampEx(2))} · d=4
 										→ {fmtBp(stampEx(4))} · hits the cap at d ={" "}
-										{dCap.toFixed(1)}bp
+										{dCap.toFixed(1)}bps
 									</div>
 								</div>
 								<svg
@@ -484,7 +484,7 @@ export default function SnapshotFeesLab() {
 									height={78}
 									style={{ flex: "0 0 auto" }}
 									role="img"
-									aria-label={`Stamp curve: fee rises from 0 to the ${F}bp cap over ${dCap.toFixed(1)}bp of distance`}
+									aria-label={`Stamp curve: fee rises from 0 to the ${F}bps cap over ${dCap.toFixed(1)}bps of distance`}
 								>
 									<line
 										x1={10}
@@ -520,7 +520,7 @@ export default function SnapshotFeesLab() {
 										fontSize={9}
 										style={{ fill: C.faint, fontFamily: mono }}
 									>
-										cap F = {F}bp
+										cap F = {F}bps
 									</text>
 									<text
 										x={162}
@@ -529,7 +529,7 @@ export default function SnapshotFeesLab() {
 										textAnchor="end"
 										style={{ fill: C.faint, fontFamily: mono }}
 									>
-										d (bp beyond edge) → {dMax}
+										d (bps beyond edge) → {dMax}
 									</text>
 									<text
 										x={10}
@@ -558,8 +558,8 @@ export default function SnapshotFeesLab() {
 									each matched dollar pays its worse leg — a round trip is as
 									good as its worse leg — and unbacked dollars pay F. Width
 									pressure = slope; the full taker rate is reached{" "}
-									{(S / 2 + F / slope).toFixed(1)}bp from M, and past that point
-									backing no longer matters in either direction.
+									{(S / 2 + F / slope).toFixed(1)}bps from M, and past that
+									point backing no longer matters in either direction.
 								</div>
 							</div>
 
@@ -606,7 +606,7 @@ export default function SnapshotFeesLab() {
 						min={1}
 						max={10}
 						stp={0.5}
-						suffix="bp"
+						suffix="bps"
 						hint="The free band, M ± S/2."
 					/>
 					<Param
@@ -616,7 +616,7 @@ export default function SnapshotFeesLab() {
 						min={5}
 						max={25}
 						stp={0.5}
-						suffix="bp"
+						suffix="bps"
 						hint="The ceiling every fee runs toward."
 					/>
 					<Param
@@ -685,7 +685,7 @@ export default function SnapshotFeesLab() {
 								max={3}
 								stp={0.05}
 								suffix="×"
-								hint="Stamp bps charged per bp of placement beyond the band edge."
+								hint="Stamp bps charged per bps of placement beyond the band edge."
 							/>
 							<div
 								style={{
@@ -697,7 +697,7 @@ export default function SnapshotFeesLab() {
 							>
 								<span style={label}>Full fee reached</span>
 								<span style={{ fontFamily: mono, fontSize: 12, color: C.text }}>
-									{(S / 2 + F / slope).toFixed(1)}bp from M
+									{(S / 2 + F / slope).toFixed(1)}bps from M
 									<span style={{ color: C.dim }}>
 										{" · "}
 										{slope < 0.98
@@ -1492,7 +1492,7 @@ export default function SnapshotFeesLab() {
 									s: 14,
 								},
 								{
-									t: `${lv.side} @ ${fmtPx(lv.price)} · ${dist.toFixed(2)}bp from M`,
+									t: `${lv.side} @ ${fmtPx(lv.price)} · ${dist.toFixed(2)}bps from M`,
 									c: C.dim,
 									gap: 2,
 								},
@@ -1504,7 +1504,7 @@ export default function SnapshotFeesLab() {
 								label: "PLACEMENT",
 								t:
 									b.own > 0
-										? `${d.toFixed(2)}bp outside the band → ${fmtBp(b.own)}`
+										? `${d.toFixed(2)}bps outside the band → ${fmtBp(b.own)}`
 										: "inside the band → free",
 								c: C.text,
 								gap: 9,
@@ -1538,7 +1538,7 @@ export default function SnapshotFeesLab() {
 								});
 							rows.push({
 								label: "NET",
-								t: `${dist.toFixed(2)}bp from M − ${fmtBp(b.final)} fee = ${net >= 0 ? "+" : ""}${net.toFixed(2)}bp`,
+								t: `${dist.toFixed(2)}bps from M − ${fmtBp(b.final)} fee = ${net >= 0 ? "+" : ""}${net.toFixed(2)}bps`,
 								c: C.text,
 								s: 13,
 								gap: 9,
