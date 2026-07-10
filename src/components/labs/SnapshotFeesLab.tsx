@@ -1475,8 +1475,10 @@ export default function SnapshotFeesLab() {
 							);
 						})()}
 
-					{/* fee tooltip — itemized: base fee, per-match surcharges, total */}
+					{/* fee tooltip — itemized receipt in the fixed top-center slot
+					    (shares it with the M tooltip, which takes precedence) */}
 					{(feeHover ?? feePinned) != null &&
+						!mHover &&
 						(() => {
 							const tipI = feeHover ?? feePinned;
 							if (tipI == null) return null;
@@ -1596,9 +1598,8 @@ export default function SnapshotFeesLab() {
 								return { ...r, y };
 							});
 							const h = yAcc + 6;
-							const xT = Math.min(Math.max(xAt(lv.i), PL + 246), PR - 246);
-							const dotY = yFee(b.final);
-							const yT = dotY - h - 14 > PT + 4 ? dotY - h - 14 : dotY + 14;
+							const xT = W / 2;
+							const yT = PT + 8;
 							return (
 								<g
 									pointerEvents={
