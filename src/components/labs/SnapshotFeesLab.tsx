@@ -356,6 +356,7 @@ export default function SnapshotFeesLab() {
 	// touching any dial (or dragging a bar) drops you into Custom.
 	const applyScenario = (sc: Scenario) => {
 		setSizes(sc.book());
+		setEffect(null);
 		setS(2);
 		setT(20000);
 		setF(15);
