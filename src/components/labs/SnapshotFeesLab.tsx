@@ -1213,9 +1213,9 @@ export default function SnapshotFeesLab() {
 							style={{ fill: C.mark }}
 						/>
 						<rect
-							x={-58}
+							x={-66}
 							y={42}
-							width={116}
+							width={132}
 							height={22}
 							rx={4}
 							strokeWidth={0.75}
@@ -1228,7 +1228,7 @@ export default function SnapshotFeesLab() {
 							fontSize={13.5}
 							style={{ fill: C.mark, fontFamily: mono }}
 						>
-							M {fmtPx(model.M)}
+							MARK {fmtPx(model.M)}
 							{model.frozen ? " ❄" : ""}
 						</text>
 						{/* hover hit zone: the label box and arrow only, not the line */}
