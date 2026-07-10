@@ -274,7 +274,9 @@ export default function SnapshotFeesLab() {
 	const [sel, setSel] = useState(CENTER - 1);
 	const [showFormula, setShowFormula] = useState(false);
 	const [scenario, setScenario] = useState<string | null>(SCENARIOS[0].key);
-	const [effect, setEffect] = useState<string | null>(null);
+	const [effect, setEffect] = useState<{ t: string; warn: boolean } | null>(
+		null,
+	);
 	const [mHover, setMHover] = useState(false);
 	const [feeHover, setFeeHover] = useState<number | null>(null);
 	const [feePinned, setFeePinned] = useState<number | null>(null);
@@ -364,7 +366,17 @@ export default function SnapshotFeesLab() {
 		(v: number) => {
 			fn(v);
 			setScenario(null);
-			if (v !== cur) setEffect(DIAL_EFFECT[dial][v > cur ? "up" : "down"]);
+			if (v === cur) return;
+			if (dial === "k" && v >= 1)
+				setEffect({
+					t: "k ≥ 1× — width beyond the band no longer pays.",
+					warn: true,
+				});
+			else
+				setEffect({
+					t: DIAL_EFFECT[dial][v > cur ? "up" : "down"],
+					warn: false,
+				});
 		};
 
 	const onUp = (_e: PointerEvent, i: number) => {
@@ -699,7 +711,7 @@ export default function SnapshotFeesLab() {
 						max={25}
 						stp={0.5}
 						suffix="bps"
-						hint="The taker rate — every fee's ceiling."
+						hint="Taker rate. Every fee's ceiling."
 					/>
 					<Param
 						name="Typical trade · T"
@@ -709,7 +721,7 @@ export default function SnapshotFeesLab() {
 						max={30000}
 						stp={500}
 						suffix="$"
-						hint="The measuring size for M's walk."
+						hint="Per side size for measuring M."
 					/>
 					<Param
 						name="Fee Slope · k"
@@ -746,18 +758,6 @@ export default function SnapshotFeesLab() {
 						<span style={{ fontFamily: mono, fontSize: 12, color: C.text }}>
 							{(S / 2 + F / slope).toFixed(1)}bps from M
 						</span>
-						{slope >= 1 && (
-							<span
-								style={{
-									fontSize: 11,
-									color: C.danger,
-									lineHeight: 1.45,
-									maxWidth: 230,
-								}}
-							>
-								k ≥ 1× — width beyond the band no longer pays.
-							</span>
-						)}
 					</div>
 					<div
 						style={{
@@ -769,8 +769,14 @@ export default function SnapshotFeesLab() {
 						}}
 					>
 						<span style={label}>Effect</span>
-						<span style={{ fontSize: 12, color: C.dim, lineHeight: 1.5 }}>
-							{effect ?? "Adjust a dial and its effect appears here."}
+						<span
+							style={{
+								fontSize: 12,
+								color: effect?.warn ? C.danger : C.dim,
+								lineHeight: 1.5,
+							}}
+						>
+							{effect?.t ?? "Adjust a dial and its effect appears here."}
 						</span>
 					</div>
 				</div>
