@@ -175,9 +175,20 @@ interface ParamProps {
 	stp: number;
 	suffix?: string;
 	hint?: string;
+	warn?: boolean;
 }
 
-function Param({ name, val, set, min, max, stp, suffix, hint }: ParamProps) {
+function Param({
+	name,
+	val,
+	set,
+	min,
+	max,
+	stp,
+	suffix,
+	hint,
+	warn,
+}: ParamProps) {
 	return (
 		<div
 			style={{
@@ -197,13 +208,16 @@ function Param({ name, val, set, min, max, stp, suffix, hint }: ParamProps) {
 					step={stp}
 					value={val}
 					onChange={(e) => set(+(e.currentTarget as HTMLInputElement).value)}
-					style={{ width: 84, accentColor: "var(--lab-slider)" }}
+					style={{
+						width: 84,
+						accentColor: warn ? C.danger : "var(--lab-slider)",
+					}}
 				/>
 				<span
 					style={{
 						fontFamily: mono,
 						fontSize: 12,
-						color: C.text,
+						color: warn ? C.danger : C.text,
 						whiteSpace: "nowrap",
 					}}
 				>
@@ -675,14 +689,15 @@ export default function SnapshotFeesLab() {
 						hint="The measuring size for M's walk."
 					/>
 					<Param
-						name="Stamp slope · k"
+						name="Fee Slope · k"
 						val={slope}
 						set={touch(setSlope)}
 						min={0.25}
 						max={3}
 						stp={0.05}
 						suffix="×"
-						hint="Fee per bps outside the band."
+						warn={slope > 1}
+						hint="Fee per bps outside the band. Above 1× width beyond the band loses money."
 					/>
 				</div>
 				<div
@@ -700,14 +715,6 @@ export default function SnapshotFeesLab() {
 						<span style={label}>Full fee reached</span>
 						<span style={{ fontFamily: mono, fontSize: 12, color: C.text }}>
 							{(S / 2 + F / slope).toFixed(1)}bps from M
-							<span style={{ color: C.dim }}>
-								{" · "}
-								{slope < 0.98
-									? "gentle"
-									: slope > 1.02
-										? "leaning"
-										: "full clawback"}
-							</span>
 						</span>
 						<span
 							style={{
