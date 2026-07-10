@@ -694,6 +694,16 @@ export default function SnapshotFeesLab() {
 					}}
 				>
 					<Param
+						name="Typical trade · T"
+						val={T}
+						set={touch("T", T, setT)}
+						min={1000}
+						max={30000}
+						stp={500}
+						suffix="$"
+						hint="Per side size for measuring M."
+					/>
+					<Param
 						name="Spread standard · S"
 						val={S}
 						set={touch("S", S, setS)}
@@ -712,16 +722,6 @@ export default function SnapshotFeesLab() {
 						stp={0.5}
 						suffix="bps"
 						hint="Taker rate. Every fee's ceiling."
-					/>
-					<Param
-						name="Typical trade · T"
-						val={T}
-						set={touch("T", T, setT)}
-						min={1000}
-						max={30000}
-						stp={500}
-						suffix="$"
-						hint="Per side size for measuring M."
 					/>
 					<Param
 						name="Fee Slope · k"
