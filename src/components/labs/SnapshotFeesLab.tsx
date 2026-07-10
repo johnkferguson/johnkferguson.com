@@ -1495,23 +1495,13 @@ export default function SnapshotFeesLab() {
 							const net = dist - b.final;
 							interface TipRow {
 								label?: string;
-								t: string;
-								c: string;
+								t?: string;
+								c?: string;
 								s?: number;
 								gap?: number;
+								rule?: boolean;
 							}
-							const rows: TipRow[] = [
-								{
-									t: `${fmtBp(b.final)} fee @ full fill`,
-									c: C.fee,
-									s: 15,
-								},
-								{
-									t: `${lv.side} @ ${fmtPx(lv.price)} · ${dist.toFixed(2)}bps from M`,
-									c: C.dim,
-									gap: 2,
-								},
-							];
+							const rows: TipRow[] = [];
 							const amt$ = (v: number, sign = "") =>
 								`${(sign + v.toFixed(2)).padStart(6)}bps`;
 							rows.push({
@@ -1521,7 +1511,6 @@ export default function SnapshotFeesLab() {
 										? `${amt$(b.own)} · ${d.toFixed(2)}bps outside the band`
 										: `${amt$(0)} · inside the band`,
 								c: C.text,
-								gap: 10,
 							});
 							const items: { amt: number; t: string; c: string }[] = [];
 							// matches at-or-inside the base fee collapse into one line
@@ -1576,12 +1565,19 @@ export default function SnapshotFeesLab() {
 								s: 15,
 								gap: 6,
 							});
+							rows.push({ rule: true, gap: 8 });
 							rows.push({
-								label: "NET",
-								t: `${dist.toFixed(2)}bps from M − ${fmtBp(b.final)} fee = ${net >= 0 ? "+" : ""}${net.toFixed(2)}bps`,
+								label: "IMPLIED VALUE",
+								t: `${amt$(Math.abs(net), net >= 0 ? "+" : "−")} = ${dist.toFixed(2)}bps − ${fmtBp(b.final)}`,
 								c: C.text,
 								s: 14,
-								gap: 6,
+								gap: 2,
+							});
+							rows.push({
+								label: "",
+								t: "(M Distance − Total Fee)",
+								c: C.faint,
+								s: 11.5,
 							});
 							if (feePinned === tipI && feeHover == null)
 								rows.push({
@@ -1616,33 +1612,44 @@ export default function SnapshotFeesLab() {
 										strokeWidth={0.75}
 										style={{ fill: C.panel2, stroke: C.fee }}
 									/>
-									{placed.map((r) => (
-										<g key={`${r.t}${r.y}`}>
-											{r.label ? (
+									{placed.map((r) =>
+										r.rule ? (
+											<line
+												key={`rule${r.y}`}
+												x1={xT - 228}
+												x2={xT + 228}
+												y1={yT + r.y - 11}
+												y2={yT + r.y - 11}
+												style={{ stroke: C.line }}
+											/>
+										) : (
+											<g key={`${r.t}${r.y}`}>
+												{r.label ? (
+													<text
+														x={xT - 228}
+														y={yT + r.y}
+														fontSize={12}
+														letterSpacing="0.08em"
+														style={{ fill: C.faint, fontFamily: mono }}
+													>
+														{r.label}
+													</text>
+												) : null}
 												<text
-													x={xT - 228}
+													x={r.label !== undefined ? xT - 124 : xT - 228}
 													y={yT + r.y}
-													fontSize={12}
-													letterSpacing="0.08em"
-													style={{ fill: C.faint, fontFamily: mono }}
+													fontSize={r.s ?? 14}
+													style={{
+														fill: r.c,
+														fontFamily: mono,
+														whiteSpace: "pre",
+													}}
 												>
-													{r.label}
+													{r.t}
 												</text>
-											) : null}
-											<text
-												x={r.label !== undefined ? xT - 124 : xT - 228}
-												y={yT + r.y}
-												fontSize={r.s ?? 14}
-												style={{
-													fill: r.c,
-													fontFamily: mono,
-													whiteSpace: "pre",
-												}}
-											>
-												{r.t}
-											</text>
-										</g>
-									))}
+											</g>
+										),
+									)}
 								</g>
 							);
 						})()}
