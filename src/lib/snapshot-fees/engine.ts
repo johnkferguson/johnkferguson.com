@@ -31,8 +31,6 @@ export interface FeeParams {
 	slope: number;
 	/** Stamp curvature e. */
 	expo: number;
-	/** Compounding weight λ for the two charges. */
-	lambda: number;
 	/** Inside compensation max, bps (parked module — reward channel). */
 	comp: number;
 }
@@ -96,11 +94,9 @@ export interface FeeBreakdown {
 	pairs: CoveragePair[];
 	unpaired: number;
 	claimedBefore: number;
-	/** Size-weighted coverage charge, bps. */
+	/** Per-dollar worse-of rate: matched $ pay max(own, partner), unbacked pay F. */
 	pairing: number;
-	/** Combined charge before the cap. */
-	raw: number;
-	/** min(F, raw). */
+	/** min(F, pairing) — the cap is decorative; every per-dollar term is ≤ F. */
 	combined: number;
 	/** Inside compensation, bps (parked module). */
 	insideComp: number;
@@ -142,7 +138,7 @@ export function computeModel(
 	p: FeeParams,
 	fallbackM: number,
 ): MarketModel {
-	const { S, T, F, slope, expo, lambda, comp } = p;
+	const { S, T, F, slope, expo, comp } = p;
 	const bids = book
 		.filter((l) => l.side === "bid")
 		.sort((a, b) => b.price - a.price);
@@ -223,12 +219,14 @@ export function computeModel(
 			claimedBefore: 0,
 		};
 		const q = lv.size;
+		// Per-dollar worse-of: each matched dollar pays the worse of its two
+		// legs — this order's own stamp or its partner's — and unbacked
+		// dollars pay F. A round trip is as good as its worse leg.
 		const pairing =
-			(a.pairs.reduce((s, pr) => s + pr.matched * pr.stamp, 0) +
+			(a.pairs.reduce((s, pr) => s + pr.matched * Math.max(own, pr.stamp), 0) +
 				a.unpaired * F) /
 			q;
-		const raw = Math.max(own, pairing) + lambda * Math.min(own, pairing);
-		const combined = Math.min(F, raw);
+		const combined = Math.min(F, pairing);
 		const distBp = Math.abs(lv.price - M) / BP;
 		const insideComp = comp > 0 ? comp * Math.max(0, 1 - distBp / (S / 2)) : 0;
 		const final = combined - insideComp;
@@ -238,7 +236,6 @@ export function computeModel(
 			unpaired: a.unpaired,
 			claimedBefore: a.claimedBefore,
 			pairing,
-			raw,
 			combined,
 			insideComp,
 			final,

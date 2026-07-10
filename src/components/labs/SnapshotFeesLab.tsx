@@ -232,9 +232,8 @@ export default function SnapshotFeesLab() {
 	const [T, setT] = useState(20000); // typical trade size, $
 	// —— fee schedule ——
 	const [F, setF] = useState(15); // cap / taker rate, bps
-	const [slope, setSlope] = useState(0.5); // bps of stamp per bp beyond edge
+	const [slope, setSlope] = useState(0.75); // k: stamp bps per bp beyond edge
 	const [expo, setExpo] = useState(1); // stamp curvature
-	const [lambda, setLambda] = useState(0.5); // D1 compounding: 1 = additive, 0 = worse-of
 	const [comp, setComp] = useState(0); // inside compensation max, bps (parked module)
 
 	const [sizes, setSizes] = useState<number[]>(() => SCENARIOS[0].book());
@@ -256,12 +255,8 @@ export default function SnapshotFeesLab() {
 			side: sideAt(i),
 			size,
 		}));
-		return computeModel(
-			book,
-			{ S, T, F, slope, expo, lambda, comp },
-			lastM.current,
-		);
-	}, [sizes, S, T, F, slope, expo, lambda, comp]);
+		return computeModel(book, { S, T, F, slope, expo, comp }, lastM.current);
+	}, [sizes, S, T, F, slope, expo, comp]);
 
 	useEffect(() => {
 		if (!model.frozen) lastM.current = model.M;
@@ -327,9 +322,8 @@ export default function SnapshotFeesLab() {
 		setS(2);
 		setT(20000);
 		setF(15);
-		setSlope(0.5);
+		setSlope(0.75);
 		setExpo(1);
-		setLambda(0.5);
 		setComp(0);
 		setScenario(sc.key);
 	};
@@ -550,25 +544,23 @@ export default function SnapshotFeesLab() {
 							</div>
 
 							<div style={row}>
-								<span style={eyebrow}>4 · Pairing</span>pairing = (Σ coveredᵢ ×
-								stampᵢ + uncovered × F) / size
+								<span style={eyebrow}>4 · Pairing</span>backing = your own
+								opposite side, consumed inside-first
 								<div style={note}>
-									coverage = your own opposite side, consumed inside-first —
 									better-priced bars claim it before this one (spillover).
-									Uncovered dollars are directional and pay F in full.
+									Whatever finds no match is directional.
 								</div>
 							</div>
 
 							<div style={row}>
-								<span style={eyebrow}>5 · Combine</span>fee = min(F, max(own,
-								pairing) + λ × min(own, pairing)) = min({F}, bigger +{" "}
-								{lambda.toFixed(2)} × smaller)
+								<span style={eyebrow}>5 · Fee</span>fee = (Σ matched × max(own
+								stamp, partner stamp) + unbacked × F) / size
 								<div style={note}>
-									D1 — width pressure = slope × (1 + λ) ={" "}
-									{(slope * (1 + lambda)).toFixed(2)}× · below 1.0 = gentle
-									(profit still rises with width, at reduced slope) · 1.0 = full
-									clawback of CLOB-style width gains · above = leaning on the
-									band
+									each matched dollar pays its worse leg — a round trip is as
+									good as its worse leg — and unbacked dollars pay F. Width
+									pressure = slope; the full taker rate is reached{" "}
+									{(S / 2 + F / slope).toFixed(1)}bp from M, and past that point
+									backing no longer matters in either direction.
 								</div>
 							</div>
 
@@ -687,21 +679,12 @@ export default function SnapshotFeesLab() {
 							}}
 						>
 							<Param
-								name="Compound λ · D1"
-								val={lambda}
-								set={touch(setLambda)}
-								min={0}
-								max={1}
-								stp={0.05}
-								hint="How a bar's two charges merge: 0 = worse of the two only, 1 = both added in full."
-							/>
-							<Param
 								name="Stamp slope"
 								val={slope}
 								set={touch(setSlope)}
 								min={0.25}
 								max={3}
-								stp={0.25}
+								stp={0.05}
 								suffix="×"
 								hint="Stamp bps charged per bp of placement beyond the band edge."
 							/>
@@ -722,14 +705,14 @@ export default function SnapshotFeesLab() {
 									maxWidth: 172,
 								}}
 							>
-								<span style={label}>Width pressure</span>
+								<span style={label}>Full fee reached</span>
 								<span style={{ fontFamily: mono, fontSize: 12, color: C.text }}>
-									{(slope * (1 + lambda)).toFixed(2)}×
+									{(S / 2 + F / slope).toFixed(1)}bp from M
 									<span style={{ color: C.dim }}>
 										{" · "}
-										{slope * (1 + lambda) < 0.98
+										{slope < 0.98
 											? "gentle"
-											: slope * (1 + lambda) > 1.02
+											: slope > 1.02
 												? "leaning"
 												: "full clawback"}
 									</span>
@@ -737,7 +720,9 @@ export default function SnapshotFeesLab() {
 								<span
 									style={{ fontSize: 11, color: C.faint, lineHeight: 1.45 }}
 								>
-									slope × (1 + λ): total charge per bp of double-sided width.
+									Past this point placement pays the full taker rate — and
+									backing no longer matters: matched or not, it is priced as a
+									taker.
 								</span>
 							</div>
 						</div>
@@ -1471,7 +1456,7 @@ export default function SnapshotFeesLab() {
 										cov
 									: 0;
 							const free = b.final < 0.05;
-							const capped = b.raw >= F;
+							const capped = b.combined >= F - 1e-9;
 							const net = dist - b.final;
 							const verdict =
 								cov <= 0
@@ -1494,7 +1479,7 @@ export default function SnapshotFeesLab() {
 														"Fully matched, inside the band:",
 														"this trades free.",
 													]
-												: b.own >= b.pairing
+												: b.own >= avg
 													? [
 															"Fully matched — the charge is its own",
 															"placement outside the band.",
@@ -1546,12 +1531,6 @@ export default function SnapshotFeesLab() {
 									t: `${100 - covPct}% unbacked → taker rate ${fmtBp(F)}`,
 									c: C.ask,
 								});
-							if (cov > 0 && b.unpaired > 0)
-								rows.push({
-									label: "",
-									t: `→ backing ${fmtBp(b.pairing)}`,
-									c: C.text,
-								});
 							if (b.claimedBefore > 0 && b.unpaired > 0)
 								rows.push({
 									label: "",
@@ -1562,8 +1541,8 @@ export default function SnapshotFeesLab() {
 							if (!free)
 								rows.push({
 									t: capped
-										? `fee = bigger + ${lambda.toFixed(2)} × smaller → capped at F`
-										: `fee = bigger + ${lambda.toFixed(2)} × smaller = ${fmtBp(b.combined)}`,
+										? "every dollar pays its worse leg → the cap F"
+										: `each dollar pays its worse leg = ${fmtBp(b.combined)}`,
 									c: C.dim,
 									gap: 9,
 								});
