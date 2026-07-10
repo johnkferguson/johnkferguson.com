@@ -1450,7 +1450,7 @@ export default function SnapshotFeesLab() {
 								{
 									t: `${fmtBp(b.final)} fee @ full fill`,
 									c: C.fee,
-									s: 13,
+									s: 15,
 								},
 								{
 									t: `${lv.side} @ ${fmtPx(lv.price)} · ${dist.toFixed(2)}bps from M`,
@@ -1502,7 +1502,7 @@ export default function SnapshotFeesLab() {
 									label: k === 0 ? "SURCHARGES" : "",
 									t: it.t,
 									c: it.c,
-									s: 12,
+									s: 13.5,
 								});
 							});
 							if (b.claimedBefore > 0 && b.unpaired > 0)
@@ -1510,38 +1510,38 @@ export default function SnapshotFeesLab() {
 									label: "",
 									t: "(better-priced bars claimed the matches first)",
 									c: C.faint,
-									s: 11.5,
+									s: 12.5,
 								});
 							rows.push({
 								label: "TOTAL FEE",
 								t: amt$(b.final),
 								c: C.fee,
-								s: 13,
+								s: 15,
 								gap: 6,
 							});
 							rows.push({
 								label: "NET",
 								t: `${dist.toFixed(2)}bps from M − ${fmtBp(b.final)} fee = ${net >= 0 ? "+" : ""}${net.toFixed(2)}bps`,
 								c: C.text,
-								s: 12.5,
+								s: 14,
 								gap: 6,
 							});
 							if (feePinned === tipI && feeHover == null)
 								rows.push({
 									t: "pinned — click the dot again or press Esc",
 									c: C.faint,
-									s: 10.5,
+									s: 11.5,
 									gap: 7,
 								});
-							let yAcc = 22;
+							let yAcc = 24;
 							const placed = rows.map((r) => {
 								yAcc += r.gap ?? 0;
 								const y = yAcc;
-								yAcc += 17;
+								yAcc += 19;
 								return { ...r, y };
 							});
 							const h = yAcc + 6;
-							const xT = Math.min(Math.max(xAt(lv.i), PL + 222), PR - 222);
+							const xT = Math.min(Math.max(xAt(lv.i), PL + 246), PR - 246);
 							const dotY = yFee(b.final);
 							const yT = dotY - h - 14 > PT + 4 ? dotY - h - 14 : dotY + 14;
 							return (
@@ -1552,9 +1552,9 @@ export default function SnapshotFeesLab() {
 									style={{ userSelect: "text" }}
 								>
 									<rect
-										x={xT - 216}
+										x={xT - 240}
 										y={yT}
-										width={432}
+										width={480}
 										height={h}
 										rx={6}
 										strokeWidth={0.75}
@@ -1564,9 +1564,9 @@ export default function SnapshotFeesLab() {
 										<g key={`${r.t}${r.y}`}>
 											{r.label ? (
 												<text
-													x={xT - 204}
+													x={xT - 228}
 													y={yT + r.y}
-													fontSize={10.5}
+													fontSize={12}
 													letterSpacing="0.08em"
 													style={{ fill: C.faint, fontFamily: mono }}
 												>
@@ -1574,9 +1574,9 @@ export default function SnapshotFeesLab() {
 												</text>
 											) : null}
 											<text
-												x={r.label !== undefined ? xT - 108 : xT - 204}
+												x={r.label !== undefined ? xT - 124 : xT - 228}
 												y={yT + r.y}
-												fontSize={r.s ?? 12.5}
+												fontSize={r.s ?? 14}
 												style={{
 													fill: r.c,
 													fontFamily: mono,
