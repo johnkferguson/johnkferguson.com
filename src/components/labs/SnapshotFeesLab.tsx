@@ -233,7 +233,7 @@ export default function SnapshotFeesLab() {
 	// —— fee schedule ——
 	const [F, setF] = useState(15); // cap / taker rate, bps
 	const [slope, setSlope] = useState(0.75); // k: stamp bps per bp beyond edge
-	const [expo, setExpo] = useState(1); // stamp curvature
+	const expo = 1; // stamp curvature — pinned linear; superlinear kills net edge mid-book
 	const [comp, setComp] = useState(0); // inside compensation max, bps (parked module)
 
 	const [sizes, setSizes] = useState<number[]>(() => SCENARIOS[0].book());
@@ -323,7 +323,6 @@ export default function SnapshotFeesLab() {
 		setT(20000);
 		setF(15);
 		setSlope(0.75);
-		setExpo(1);
 		setComp(0);
 		setScenario(sc.key);
 	};
@@ -469,10 +468,10 @@ export default function SnapshotFeesLab() {
 							>
 								<div style={{ flex: "1 1 320px" }}>
 									<span style={eyebrow}>3 · Stamp</span>stamp(d) = min(F, slope
-									× d^curv) = min({F}, {slope} × d^{expo})
+									× d) = min({F}, {slope} × d)
 									<div style={note}>
 										d = bp of placement beyond your side's edge (0 if inside).
-										Slope sets how fast the charge rises; curvature bends it.
+										Slope is the price of every bp of imprecision.
 									</div>
 									<div style={{ color: C.text }}>
 										d=1 → {fmtBp(stampEx(1))} · d=2 → {fmtBp(stampEx(2))} · d=4
@@ -687,15 +686,6 @@ export default function SnapshotFeesLab() {
 								stp={0.05}
 								suffix="×"
 								hint="Stamp bps charged per bp of placement beyond the band edge."
-							/>
-							<Param
-								name="Curvature"
-								val={expo}
-								set={touch(setExpo)}
-								min={1}
-								max={2}
-								stp={0.25}
-								hint="1 = linear distance charge; 2 = far placement charged disproportionately."
 							/>
 							<div
 								style={{
