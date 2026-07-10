@@ -1458,12 +1458,14 @@ export default function SnapshotFeesLab() {
 									gap: 2,
 								},
 							];
+							const amt$ = (v: number, sign = "") =>
+								`${(sign + v.toFixed(2)).padStart(6)}bps`;
 							rows.push({
 								label: "BASE FEE",
 								t:
 									b.own > 0
-										? `${fmtBp(b.own)} · placement ${d.toFixed(2)}bps outside the band`
-										: `${fmtBp(0)} · placement inside the band`,
+										? `${amt$(b.own)} · ${d.toFixed(2)}bps outside the band`
+										: `${amt$(0)} · inside the band`,
 								c: C.text,
 								gap: 10,
 							});
@@ -1476,12 +1478,12 @@ export default function SnapshotFeesLab() {
 									extra > 0
 										? {
 												amt,
-												t: `+${amt.toFixed(2)}bps · ${pct}% vs ${fmtPx(pr.price)} · ${extra.toFixed(2)}bps worse`,
+												t: `${amt$(amt, "+")} · ${pct}% vs ${fmtPx(pr.price)} · ${extra.toFixed(2)}bps worse`,
 												c: C.text,
 											}
 										: {
 												amt,
-												t: `+0.00bps · ${pct}% vs ${fmtPx(pr.price)} · at or inside`,
+												t: `${amt$(0, "+")} · ${pct}% vs ${fmtPx(pr.price)} · at or inside`,
 												c: C.dim,
 											},
 								);
@@ -1491,7 +1493,7 @@ export default function SnapshotFeesLab() {
 								const amt = (b.unpaired / b.q) * (F - b.own);
 								items.push({
 									amt,
-									t: `+${amt.toFixed(2)}bps · ${pct}% directional → taker rate`,
+									t: `${amt$(amt, "+")} · ${pct}% directional → taker rate`,
 									c: C.ask,
 								});
 							}
@@ -1512,7 +1514,7 @@ export default function SnapshotFeesLab() {
 								});
 							rows.push({
 								label: "TOTAL FEE",
-								t: fmtBp(b.final),
+								t: amt$(b.final),
 								c: C.fee,
 								s: 13,
 								gap: 6,
@@ -1575,7 +1577,11 @@ export default function SnapshotFeesLab() {
 												x={r.label !== undefined ? xT - 108 : xT - 204}
 												y={yT + r.y}
 												fontSize={r.s ?? 12.5}
-												style={{ fill: r.c, fontFamily: mono }}
+												style={{
+													fill: r.c,
+													fontFamily: mono,
+													whiteSpace: "pre",
+												}}
 											>
 												{r.t}
 											</text>
