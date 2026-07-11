@@ -1,5 +1,11 @@
 import { describe, expect, test } from "bun:test";
-import { type BookLevel, computeModel, type FeeParams } from "./engine";
+import {
+	type BookLevel,
+	computeAccountFees,
+	computeModel,
+	computeMultiMark,
+	type FeeParams,
+} from "./engine";
 
 // Reference computation from the mechanism spec (worse-of revision) — "an
 // implementation must reproduce these numbers exactly."
@@ -199,5 +205,129 @@ describe("anchors and invariants", () => {
 			const covered = lv.bk.pairs.reduce((s, pr) => s + pr.matched, 0);
 			expect(covered + lv.bk.unpaired).toBeCloseTo(lv.size, 6);
 		}
+	});
+});
+
+describe("multi-maker Mark", () => {
+	const MP = { S: 2, T: 20000 };
+	const you = (levels: BookLevel[]) => ({ id: "you", levels });
+	const agg = (levels: BookLevel[]) => ({ id: "agg", levels });
+
+	test("pro-rata attribution and walk shares", () => {
+		const m = computeMultiMark(
+			[
+				you([
+					{ i: 9, price: 99.995, side: "bid", size: 5000 },
+					{ i: 11, price: 100.005, side: "ask", size: 5000 },
+				]),
+				agg([
+					{ i: 9, price: 99.995, side: "bid", size: 15000 },
+					{ i: 11, price: 100.005, side: "ask", size: 15000 },
+				]),
+			],
+			MP,
+			100,
+		);
+		expect(m.M).toBeCloseTo(100.0, 10);
+		expect(m.iBid).toBeCloseTo(99.995, 10);
+		expect(m.shareBid.get("you")).toBeCloseTo(0.25, 10);
+		expect(m.shareBid.get("agg")).toBeCloseTo(0.75, 10);
+		expect(m.used.get("you")?.get(9)).toBeCloseTo(5000, 6);
+		expect(m.used.get("agg")?.get(9)).toBeCloseTo(15000, 6);
+	});
+
+	test("one-sided size has no vote", () => {
+		const m = computeMultiMark(
+			[
+				you([{ i: 8, price: 99.99, side: "bid", size: 5000 }]),
+				agg([
+					{ i: 9, price: 99.995, side: "bid", size: 1000 },
+					{ i: 11, price: 100.005, side: "ask", size: 1000 },
+				]),
+			],
+			MP,
+			100,
+		);
+		// your bid is the biggest size in the book, and it counts for nothing
+		expect(m.eligible.get("you")?.size ?? 0).toBe(0);
+		expect(m.shareBid.get("you")).toBe(0);
+		expect(m.iBid).toBeCloseTo(99.995, 10);
+		expect(m.M).toBeCloseTo(100.0, 10);
+	});
+
+	test("size beyond 8×S of the side's best has no vote and burns no overlap", () => {
+		const m = computeMultiMark(
+			[
+				you([
+					{ i: 9, price: 99.995, side: "bid", size: 5000 },
+					{ i: 11, price: 100.005, side: "ask", size: 5000 },
+					// 19.5bps behind the best bid: invisible at S=2 (8×S = 16bps)
+					{ i: 0, price: 99.8, side: "bid", size: 8000 },
+				]),
+				agg([
+					{ i: 9, price: 99.995, side: "bid", size: 5000 },
+					{ i: 11, price: 100.005, side: "ask", size: 5000 },
+				]),
+			],
+			MP,
+			100,
+		);
+		expect(m.eligible.get("you")?.get(0)).toBeUndefined();
+		expect(m.eligible.get("you")?.get(9)).toBeCloseTo(5000, 6);
+		expect(m.M).toBeCloseTo(100.0, 10);
+	});
+
+	test("a leaning crowd moves M and re-prices an untouched book", () => {
+		const P: FeeParams = {
+			S: 2,
+			T: 20000,
+			F: 15,
+			slope: 0.5,
+			expo: 1,
+			comp: 0,
+		};
+		const yourBook: BookLevel[] = [
+			{ i: 9, price: 99.995, side: "bid", size: 5000 },
+			{ i: 11, price: 100.005, side: "ask", size: 5000 },
+		];
+		const balanced = computeMultiMark(
+			[
+				you(yourBook),
+				agg([
+					{ i: 9, price: 99.995, side: "bid", size: 20000 },
+					{ i: 11, price: 100.005, side: "ask", size: 20000 },
+				]),
+			],
+			MP,
+			100,
+		);
+		expect(balanced.M).toBeCloseTo(100.0, 10);
+		const feesBefore = computeAccountFees(yourBook, P, balanced.M);
+		expect(feesBefore.levels[0].bk?.final).toBeCloseTo(0, 10);
+
+		const leaning = computeMultiMark(
+			[
+				you(yourBook),
+				agg([
+					{ i: 9, price: 99.995, side: "bid", size: 20000 },
+					{ i: 12, price: 100.045, side: "ask", size: 20000 },
+				]),
+			],
+			MP,
+			100,
+		);
+		// bid walk: 20,000 of the 25,000 at 99.995, pro-rata
+		expect(leaning.used.get("you")?.get(9)).toBeCloseTo(4000, 6);
+		expect(leaning.used.get("agg")?.get(9)).toBeCloseTo(16000, 6);
+		// ask walk: your 5,000 at 100.005 plus 15,000 at 100.045
+		expect(leaning.iAsk).toBeCloseTo(100.035, 10);
+		expect(leaning.M).toBeCloseTo(100.015, 10);
+
+		// your book did not move, but the yardstick did: both legs now 1bps
+		// outside their edges' reach → worse-of gives 0.5bps each
+		const feesAfter = computeAccountFees(yourBook, P, leaning.M);
+		expect(feesAfter.levels[0].bk?.own).toBeCloseTo(0.5, 10);
+		expect(feesAfter.levels[0].bk?.final).toBeCloseTo(0.5, 10);
+		expect(feesAfter.levels[1].bk?.final).toBeCloseTo(0.5, 10);
 	});
 });
