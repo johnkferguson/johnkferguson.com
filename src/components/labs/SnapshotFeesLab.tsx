@@ -279,21 +279,23 @@ export default function SnapshotFeesLab() {
 	const [effect, setEffect] = useState<{ t: string; warn: boolean } | null>(
 		null,
 	);
+	const [centerSide, setCenterSide] = useState<"bid" | "ask">("bid");
 	const [mHover, setMHover] = useState(false);
 	const [feeHover, setFeeHover] = useState<number | null>(null);
 	const [feePinned, setFeePinned] = useState<number | null>(null);
 	const lastM = useRef(100);
 	const drag = useRef<DragState | null>(null);
 
+	const sideOf = (i: number): Side => (i === CENTER ? centerSide : sideAt(i));
 	const model = useMemo(() => {
 		const book: BookLevel[] = sizes.map((size, i) => ({
 			i,
 			price: priceAt(i),
-			side: sideAt(i),
+			side: sideOf(i),
 			size,
 		}));
 		return computeModel(book, { S, T, F, slope, expo, comp }, lastM.current);
-	}, [sizes, S, T, F, slope, expo, comp]);
+	}, [sizes, S, T, F, slope, expo, comp, sideOf]);
 
 	useEffect(() => {
 		if (!model.frozen) lastM.current = model.M;
@@ -357,6 +359,7 @@ export default function SnapshotFeesLab() {
 	// touching any dial (or dragging a bar) drops you into Custom.
 	const applyScenario = (sc: Scenario) => {
 		setSizes(sc.book());
+		setCenterSide("bid");
 		setEffect(null);
 		setS(2);
 		setT(20000);
@@ -1006,6 +1009,7 @@ export default function SnapshotFeesLab() {
 					{model.levels.map((lv) =>
 						lv.side === "mid" ? null : (
 							<g key={lv.i}>
+								{/* biome-ignore lint/a11y/noStaticElementInteractions: SVG drag surface; keyboard editing is out of scope for the lab */}
 								<rect
 									x={xAt(lv.i) - step / 2}
 									y={PT}
@@ -1016,6 +1020,10 @@ export default function SnapshotFeesLab() {
 									onPointerDown={(e) => onDown(e, lv.i)}
 									onPointerMove={onMove}
 									onPointerUp={(e) => onUp(e, lv.i)}
+									onDblClick={() => {
+										if (lv.i === CENTER)
+											setCenterSide((cs) => (cs === "bid" ? "ask" : "bid"));
+									}}
 									onPointerCancel={() => {
 										drag.current = null;
 									}}
@@ -1186,7 +1194,12 @@ export default function SnapshotFeesLab() {
 									textAnchor="middle"
 									fontSize={12}
 									style={{
-										fill: lv.i === CENTER ? C.text : C.faint,
+										fill:
+											lv.i === CENTER
+												? centerSide === "bid"
+													? C.bid
+													: C.ask
+												: C.faint,
 										fontFamily: mono,
 									}}
 								>
@@ -1269,10 +1282,10 @@ export default function SnapshotFeesLab() {
 							fontSize={12.5}
 							style={{ fill: C.faint, fontFamily: mono, fontStyle: "italic" }}
 						>
-							Instructions: Drag each bar to adjust order book. Hover{" "}
-							<tspan style={{ fill: C.fee }}>●</tspan> to view fee calculations.
-							Hover <tspan style={{ fill: C.mark }}>M</tspan> to view its
-							calculations.
+							Instructions: Drag bars to adjust the book. Hover{" "}
+							<tspan style={{ fill: C.fee }}>●</tspan> for fees,{" "}
+							<tspan style={{ fill: C.mark }}>M</tspan> for its math.
+							Double-click 100.000 to flip its side.
 						</text>
 					</g>
 

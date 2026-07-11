@@ -330,6 +330,7 @@ export default function SnapshotFeesMultiLab() {
 	const [effect, setEffect] = useState<{ t: string; warn: boolean } | null>(
 		null,
 	);
+	const [centerSide, setCenterSide] = useState<"bid" | "ask">("bid");
 	const [playing, setPlaying] = useState(false);
 	const [sel, setSel] = useState(CENTER - 1);
 	const [mHover, setMHover] = useState(false);
@@ -343,18 +344,23 @@ export default function SnapshotFeesMultiLab() {
 	const playDepth = useRef(1);
 	const playShape = useRef(0.2); // book shape: +grows outward, −thick at the mid
 	const playTilt = useRef(0); // shape opposition: bids vs asks bend opposite ways
+	const centerSideRef = useRef<"bid" | "ask">("bid");
 
+	const sideOf = (i: number): Side => (i === CENTER ? centerSide : sideAt(i));
+	useEffect(() => {
+		centerSideRef.current = centerSide;
+	}, [centerSide]);
 	const model = useMemo(() => {
 		const yourBook: BookLevel[] = yourSizes.map((size, i) => ({
 			i,
 			price: priceAt(i),
-			side: sideAt(i),
+			side: sideOf(i),
 			size,
 		}));
 		const makerBook: BookLevel[] = makerSizes.map((size, i) => ({
 			i,
 			price: priceAt(i),
-			side: sideAt(i),
+			side: sideOf(i),
 			size,
 		}));
 		const mm = computeMultiMark(
@@ -369,7 +375,7 @@ export default function SnapshotFeesMultiLab() {
 		const fees = computeAccountFees(yourBook, p, mm.M);
 		const makerFees = computeAccountFees(makerBook, p, mm.M);
 		return { mm, fees, makerFees };
-	}, [yourSizes, makerSizes, S, T, F, slope]);
+	}, [yourSizes, makerSizes, S, T, F, slope, sideOf]);
 
 	const { mm, fees, makerFees } = model;
 
@@ -402,15 +408,15 @@ export default function SnapshotFeesMultiLab() {
 		const id = setInterval(() => {
 			playCenter.current = Math.max(
 				-2.5,
-				Math.min(2.5, playCenter.current + (Math.random() - 0.5) * 0.7),
+				Math.min(2.5, playCenter.current + (Math.random() - 0.5) * 0.35),
 			);
 			playLean.current = Math.max(
 				-0.5,
-				Math.min(0.5, playLean.current + (Math.random() - 0.5) * 0.1),
+				Math.min(0.5, playLean.current + (Math.random() - 0.5) * 0.05),
 			);
 			playDepth.current = Math.max(
-				0.6,
-				Math.min(1.7, playDepth.current + (Math.random() - 0.5) * 0.07),
+				0.8,
+				Math.min(2.0, playDepth.current + (Math.random() - 0.5) * 0.04),
 			);
 			playShape.current = Math.max(
 				-0.12,
@@ -418,12 +424,12 @@ export default function SnapshotFeesMultiLab() {
 					0.35,
 					playShape.current +
 						(0.15 - playShape.current) * 0.05 +
-						(Math.random() - 0.5) * 0.05,
+						(Math.random() - 0.5) * 0.025,
 				),
 			);
 			playTilt.current = Math.max(
 				-0.3,
-				Math.min(0.3, playTilt.current + (Math.random() - 0.5) * 0.07),
+				Math.min(0.3, playTilt.current + (Math.random() - 0.5) * 0.03),
 			);
 			const cF = CENTER + 0.5 + playCenter.current;
 			const lv = playLean.current;
@@ -440,7 +446,7 @@ export default function SnapshotFeesMultiLab() {
 			);
 			setMakerSizes((cur) =>
 				cur.map((v, i) => {
-					const side = sideAt(i);
+					const side = i === CENTER ? centerSideRef.current : sideAt(i);
 					if (side === "mid") return 0;
 					const dist = side === "bid" ? cF - i : i - cF;
 					const sideMul = side === "bid" ? 1 + lv : 1 - lv;
@@ -450,16 +456,16 @@ export default function SnapshotFeesMultiLab() {
 							? 0
 							: Math.min(
 									MAKER_MAX,
-									6000 *
-										Math.max(0.3, 1 + g * Math.max(0, dist - 1)) *
+									9000 *
+										Math.max(0.35, 1 + g * Math.max(0, dist - 1)) *
 										sideMul *
 										dp,
 								);
 					const lump =
-						Math.random() < 0.22
-							? (Math.random() - 0.5) * 7000
-							: (Math.random() - 0.5) * 900;
-					const nx = v + 0.18 * (target - v) + lump;
+						Math.random() < 0.15
+							? (Math.random() - 0.5) * 5000
+							: (Math.random() - 0.5) * 500;
+					const nx = v + 0.22 * (target - v) + lump;
 					return Math.min(MAKER_MAX, round$(nx));
 				}),
 			);
@@ -471,7 +477,7 @@ export default function SnapshotFeesMultiLab() {
 		if (!playing) {
 			playCenter.current = 0;
 			playLean.current = Math.max(-0.5, Math.min(0.5, lean / 100));
-			playDepth.current = Math.max(0.6, Math.min(1.7, depth || 1));
+			playDepth.current = Math.max(0.8, Math.min(2.0, depth || 1));
 			playShape.current = -0.12 + 0.47 * Math.random() ** 0.75;
 			playTilt.current = (Math.random() - 0.5) * 0.3;
 		}
@@ -550,6 +556,7 @@ export default function SnapshotFeesMultiLab() {
 	};
 	const applyScenario = (sc: Scenario) => {
 		setYourSizes(sc.you());
+		setCenterSide("bid");
 		setDepth(sc.depth);
 		setLean(sc.lean);
 		setSpread(sc.spread);
@@ -1204,14 +1211,14 @@ export default function SnapshotFeesMultiLab() {
 
 					{/* mirrored books */}
 					{yourSizes.map((yv, i) => {
-						const side = sideAt(i);
-						if (side === "mid") return null;
+						const side = sideOf(i);
 						const av = makerSizes[i];
 						const usedYou = mm.used.get("you")?.get(i) ?? 0;
 						const usedAgg = mm.used.get("agg")?.get(i) ?? 0;
 						const lv = feeLevels[i];
 						return (
 							<g key={priceAt(i)}>
+								{/* biome-ignore lint/a11y/noStaticElementInteractions: SVG drag surface; keyboard editing is out of scope for the lab */}
 								<rect
 									x={xAt(i) - step / 2}
 									y={PT}
@@ -1222,6 +1229,10 @@ export default function SnapshotFeesMultiLab() {
 									onPointerDown={(e) => onDown(e, i)}
 									onPointerMove={onMove}
 									onPointerUp={(e) => onUp(e, i)}
+									onDblClick={() => {
+										if (i === CENTER)
+											setCenterSide((cs) => (cs === "bid" ? "ask" : "bid"));
+									}}
 									onPointerCancel={() => {
 										drag.current = null;
 									}}
@@ -1425,7 +1436,12 @@ export default function SnapshotFeesMultiLab() {
 									textAnchor="middle"
 									fontSize={12}
 									style={{
-										fill: i === CENTER ? C.text : C.faint,
+										fill:
+											i === CENTER
+												? centerSide === "bid"
+													? C.bid
+													: C.ask
+												: C.faint,
 										fontFamily: mono,
 									}}
 								>
@@ -1532,9 +1548,10 @@ export default function SnapshotFeesMultiLab() {
 							fontSize={12.5}
 							style={{ fill: C.faint, fontFamily: mono, fontStyle: "italic" }}
 						>
-							Instructions: Drag up for your book, drag down for the makers.
-							Hover <tspan style={{ fill: C.fee }}>●</tspan> for your fees.
-							Hover <tspan style={{ fill: C.mark }}>M</tspan> for the walk.
+							Instructions: Drag up for your book, down for the makers. Hover{" "}
+							<tspan style={{ fill: C.fee }}>●</tspan> for fees,{" "}
+							<tspan style={{ fill: C.mark }}>M</tspan> for the walk.
+							Double-click 100.000 to flip its side.
 						</text>
 					</g>
 
