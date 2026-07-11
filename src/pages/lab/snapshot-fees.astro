@@ -1,5 +1,6 @@
 ---
 import SnapshotFeesLab from "../../components/labs/SnapshotFeesLab";
+import SnapshotFeesMultiLab from "../../components/labs/SnapshotFeesMultiLab";
 import BaseLayout from "../../layouts/BaseLayout.astro";
 ---
 
@@ -10,5 +11,8 @@ import BaseLayout from "../../layouts/BaseLayout.astro";
 >
 	<main class="mx-auto w-full max-w-[720px] px-3 py-8">
 		<SnapshotFeesLab client:load />
+		<div class="mt-16">
+			<SnapshotFeesMultiLab client:load />
+		</div>
 	</main>
 </BaseLayout>
