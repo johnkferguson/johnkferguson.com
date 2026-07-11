@@ -65,8 +65,12 @@ const randomMakers = () => {
 		}
 	};
 	const lean = 0.5 + Math.random();
-	mk(1 + Math.floor(Math.random() * 3), -1, lean);
-	mk(1 + Math.floor(Math.random() * 3), 1, 2 - lean);
+	const start = () => {
+		const r = Math.random();
+		return r < 0.65 ? 1 : r < 0.9 ? 2 : 3;
+	};
+	mk(start(), -1, lean);
+	mk(start(), 1, 2 - lean);
 	return a;
 };
 
@@ -422,11 +426,14 @@ export default function SnapshotFeesMultiLab() {
 					const dist = side === "bid" ? cF - i : i - cF;
 					const sideMul = side === "bid" ? 1 + lv : 1 - lv;
 					const target =
-						dist < 1
+						dist < 0.5
 							? 0
 							: Math.min(
 									MAKER_MAX,
-									6000 * Math.max(0.3, 1 + g * (dist - 1)) * sideMul * dp,
+									6000 *
+										Math.max(0.3, 1 + g * Math.max(0, dist - 1)) *
+										sideMul *
+										dp,
 								);
 					const lump =
 						Math.random() < 0.22
