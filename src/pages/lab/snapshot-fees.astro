@@ -1,18 +1,132 @@
 ---
+import BaseFeeLab from "../../components/labs/BaseFeeLab";
 import SnapshotFeesLab from "../../components/labs/SnapshotFeesLab";
 import SnapshotFeesMultiLab from "../../components/labs/SnapshotFeesMultiLab";
+import TableOfContents from "../../components/TableOfContents.astro";
 import BaseLayout from "../../layouts/BaseLayout.astro";
 ---
 
 <BaseLayout
 	title="Lab · Snapshot Fees"
-	description="Interactive playground for the snapshot-fees mechanism — a single-maker batch-auction fee laboratory."
+	description="Interactive playground for the snapshot-fees mechanism and the article skeleton around it."
 	noindex={true}
 >
+	<TableOfContents />
 	<main class="mx-auto w-full max-w-[720px] px-3 py-8">
-		<SnapshotFeesLab client:load />
-		<div class="mt-16">
-			<SnapshotFeesMultiLab client:load />
-		</div>
+		<article data-toc-root>
+			<h1>Snapshot Fees</h1>
+			<p class="stub">
+				Outline skeleton. Bullets are placeholders for prose, not prose.
+			</p>
+			<ul class="stub">
+				<li>Lede: a fee schedule that looks at what you are doing right now, not what you did last month</li>
+				<li>One sentence on batch auctions as the setting</li>
+				<li>Promise of the piece: play with the mechanism, not just read about it</li>
+			</ul>
+
+			<h2 id="why">Why fees need rethinking</h2>
+			<ul class="stub">
+				<li>Batch auctions: discrete windows, sealed books, no latency race</li>
+				<li>CLOB fee logic (volume tiers) gets imported by default; why it fits badly here</li>
+				<li>Volume tiers: incumbents get discounts, new makers pay full freight, long-tail markets crowded out</li>
+				<li>Volume measures history, not the quality of liquidity standing right now</li>
+				<li>A sealed window produces a complete snapshot: price the snapshot instead</li>
+			</ul>
+
+			<h2 id="idea">The idea: directionality is the price</h2>
+			<ul class="stub">
+				<li>Replace maker/taker with a spectrum of directionality</li>
+				<li>Confidently two-sided near fair value: trades free. Fully one-sided: pays the taker rate</li>
+				<li>A one-sided resting order is a patient taker</li>
+				<li>Everything is computed fresh from one sealed snapshot per window: memoryless, verifiable, no tiers, no identity</li>
+			</ul>
+
+			<h2 id="base-fee">The base fee: placement against a standard</h2>
+			<ul class="stub">
+				<li>The market declares a standard: the band, M ± S/2. Placement inside it is free</li>
+				<li>Outside the band the fee rises linearly: k per bps of imprecision, capped at F</li>
+				<li>The cap means no resting order ever pays more than a taker</li>
+				<li>Net edge: distance earns 1:1, the fee takes k per bps, k below 1 keeps width profitable</li>
+				<li>Full-fee point: beyond S/2 + F/k the schedule stops caring</li>
+			</ul>
+			<div class="labwrap">
+				<BaseFeeLab client:visible />
+			</div>
+
+			<h2 id="single-maker">One maker, two sides</h2>
+			<ul class="stub">
+				<li>Introduce M: the mark price, measured at size by walking T dollars into each side</li>
+				<li>Matching: your own opposite side stands behind your fills</li>
+				<li>Worse leg per dollar; whatever has no match behind it is directional and pays F</li>
+				<li>Read a fee receipt: base fee, surcharges per match, total, net edge</li>
+				<li>Scenario tour: balanced ladder, directional maker, the moving mark, spillover</li>
+			</ul>
+			<div class="labwrap">
+				<SnapshotFeesLab client:visible />
+			</div>
+
+			<h2 id="communal-mark">The Mark is communal</h2>
+			<ul class="stub">
+				<li>In a real market M is measured from everyone's book at once</li>
+				<li>Eligibility: only demonstrated two-sided size near the touch gets a vote</li>
+				<li>Your voice is your share of the measuring walk</li>
+				<li>Confident non-directionality toward the mid is a vote for M, and tighter quoting carries more weight</li>
+				<li>Your fees come from your book, but judged against a yardstick you only partly control</li>
+				<li>Needs its own beat: what happens when there is not enough stock to compute M</li>
+			</ul>
+
+			<h2 id="multi-maker">Many makers</h2>
+			<ul class="stub">
+				<li>You against the aggregate makers, mirrored</li>
+				<li>Lessons: small fish, equal voice, the makers lean and re-price your resting book</li>
+				<li>Try to bend it: one-sided walls have no vote; the only way to fake the metric is to do the job</li>
+				<li>Press play: watch M drift while your book stands still</li>
+			</ul>
+			<div class="labwrap">
+				<SnapshotFeesMultiLab client:visible />
+			</div>
+
+			<h2 id="math">The math, precisely</h2>
+			<ul class="stub">
+				<li>The pipeline: eligibility, walk, M, band, stamps, pairing, worse-of</li>
+				<li>The one-line fee: (Σ matched × max(own, partner) + directional × F) / size</li>
+				<li>Reference computation anyone can recompute from the published window</li>
+				<li>Placement TBD: this section may move earlier, before or beside the labs</li>
+			</ul>
+
+			<h2 id="concerns">Concerns, variations, open questions</h2>
+			<ul class="stub">
+				<li>Semi-far coverage earns a discount: paid optionality, priced by fill risk and adverse selection</li>
+				<li>Manipulation economics: junk coverage is worthless, bending M requires standing real paired size</li>
+				<li>Parameters and governance: S declared and sticky, F venue-wide, k the one width dial, T measured from demand</li>
+				<li>Variations considered: partner-stamp grace interval, asymptotic stamps (rejected: softens the junk anchor), inside compensation (parked), partial fills</li>
+				<li>Open: cross-window dynamics, staking-based fee caps, thin-market M fallbacks</li>
+			</ul>
+
+			<h2 id="closing">Closing</h2>
+			<ul class="stub">
+				<li>Recap: one snapshot, one standard, one question per fill: how directional were you really</li>
+				<li>What evidence would validate or break this design</li>
+				<li>Invitation: the labs are the argument; go bend them</li>
+			</ul>
+		</article>
 	</main>
 </BaseLayout>
+
+<style>
+	.stub {
+		color: var(--date-color);
+	}
+
+	.stub li {
+		margin-bottom: 0.15rem;
+	}
+
+	.labwrap {
+		margin: 1.25rem 0 2rem;
+	}
+
+	article h2 {
+		margin-top: 2.4rem;
+	}
+</style>

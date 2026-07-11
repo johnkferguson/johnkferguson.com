@@ -1,0 +1,108 @@
+---
+// Floating left-rail section navigation. Auto-discovers h2[id] headings
+// inside the element marked data-toc-root, highlights the section in
+// view, and hides itself when the viewport has no room for a rail.
+// Designed to be droppable into any post layout.
+---
+
+<nav class="toc" aria-label="Sections">
+	<span class="toc-title">Sections</span>
+	<ul></ul>
+</nav>
+
+<script>
+	const nav = document.querySelector("nav.toc");
+	const root = document.querySelector("[data-toc-root]");
+	if (nav && root) {
+		const headings = [...root.querySelectorAll<HTMLElement>("h2[id]")];
+		const ul = nav.querySelector("ul");
+		const links = headings.map((h) => {
+			const li = document.createElement("li");
+			const a = document.createElement("a");
+			a.href = `#${h.id}`;
+			a.textContent = h.textContent ?? "";
+			li.append(a);
+			ul?.append(li);
+			return a;
+		});
+		let ticking = false;
+		const update = () => {
+			ticking = false;
+			let current = 0;
+			headings.forEach((h, i) => {
+				if (h.getBoundingClientRect().top < 150) current = i;
+			});
+			links.forEach((a, i) => {
+				a.classList.toggle("active", i === current);
+			});
+		};
+		update();
+		window.addEventListener(
+			"scroll",
+			() => {
+				if (!ticking) {
+					ticking = true;
+					requestAnimationFrame(update);
+				}
+			},
+			{ passive: true },
+		);
+	}
+</script>
+
+<style>
+	.toc {
+		position: fixed;
+		top: 140px;
+		left: calc(50vw - 360px - 232px);
+		width: 196px;
+		font-size: 0.62rem;
+		line-height: 1.45;
+	}
+
+	.toc-title {
+		display: block;
+		font-family: var(--font-mono);
+		font-size: 0.52rem;
+		letter-spacing: 0.14em;
+		text-transform: uppercase;
+		color: var(--date-color);
+		margin-bottom: 0.5rem;
+	}
+
+	.toc ul {
+		list-style: none;
+		margin: 0;
+		padding: 0;
+	}
+
+	.toc li {
+		margin: 0;
+	}
+
+	.toc a {
+		display: block;
+		padding: 0.18rem 0 0.18rem 0.6rem;
+		border-left: 2px solid var(--border-color);
+		color: var(--date-color);
+		text-decoration: none;
+		transition:
+			color 0.15s ease,
+			border-color 0.15s ease;
+	}
+
+	.toc a:hover {
+		color: var(--heading-color);
+	}
+
+	.toc a.active {
+		color: var(--heading-color);
+		border-left-color: var(--article-link-hover-border);
+	}
+
+	@media (max-width: 1180px) {
+		.toc {
+			display: none;
+		}
+	}
+</style>
