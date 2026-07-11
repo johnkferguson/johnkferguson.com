@@ -803,6 +803,7 @@ export default function SnapshotFeesMultiLab() {
 								type="button"
 								onClick={() => {
 									setMakerSizes(Array(N).fill(0));
+									setYourSizes(Array(N).fill(0));
 									setScenario(null);
 									setPlaying(false);
 								}}
