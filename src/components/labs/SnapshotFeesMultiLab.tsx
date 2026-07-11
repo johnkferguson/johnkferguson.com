@@ -329,8 +329,9 @@ export default function SnapshotFeesMultiLab() {
 	const [mHist, setMHist] = useState<number[]>([]);
 	const lastM = useRef(100);
 	const drag = useRef<DragState | null>(null);
-	const playBase = useRef<number[] | null>(null);
+	const playCenter = useRef(0); // makers' private fair value, in ticks off mid
 	const playLean = useRef(0);
+	const playDepth = useRef(1);
 
 	const model = useMemo(() => {
 		const yourBook: BookLevel[] = yourSizes.map((size, i) => ({
@@ -381,35 +382,56 @@ export default function SnapshotFeesMultiLab() {
 		return () => window.removeEventListener("keydown", onKey);
 	}, []);
 
-	// —— play: the makers' book wanders, yours stands still ——
+	// —— play: the makers re-price around a wandering private fair value.
+	// Their center, lean, and depth each take slow random walks; level
+	// sizes chase the moving envelope, arriving in lumps. Levels the
+	// center leaves behind decay out; fresh levels fill in ahead of it.
 	useEffect(() => {
 		if (!playing) return;
-		playLean.current = 0;
 		const id = setInterval(() => {
+			playCenter.current = Math.max(
+				-2.5,
+				Math.min(2.5, playCenter.current + (Math.random() - 0.5) * 0.7),
+			);
 			playLean.current = Math.max(
 				-0.5,
-				Math.min(0.5, playLean.current + (Math.random() - 0.5) * 0.14),
+				Math.min(0.5, playLean.current + (Math.random() - 0.5) * 0.1),
 			);
+			playDepth.current = Math.max(
+				0.6,
+				Math.min(1.7, playDepth.current + (Math.random() - 0.5) * 0.07),
+			);
+			const cF = CENTER + playCenter.current;
 			const lv = playLean.current;
-			const base = playBase.current;
-			if (!base) return;
+			const dp = playDepth.current;
 			setMakerSizes((cur) =>
 				cur.map((v, i) => {
 					const side = sideAt(i);
 					if (side === "mid") return 0;
-					const b = base[i];
-					if (b <= 0 && v <= 0) return 0;
-					const target = Math.max(0, b * (side === "bid" ? 1 + lv : 1 - lv));
-					const nx = v + 0.3 * (target - v) + (Math.random() - 0.5) * 2600;
+					const dist = side === "bid" ? cF - i : i - cF;
+					const sideMul = side === "bid" ? 1 + lv : 1 - lv;
+					const target =
+						dist < 1
+							? 0
+							: Math.min(MAKER_MAX, (4500 + 1800 * (dist - 1)) * sideMul * dp);
+					const lump =
+						Math.random() < 0.22
+							? (Math.random() - 0.5) * 7000
+							: (Math.random() - 0.5) * 900;
+					const nx = v + 0.18 * (target - v) + lump;
 					return Math.min(MAKER_MAX, round$(nx));
 				}),
 			);
-		}, 240);
+		}, 420);
 		return () => clearInterval(id);
 	}, [playing]);
 
 	const startStop = () => {
-		if (!playing) playBase.current = [...makerSizes];
+		if (!playing) {
+			playCenter.current = 0;
+			playLean.current = Math.max(-0.5, Math.min(0.5, lean / 100));
+			playDepth.current = Math.max(0.6, Math.min(1.7, depth || 1));
+		}
 		setPlaying((v) => !v);
 	};
 
@@ -583,7 +605,7 @@ export default function SnapshotFeesMultiLab() {
 	const dimIf = (i: number) => (tip != null && !involved.has(i) ? 0.35 : 1);
 
 	const barTrans = playing
-		? { transition: "y 220ms linear, height 220ms linear" }
+		? { transition: "y 380ms ease-out, height 380ms ease-out" }
 		: {};
 
 	// M sparkline
