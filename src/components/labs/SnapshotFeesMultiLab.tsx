@@ -897,27 +897,12 @@ export default function SnapshotFeesMultiLab() {
 										drag.current = null;
 									}}
 								/>
-								{av > 0 && (
-									<rect
-										x={xAt(i) - barW / 2}
-										y={yDepth(av)}
-										width={barW}
-										height={PB - yDepth(av)}
-										opacity={0.3 * dimIf(i)}
-										rx={2}
-										pointerEvents="none"
-										style={{ fill: side === "bid" ? C.bid : C.ask }}
-									/>
-								)}
 								{yv > 0 && (
 									<rect
 										x={xAt(i) - barW / 2}
-										y={yDepth(tot)}
+										y={yDepth(yv)}
 										width={barW}
-										height={Math.max(
-											0,
-											yDepth(av) - yDepth(tot) - (av > 0 ? 1 : 0),
-										)}
+										height={Math.max(0, PB - yDepth(yv))}
 										opacity={0.85 * dimIf(i)}
 										rx={2}
 										pointerEvents="none"
@@ -926,6 +911,21 @@ export default function SnapshotFeesMultiLab() {
 											fill: side === "bid" ? C.bid : C.ask,
 											stroke: sel === i ? C.text : "none",
 										}}
+									/>
+								)}
+								{av > 0 && (
+									<rect
+										x={xAt(i) - barW / 2}
+										y={yDepth(tot)}
+										width={barW}
+										height={Math.max(
+											0,
+											yDepth(yv) - yDepth(tot) - (yv > 0 ? 1 : 0),
+										)}
+										opacity={0.3 * dimIf(i)}
+										rx={2}
+										pointerEvents="none"
+										style={{ fill: side === "bid" ? C.bid : C.ask }}
 									/>
 								)}
 								{consumed > 0 && (
@@ -977,13 +977,9 @@ export default function SnapshotFeesMultiLab() {
 						<rect
 							key={sl.i}
 							x={xAt(sl.i) - barW / 2}
-							y={yDepth(sl.to + aggSizes[sl.i])}
+							y={yDepth(sl.to)}
 							width={barW}
-							height={Math.max(
-								0,
-								yDepth(sl.from + aggSizes[sl.i]) -
-									yDepth(sl.to + aggSizes[sl.i]),
-							)}
+							height={Math.max(0, yDepth(sl.from) - yDepth(sl.to))}
 							fill="none"
 							strokeWidth={1.75}
 							rx={1.5}
