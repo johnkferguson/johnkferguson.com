@@ -9,21 +9,25 @@ import {
 import "./snapshot-fees-lab.css";
 
 // ————————————————————————————————————————————————————————————————
-// Snapshot Fees — multi-maker laboratory: you and the Aggregate Makers.
-// Your book sets your fees; the communal Mark sets the yardstick. Your
-// voice in the Mark is the two-sided, near-the-touch size you stand.
+// Snapshot Fees — multi-maker laboratory, mirrored: your book grows up
+// from the midline, the Aggregate Makers grow down. Communal things (M,
+// the band) span both halves; personal things live in their own half.
 // ————————————————————————————————————————————————————————————————
 
 const N = 21;
 const CENTER = 10;
 const TICK = 0.005;
-const MAX_DEPTH = 60000; // $ per level, you + aggregate stacked
+const DMAX = 40000; // $ per level, per half
 const YOUR_MAX = 25000;
+const MAKER_MAX = 40000;
 const STEP_DOLLARS = 250;
 
 const priceAt = (i: number) => +(100 + (i - CENTER) * TICK).toFixed(3);
 const sideAt = (i: number): Side =>
 	i < CENTER ? "bid" : i > CENTER ? "ask" : "mid";
+
+const round$ = (v: number) =>
+	Math.max(0, Math.round(v / STEP_DOLLARS) * STEP_DOLLARS);
 
 // Aggregate Makers ladder, outward from CENTER ± spread
 const AGG_LADDER = [6000, 7000, 8000, 9000, 10000, 11000];
@@ -33,13 +37,31 @@ const aggSizesOf = (depth: number, leanPct: number, spread: number) => {
 	AGG_LADDER.forEach((v, k) => {
 		const bi = CENTER - spread - k;
 		const ai = CENTER + spread + k;
-		if (bi >= 0)
-			a[bi] =
-				Math.round((v * depth * (1 + lean)) / STEP_DOLLARS) * STEP_DOLLARS;
+		if (bi >= 0) a[bi] = Math.min(MAKER_MAX, round$(v * depth * (1 + lean)));
 		if (ai <= N - 1)
-			a[ai] =
-				Math.round((v * depth * (1 - lean)) / STEP_DOLLARS) * STEP_DOLLARS;
+			a[ai] = Math.min(MAKER_MAX, round$(v * depth * (1 - lean)));
 	});
+	return a;
+};
+
+const randomMakers = () => {
+	const a = Array(N).fill(0);
+	const mk = (start: number, dir: 1 | -1, leanMul: number) => {
+		const base = 3500 + Math.random() * 9000;
+		const grow = 0.15 + Math.random() * 0.55;
+		for (let k = 0; ; k++) {
+			const i = CENTER + dir * (start + k);
+			if (i < 0 || i > N - 1) break;
+			if (Math.random() < 0.15) continue;
+			a[i] = Math.min(
+				MAKER_MAX,
+				round$(base * leanMul * (1 + grow * k) * (0.7 + Math.random() * 0.6)),
+			);
+		}
+	};
+	const lean = 0.5 + Math.random();
+	mk(1 + Math.floor(Math.random() * 3), -1, lean);
+	mk(1 + Math.floor(Math.random() * 3), 1, 2 - lean);
 	return a;
 };
 
@@ -95,7 +117,7 @@ const SCENARIOS: Scenario[] = [
 		key: "equal",
 		title: "Equal Voice",
 		blurb:
-			"You and the aggregate makers stand comparable size near the touch, so the walk consumes from both of you pro-rata and the Mark splits the difference. Check your share of each walk below.",
+			"You and the aggregate makers stand comparable size near the touch, so the walk consumes from both of you pro-rata and the Mark splits the difference. Check your share of each walk in the readout.",
 		you: YOUR_DEFAULT,
 		depth: 0.55,
 		lean: 0,
@@ -137,7 +159,7 @@ const DIAL_EFFECT: Record<string, { up: string; down: string }> = {
 		down: "Tighter band: precision is judged more strictly.",
 	},
 	F: {
-		up: "Higher cap: directional fills pay more, and the cap line rises.",
+		up: "Higher cap: directional fills pay more, and the cap tick rises.",
 		down: "Lower cap: even fully directional fills pay less.",
 	},
 	T: {
@@ -195,6 +217,19 @@ const label = {
 	textTransform: "uppercase",
 	whiteSpace: "nowrap",
 } as const;
+
+const avgFee = (
+	levels: { size: number; bk: { final: number } | null }[],
+): number | null => {
+	let fee = 0;
+	let q = 0;
+	for (const l of levels) {
+		if (!l.bk || l.size <= 0) continue;
+		fee += l.bk.final * l.size;
+		q += l.size;
+	}
+	return q > 0 ? fee / q : null;
+};
 
 interface ParamProps {
 	name: string;
@@ -262,6 +297,7 @@ function Param({
 
 interface DragState {
 	i: number;
+	who: "you" | "makers";
 	y0: number;
 	v0: number;
 	moved: boolean;
@@ -278,16 +314,23 @@ export default function SnapshotFeesMultiLab() {
 	const [yourSizes, setYourSizes] = useState<number[]>(() =>
 		SCENARIOS[0].you(),
 	);
+	const [makerSizes, setMakerSizes] = useState<number[]>(() =>
+		aggSizesOf(SCENARIOS[0].depth, SCENARIOS[0].lean, SCENARIOS[0].spread),
+	);
 	const [scenario, setScenario] = useState<string | null>(SCENARIOS[0].key);
 	const [effect, setEffect] = useState<{ t: string; warn: boolean } | null>(
 		null,
 	);
+	const [playing, setPlaying] = useState(false);
 	const [sel, setSel] = useState(CENTER - 1);
 	const [mHover, setMHover] = useState(false);
 	const [feeHover, setFeeHover] = useState<number | null>(null);
 	const [feePinned, setFeePinned] = useState<number | null>(null);
+	const [mHist, setMHist] = useState<number[]>([]);
 	const lastM = useRef(100);
 	const drag = useRef<DragState | null>(null);
+	const playBase = useRef<number[] | null>(null);
+	const playLean = useRef(0);
 
 	const model = useMemo(() => {
 		const yourBook: BookLevel[] = yourSizes.map((size, i) => ({
@@ -296,8 +339,7 @@ export default function SnapshotFeesMultiLab() {
 			side: sideAt(i),
 			size,
 		}));
-		const aggSizes = aggSizesOf(depth, lean, spread);
-		const aggBook: BookLevel[] = aggSizes.map((size, i) => ({
+		const makerBook: BookLevel[] = makerSizes.map((size, i) => ({
 			i,
 			price: priceAt(i),
 			side: sideAt(i),
@@ -306,24 +348,30 @@ export default function SnapshotFeesMultiLab() {
 		const mm = computeMultiMark(
 			[
 				{ id: "you", levels: yourBook },
-				{ id: "agg", levels: aggBook },
+				{ id: "agg", levels: makerBook },
 			],
 			{ S, T },
 			lastM.current,
 		);
-		const fees = computeAccountFees(
-			yourBook,
-			{ S, T, F, slope, expo: 1, comp: 0 },
-			mm.M,
-		);
-		return { yourBook, aggSizes, mm, fees };
-	}, [yourSizes, depth, lean, spread, S, T, F, slope]);
+		const p = { S, T, F, slope, expo: 1, comp: 0 };
+		const fees = computeAccountFees(yourBook, p, mm.M);
+		const makerFees = computeAccountFees(makerBook, p, mm.M);
+		return { mm, fees, makerFees };
+	}, [yourSizes, makerSizes, S, T, F, slope]);
 
-	const { mm, fees, aggSizes } = model;
+	const { mm, fees, makerFees } = model;
 
 	useEffect(() => {
 		if (!mm.frozen) lastM.current = mm.M;
 	}, [mm.M, mm.frozen]);
+
+	useEffect(() => {
+		setMHist((h) => {
+			if (h.length && Math.abs(h[h.length - 1] - mm.M) < 1e-9) return h;
+			const nx = [...h, mm.M];
+			return nx.length > 80 ? nx.slice(nx.length - 80) : nx;
+		});
+	}, [mm.M]);
 
 	useEffect(() => {
 		const onKey = (e: KeyboardEvent) => {
@@ -333,68 +381,121 @@ export default function SnapshotFeesMultiLab() {
 		return () => window.removeEventListener("keydown", onKey);
 	}, []);
 
-	// —— chart geometry ——
+	// —— play: the makers' book wanders, yours stands still ——
+	useEffect(() => {
+		if (!playing) return;
+		playLean.current = 0;
+		const id = setInterval(() => {
+			playLean.current = Math.max(
+				-0.5,
+				Math.min(0.5, playLean.current + (Math.random() - 0.5) * 0.14),
+			);
+			const lv = playLean.current;
+			const base = playBase.current;
+			if (!base) return;
+			setMakerSizes((cur) =>
+				cur.map((v, i) => {
+					const side = sideAt(i);
+					if (side === "mid") return 0;
+					const b = base[i];
+					if (b <= 0 && v <= 0) return 0;
+					const target = Math.max(0, b * (side === "bid" ? 1 + lv : 1 - lv));
+					const nx = v + 0.3 * (target - v) + (Math.random() - 0.5) * 2600;
+					return Math.min(MAKER_MAX, round$(nx));
+				}),
+			);
+		}, 240);
+		return () => clearInterval(id);
+	}, [playing]);
+
+	const startStop = () => {
+		if (!playing) playBase.current = [...makerSizes];
+		setPlaying((v) => !v);
+	};
+
+	// —— chart geometry: mirrored halves ——
 	const W = 960;
-	const H = 520;
 	const PL = 84;
 	const PR = 884;
 	const PT = 58;
-	const PB = 418;
+	const MID = 298;
+	const PB = 538;
+	const H = 656;
 	const AXIS_Y = PB + 4;
-	// inner padding keeps the outermost bars clear of both axis gutters
 	const PAD = 16;
 	const step = (PR - PL - 2 * PAD) / (N - 1);
 	const xAt = (i: number) => PL + PAD + i * step;
 	const xOfPrice = (p: number) => PL + PAD + ((p - priceAt(0)) / TICK) * step;
 	const barW = step * 0.6;
-	const depthTop = PT;
-	const yDepth = (v: number) =>
-		Math.max(PT, PB - (v / MAX_DEPTH) * (PB - depthTop));
+	const yUp = (v: number) => Math.max(PT, MID - (v / DMAX) * (MID - PT));
+	const yDn = (v: number) => Math.min(PB, MID + (v / DMAX) * (PB - MID));
 	const feeMax = 25;
-	const yFee = (v: number) => PB - (v / feeMax) * (PB - PT);
+	const yFeeUp = (v: number) => MID - (v / feeMax) * (MID - PT);
+	const yFeeDn = (v: number) => MID + (v / feeMax) * (PB - MID);
 
-	// —— drag / select on your book ——
+	// —— drag: upper half edits you, lower half edits the makers ——
 	const onDown = (e: PointerEvent, i: number) => {
 		if (i === CENTER) return;
-		(e.currentTarget as SVGRectElement).setPointerCapture(e.pointerId);
-		drag.current = { i, y0: e.clientY, v0: yourSizes[i], moved: false };
+		const el = e.currentTarget as SVGRectElement;
+		el.setPointerCapture(e.pointerId);
+		const r = el.getBoundingClientRect();
+		const viewY = PT + ((e.clientY - r.top) / r.height) * (PB - PT);
+		const who: "you" | "makers" = viewY < MID ? "you" : "makers";
+		drag.current = {
+			i,
+			who,
+			y0: e.clientY,
+			v0: who === "you" ? yourSizes[i] : makerSizes[i],
+			moved: false,
+		};
 	};
 	const onMove = (e: PointerEvent) => {
 		const d = drag.current;
 		if (!d) return;
-		const dy = d.y0 - e.clientY;
+		const dy = e.clientY - d.y0;
 		if (Math.abs(dy) > 4 && !d.moved) {
 			d.moved = true;
 			setScenario(null);
+			setPlaying(false);
 		}
 		if (!d.moved) return;
-		const perPx = MAX_DEPTH / (PB - depthTop);
-		let v = d.v0 + dy * perPx;
-		v = Math.max(
-			0,
-			Math.min(YOUR_MAX, Math.round(v / STEP_DOLLARS) * STEP_DOLLARS),
-		);
-		setYourSizes((s) =>
-			s[d.i] === v ? s : s.map((x, k) => (k === d.i ? v : x)),
-		);
+		const half = d.who === "you" ? MID - PT : PB - MID;
+		const perPx = DMAX / half;
+		// up increases yours, down increases the makers'
+		const dv = d.who === "you" ? -dy * perPx : dy * perPx;
+		const cap = d.who === "you" ? YOUR_MAX : MAKER_MAX;
+		const v = Math.min(cap, round$(d.v0 + dv));
+		if (d.who === "you")
+			setYourSizes((s) =>
+				s[d.i] === v ? s : s.map((x, k) => (k === d.i ? v : x)),
+			);
+		else
+			setMakerSizes((s) =>
+				s[d.i] === v ? s : s.map((x, k) => (k === d.i ? v : x)),
+			);
 	};
 	const onUp = (_e: PointerEvent, i: number) => {
 		const d = drag.current;
 		drag.current = null;
 		if (d && !d.moved) setSel(i === CENTER ? sel : i);
-		else if (d) setSel(d.i);
+		else if (d && d.who === "you") setSel(d.i);
 	};
 
+	const regenMakers = (nd: number, nl: number, ns: number) => {
+		setMakerSizes(aggSizesOf(nd, nl, ns));
+	};
 	const applyScenario = (sc: Scenario) => {
 		setYourSizes(sc.you());
 		setDepth(sc.depth);
 		setLean(sc.lean);
 		setSpread(sc.spread);
+		regenMakers(sc.depth, sc.lean, sc.spread);
 		setS(2);
 		setT(20000);
 		setF(15);
 		setSlope(0.8);
 		setEffect(null);
+		setPlaying(false);
 		setScenario(sc.key);
 	};
 	const touch =
@@ -402,6 +503,7 @@ export default function SnapshotFeesMultiLab() {
 		(v: number) => {
 			fn(v);
 			setScenario(null);
+			setPlaying(false);
 			if (v === cur) return;
 			if (dial === "k" && v >= 1)
 				setEffect({
@@ -428,21 +530,24 @@ export default function SnapshotFeesMultiLab() {
 	const feeLevels = fees.levels;
 	const selLv = feeLevels[sel];
 	const bk = selLv?.bk;
-	const selFeeY = bk ? yFee(bk.final) : null;
+	const selFeeY = bk ? yFeeUp(bk.final) : null;
 	const feePts = feeLevels.filter((l) => l.size > 0 && l.side !== "mid");
 	const feePath = feePts
-		.map((l, k) => `${k ? "L" : "M"}${xAt(l.i)},${yFee(l.bk?.final ?? 0)}`)
+		.map((l, k) => `${k ? "L" : "M"}${xAt(l.i)},${yFeeUp(l.bk?.final ?? 0)}`)
+		.join(" ");
+	const makerPts = makerFees.levels.filter(
+		(l) => l.size > 0 && l.side !== "mid",
+	);
+	const makerPath = makerPts
+		.map((l, k) => `${k ? "L" : "M"}${xAt(l.i)},${yFeeDn(l.bk?.final ?? 0)}`)
 		.join(" ");
 
-	// walk consumption per level, both entities combined
-	const usedTotal = new Map<number, number>();
-	for (const id of ["you", "agg"]) {
-		for (const [i, v] of mm.used.get(id) ?? []) {
-			usedTotal.set(i, (usedTotal.get(i) ?? 0) + v);
-		}
-	}
 	const yourShareBid = (mm.shareBid.get("you") ?? 0) * 100;
 	const yourShareAsk = (mm.shareAsk.get("you") ?? 0) * 100;
+	const yourAvg = avgFee(feeLevels);
+	const makerAvg = avgFee(makerFees.levels);
+	const prevM = mHist.length > 1 ? mHist[mHist.length - 2] : mm.M;
+	const mArrow = mm.M > prevM + 1e-9 ? "↑" : mm.M < prevM - 1e-9 ? "↓" : "·";
 
 	// —— partner highlighting within your book ——
 	const tip = feeHover ?? feePinned;
@@ -476,6 +581,24 @@ export default function SnapshotFeesMultiLab() {
 	const involved = new Set(matchSlices.map((sl) => sl.i));
 	if (tip != null) involved.add(tip);
 	const dimIf = (i: number) => (tip != null && !involved.has(i) ? 0.35 : 1);
+
+	const barTrans = playing
+		? { transition: "y 220ms linear, height 220ms linear" }
+		: {};
+
+	// M sparkline
+	const sparkPts = (() => {
+		if (mHist.length < 2) return "";
+		const lo = Math.min(...mHist);
+		const hi = Math.max(...mHist);
+		const span = Math.max(hi - lo, 0.00001);
+		return mHist
+			.map(
+				(v, k) =>
+					`${(k / (mHist.length - 1)) * 110},${22 - ((v - lo) / span) * 20}`,
+			)
+			.join(" ");
+	})();
 
 	return (
 		<div class="sf-lab" style={{ color: C.text }}>
@@ -597,17 +720,23 @@ export default function SnapshotFeesMultiLab() {
 					<Param
 						name="Makers depth"
 						val={depth}
-						set={touch("depth", depth, setDepth)}
+						set={(v) => {
+							touch("depth", depth, setDepth)(v);
+							regenMakers(v, lean, spread);
+						}}
 						min={0}
 						max={3}
 						stp={0.1}
 						suffix="×"
-						hint="How much size the aggregate makers stand."
+						hint="How much size they stand."
 					/>
 					<Param
 						name="Makers lean"
 						val={lean}
-						set={touch("lean", lean, setLean)}
+						set={(v) => {
+							touch("lean", lean, setLean)(v);
+							regenMakers(depth, v, spread);
+						}}
 						min={-90}
 						max={90}
 						stp={5}
@@ -617,19 +746,68 @@ export default function SnapshotFeesMultiLab() {
 					<Param
 						name="Makers spread"
 						val={spread}
-						set={touch("spread", spread, setSpread)}
+						set={(v) => {
+							touch("spread", spread, setSpread)(v);
+							regenMakers(depth, lean, v);
+						}}
 						min={1}
 						max={6}
 						stp={1}
 						fmt={(v) => `${v} tick${v > 1 ? "s" : ""}`}
 						hint="How far from mid their ladder starts."
 					/>
+					<div
+						style={{
+							display: "flex",
+							flexDirection: "column",
+							gap: 4,
+							minWidth: 150,
+						}}
+					>
+						<span style={label}>Makers book</span>
+						<div style={{ display: "flex", gap: 5, flexWrap: "wrap" }}>
+							<button
+								type="button"
+								onClick={() => {
+									setMakerSizes(randomMakers());
+									setScenario(null);
+									setPlaying(false);
+								}}
+								style={btn(false)}
+							>
+								Randomize
+							</button>
+							<button
+								type="button"
+								onClick={() => {
+									setMakerSizes(Array(N).fill(0));
+									setScenario(null);
+									setPlaying(false);
+								}}
+								style={{
+									...btn(false),
+									background: "transparent",
+									color: C.faint,
+								}}
+							>
+								Clear
+							</button>
+							<button type="button" onClick={startStop} style={btn(playing)}>
+								{playing ? "❚❚ Pause" : "▶ Play"}
+							</button>
+						</div>
+						<span style={{ fontSize: 11, color: C.faint, lineHeight: 1.45 }}>
+							Play lets their book wander; watch M drift.
+						</span>
+					</div>
 				</div>
+
+				{/* market readout */}
 				<div
 					style={{
 						display: "flex",
 						flexWrap: "wrap",
-						gap: "12px 34px",
+						gap: "12px 30px",
 						alignItems: "flex-start",
 						background: C.inset,
 						border: `1px solid ${C.line}`,
@@ -638,18 +816,37 @@ export default function SnapshotFeesMultiLab() {
 						padding: "11px 16px",
 					}}
 				>
-					<div
-						style={{
-							display: "flex",
-							flexDirection: "column",
-							gap: 3,
-							flex: "0 0 auto",
-						}}
-					>
+					<div style={{ display: "flex", flexDirection: "column", gap: 3 }}>
+						<span style={label}>Mark</span>
+						<span style={{ fontFamily: mono, fontSize: 12, color: C.mark }}>
+							M {fmtPx(mm.M)} {mArrow}
+						</span>
+					</div>
+					<div style={{ display: "flex", flexDirection: "column", gap: 3 }}>
+						<span style={label}>M drift</span>
+						<svg width="110" height="24" aria-hidden="true">
+							<title>Recent M history</title>
+							{sparkPts && (
+								<polyline
+									points={sparkPts}
+									fill="none"
+									strokeWidth="1.5"
+									style={{ stroke: C.mark }}
+								/>
+							)}
+						</svg>
+					</div>
+					<div style={{ display: "flex", flexDirection: "column", gap: 3 }}>
 						<span style={label}>Your voice in M</span>
 						<span style={{ fontFamily: mono, fontSize: 12, color: C.text }}>
-							bid walk {yourShareBid.toFixed(0)}% · ask walk{" "}
-							{yourShareAsk.toFixed(0)}%
+							bid {yourShareBid.toFixed(0)}% · ask {yourShareAsk.toFixed(0)}%
+						</span>
+					</div>
+					<div style={{ display: "flex", flexDirection: "column", gap: 3 }}>
+						<span style={label}>Avg fee if swept</span>
+						<span style={{ fontFamily: mono, fontSize: 12, color: C.text }}>
+							you {yourAvg != null ? fmtBp(yourAvg, 1) : "–"} · makers{" "}
+							{makerAvg != null ? fmtBp(makerAvg, 1) : "–"}
 						</span>
 					</div>
 					{effect && (
@@ -659,8 +856,8 @@ export default function SnapshotFeesMultiLab() {
 								display: "flex",
 								gap: 8,
 								alignItems: "flex-start",
-								flex: "1 1 260px",
-								minWidth: 220,
+								flex: "1 1 240px",
+								minWidth: 200,
 							}}
 						>
 							<svg
@@ -701,7 +898,7 @@ export default function SnapshotFeesMultiLab() {
 					viewBox={`0 0 ${W} ${H}`}
 					style={{ width: "100%", display: "block", touchAction: "none" }}
 					role="img"
-					aria-label="Stacked order book: your quotes plus the aggregate makers, with the communal Mark and your fee curve"
+					aria-label="Mirrored order book: your quotes grow up from the midline, the aggregate makers grow down, with the communal Mark spanning both"
 				>
 					<defs>
 						<pattern
@@ -722,31 +919,59 @@ export default function SnapshotFeesMultiLab() {
 						</pattern>
 					</defs>
 
-					{/* fee gridlines */}
-					{[0, 5, 10, 15, 20, 25].map((v) => (
+					{/* fee gridlines, both halves */}
+					{[5, 10, 15, 20, 25].map((v) => (
 						<g key={v}>
 							<line
 								x1={PL}
 								x2={PR}
-								y1={yFee(v)}
-								y2={yFee(v)}
+								y1={yFeeUp(v)}
+								y2={yFeeUp(v)}
 								strokeWidth={1}
 								style={{ stroke: C.grid }}
 							/>
-							{(selFeeY == null || Math.abs(yFee(v) - selFeeY) > 13) &&
-								Math.abs(yFee(v) - yFee(F)) > 12 && (
+							<line
+								x1={PL}
+								x2={PR}
+								y1={yFeeDn(v)}
+								y2={yFeeDn(v)}
+								strokeWidth={1}
+								style={{ stroke: C.grid }}
+							/>
+							{(selFeeY == null || Math.abs(yFeeUp(v) - selFeeY) > 13) &&
+								Math.abs(yFeeUp(v) - yFeeUp(F)) > 12 && (
 									<text
 										x={PL - 20}
-										y={yFee(v) + 4.5}
+										y={yFeeUp(v) + 4.5}
 										textAnchor="end"
 										fontSize={13}
 										style={{ fill: C.faint, fontFamily: mono }}
 									>
-										{v.toFixed(2)}
+										{v.toFixed(0)}
 									</text>
 								)}
+							{Math.abs(yFeeDn(v) - yFeeDn(F)) > 12 && (
+								<text
+									x={PL - 20}
+									y={yFeeDn(v) + 4.5}
+									textAnchor="end"
+									fontSize={13}
+									style={{ fill: C.faint, fontFamily: mono }}
+								>
+									{v.toFixed(0)}
+								</text>
+							)}
 						</g>
 					))}
+					<text
+						x={PL - 20}
+						y={MID + 4.5}
+						textAnchor="end"
+						fontSize={13}
+						style={{ fill: C.faint, fontFamily: mono }}
+					>
+						0
+					</text>
 					<text
 						x={16}
 						y={(PT + PB) / 2}
@@ -760,31 +985,49 @@ export default function SnapshotFeesMultiLab() {
 					</text>
 					<text
 						x={W - 10}
-						y={(depthTop + PB) / 2}
+						y={(PT + PB) / 2}
 						fontSize={12}
-						transform={`rotate(90 ${W - 10} ${(depthTop + PB) / 2})`}
+						transform={`rotate(90 ${W - 10} ${(PT + PB) / 2})`}
 						textAnchor="middle"
 						letterSpacing="0.12em"
 						style={{ fill: C.dim, fontFamily: mono }}
 					>
 						DEPTH · $
 					</text>
-					{[0, 15000, 30000, 45000, 60000].map((v) => (
-						<text
-							key={v}
-							x={PR + 18}
-							y={yDepth(v) + 4.5}
-							fontSize={13}
-							style={{ fill: C.faint, fontFamily: mono }}
-						>
-							{v / 1000}k
-						</text>
+					{[10000, 20000, 30000, 40000].map((v) => (
+						<g key={v}>
+							<text
+								x={PR + 18}
+								y={yUp(v) + 4.5}
+								fontSize={13}
+								style={{ fill: C.faint, fontFamily: mono }}
+							>
+								{v / 1000}k
+							</text>
+							<text
+								x={PR + 18}
+								y={yDn(v) + 4.5}
+								fontSize={13}
+								style={{ fill: C.faint, fontFamily: mono }}
+							>
+								{v / 1000}k
+							</text>
+						</g>
 					))}
-					{/* fee cap: a red-marked tick on the axis, riding with F */}
+					<text
+						x={PR + 18}
+						y={MID + 4.5}
+						fontSize={13}
+						style={{ fill: C.faint, fontFamily: mono }}
+					>
+						0k
+					</text>
+
+					{/* fee cap ticks on both half-axes */}
 					<g pointerEvents="none" style={{ transition: "all 150ms" }}>
 						<text
 							x={PL - 20}
-							y={yFee(F) - 9}
+							y={yFeeUp(F) - 9}
 							textAnchor="end"
 							fontSize={9}
 							letterSpacing="0.12em"
@@ -794,7 +1037,7 @@ export default function SnapshotFeesMultiLab() {
 						</text>
 						<text
 							x={PL - 20}
-							y={yFee(F) + 4.5}
+							y={yFeeUp(F) + 4.5}
 							textAnchor="end"
 							fontSize={13}
 							style={{ fill: C.fee, fontFamily: mono }}
@@ -802,12 +1045,25 @@ export default function SnapshotFeesMultiLab() {
 							{F.toFixed(2)}
 						</text>
 						<path
-							d={`M${PL - 16},${yFee(F) - 5} L${PL - 6},${yFee(F)} L${PL - 16},${yFee(F) + 5} Z`}
+							d={`M${PL - 16},${yFeeUp(F) - 5} L${PL - 6},${yFeeUp(F)} L${PL - 16},${yFeeUp(F) + 5} Z`}
+							style={{ fill: C.fee }}
+						/>
+						<text
+							x={PL - 20}
+							y={yFeeDn(F) + 4.5}
+							textAnchor="end"
+							fontSize={13}
+							style={{ fill: C.fee, fontFamily: mono }}
+						>
+							{F.toFixed(2)}
+						</text>
+						<path
+							d={`M${PL - 16},${yFeeDn(F) - 5} L${PL - 6},${yFeeDn(F)} L${PL - 16},${yFeeDn(F) + 5} Z`}
 							style={{ fill: C.fee }}
 						/>
 					</g>
 
-					{/* band */}
+					{/* band spans both halves */}
 					<g
 						style={{ transition: "transform 220ms ease" }}
 						transform={`translate(${xOfPrice(mm.edgeBid)},0)`}
@@ -863,7 +1119,7 @@ export default function SnapshotFeesMultiLab() {
 						{fmtPx(mm.edgeAsk)}
 					</text>
 
-					{/* fixed center */}
+					{/* fixed center + midline */}
 					<line
 						x1={xAt(CENTER)}
 						x2={xAt(CENTER)}
@@ -872,14 +1128,22 @@ export default function SnapshotFeesMultiLab() {
 						strokeWidth={1}
 						style={{ stroke: C.line }}
 					/>
+					<line
+						x1={PL}
+						x2={PR}
+						y1={MID}
+						y2={MID}
+						strokeWidth={1.25}
+						style={{ stroke: C.line }}
+					/>
 
-					{/* stacked bars: yours solid below, aggregate muted above */}
+					{/* mirrored books */}
 					{yourSizes.map((yv, i) => {
 						const side = sideAt(i);
 						if (side === "mid") return null;
-						const av = aggSizes[i];
-						const tot = yv + av;
-						const consumed = usedTotal.get(i) ?? 0;
+						const av = makerSizes[i];
+						const usedYou = mm.used.get("you")?.get(i) ?? 0;
+						const usedAgg = mm.used.get("agg")?.get(i) ?? 0;
 						const lv = feeLevels[i];
 						return (
 							<g key={priceAt(i)}>
@@ -900,9 +1164,9 @@ export default function SnapshotFeesMultiLab() {
 								{yv > 0 && (
 									<rect
 										x={xAt(i) - barW / 2}
-										y={yDepth(yv)}
+										y={yUp(yv)}
 										width={barW}
-										height={Math.max(0, PB - yDepth(yv))}
+										height={MID - yUp(yv)}
 										opacity={0.85 * dimIf(i)}
 										rx={2}
 										pointerEvents="none"
@@ -910,62 +1174,60 @@ export default function SnapshotFeesMultiLab() {
 										style={{
 											fill: side === "bid" ? C.bid : C.ask,
 											stroke: sel === i ? C.text : "none",
+											...barTrans,
 										}}
 									/>
 								)}
-								{av > 0 && (
+								{usedYou > 0 && (
 									<rect
 										x={xAt(i) - barW / 2}
-										y={yDepth(tot)}
+										y={yUp(usedYou)}
 										width={barW}
-										height={Math.max(
-											0,
-											yDepth(yv) - yDepth(tot) - (yv > 0 ? 1 : 0),
-										)}
-										opacity={0.3 * dimIf(i)}
-										rx={2}
-										pointerEvents="none"
-										style={{ fill: side === "bid" ? C.bid : C.ask }}
-									/>
-								)}
-								{consumed > 0 && (
-									<rect
-										x={xAt(i) - barW / 2}
-										y={yDepth(consumed)}
-										width={barW}
-										height={Math.max(0, PB - yDepth(consumed))}
+										height={Math.max(0, MID - yUp(usedYou))}
 										strokeWidth={1.25}
 										rx={2}
 										opacity={dimIf(i)}
 										pointerEvents="none"
-										style={{ fill: C.markSlice, stroke: C.mark }}
+										style={{ fill: C.markSlice, stroke: C.mark, ...barTrans }}
 									/>
 								)}
 								{yv > 0 && lv?.bk && lv.bk.unpaired > 0 && (
 									<rect
 										x={xAt(i) - barW / 2}
-										y={yDepth(tot)}
+										y={yUp(yv)}
 										width={barW}
-										height={Math.max(
-											0,
-											yDepth(tot - lv.bk.unpaired) - yDepth(tot),
-										)}
+										height={Math.max(0, yUp(yv - lv.bk.unpaired) - yUp(yv))}
 										fill="url(#sfm-hatch)"
 										rx={2}
 										opacity={dimIf(i)}
 										pointerEvents="none"
 									/>
 								)}
-								{yv === 0 && av === 0 && (
-									<line
-										x1={xAt(i) - barW / 2}
-										x2={xAt(i) + barW / 2}
-										y1={PB}
-										y2={PB}
-										strokeWidth={2}
-										pointerEvents="none"
+								{av > 0 && (
+									<rect
+										x={xAt(i) - barW / 2}
+										y={MID + 1}
+										width={barW}
+										height={Math.max(0, yDn(av) - MID - 1)}
 										opacity={0.45}
-										style={{ stroke: side === "bid" ? C.bid : C.ask }}
+										rx={2}
+										pointerEvents="none"
+										style={{
+											fill: side === "bid" ? C.bid : C.ask,
+											...barTrans,
+										}}
+									/>
+								)}
+								{usedAgg > 0 && (
+									<rect
+										x={xAt(i) - barW / 2}
+										y={MID + 1}
+										width={barW}
+										height={Math.max(0, yDn(usedAgg) - MID - 1)}
+										strokeWidth={1.25}
+										rx={2}
+										pointerEvents="none"
+										style={{ fill: C.markSlice, stroke: C.mark, ...barTrans }}
 									/>
 								)}
 							</g>
@@ -977,9 +1239,9 @@ export default function SnapshotFeesMultiLab() {
 						<rect
 							key={sl.i}
 							x={xAt(sl.i) - barW / 2}
-							y={yDepth(sl.to)}
+							y={yUp(sl.to)}
 							width={barW}
-							height={Math.max(0, yDepth(sl.from) - yDepth(sl.to))}
+							height={Math.max(0, yUp(sl.from) - yUp(sl.to))}
 							fill="none"
 							strokeWidth={1.75}
 							rx={1.5}
@@ -988,22 +1250,22 @@ export default function SnapshotFeesMultiLab() {
 						/>
 					))}
 
-					{/* selected-fee reference line */}
+					{/* selected-fee reference line, your half */}
 					{selLv && bk && (
 						<g pointerEvents="none">
 							<line
 								x1={PL}
 								x2={PR}
-								y1={yFee(bk.final)}
-								y2={yFee(bk.final)}
+								y1={yFeeUp(bk.final)}
+								y2={yFeeUp(bk.final)}
 								strokeDasharray="5 5"
 								strokeWidth={1}
 								opacity={0.7}
 								style={{ stroke: C.fee, transition: "all 150ms" }}
 							/>
 							<text
-								x={PL - 18}
-								y={yFee(bk.final) + 4.5}
+								x={PL - 20}
+								y={yFeeUp(bk.final) + 4.5}
 								textAnchor="end"
 								fontSize={13}
 								style={{ fill: C.fee, fontFamily: mono }}
@@ -1012,6 +1274,30 @@ export default function SnapshotFeesMultiLab() {
 							</text>
 						</g>
 					)}
+
+					{/* makers' fee curve, mirrored */}
+					{makerPts.length > 1 && (
+						<path
+							d={makerPath}
+							fill="none"
+							strokeWidth={1.75}
+							strokeDasharray="5 4"
+							opacity={0.75}
+							pointerEvents="none"
+							style={{ stroke: C.fee, transition: "d 120ms" }}
+						/>
+					)}
+					{makerPts.map((l) => (
+						<circle
+							key={l.i}
+							cx={xAt(l.i)}
+							cy={yFeeDn(l.bk?.final ?? 0)}
+							r={3}
+							strokeWidth={1.5}
+							pointerEvents="none"
+							style={{ fill: C.panel, stroke: C.fee }}
+						/>
+					))}
 
 					{/* your fee curve */}
 					{feePts.length > 1 && (
@@ -1027,20 +1313,19 @@ export default function SnapshotFeesMultiLab() {
 						<circle
 							key={l.i}
 							cx={xAt(l.i)}
-							cy={yFee(l.bk?.final ?? 0)}
+							cy={yFeeUp(l.bk?.final ?? 0)}
 							r={sel === l.i || feeHover === l.i || feePinned === l.i ? 5.5 : 4}
 							strokeWidth={1.5}
 							pointerEvents="none"
 							style={{ fill: C.fee, stroke: C.panel }}
 						/>
 					))}
-					{/* fee hit zones */}
 					{feePts.map((l) => (
 						// biome-ignore lint/a11y/useSemanticElements: SVG hit area, a real <button> cannot exist inside <svg>
 						<circle
 							key={l.i}
 							cx={xAt(l.i)}
-							cy={yFee(l.bk?.final ?? 0)}
+							cy={yFeeUp(l.bk?.final ?? 0)}
 							r={13}
 							fill="transparent"
 							role="button"
@@ -1057,7 +1342,7 @@ export default function SnapshotFeesMultiLab() {
 						/>
 					))}
 
-					{/* price axis */}
+					{/* price axis at the bottom */}
 					<line x1={PL} x2={PR} y1={PB} y2={PB} style={{ stroke: C.line }} />
 					{yourSizes.map((_, i) => (
 						<g key={priceAt(i)}>
@@ -1088,88 +1373,103 @@ export default function SnapshotFeesMultiLab() {
 					{/* key */}
 					<g pointerEvents="none" style={{ fontFamily: mono }}>
 						<rect
-							x={160}
-							y={PB + 46}
+							x={150}
+							y={PB + 40}
 							width={14}
 							height={14}
 							rx={2}
 							style={{ fill: C.bid }}
 						/>
 						<text
-							x={181}
-							y={PB + 59}
+							x={171}
+							y={PB + 53}
 							fontSize={16}
 							style={{ fill: C.dim, fontFamily: mono }}
 						>
-							Your Bids
+							Your Bids ↑
 						</text>
 						<rect
-							x={295}
-							y={PB + 46}
+							x={318}
+							y={PB + 40}
 							width={14}
 							height={14}
 							rx={2}
 							style={{ fill: C.ask }}
 						/>
 						<text
-							x={316}
-							y={PB + 59}
+							x={339}
+							y={PB + 53}
 							fontSize={16}
 							style={{ fill: C.dim, fontFamily: mono }}
 						>
-							Your Asks
+							Your Asks ↑
 						</text>
 						<rect
-							x={430}
-							y={PB + 46}
+							x={486}
+							y={PB + 40}
 							width={14}
 							height={14}
 							rx={2}
-							opacity={0.3}
+							opacity={0.45}
 							style={{ fill: C.bid }}
 						/>
 						<rect
-							x={437}
-							y={PB + 46}
+							x={493}
+							y={PB + 40}
 							width={14}
 							height={14}
 							rx={2}
-							opacity={0.3}
+							opacity={0.45}
 							style={{ fill: C.ask }}
 						/>
 						<text
-							x={458}
-							y={PB + 59}
+							x={514}
+							y={PB + 53}
 							fontSize={16}
 							style={{ fill: C.dim, fontFamily: mono }}
 						>
-							Aggregate Makers
+							Aggregate Makers ↓
 						</text>
 						<circle
-							cx={660}
-							cy={PB + 53}
+							cx={157}
+							cy={PB + 72}
 							r={6}
 							strokeWidth={1}
 							style={{ fill: C.fee, stroke: C.panel }}
 						/>
 						<text
-							x={671}
-							y={PB + 59}
+							x={170}
+							y={PB + 78}
 							fontSize={16}
 							style={{ fill: C.dim, fontFamily: mono }}
 						>
 							Your Fee if Filled
 						</text>
+						<circle
+							cx={420}
+							cy={PB + 72}
+							r={6}
+							strokeWidth={1.5}
+							style={{ fill: C.panel, stroke: C.fee }}
+						/>
+						<text
+							x={433}
+							y={PB + 78}
+							fontSize={16}
+							style={{ fill: C.dim, fontFamily: mono }}
+						>
+							Makers Fee if Filled
+						</text>
 						<text
 							x={W / 2}
-							y={PB + 90}
+							y={PB + 104}
 							textAnchor="middle"
 							fontSize={12.5}
 							style={{ fill: C.faint, fontFamily: mono, fontStyle: "italic" }}
 						>
-							Instructions: Drag your bars. Dial the aggregate makers. Hover{" "}
-							<tspan style={{ fill: C.fee }}>●</tspan> for your fees. Hover{" "}
-							<tspan style={{ fill: C.mark }}>M</tspan> for the communal walk.
+							Instructions: Drag up for your book, drag down for the makers.
+							Hover <tspan style={{ fill: C.fee }}>●</tspan> for your fees.
+							Hover <tspan style={{ fill: C.mark }}>M</tspan> for the walk.
 						</text>
 					</g>
 
@@ -1223,7 +1523,7 @@ export default function SnapshotFeesMultiLab() {
 						/>
 					</g>
 
-					{/* M tooltip: the communal walk, with your share */}
+					{/* M tooltip */}
 					{mHover &&
 						(() => {
 							const xT = Math.min(Math.max(xOfPrice(mm.M), PL + 175), PR - 175);
@@ -1276,7 +1576,8 @@ export default function SnapshotFeesMultiLab() {
 							);
 						})()}
 
-					{/* fee tooltip: itemized receipt, fixed top-center slot */}
+					{/* fee receipt: rendered in the makers' half, opposite what
+					    it inspects */}
 					{(feeHover ?? feePinned) != null &&
 						!mHover &&
 						(() => {
@@ -1393,7 +1694,7 @@ export default function SnapshotFeesMultiLab() {
 							});
 							const h = yAcc - 2;
 							const xT = W / 2;
-							const yT = PT + 8;
+							const yT = PB - h - 10;
 							return (
 								<g
 									pointerEvents={
