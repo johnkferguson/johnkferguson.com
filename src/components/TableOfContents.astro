@@ -1,65 +1,82 @@
 ---
-// Floating left-rail section navigation. Auto-discovers h2[id] headings
-// inside the element marked data-toc-root, highlights the section in
-// view, and hides itself when the viewport has no room for a rail.
-// Designed to be droppable into any post layout.
+// Section navigation. Auto-discovers h2[id] headings inside the element
+// marked data-toc-root. Two variants:
+//   <TableOfContents />        fixed left rail, shown on wide viewports
+//   <TableOfContents inline /> in-flow Contents block, shown when the
+//                              rail does not fit
+// The shared script populates every instance; the rail also scrollspies.
+interface Props {
+	inline?: boolean;
+}
+const { inline = false } = Astro.props;
 ---
 
-<nav class="toc" aria-label="Sections">
-	<span class="toc-title">Sections</span>
+<nav
+	class={inline ? "toc toc-inline" : "toc toc-rail"}
+	data-toc
+	aria-label="Sections"
+>
+	<span class="toc-title">Contents</span>
 	<ul></ul>
 </nav>
 
 <script>
-	const nav = document.querySelector("nav.toc");
 	const root = document.querySelector("[data-toc-root]");
-	if (nav && root) {
+	const navs = [...document.querySelectorAll<HTMLElement>("nav[data-toc]")];
+	if (root && navs.length) {
 		const headings = [...root.querySelectorAll<HTMLElement>("h2[id]")];
-		const ul = nav.querySelector("ul");
-		const links = headings.map((h) => {
-			const li = document.createElement("li");
-			const a = document.createElement("a");
-			a.href = `#${h.id}`;
-			a.textContent = h.textContent ?? "";
-			li.append(a);
-			ul?.append(li);
-			return a;
-		});
-		let ticking = false;
-		const update = () => {
-			ticking = false;
-			let current = 0;
-			headings.forEach((h, i) => {
-				if (h.getBoundingClientRect().top < 150) current = i;
-			});
-			links.forEach((a, i) => {
-				a.classList.toggle("active", i === current);
-			});
-		};
-		update();
-		window.addEventListener(
-			"scroll",
-			() => {
-				if (!ticking) {
-					ticking = true;
-					requestAnimationFrame(update);
-				}
-			},
-			{ passive: true },
-		);
+		const railLinks: HTMLAnchorElement[] = [];
+		for (const nav of navs) {
+			const ul = nav.querySelector("ul");
+			for (const h of headings) {
+				const li = document.createElement("li");
+				const a = document.createElement("a");
+				a.href = `#${h.id}`;
+				a.textContent = h.textContent ?? "";
+				a.addEventListener("click", (e) => {
+					e.preventDefault();
+					h.scrollIntoView({ behavior: "smooth", block: "start" });
+					history.pushState(null, "", `#${h.id}`);
+				});
+				li.append(a);
+				ul?.append(li);
+				if (nav.classList.contains("toc-rail")) railLinks.push(a);
+			}
+		}
+		if (railLinks.length) {
+			let ticking = false;
+			const update = () => {
+				ticking = false;
+				let current = 0;
+				headings.forEach((h, i) => {
+					if (h.getBoundingClientRect().top < 150) current = i;
+				});
+				railLinks.forEach((a, i) => {
+					a.classList.toggle("active", i === current);
+				});
+			};
+			update();
+			window.addEventListener(
+				"scroll",
+				() => {
+					if (!ticking) {
+						ticking = true;
+						requestAnimationFrame(update);
+					}
+				},
+				{ passive: true },
+			);
+		}
 	}
 </script>
 
-<style>
-	.toc {
-		position: fixed;
-		top: 140px;
-		left: calc(50vw - 360px - 232px);
-		width: 196px;
-		font-size: 0.62rem;
-		line-height: 1.45;
+<style is:global>
+	[data-toc-root] h2[id] {
+		scroll-margin-top: 90px;
 	}
+</style>
 
+<style>
 	.toc-title {
 		display: block;
 		font-family: var(--font-mono);
@@ -100,8 +117,34 @@
 		border-left-color: var(--article-link-hover-border);
 	}
 
+	/* —— fixed left rail —— */
+	.toc-rail {
+		position: fixed;
+		top: 140px;
+		left: calc(50vw - 360px - 232px);
+		width: 196px;
+		font-size: 0.62rem;
+		line-height: 1.45;
+	}
+
 	@media (max-width: 1180px) {
-		.toc {
+		.toc-rail {
+			display: none;
+		}
+	}
+
+	/* —— in-flow contents block —— */
+	.toc-inline {
+		border: 1px solid var(--border-color);
+		border-radius: 8px;
+		padding: 0.7rem 0.9rem;
+		margin: 1.2rem 0 1.6rem;
+		font-size: 0.66rem;
+		line-height: 1.5;
+	}
+
+	@media (min-width: 1181px) {
+		.toc-inline {
 			display: none;
 		}
 	}
