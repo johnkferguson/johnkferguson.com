@@ -317,9 +317,11 @@ export default function SnapshotFeesLab() {
 	const PT = 58;
 	const PB = 418; // plot box
 	const AXIS_Y = PB + 4;
-	const step = (PR - PL) / (N - 1);
-	const xAt = (i: number) => PL + i * step;
-	const xOfPrice = (p: number) => PL + ((p - priceAt(0)) / TICK) * step;
+	// inner padding keeps the outermost bars clear of both axis gutters
+	const PAD = 16;
+	const step = (PR - PL - 2 * PAD) / (N - 1);
+	const xAt = (i: number) => PL + PAD + i * step;
+	const xOfPrice = (p: number) => PL + PAD + ((p - priceAt(0)) / TICK) * step;
 	const barW = step * 0.6;
 	const depthTop = PT; // depth scale spans the full plot: $25k = top gridline
 	const yDepth = (v: number) => PB - (v / MAX_DEPTH) * (PB - depthTop);
@@ -847,17 +849,18 @@ export default function SnapshotFeesLab() {
 								strokeWidth={1}
 								style={{ stroke: C.grid }}
 							/>
-							{(selFeeY == null || Math.abs(yFee(v) - selFeeY) > 13) && (
-								<text
-									x={PL - 18}
-									y={yFee(v) + 4.5}
-									textAnchor="end"
-									fontSize={13}
-									style={{ fill: C.faint, fontFamily: mono }}
-								>
-									{v.toFixed(2)}
-								</text>
-							)}
+							{(selFeeY == null || Math.abs(yFee(v) - selFeeY) > 13) &&
+								Math.abs(yFee(v) - yFee(F)) > 12 && (
+									<text
+										x={PL - 20}
+										y={yFee(v) + 4.5}
+										textAnchor="end"
+										fontSize={13}
+										style={{ fill: C.faint, fontFamily: mono }}
+									>
+										{v.toFixed(2)}
+									</text>
+								)}
 						</g>
 					))}
 					<text
@@ -903,29 +906,32 @@ export default function SnapshotFeesLab() {
 							style={{ stroke: C.faint }}
 						/>
 					)}
-					{F < feeMax && (
-						<g pointerEvents="none">
-							<line
-								x1={PL}
-								x2={PR}
-								y1={yFee(F)}
-								y2={yFee(F)}
-								strokeDasharray="4 4"
-								opacity={0.45}
-								style={{ stroke: C.fee }}
-							/>
-							<text
-								x={PR - 5}
-								y={yFee(F) - 5}
-								textAnchor="end"
-								fontSize={11.5}
-								opacity={0.8}
-								style={{ fill: C.fee, fontFamily: mono }}
-							>
-								cap F
-							</text>
-						</g>
-					)}
+					{/* fee cap: a red-marked tick on the axis, riding with F */}
+					<g pointerEvents="none" style={{ transition: "all 150ms" }}>
+						<text
+							x={PL - 20}
+							y={yFee(F) - 9}
+							textAnchor="end"
+							fontSize={9}
+							letterSpacing="0.12em"
+							style={{ fill: C.fee, fontFamily: mono }}
+						>
+							CAP
+						</text>
+						<text
+							x={PL - 20}
+							y={yFee(F) + 4.5}
+							textAnchor="end"
+							fontSize={13}
+							style={{ fill: C.fee, fontFamily: mono }}
+						>
+							{F.toFixed(2)}
+						</text>
+						<path
+							d={`M${PL - 16},${yFee(F) - 5} L${PL - 6},${yFee(F)} L${PL - 16},${yFee(F) + 5} Z`}
+							style={{ fill: C.fee }}
+						/>
+					</g>
 
 					{/* band (slides with M) */}
 					<g
