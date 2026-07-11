@@ -47,15 +47,20 @@ const aggSizesOf = (depth: number, leanPct: number, spread: number) => {
 const randomMakers = () => {
 	const a = Array(N).fill(0);
 	const mk = (start: number, dir: 1 | -1, leanMul: number) => {
-		const base = 3500 + Math.random() * 9000;
-		const grow = 0.15 + Math.random() * 0.55;
+		const base = 4500 + Math.random() * 9000;
+		const grow = -0.15 + Math.random() * 0.6;
 		for (let k = 0; ; k++) {
 			const i = CENTER + dir * (start + k);
 			if (i < 0 || i > N - 1) break;
 			if (Math.random() < 0.15) continue;
 			a[i] = Math.min(
 				MAKER_MAX,
-				round$(base * leanMul * (1 + grow * k) * (0.7 + Math.random() * 0.6)),
+				round$(
+					base *
+						leanMul *
+						Math.max(0.3, 1 + grow * k) *
+						(0.7 + Math.random() * 0.6),
+				),
 			);
 		}
 	};
@@ -332,6 +337,7 @@ export default function SnapshotFeesMultiLab() {
 	const playCenter = useRef(0); // makers' private fair value, in ticks off mid
 	const playLean = useRef(0);
 	const playDepth = useRef(1);
+	const playShape = useRef(0.2); // book shape: +grows outward, −thick at the mid
 
 	const model = useMemo(() => {
 		const yourBook: BookLevel[] = yourSizes.map((size, i) => ({
@@ -401,9 +407,14 @@ export default function SnapshotFeesMultiLab() {
 				0.6,
 				Math.min(1.7, playDepth.current + (Math.random() - 0.5) * 0.07),
 			);
+			playShape.current = Math.max(
+				-0.16,
+				Math.min(0.32, playShape.current + (Math.random() - 0.5) * 0.05),
+			);
 			const cF = CENTER + playCenter.current;
 			const lv = playLean.current;
 			const dp = playDepth.current;
+			const g = playShape.current;
 			setMakerSizes((cur) =>
 				cur.map((v, i) => {
 					const side = sideAt(i);
@@ -413,7 +424,10 @@ export default function SnapshotFeesMultiLab() {
 					const target =
 						dist < 1
 							? 0
-							: Math.min(MAKER_MAX, (4500 + 1800 * (dist - 1)) * sideMul * dp);
+							: Math.min(
+									MAKER_MAX,
+									6000 * Math.max(0.3, 1 + g * (dist - 1)) * sideMul * dp,
+								);
 					const lump =
 						Math.random() < 0.22
 							? (Math.random() - 0.5) * 7000
@@ -431,6 +445,7 @@ export default function SnapshotFeesMultiLab() {
 			playCenter.current = 0;
 			playLean.current = Math.max(-0.5, Math.min(0.5, lean / 100));
 			playDepth.current = Math.max(0.6, Math.min(1.7, depth || 1));
+			playShape.current = -0.16 + Math.random() * 0.48;
 		}
 		setPlaying((v) => !v);
 	};
