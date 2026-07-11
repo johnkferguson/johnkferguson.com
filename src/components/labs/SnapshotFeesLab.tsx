@@ -21,8 +21,8 @@ const MAX_DEPTH = 25000; // $ per level
 const STEP_DOLLARS = 250;
 
 const priceAt = (i: number) => +(100 + (i - CENTER) * TICK).toFixed(3);
-const sideAt = (i: number): Side =>
-	i < CENTER ? "bid" : i > CENTER ? "ask" : "mid";
+// 100.000 (i = CENTER) is a quotable bid; asks start one tick above.
+const sideAt = (i: number): Side => (i <= CENTER ? "bid" : "ask");
 
 interface Scenario {
 	key: string;
@@ -333,7 +333,6 @@ export default function SnapshotFeesLab() {
 
 	// —— drag / select ——
 	const onDown = (e: PointerEvent, i: number) => {
-		if (i === CENTER) return;
 		(e.currentTarget as SVGRectElement).setPointerCapture(e.pointerId);
 		drag.current = { i, y0: e.clientY, v0: sizes[i], moved: false };
 	};
@@ -387,7 +386,7 @@ export default function SnapshotFeesLab() {
 	const onUp = (_e: PointerEvent, i: number) => {
 		const d = drag.current;
 		drag.current = null;
-		if (d && !d.moved) setSel(i === CENTER ? sel : i);
+		if (d && !d.moved) setSel(i);
 		else if (d) setSel(d.i);
 	};
 
@@ -993,10 +992,10 @@ export default function SnapshotFeesLab() {
 						{fmtPx(model.edgeAsk)}
 					</text>
 
-					{/* fixed center */}
+					{/* the bid/ask boundary, between 100.000 and 100.005 */}
 					<line
-						x1={xAt(CENTER)}
-						x2={xAt(CENTER)}
+						x1={(xAt(CENTER) + xAt(CENTER + 1)) / 2}
+						x2={(xAt(CENTER) + xAt(CENTER + 1)) / 2}
 						y1={PT}
 						y2={PB}
 						strokeWidth={1}

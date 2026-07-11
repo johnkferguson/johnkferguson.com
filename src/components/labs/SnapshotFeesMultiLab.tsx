@@ -23,8 +23,8 @@ const MAKER_MAX = 40000;
 const STEP_DOLLARS = 250;
 
 const priceAt = (i: number) => +(100 + (i - CENTER) * TICK).toFixed(3);
-const sideAt = (i: number): Side =>
-	i < CENTER ? "bid" : i > CENTER ? "ask" : "mid";
+// 100.000 (i = CENTER) is a quotable bid; asks start one tick above.
+const sideAt = (i: number): Side => (i <= CENTER ? "bid" : "ask");
 
 const round$ = (v: number) =>
 	Math.max(0, Math.round(v / STEP_DOLLARS) * STEP_DOLLARS);
@@ -35,7 +35,7 @@ const aggSizesOf = (depth: number, leanPct: number, spread: number) => {
 	const a = Array(N).fill(0);
 	const lean = leanPct / 100;
 	AGG_LADDER.forEach((v, k) => {
-		const bi = CENTER - spread - k;
+		const bi = CENTER + 1 - spread - k;
 		const ai = CENTER + spread + k;
 		if (bi >= 0) a[bi] = Math.min(MAKER_MAX, round$(v * depth * (1 + lean)));
 		if (ai <= N - 1)
@@ -50,7 +50,7 @@ const randomMakers = () => {
 		const base = 4500 + Math.random() * 9000;
 		const grow = -0.1 + 0.55 * Math.random() ** 0.8;
 		for (let k = 0; ; k++) {
-			const i = CENTER + dir * (start + k);
+			const i = dir === -1 ? CENTER + 1 - start - k : CENTER + start + k;
 			if (i < 0 || i > N - 1) break;
 			if (Math.random() < 0.15) continue;
 			a[i] = Math.min(
@@ -342,6 +342,7 @@ export default function SnapshotFeesMultiLab() {
 	const playLean = useRef(0);
 	const playDepth = useRef(1);
 	const playShape = useRef(0.2); // book shape: +grows outward, −thick at the mid
+	const playTilt = useRef(0); // shape opposition: bids vs asks bend opposite ways
 
 	const model = useMemo(() => {
 		const yourBook: BookLevel[] = yourSizes.map((size, i) => ({
@@ -420,16 +421,30 @@ export default function SnapshotFeesMultiLab() {
 						(Math.random() - 0.5) * 0.05,
 				),
 			);
-			const cF = CENTER + playCenter.current;
+			playTilt.current = Math.max(
+				-0.3,
+				Math.min(0.3, playTilt.current + (Math.random() - 0.5) * 0.07),
+			);
+			const cF = CENTER + 0.5 + playCenter.current;
 			const lv = playLean.current;
 			const dp = playDepth.current;
-			const g = playShape.current;
+			// sides can bend opposite ways: one thick at the edge while the
+			// other stacks the middle
+			const gBid = Math.max(
+				-0.2,
+				Math.min(0.5, playShape.current + playTilt.current),
+			);
+			const gAsk = Math.max(
+				-0.2,
+				Math.min(0.5, playShape.current - playTilt.current),
+			);
 			setMakerSizes((cur) =>
 				cur.map((v, i) => {
 					const side = sideAt(i);
 					if (side === "mid") return 0;
 					const dist = side === "bid" ? cF - i : i - cF;
 					const sideMul = side === "bid" ? 1 + lv : 1 - lv;
+					const g = side === "bid" ? gBid : gAsk;
 					const target =
 						dist < 0.5
 							? 0
@@ -458,6 +473,7 @@ export default function SnapshotFeesMultiLab() {
 			playLean.current = Math.max(-0.5, Math.min(0.5, lean / 100));
 			playDepth.current = Math.max(0.6, Math.min(1.7, depth || 1));
 			playShape.current = -0.12 + 0.47 * Math.random() ** 0.75;
+			playTilt.current = (Math.random() - 0.5) * 0.3;
 		}
 		setPlaying((v) => !v);
 	};
@@ -484,7 +500,6 @@ export default function SnapshotFeesMultiLab() {
 
 	// —— drag: upper half edits you, lower half edits the makers ——
 	const onDown = (e: PointerEvent, i: number) => {
-		if (i === CENTER) return;
 		const el = e.currentTarget as SVGRectElement;
 		el.setPointerCapture(e.pointerId);
 		const r = el.getBoundingClientRect();
@@ -526,7 +541,7 @@ export default function SnapshotFeesMultiLab() {
 	const onUp = (_e: PointerEvent, i: number) => {
 		const d = drag.current;
 		drag.current = null;
-		if (d && !d.moved) setSel(i === CENTER ? sel : i);
+		if (d && !d.moved) setSel(i);
 		else if (d && d.who === "you") setSel(d.i);
 	};
 
@@ -1169,10 +1184,10 @@ export default function SnapshotFeesMultiLab() {
 						{fmtPx(mm.edgeAsk)}
 					</text>
 
-					{/* fixed center + midline */}
+					{/* the bid/ask boundary + depth midline */}
 					<line
-						x1={xAt(CENTER)}
-						x2={xAt(CENTER)}
+						x1={(xAt(CENTER) + xAt(CENTER + 1)) / 2}
+						x2={(xAt(CENTER) + xAt(CENTER + 1)) / 2}
 						y1={PT}
 						y2={PB}
 						strokeWidth={1}
