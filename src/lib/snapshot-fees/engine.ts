@@ -1,13 +1,17 @@
 /**
  * Snapshot fees — pure mechanism engine.
  *
- * Framework-free so every lab (single-maker, dual-maker, …) renders the same
+ * Framework-free so every lab (single-maker, multi-maker, …) renders the same
  * mechanism, and so the engine can be unit-tested against the spec's
  * reference computation (see engine.test.ts).
  *
+ * The Mark pipeline (computeMark) is shared by every lab: two-pass anchoring,
+ * matched-only eligibility, and boundary fill at the window edge. A single
+ * account is just a one-book market.
+ *
  * Conventions: prices near $100, so 1bp = $0.01. Floating-point is fine here —
  * an on-chain implementation would use fixed-point integers, but the labs only
- * need visual fidelity plus exactness on the reference vector.
+ * need visual fidelity plus exactness on the reference vectors.
  */
 
 export type Side = "bid" | "ask" | "mid";
@@ -27,6 +31,12 @@ export interface FeeParams {
 	T: number;
 	/** Fee cap / taker rate, in bps. */
 	F: number;
+	/**
+	 * Window W — absolute working radius, in bps. Governs the Mark's
+	 * eligibility range, walk truncation, and boundary-fill price.
+	 * Validity: W ≥ S.
+	 */
+	W: number;
 	/** Stamp slope k — fee bps per bp of placement beyond the band edge. */
 	slope: number;
 	/** Stamp curvature e. */
@@ -37,43 +47,6 @@ export interface FeeParams {
 
 /** $ per basis point at the $100 reference price. */
 export const BP = 0.01;
-
-export interface ImpactWalkResult {
-	/** Volume-weighted price of the walk, or null if the side is empty. */
-	price: number | null;
-	/** Size the walk consumed, keyed by level identity `i`. */
-	used: Map<number, number>;
-}
-
-/**
- * Volume-weighted price to trade `size` into `levels` (must be sorted
- * best-first), ignoring quotes more than 8×S behind the side's best.
- * If the side holds less than `size`, walks what's there.
- */
-export function impactWalk(
-	levels: BookLevel[],
-	size: number,
-	S: number,
-): ImpactWalkResult {
-	const live = levels.filter((l) => l.size > 0);
-	if (!live.length) return { price: null, used: new Map() };
-	const best = live[0].price;
-	const lim = 8 * S * BP + 1e-9;
-	let rem = size;
-	let cost = 0;
-	let usedTotal = 0;
-	const used = new Map<number, number>();
-	for (const l of live) {
-		if (Math.abs(l.price - best) > lim) break;
-		const take = Math.min(rem, l.size);
-		cost += take * l.price;
-		usedTotal += take;
-		rem -= take;
-		used.set(l.i, take);
-		if (rem <= 1e-9) break;
-	}
-	return { price: usedTotal > 0 ? cost / usedTotal : null, used };
-}
 
 export interface CoveragePair {
 	price: number;
@@ -108,22 +81,6 @@ export interface FeeBreakdown {
 
 export interface FeeLevel extends BookLevel {
 	bk: FeeBreakdown | null;
-}
-
-export interface MarketModel {
-	levels: FeeLevel[];
-	M: number;
-	iBid: number | null;
-	iAsk: number | null;
-	edgeBid: number;
-	edgeAsk: number;
-	/** True when a side was empty and M fell back to `fallbackM`. */
-	frozen: boolean;
-	bidTotal: number;
-	askTotal: number;
-	/** Size the Mark walk consumed, keyed by level identity. */
-	markUsed: Map<number, number>;
-	stampOf: (price: number, side: "bid" | "ask") => number;
 }
 
 /** Fees for one account's book, judged against a given Mark. */
@@ -240,70 +197,20 @@ export function computeAccountFees(
 	return { levels, edgeBid, edgeAsk, stampOf };
 }
 
-/**
- * Run the full window pipeline on one account's book:
- * Mark → band → stamps → joint pairing allocation (spillover) → combined fee.
- *
- * Every level's breakdown answers: if the sweep reached this level and it
- * fully filled, what rate would it pay?
- */
-export function computeModel(
-	book: BookLevel[],
-	p: FeeParams,
-	fallbackM: number,
-): MarketModel {
-	const { S, T } = p;
-	const bids = book
-		.filter((l) => l.side === "bid")
-		.sort((a, b) => b.price - a.price);
-	const asks = book
-		.filter((l) => l.side === "ask")
-		.sort((a, b) => a.price - b.price);
-
-	const wBid = impactWalk(bids, T, S);
-	const wAsk = impactWalk(asks, T, S);
-	const iBid = wBid.price;
-	const iAsk = wAsk.price;
-	const markUsed = new Map([...wBid.used, ...wAsk.used]);
-	let M: number;
-	let frozen = false;
-	if (iBid != null && iAsk != null) M = (iBid + iAsk) / 2;
-	else {
-		M = fallbackM;
-		frozen = true;
-	}
-
-	const af = computeAccountFees(book, p, M);
-	const bidTotal = book.reduce(
-		(s, l) => s + (l.side === "bid" ? l.size : 0),
-		0,
-	);
-	const askTotal = book.reduce(
-		(s, l) => s + (l.side === "ask" ? l.size : 0),
-		0,
-	);
-	return {
-		levels: af.levels,
-		M,
-		iBid,
-		iAsk,
-		edgeBid: af.edgeBid,
-		edgeAsk: af.edgeAsk,
-		frozen,
-		bidTotal,
-		askTotal,
-		markUsed,
-		stampOf: af.stampOf,
-	};
-}
-
 // ————————————————————————————————————————————————————————————————
-// Multi-maker Mark
+// The Mark
 // ————————————————————————————————————————————————————————————————
 
 export interface MakerBook {
 	id: string;
 	levels: BookLevel[];
+}
+
+export interface MarkShort {
+	/** Dollars the walk could not source from eligible size. */
+	missing: number;
+	/** Where those dollars were priced: the side's anchor ± W. */
+	price: number;
 }
 
 export interface MultiMark {
@@ -313,6 +220,11 @@ export interface MultiMark {
 	frozen: boolean;
 	edgeBid: number;
 	edgeAsk: number;
+	/** iAsk − iBid, the thinness thermometer. Null while held. */
+	impactSpread: number | null;
+	/** Boundary fill per side, when the eligible ladder held less than T. */
+	shortBid: MarkShort | null;
+	shortAsk: MarkShort | null;
 	/** Walk consumption per account: id -> (level i -> $). */
 	used: Map<string, Map<number, number>>;
 	/** Each account's share of the walked dollars, per side (0..1). */
@@ -323,30 +235,74 @@ export interface MultiMark {
 }
 
 /**
- * The communal Mark. Only demonstrated two-sided size is eligible: per
- * account and side, quotes count up to the account's two-sided overlap
- * (min of its in-range bid and ask totals), allocated best-first, and only
- * within 8×S of that side's market-wide best. The T-walk then consumes the
- * aggregated eligible book best-first, pro-rata across accounts at equal
- * prices. One-sided size has no vote; far size has no vote.
+ * The Mark. Only matched (demonstrated two-sided) size votes: per account
+ * and side, quotes count up to the account's overlap — min(in-range bid $,
+ * in-range ask $) — allocated best-first, where in range means within W of
+ * that side's anchor.
+ *
+ * Anchoring is exactly two passes: pass 1 anchors each side at the best
+ * quote among raw two-sided accounts (any paired size, no range condition);
+ * pass 2 re-anchors at the best pass-1-eligible quote and recomputes
+ * eligibility once — a one-sided touch order can never position the window.
+ * No pass-1 eligible size on a side → M held at the fallback.
+ *
+ * The T-walk consumes the pooled eligible ladder best-first, pro-rata across
+ * accounts at equal prices; if the ladder holds less than T, the missing
+ * dollars are priced at the anchor ± W (boundary fill). Because every
+ * account's eligible size is equal on both sides by construction, the
+ * eligible book is dollar-symmetric: shortfalls are always equal, so raw
+ * size imbalance never tilts M. Boundary fill only interpolates —
+ * M = c·(walked mid) + (1−c)·(anchor mid), c = eligible/T — and inflates
+ * the exported impact spread, the health signal. Placement is the only vote.
  */
-export function computeMultiMark(
+export function computeMark(
 	books: MakerBook[],
-	p: { S: number; T: number },
+	p: { S: number; T: number; W: number },
 	fallbackM: number,
 ): MultiMark {
-	const { S, T } = p;
-	const lim = 8 * S * BP + 1e-9;
+	const { S, T, W } = p;
+	const wD = W * BP;
+	const half = (S / 2) * BP;
 
-	let bestBid = Number.NEGATIVE_INFINITY;
-	let bestAsk = Number.POSITIVE_INFINITY;
+	const mapBy = <V>(mk: () => V): Map<string, V> => {
+		const m = new Map<string, V>();
+		for (const b of books) m.set(b.id, mk());
+		return m;
+	};
+	const held = (): MultiMark => ({
+		M: fallbackM,
+		iBid: null,
+		iAsk: null,
+		frozen: true,
+		edgeBid: fallbackM - half,
+		edgeAsk: fallbackM + half,
+		impactSpread: null,
+		shortBid: null,
+		shortAsk: null,
+		used: mapBy(() => new Map<number, number>()),
+		shareBid: mapBy(() => 0),
+		shareAsk: mapBy(() => 0),
+		eligible: mapBy(() => new Map<number, number>()),
+	});
+
+	// —— Pass 1 anchors: best quote among raw two-sided accounts ——
+	let a1Bid = Number.NEGATIVE_INFINITY;
+	let a1Ask = Number.POSITIVE_INFINITY;
 	for (const b of books) {
+		let bb = Number.NEGATIVE_INFINITY;
+		let ba = Number.POSITIVE_INFINITY;
 		for (const l of b.levels) {
 			if (l.size <= 0) continue;
-			if (l.side === "bid" && l.price > bestBid) bestBid = l.price;
-			if (l.side === "ask" && l.price < bestAsk) bestAsk = l.price;
+			if (l.side === "bid" && l.price > bb) bb = l.price;
+			if (l.side === "ask" && l.price < ba) ba = l.price;
+		}
+		if (bb !== Number.NEGATIVE_INFINITY && ba !== Number.POSITIVE_INFINITY) {
+			if (bb > a1Bid) a1Bid = bb;
+			if (ba < a1Ask) a1Ask = ba;
 		}
 	}
+	if (a1Bid === Number.NEGATIVE_INFINITY || a1Ask === Number.POSITIVE_INFINITY)
+		return held();
 
 	interface ElQuote {
 		id: string;
@@ -354,54 +310,72 @@ export function computeMultiMark(
 		price: number;
 		el: number;
 	}
-	const eligible = new Map<string, Map<number, number>>();
-	const elBids: ElQuote[] = [];
-	const elAsks: ElQuote[] = [];
-	for (const b of books) {
-		const em = new Map<number, number>();
-		eligible.set(b.id, em);
-		const bids = b.levels
-			.filter((l) => l.side === "bid" && l.size > 0 && bestBid - l.price <= lim)
-			.sort((a, c) => c.price - a.price);
-		const asks = b.levels
-			.filter((l) => l.side === "ask" && l.size > 0 && l.price - bestAsk <= lim)
-			.sort((a, c) => a.price - c.price);
-		const overlap = Math.min(
-			bids.reduce((s, l) => s + l.size, 0),
-			asks.reduce((s, l) => s + l.size, 0),
-		);
-		let cap = overlap;
-		for (const l of bids) {
-			if (cap <= 1e-9) break;
-			const take = Math.min(cap, l.size);
-			em.set(l.i, take);
-			elBids.push({ id: b.id, i: l.i, price: l.price, el: take });
-			cap -= take;
+	const eligibilityOf = (anchorBid: number, anchorAsk: number) => {
+		const eligible = mapBy(() => new Map<number, number>());
+		const elBids: ElQuote[] = [];
+		const elAsks: ElQuote[] = [];
+		for (const b of books) {
+			const em = eligible.get(b.id);
+			if (!em) continue;
+			const bids = b.levels
+				.filter(
+					(l) =>
+						l.side === "bid" && l.size > 0 && anchorBid - l.price <= wD + 1e-9,
+				)
+				.sort((a, c) => c.price - a.price);
+			const asks = b.levels
+				.filter(
+					(l) =>
+						l.side === "ask" && l.size > 0 && l.price - anchorAsk <= wD + 1e-9,
+				)
+				.sort((a, c) => a.price - c.price);
+			const overlap = Math.min(
+				bids.reduce((s, l) => s + l.size, 0),
+				asks.reduce((s, l) => s + l.size, 0),
+			);
+			let cap = overlap;
+			for (const l of bids) {
+				if (cap <= 1e-9) break;
+				const take = Math.min(cap, l.size);
+				em.set(l.i, take);
+				elBids.push({ id: b.id, i: l.i, price: l.price, el: take });
+				cap -= take;
+			}
+			cap = overlap;
+			for (const l of asks) {
+				if (cap <= 1e-9) break;
+				const take = Math.min(cap, l.size);
+				em.set(l.i, take);
+				elAsks.push({ id: b.id, i: l.i, price: l.price, el: take });
+				cap -= take;
+			}
 		}
-		cap = overlap;
-		for (const l of asks) {
-			if (cap <= 1e-9) break;
-			const take = Math.min(cap, l.size);
-			em.set(l.i, take);
-			elAsks.push({ id: b.id, i: l.i, price: l.price, el: take });
-			cap -= take;
-		}
-	}
+		return { eligible, elBids, elAsks };
+	};
 
-	const used = new Map<string, Map<number, number>>();
-	for (const b of books) used.set(b.id, new Map());
+	// —— Pass 1 eligibility, then pass 2: re-anchor on eligible size ——
+	let pass = eligibilityOf(a1Bid, a1Ask);
+	if (!pass.elBids.length || !pass.elAsks.length) return held();
+	let a2Bid = Number.NEGATIVE_INFINITY;
+	let a2Ask = Number.POSITIVE_INFINITY;
+	for (const q of pass.elBids) if (q.price > a2Bid) a2Bid = q.price;
+	for (const q of pass.elAsks) if (q.price < a2Ask) a2Ask = q.price;
+	pass = eligibilityOf(a2Bid, a2Ask);
+	if (!pass.elBids.length || !pass.elAsks.length) return held();
+
+	// —— The impact walks, with boundary fill at anchor ± W ——
+	const used = mapBy(() => new Map<number, number>());
 	const useTotals = {
 		bid: new Map<string, number>(),
 		ask: new Map<string, number>(),
 	};
 
-	const walkSide = (els: ElQuote[], side: "bid" | "ask") => {
+	const walkSide = (els: ElQuote[], side: "bid" | "ask", boundary: number) => {
 		els.sort((a, b) =>
 			side === "bid" ? b.price - a.price : a.price - b.price,
 		);
 		let rem = T;
 		let cost = 0;
-		let tot = 0;
 		let k = 0;
 		while (k < els.length && rem > 1e-9) {
 			let j = k;
@@ -421,24 +395,20 @@ export function computeMultiMark(
 				}
 			}
 			cost += take * els[k].price;
-			tot += take;
 			rem -= take;
 			k = j;
 		}
-		return { price: tot > 0 ? cost / tot : null, tot };
+		let short: MarkShort | null = null;
+		if (rem > 1e-9) {
+			cost += rem * boundary;
+			short = { missing: rem, price: boundary };
+		}
+		return { price: cost / T, walked: T - (short?.missing ?? 0), short };
 	};
 
-	const wBid = walkSide(elBids, "bid");
-	const wAsk = walkSide(elAsks, "ask");
-	let M: number;
-	let frozen = false;
-	if (wBid.price != null && wAsk.price != null)
-		M = (wBid.price + wAsk.price) / 2;
-	else {
-		M = fallbackM;
-		frozen = true;
-	}
-	const half = (S / 2) * BP;
+	const wBid = walkSide(pass.elBids, "bid", a2Bid - wD);
+	const wAsk = walkSide(pass.elAsks, "ask", a2Ask + wD);
+	const M = (wBid.price + wAsk.price) / 2;
 
 	const share = (tm: Map<string, number>, tot: number) => {
 		const out = new Map<string, number>();
@@ -451,12 +421,82 @@ export function computeMultiMark(
 		M,
 		iBid: wBid.price,
 		iAsk: wAsk.price,
-		frozen,
+		frozen: false,
 		edgeBid: M - half,
 		edgeAsk: M + half,
+		impactSpread: wAsk.price - wBid.price,
+		shortBid: wBid.short,
+		shortAsk: wAsk.short,
 		used,
-		shareBid: share(useTotals.bid, wBid.tot),
-		shareAsk: share(useTotals.ask, wAsk.tot),
-		eligible,
+		shareBid: share(useTotals.bid, wBid.walked),
+		shareAsk: share(useTotals.ask, wAsk.walked),
+		eligible: pass.eligible,
+	};
+}
+
+export interface MarketModel {
+	levels: FeeLevel[];
+	M: number;
+	iBid: number | null;
+	iAsk: number | null;
+	edgeBid: number;
+	edgeAsk: number;
+	/** True when no eligible walk was possible and M fell back to `fallbackM`. */
+	frozen: boolean;
+	/** iAsk − iBid, the thinness thermometer. Null while held. */
+	impactSpread: number | null;
+	/** Boundary fill per side, when the eligible ladder held less than T. */
+	shortBid: MarkShort | null;
+	shortAsk: MarkShort | null;
+	bidTotal: number;
+	askTotal: number;
+	/** Size the Mark walk consumed, keyed by level identity. */
+	markUsed: Map<number, number>;
+	stampOf: (price: number, side: "bid" | "ask") => number;
+}
+
+/**
+ * Run the full window pipeline on one account's book, as a one-book market:
+ * eligibility → impact walks with boundary fill → M → band → stamps →
+ * joint pairing allocation (spillover) → combined fee.
+ *
+ * Every level's breakdown answers: if the sweep reached this level and it
+ * fully filled, what rate would it pay?
+ */
+export function computeModel(
+	book: BookLevel[],
+	p: FeeParams,
+	fallbackM: number,
+): MarketModel {
+	const { S, T, W } = p;
+	const mm = computeMark(
+		[{ id: "solo", levels: book }],
+		{ S, T, W },
+		fallbackM,
+	);
+	const af = computeAccountFees(book, p, mm.M);
+	const bidTotal = book.reduce(
+		(s, l) => s + (l.side === "bid" ? l.size : 0),
+		0,
+	);
+	const askTotal = book.reduce(
+		(s, l) => s + (l.side === "ask" ? l.size : 0),
+		0,
+	);
+	return {
+		levels: af.levels,
+		M: mm.M,
+		iBid: mm.iBid,
+		iAsk: mm.iAsk,
+		edgeBid: af.edgeBid,
+		edgeAsk: af.edgeAsk,
+		frozen: mm.frozen,
+		impactSpread: mm.impactSpread,
+		shortBid: mm.shortBid,
+		shortAsk: mm.shortAsk,
+		bidTotal,
+		askTotal,
+		markUsed: mm.used.get("solo") ?? new Map(),
+		stampOf: af.stampOf,
 	};
 }

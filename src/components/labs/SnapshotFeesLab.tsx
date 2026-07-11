@@ -19,6 +19,10 @@ const CENTER = 10; // index of 100.00
 const TICK = 0.005; // $ per level
 const MAX_DEPTH = 25000; // $ per level
 const STEP_DOLLARS = 250;
+// Window W: the Mark's absolute working radius, bps — eligibility range,
+// walk truncation, and boundary-fill price. Fixed for now; a dial (with k₂)
+// belongs to the advanced set.
+const WINDOW_BPS = 8;
 
 const priceAt = (i: number) => +(100 + (i - CENTER) * TICK).toFixed(3);
 // 100.000 (i = CENTER) is a quotable bid; asks start one tick above.
@@ -294,7 +298,11 @@ export default function SnapshotFeesLab() {
 			side: sideOf(i),
 			size,
 		}));
-		return computeModel(book, { S, T, F, slope, expo, comp }, lastM.current);
+		return computeModel(
+			book,
+			{ S, T, F, W: WINDOW_BPS, slope, expo, comp },
+			lastM.current,
+		);
 	}, [sizes, S, T, F, slope, expo, comp, sideOf]);
 
 	useEffect(() => {
@@ -527,8 +535,9 @@ export default function SnapshotFeesLab() {
 								impactAsk(T)) / 2
 								<div style={note}>
 									impact price = volume-weighted price of trading $
-									{T.toLocaleString()} into that side, best levels first ·
-									quotes more than {8 * S}bps behind a side's best are ignored
+									{T.toLocaleString()} into that side, best levels first · only
+									matched size (min of your bid and ask dollars) within {W}bps
+									of the touch votes; missing depth is priced at the window edge
 								</div>
 								{model.iBid != null && model.iAsk != null && (
 									<div style={{ color: C.mark }}>
@@ -1351,8 +1360,8 @@ export default function SnapshotFeesLab() {
 							const top = PT + 8;
 							if (model.frozen) {
 								const rows = [
-									{ t: "M frozen: a side is empty", c: C.text },
-									{ t: "no two-sided walk possible;", c: C.dim },
+									{ t: "M frozen: no matched two-sided size", c: C.text },
+									{ t: "nothing is eligible to walk;", c: C.dim },
 									{ t: `showing last computed M ${fmtPx(model.M)}`, c: C.dim },
 								];
 								return (
@@ -1395,15 +1404,15 @@ export default function SnapshotFeesLab() {
 									}));
 							const colOf = (side: Side) => {
 								const rows = walk(side);
-								const tot = model.levels.reduce(
-									(s, l) =>
-										s + (l.side === side ? (model.markUsed.get(l.i) ?? 0) : 0),
-									0,
-								);
-								if (tot < T - 0.5)
-									rows.push({ t: `only ${fmt$(tot)} deep`, c: C.faint });
+								const short = side === "bid" ? model.shortBid : model.shortAsk;
+								if (short)
+									rows.push({
+										t: `${fmt$(short.missing)} @ ${fmtPx(short.price)}`,
+										c: C.faint,
+									});
 								return rows;
 							};
+							const anyShort = model.shortBid != null || model.shortAsk != null;
 							const L = colOf("bid");
 							const R = colOf("ask");
 							const nRows = Math.max(L.length, R.length, 1);
@@ -1514,7 +1523,9 @@ export default function SnapshotFeesLab() {
 										fontSize={12}
 										style={{ fill: C.faint, fontFamily: mono }}
 									>
-										purple slices = the depth each walk consumed
+										{anyShort
+											? "faint rows: missing depth, priced at the window edge"
+											: "purple slices = the depth each walk consumed"}
 									</text>
 								</g>
 							);

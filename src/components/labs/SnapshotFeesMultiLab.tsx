@@ -3,7 +3,7 @@ import {
 	type BookLevel,
 	BP,
 	computeAccountFees,
-	computeMultiMark,
+	computeMark,
 	type Side,
 } from "../../lib/snapshot-fees/engine";
 import "./snapshot-fees-lab.css";
@@ -21,6 +21,10 @@ const DMAX = 40000; // $ per level, per half
 const YOUR_MAX = 25000;
 const MAKER_MAX = 40000;
 const STEP_DOLLARS = 250;
+// Window W: the Mark's absolute working radius, bps — eligibility range,
+// walk truncation, and boundary-fill price. Fixed for now; a dial (with k₂)
+// belongs to the advanced set.
+const WINDOW_BPS = 8;
 
 const priceAt = (i: number) => +(100 + (i - CENTER) * TICK).toFixed(3);
 // 100.000 (i = CENTER) is a quotable bid; asks start one tick above.
@@ -363,15 +367,15 @@ export default function SnapshotFeesMultiLab() {
 			side: sideOf(i),
 			size,
 		}));
-		const mm = computeMultiMark(
+		const mm = computeMark(
 			[
 				{ id: "you", levels: yourBook },
 				{ id: "agg", levels: makerBook },
 			],
-			{ S, T },
+			{ S, T, W: WINDOW_BPS },
 			lastM.current,
 		);
-		const p = { S, T, F, slope, expo: 1, comp: 0 };
+		const p = { S, T, F, W: WINDOW_BPS, slope, expo: 1, comp: 0 };
 		const fees = computeAccountFees(yourBook, p, mm.M);
 		const makerFees = computeAccountFees(makerBook, p, mm.M);
 		return { mm, fees, makerFees };
@@ -1626,6 +1630,14 @@ export default function SnapshotFeesMultiLab() {
 											c: C.ask,
 										},
 										{ t: `M = midpoint = ${fmtPx(mm.M)}`, c: C.mark },
+										{
+											t: `impact spread ${
+												mm.impactSpread != null
+													? (mm.impactSpread / BP).toFixed(1)
+													: "–"
+											}bps · S = ${S}bps`,
+											c: C.faint,
+										},
 										{
 											t: "only two-sided size near the touch votes",
 											c: C.faint,
