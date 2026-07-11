@@ -48,7 +48,7 @@ const randomMakers = () => {
 	const a = Array(N).fill(0);
 	const mk = (start: number, dir: 1 | -1, leanMul: number) => {
 		const base = 4500 + Math.random() * 9000;
-		const grow = -0.15 + Math.random() * 0.6;
+		const grow = -0.1 + 0.55 * Math.random() ** 0.8;
 		for (let k = 0; ; k++) {
 			const i = CENTER + dir * (start + k);
 			if (i < 0 || i > N - 1) break;
@@ -412,8 +412,13 @@ export default function SnapshotFeesMultiLab() {
 				Math.min(1.7, playDepth.current + (Math.random() - 0.5) * 0.07),
 			);
 			playShape.current = Math.max(
-				-0.16,
-				Math.min(0.32, playShape.current + (Math.random() - 0.5) * 0.05),
+				-0.12,
+				Math.min(
+					0.35,
+					playShape.current +
+						(0.15 - playShape.current) * 0.05 +
+						(Math.random() - 0.5) * 0.05,
+				),
 			);
 			const cF = CENTER + playCenter.current;
 			const lv = playLean.current;
@@ -452,7 +457,7 @@ export default function SnapshotFeesMultiLab() {
 			playCenter.current = 0;
 			playLean.current = Math.max(-0.5, Math.min(0.5, lean / 100));
 			playDepth.current = Math.max(0.6, Math.min(1.7, depth || 1));
-			playShape.current = -0.16 + Math.random() * 0.48;
+			playShape.current = -0.12 + 0.47 * Math.random() ** 0.75;
 		}
 		setPlaying((v) => !v);
 	};
