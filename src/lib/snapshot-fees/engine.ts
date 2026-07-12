@@ -113,12 +113,12 @@ export function computeAccountFees(
 	const edgeBid = M - half;
 	const edgeAsk = M + half;
 
-	// Piecewise stamp: gentle k₁ inside the Maker Zone, steeper k₂ beyond
-	// its edge, capped at F.
+	// Bracketed stamp: the first Z bps of distance are priced at k₁, the
+	// excess at k₂, capped at F.
 	const stampOf = (price: number, side: "bid" | "ask"): number => {
 		const d = side === "ask" ? price - edgeAsk : edgeBid - price;
 		const bps = Math.max(0, d / BP);
-		const raw = bps <= Z ? slope * bps : slope * Z + slope2 * (bps - Z);
+		const raw = slope * Math.min(bps, Z) + slope2 * Math.max(0, bps - Z);
 		return Math.min(F, raw);
 	};
 

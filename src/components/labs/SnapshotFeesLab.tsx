@@ -539,9 +539,8 @@ export default function SnapshotFeesLab() {
 					const stampEx = (d: number) =>
 						Math.min(
 							F,
-							d <= ZONE_BPS
-								? slope * d
-								: slope * ZONE_BPS + SLOPE2 * (d - ZONE_BPS),
+							slope * Math.min(d, ZONE_BPS) +
+								SLOPE2 * Math.max(0, d - ZONE_BPS),
 						);
 					const dCap = stampCapBps({ F, Z: ZONE_BPS, slope, slope2: SLOPE2 });
 					const dMax = Math.max(6, Math.ceil(dCap) + 2);
@@ -613,8 +612,7 @@ export default function SnapshotFeesLab() {
 							>
 								<div style={{ flex: "1 1 320px" }}>
 									<span style={eyebrow}>3 · Stamp</span>stamp(d) = min(F,{" "}
-									{slope}× d) inside the zone; then min(F, {slope} × Z +{" "}
-									{SLOPE2} × (d − Z)) past its edge
+									{slope} × min(d, Z) + {SLOPE2} × max(0, d − Z))
 									<div style={note}>
 										d = bps of placement beyond your side's edge (0 if inside).
 										Gentle k₁ prices retreat inside the Maker Zone (Z ={" "}

@@ -101,10 +101,10 @@ export default function BaseFeeLab() {
 	const tableRef = useRef<HTMLDivElement | null>(null);
 	const activeRowRef = useRef<HTMLDivElement | null>(null);
 
-	// piecewise stamp: gentle k₁ inside the Maker Zone, steeper k₂ beyond
+	// bracketed stamp: the first Z bps at k₁, the excess at k₂, capped at F
 	const feeAt = (d: number) => {
 		const dd = Math.max(0, d - B / 2);
-		const raw = dd <= Z ? slope * dd : slope * Z + slope2 * (dd - Z);
+		const raw = slope * Math.min(dd, Z) + slope2 * Math.max(0, dd - Z);
 		return Math.min(F, raw);
 	};
 	const dFull = B / 2 + stampCapBps({ F, Z, slope, slope2 });
