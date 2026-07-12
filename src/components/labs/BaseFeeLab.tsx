@@ -93,14 +93,11 @@ export default function BaseFeeLab() {
 	const [S, setS] = useState(2);
 	const [F, setF] = useState(10);
 	const [slope, setSlope] = useState(0.8);
-	const [place, setPlace] = useState(6); // bps from M
 	const [hover, setHover] = useState<number | null>(null);
-	const dragging = useRef(false);
 	const tableRef = useRef<HTMLDivElement | null>(null);
-	const activeRowRef = useRef<HTMLButtonElement | null>(null);
+	const activeRowRef = useRef<HTMLDivElement | null>(null);
 
 	const feeAt = (d: number) => Math.min(F, slope * Math.max(0, d - S / 2));
-	const fee = feeAt(place);
 	const dFull = S / 2 + F / slope;
 
 	// geometry — viewBox sized for the two-thirds slot so text stays legible
@@ -133,25 +130,23 @@ export default function BaseFeeLab() {
 	};
 
 	// the schedule, live: one row per 0.5bps of distance from M. The pointer
-	// (hover) drives the highlighted row; placement holds it otherwise.
+	// drives the highlighted row.
 	const schedRows: number[] = [];
 	for (let d = 0; d <= DMAX + 0.001; d += 0.5) schedRows.push(d);
-	const selRow = Math.round(place * 2) / 2;
 	const hoverRow = hover != null ? Math.round(hover * 2) / 2 : null;
-	const activeRow = hoverRow ?? selRow;
 
-	// keep the active row in view — scroll the box only, never the page
+	// keep the hovered row in view — scroll the box only, never the page
 	useEffect(() => {
 		const box = tableRef.current;
 		const el = activeRowRef.current;
-		if (!box || !el) return;
+		if (hoverRow == null || !box || !el) return;
 		const headerH = 30;
 		const top = el.offsetTop;
 		const bottom = top + el.offsetHeight;
 		if (top < box.scrollTop + headerH) box.scrollTop = top - headerH;
 		else if (bottom > box.scrollTop + box.clientHeight)
 			box.scrollTop = bottom - box.clientHeight;
-	}, [activeRow]);
+	}, [hoverRow]);
 
 	return (
 		<div class="sf-lab" style={{ color: C.text }}>
@@ -385,26 +380,6 @@ export default function BaseFeeLab() {
 								style={{ stroke: C.fee, transition: "all 120ms" }}
 							/>
 
-							{/* your placement marker */}
-							<g pointerEvents="none" style={{ transition: "all 60ms" }}>
-								<line
-									x1={xAt(place)}
-									x2={xAt(place)}
-									y1={PT}
-									y2={PB}
-									strokeWidth={1}
-									opacity={0.45}
-									style={{ stroke: C.text }}
-								/>
-								<circle
-									cx={xAt(place)}
-									cy={yAt(fee)}
-									r={6}
-									strokeWidth={1.5}
-									style={{ fill: C.fee, stroke: C.panel }}
-								/>
-							</g>
-
 							{/* hover crosshair: tracks the pointer, reads the schedule */}
 							{hover != null &&
 								(() => {
@@ -480,33 +455,21 @@ export default function BaseFeeLab() {
 									);
 								})()}
 
-							{/* drag surface */}
+							{/* hover surface */}
 							<rect
 								x={PL}
 								y={PT}
 								width={PR - PL}
 								height={PB - PT}
 								fill="transparent"
-								style={{ cursor: "ew-resize" }}
+								style={{ cursor: "crosshair" }}
 								onPointerDown={(e) => {
-									(e.currentTarget as SVGRectElement).setPointerCapture(
-										e.pointerId,
-									);
-									dragging.current = true;
-									const d = dAt(e);
-									setPlace(d);
-									setHover(d);
+									setHover(dAt(e));
 								}}
 								onPointerMove={(e) => {
-									const d = dAt(e);
-									setHover(d);
-									if (dragging.current) setPlace(d);
-								}}
-								onPointerUp={() => {
-									dragging.current = false;
+									setHover(dAt(e));
 								}}
 								onPointerCancel={() => {
-									dragging.current = false;
 									setHover(null);
 								}}
 								onPointerLeave={() => {
@@ -559,8 +522,8 @@ export default function BaseFeeLab() {
 								fontSize={12.5}
 								style={{ fill: C.faint, fontFamily: mono, fontStyle: "italic" }}
 							>
-								Instructions: Hover to trace the schedule. Drag or click a row
-								to place.
+								Instructions: Hover the chart to trace the schedule. Dial S, F,
+								and k.
 							</text>
 						</svg>
 					</div>
@@ -606,26 +569,19 @@ export default function BaseFeeLab() {
 							{schedRows.map((d) => {
 								const f = feeAt(d);
 								const n = d - f;
-								const isSel = Math.abs(d - selRow) < 0.001;
 								const isHover =
 									hoverRow != null && Math.abs(d - hoverRow) < 0.001;
 								return (
-									<button
+									<div
 										key={d}
-										type="button"
-										ref={
-											Math.abs(d - activeRow) < 0.001 ? activeRowRef : undefined
-										}
-										onClick={() => setPlace(d)}
+										ref={isHover ? activeRowRef : undefined}
 										style={{
 											display: "grid",
 											gridTemplateColumns: "1fr 1fr 1.1fr",
 											width: "100%",
 											padding: "2px 10px 2px 8px",
-											border: "none",
-											borderLeft: `2px solid ${isSel ? C.fee : "transparent"}`,
-											background: isSel || isHover ? C.band : "transparent",
-											cursor: "pointer",
+											borderLeft: `2px solid ${isHover ? C.fee : "transparent"}`,
+											background: isHover ? C.band : "transparent",
 											fontFamily: mono,
 											fontSize: 12,
 											lineHeight: 1.5,
@@ -651,7 +607,7 @@ export default function BaseFeeLab() {
 											{n >= 0 ? "+" : "−"}
 											{Math.abs(n).toFixed(2)}
 										</span>
-									</button>
+									</div>
 								);
 							})}
 						</div>
@@ -663,7 +619,7 @@ export default function BaseFeeLab() {
 								lineHeight: 1.45,
 							}}
 						>
-							All values in bps. Click a row to place there.
+							All values in bps. Hover the chart to trace rows.
 						</div>
 					</div>
 				</div>
