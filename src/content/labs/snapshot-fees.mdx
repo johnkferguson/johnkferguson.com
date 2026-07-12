@@ -79,10 +79,10 @@ import SnapshotFeesMultiLab from "../../components/labs/SnapshotFeesMultiLab";
 
 </div>
 
-## The base fee: placement against a standard
+## The Base Fee: Pricing Distance from the Mark
 
 The base fee prices a single order by one measure: how far it stands from the
-market's mark price: `M`.
+market's Mark Price: `M`.
 
 ```
 d = bps beyond the band edge (0 if inside the band)
@@ -90,23 +90,18 @@ d = bps beyond the band edge (0 if inside the band)
 base fee(d) = min(F, k₁ × min(d, Z) + k₂ × max(0, d − Z))
 ```
 
-- `M`, the mark price: a more accurate midpoint for the market. Liquidity
-  standing in the inner band and Maker Zone contributes to its calculation;
-  how comes later.
-- **B**, the inner band: the region M ± B/2, declared by the market. The base
-  fee there is zero, so d starts counting at the band edge, B/2 from M.
-- **Z**, the Maker Zone: the working radius past the band edge. Inside it,
-  distance is priced gently.
-- **k₁**, the zone slope: fee per bps of distance inside the zone.
-- **k₂**, the far slope: takes over past the zone edge and runs the fee to
+- `M`: the Mark price; a more accurate midpoint for the market. Liquidity standing in the inner band and Maker Zone contributes to its calculation. how comes later.
+- `B`: the Inner Band: the region `M ± B/2`, declared by the market. The base fee there is zero, so `d` starts counting at the band edge, `B/2` from `M`.
+- `Z`, the Maker Zone: the working radius past the band edge. Inside it, distance is priced gently.
+- `k₁`, the zone slope: fee per bps of distance inside the zone.
+- `k₂`, the far slope: takes over past the zone edge and runs the fee to
   the cap.
-- **F**, the fee cap: the taker rate. No resting order ever pays more than a
-  taker.
+- `F`, the fee cap: the taker rate. No resting order ever pays more than a taker.
 
 <div class="stub">
 
-- Net edge: distance earns 1:1 while the schedule takes k per bps; k₁ below 1 keeps width profitable
-- Full-fee point: once the fee reaches F, the schedule stops caring
+- Net edge: distance earns 1:1 while the schedule takes its slope per bps; `k₁` below 1 keeps width profitable
+- Full-fee point: once the fee reaches `F`, the schedule stops caring
 
 </div>
 
