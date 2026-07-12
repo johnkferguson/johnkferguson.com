@@ -17,27 +17,52 @@ import SnapshotFeesMultiLab from "../../components/labs/SnapshotFeesMultiLab";
 
 # Snapshot Fees
 
-<p class="stub">Outline skeleton. Bullets are placeholders for prose, not prose.</p>
+<p class="stub">Outline skeleton. Bullets are beats, not prose. Section titles are working placeholders.</p>
 
 <TableOfContents inline />
 
 <div class="stub">
 
-- Lede: a fee schedule that looks at what you are doing right now, not what you did last month
-- One sentence on batch auctions as the setting
-- Promise of the piece: play with the mechanism, not just read about it
+- Lede: framing TBD. Working hook: batch auctions changed how trades match; this piece asks whether they should change how trades are priced
+- Promise of the piece: the mechanism is playable, not just described
 
 </div>
 
-## Why fees need rethinking
+## The setting: batch auctions
 
 <div class="stub">
 
-- Batch auctions: discrete windows, sealed books, no latency race
-- CLOB fee logic (volume tiers) gets imported by default; why it fits badly here
-- Volume tiers: incumbents get discounts, new makers pay full freight, long-tail markets crowded out
-- Volume measures history, not the quality of liquidity standing right now
-- A sealed window produces a complete snapshot: price the snapshot instead
+- Audience: knows CLOBs and trading generally; may not know batch auctions
+- CLOB baseline in one paragraph: continuous matching, price-time priority, being first is worth money
+- Sniping / latency arbitrage, told properly: stale quote, fastest sniper wins, maker eats the loss and widens to cover it, the market pays the spread. The arms race is a structural tax on takers (Budish et al.)
+- Frequent batch auctions (Budish): discretize time, seal the window, clear at one uniform price; speed stops being a weapon, competition moves to price
+- Dual-flow batch auctions (Jump Crypto, 2025): maker and taker as intent-declared flows; two simultaneous auctions per ~100ms window (maker bids vs taker sells, maker asks vs taker buys), each clearing at the single price that maximizes matched volume, pro-rata at ties; makers never trade with makers
+- DFBA vs slow batching: ~100ms to 1s cadence is imperceptible to humans (~250ms reaction time) while still killing the race
+- Landing: whichever variant, at every seal the venue holds something a CLOB structurally cannot: a complete, committed picture of the market
+
+</div>
+
+## How fees work today
+
+<div class="stub">
+
+- Status quo: maker/taker splits, volume tiers, rebates. Volume is not laziness: it is close to the only thing a continuous venue can price. No instant of coherent market state exists; quotes flash and cancel; roles are assigned by arrival; the only thing that accumulates verifiably is your executed tape
+- Side effects worth naming: new entrants pay full freight until they build history; tiers compound toward incumbents and crowd out the long tail
+- The seal changes what is knowable: every order committed, blind, simultaneous. Nobody can pose in it retroactively, since anything displayed was genuinely fillable that window. For the first time there is a coherent object to price besides the tape
+- Same natural flow, smaller number: a batch venue prints less volume than a CLOB for identical natural trading, because the latency-arb volume never happens (and what is missing is disproportionately the volume nobody wanted to reward). Volume tiers would still work here, just recalibrated
+- But rescaling admits the number was a proxy. Volume proxies a participant's relative value to the market (conflating liquidity brought with flow brought). The question writes itself: could that value be assessed directly, in the auction itself, instead of through the accumulated proxy?
+
+</div>
+
+## Why price the snapshot
+
+<div class="stub">
+
+- Batch venues are young; the fee question is genuinely open. Existing designs reach for familiar shapes (flat taker bps, makers free; the DFBA paper sketches three such options in a paragraph). None yet price the snapshot. Before conventions calcify: what should fees on these venues be?
+- The proposal in one line: compute each participant's fee from the sealed market state, charging for what their orders are doing for the market in this window
+- Stakes, framed as open questions: would spreads tighten? would makers compete on the present quality of their liquidity instead of accumulated history? does that lower the bar for new entrants and make long-tail markets quotable?
+- Why crypto first: no entrenched designated-maker agreements or negotiated rebate deals to displace (tradfi maker relationships are bespoke contracts, a different world); fees already quoted in bps; venues young enough to adopt new structure
+- Pivot: the DFBA paper's third fee sketch is maker fees as a fixed fraction of distance from the midpoint, one sentence, left hanging. This piece pulls that thread
 
 </div>
 
@@ -120,6 +145,19 @@ import SnapshotFeesMultiLab from "../../components/labs/SnapshotFeesMultiLab";
 - The one-line fee: (Σ matched × max(own, partner) + directional × F) / size
 - Reference computation anyone can recompute from the published window
 - Placement TBD: this section may move earlier, before or beside the labs
+
+</div>
+
+## Which auction design fits best
+
+<div class="stub">
+
+- Placement TBD (likely here). The intro stays neutral on FBA vs DFBA; this section carries the argument
+- DFBA sends taker buys and sells to separate auctions: they never net against each other, so gross urgency walks the maker book. That is the venue type the gentle stamp slope is calibrated for; in netting venues deep excursions collapse and the calibration must be refit
+- The maker flow is an explicit standing book: exactly the object the snapshot reads
+- Pro-rata at equal prices in DFBA matching rhymes with the attribution-free, pro-rata mark walk: a shared fairness grammar
+- Declared roles vs measured behavior: DFBA makes maker/taker an explicit declaration; snapshot fees reads directionality from the book. It can price within the declared maker flow, or dissolve the declaration entirely
+- Plain FBA: the formula ports verbatim (roles never appear in it); the calibration does not, and should be fit to the venue's sweep-depth distribution
 
 </div>
 
