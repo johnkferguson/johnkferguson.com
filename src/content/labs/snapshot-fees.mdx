@@ -83,11 +83,12 @@ import SnapshotFeesMultiLab from "../../components/labs/SnapshotFeesMultiLab";
 
 <div class="stub">
 
-- The market declares a standard: the band, M ± S/2. Placement inside it is free
-- Outside the band the fee rises linearly: k per bps of imprecision, capped at F
+- The market declares an inner band, M ± B/2; placement inside it stamps at zero
+- Beyond the band edge the fee rises gently: the zone slope k₁, per bps, through the Maker Zone Z
+- Past the zone edge the far slope k₂ takes over and runs the fee to the cap F
 - The cap means no resting order ever pays more than a taker
-- Net edge: distance earns 1:1, the fee takes k per bps, k below 1 keeps width profitable
-- Full-fee point: beyond S/2 + F/k the schedule stops caring
+- Net edge: distance earns 1:1 while the schedule takes k per bps; k₁ below 1 keeps width profitable
+- Full-fee point: once the fee reaches F, the schedule stops caring
 
 </div>
 
@@ -169,7 +170,7 @@ import SnapshotFeesMultiLab from "../../components/labs/SnapshotFeesMultiLab";
 
 - Semi-far coverage earns a discount: paid optionality, priced by fill risk and adverse selection
 - Manipulation economics: junk coverage is worthless, bending M requires standing real paired size
-- Parameters and governance: S declared and sticky, F venue-wide, k the one width dial, T measured from demand
+- Parameters and governance: B declared and sticky, F venue-wide, Z and the two slopes shape the curve, T measured from demand
 - Variations considered: partner-stamp grace interval, asymptotic stamps (rejected: softens the junk anchor), inside compensation (parked), partial fills
 - Open: cross-window dynamics, staking-based fee caps, thin-market M fallbacks
 

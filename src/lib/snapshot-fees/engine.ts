@@ -25,8 +25,8 @@ export interface BookLevel {
 }
 
 export interface FeeParams {
-	/** Inner band width S, in bps — the band is drawn M ± S/2. */
-	S: number;
+	/** Inner band width B, in bps — the band is drawn M ± B/2. */
+	B: number;
 	/** Typical trade — the measuring size for the Mark walk, in $. */
 	T: number;
 	/** Fee cap / taker rate, in bps. */
@@ -34,7 +34,7 @@ export interface FeeParams {
 	/**
 	 * Maker Zone Z — absolute working radius, in bps. Governs the Mark's
 	 * eligibility range, walk truncation, boundary-fill price, and the
-	 * stamp knee. Validity: Z ≥ S.
+	 * stamp knee. Validity: Z ≥ B.
 	 */
 	Z: number;
 	/** Stamp slope k₁ — fee bps per bp beyond the band edge, inside the zone. */
@@ -101,7 +101,7 @@ export function computeAccountFees(
 	p: FeeParams,
 	M: number,
 ): AccountFees {
-	const { S, F, Z, slope, slope2, comp } = p;
+	const { B, F, Z, slope, slope2, comp } = p;
 	const bids = book
 		.filter((l) => l.side === "bid")
 		.sort((a, b) => b.price - a.price);
@@ -109,7 +109,7 @@ export function computeAccountFees(
 		.filter((l) => l.side === "ask")
 		.sort((a, b) => a.price - b.price);
 
-	const half = (S / 2) * BP;
+	const half = (B / 2) * BP;
 	const edgeBid = M - half;
 	const edgeAsk = M + half;
 
@@ -181,7 +181,7 @@ export function computeAccountFees(
 			q;
 		const combined = Math.min(F, pairing);
 		const distBp = Math.abs(lv.price - M) / BP;
-		const insideComp = comp > 0 ? comp * Math.max(0, 1 - distBp / (S / 2)) : 0;
+		const insideComp = comp > 0 ? comp * Math.max(0, 1 - distBp / (B / 2)) : 0;
 		const final = combined - insideComp;
 		return {
 			own,
@@ -260,12 +260,12 @@ export interface MultiMark {
  */
 export function computeMark(
 	books: MakerBook[],
-	p: { S: number; T: number; Z: number },
+	p: { B: number; T: number; Z: number },
 	fallbackM: number,
 ): MultiMark {
-	const { S, T, Z } = p;
+	const { B, T, Z } = p;
 	const zD = Z * BP;
-	const half = (S / 2) * BP;
+	const half = (B / 2) * BP;
 
 	const mapBy = <V>(mk: () => V): Map<string, V> => {
 		const m = new Map<string, V>();
@@ -471,10 +471,10 @@ export function computeModel(
 	p: FeeParams,
 	fallbackM: number,
 ): MarketModel {
-	const { S, T, Z } = p;
+	const { B, T, Z } = p;
 	const mm = computeMark(
 		[{ id: "solo", levels: book }],
-		{ S, T, Z },
+		{ B, T, Z },
 		fallbackM,
 	);
 	const af = computeAccountFees(book, p, mm.M);

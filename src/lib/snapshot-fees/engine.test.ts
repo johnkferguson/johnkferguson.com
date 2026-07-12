@@ -11,14 +11,14 @@ import {
 
 // Reference computation from the mechanism spec (worse-of revision) — "an
 // implementation must reproduce these numbers exactly."
-// Vector settings: F=15, k=0.5, e=1, S=4 (band M ± 2bp), T=$5,000, Z=20bps (the Maker Zone, formerly W)
+// Vector settings: F=15, k=0.5, e=1, B=4 (band M ± 2bp), T=$5,000, Z=20bps (the Maker Zone, formerly W)
 // absolute (the spec's older drafts wrote this as the multiple "W=5", i.e.
 // 5×S; vectors verify arithmetic at their stated settings, which need not
 // match working defaults).
 // Fee rule: each matched dollar pays max(own stamp, partner stamp);
 // unbacked dollars pay F. λ and the combine step no longer exist.
 const P: FeeParams = {
-	S: 4,
+	B: 4,
 	T: 5000,
 	F: 15,
 	Z: 20,
@@ -172,7 +172,7 @@ describe("Mark pipeline: eligibility, two passes, boundary fill", () => {
 					],
 				},
 			],
-			{ S: 4, T: 5000, Z: 20 },
+			{ B: 4, T: 5000, Z: 20 },
 			100.123,
 		);
 		expect(m.frozen).toBe(true);
@@ -198,7 +198,7 @@ describe("Mark pipeline: eligibility, two passes, boundary fill", () => {
 					],
 				},
 			],
-			{ S: 4, T: 5000, Z: 20 },
+			{ B: 4, T: 5000, Z: 20 },
 			100,
 		);
 		expect(m.frozen).toBe(false);
@@ -305,9 +305,9 @@ describe("anchors and invariants", () => {
 	});
 
 	test("fee ∈ [0, F] across a parameter sweep", () => {
-		for (const S of [1, 4, 10]) {
+		for (const B of [1, 4, 10]) {
 			for (const slope of [0.25, 0.75, 1, 3]) {
-				const m = computeModel(book, { ...P, S, slope }, 100);
+				const m = computeModel(book, { ...P, B, slope }, 100);
 				for (const lv of m.levels) {
 					if (!lv.bk) continue;
 					expect(lv.bk.final).toBeGreaterThanOrEqual(0);
@@ -338,7 +338,7 @@ describe("anchors and invariants", () => {
 });
 
 describe("multi-maker Mark", () => {
-	const MP = { S: 2, T: 20000, Z: 8 };
+	const MP = { B: 2, T: 20000, Z: 8 };
 	const you = (levels: BookLevel[]) => ({ id: "you", levels });
 	const agg = (levels: BookLevel[]) => ({ id: "agg", levels });
 
@@ -412,7 +412,7 @@ describe("multi-maker Mark", () => {
 
 	test("a leaning crowd moves M and re-prices an untouched book", () => {
 		const P: FeeParams = {
-			S: 2,
+			B: 2,
 			T: 20000,
 			F: 15,
 			Z: 8,
@@ -467,10 +467,10 @@ describe("multi-maker Mark", () => {
 });
 
 describe("piecewise stamp (the zone knee)", () => {
-	// Settled calibration: S=2, Z=8, k1=0.8, k2=1, F=10: stamp 6.4bps at the
+	// Settled calibration: B=2, Z=8, k1=0.8, k2=1, F=10: stamp 6.4bps at the
 	// knee, cap reached 11.6bps beyond the band edge (12.6bps from M).
 	const p: FeeParams = {
-		S: 2,
+		B: 2,
 		T: 20000,
 		F: 10,
 		Z: 8,

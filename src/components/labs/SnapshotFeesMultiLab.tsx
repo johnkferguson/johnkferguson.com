@@ -171,7 +171,7 @@ const SCENARIOS: Scenario[] = [
 
 // What each dial does, narrated as you move it
 const DIAL_EFFECT: Record<string, { up: string; down: string }> = {
-	S: {
+	B: {
 		up: "Wider inner band: more placement stamps at zero.",
 		down: "Tighter inner band: precision is judged more strictly.",
 	},
@@ -343,7 +343,7 @@ interface DragState {
 }
 
 export default function SnapshotFeesMultiLab() {
-	const [S, setS] = useState(2);
+	const [B, setB] = useState(2); // inner band width, bps
 	const [T, setT] = useState(20000);
 	const [F, setF] = useState(10);
 	const [slope, setSlope] = useState(0.8);
@@ -399,14 +399,14 @@ export default function SnapshotFeesMultiLab() {
 				{ id: "you", levels: yourBook },
 				{ id: "agg", levels: makerBook },
 			],
-			{ S, T, Z: ZONE_BPS },
+			{ B, T, Z: ZONE_BPS },
 			lastM.current,
 		);
-		const p = { S, T, F, Z: ZONE_BPS, slope, slope2: SLOPE2, comp: 0 };
+		const p = { B, T, F, Z: ZONE_BPS, slope, slope2: SLOPE2, comp: 0 };
 		const fees = computeAccountFees(yourBook, p, mm.M);
 		const makerFees = computeAccountFees(makerBook, p, mm.M);
 		return { mm, fees, makerFees };
-	}, [yourSizes, makerSizes, S, T, F, slope, sideOf]);
+	}, [yourSizes, makerSizes, B, T, F, slope, sideOf]);
 
 	const { mm, fees, makerFees } = model;
 
@@ -614,7 +614,7 @@ export default function SnapshotFeesMultiLab() {
 		setLean(sc.lean);
 		setSpread(sc.spread);
 		regenMakers(sc.depth, sc.lean, sc.spread);
-		setS(2);
+		setB(2);
 		setT(20000);
 		setF(10);
 		setSlope(0.8);
@@ -803,8 +803,8 @@ export default function SnapshotFeesMultiLab() {
 					/>
 					<Param
 						name="Inner Band · B"
-						val={S}
-						set={touch("S", S, setS)}
+						val={B}
+						set={touch("B", B, setB)}
 						min={1}
 						max={10}
 						stp={0.5}
@@ -1822,7 +1822,7 @@ export default function SnapshotFeesMultiLab() {
 													mm.impactSpread != null
 														? (mm.impactSpread / BP).toFixed(1)
 														: "–"
-												}bps · B = ${S}bps`,
+												}bps · B = ${B}bps`,
 												c: C.faint,
 											},
 											{

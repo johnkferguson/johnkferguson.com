@@ -92,7 +92,7 @@ function Param({ name, val, set, min, max, stp, suffix, hint }: ParamProps) {
 }
 
 export default function BaseFeeLab() {
-	const [S, setS] = useState(2);
+	const [B, setB] = useState(2); // inner band width, bps
 	const [Z, setZ] = useState(8); // Maker Zone width, bps beyond the band edge
 	const [F, setF] = useState(10);
 	const [slope, setSlope] = useState(0.8); // k₁, inside the zone
@@ -103,12 +103,12 @@ export default function BaseFeeLab() {
 
 	// piecewise stamp: gentle k₁ inside the Maker Zone, steeper k₂ beyond
 	const feeAt = (d: number) => {
-		const dd = Math.max(0, d - S / 2);
+		const dd = Math.max(0, d - B / 2);
 		const raw = dd <= Z ? slope * dd : slope * Z + slope2 * (dd - Z);
 		return Math.min(F, raw);
 	};
-	const dFull = S / 2 + stampCapBps({ F, Z, slope, slope2 });
-	const dKnee = S / 2 + Z;
+	const dFull = B / 2 + stampCapBps({ F, Z, slope, slope2 });
+	const dKnee = B / 2 + Z;
 
 	// geometry — viewBox sized for the two-thirds slot so text stays legible
 	const W = 580;
@@ -204,8 +204,8 @@ export default function BaseFeeLab() {
 						>
 							<Param
 								name="Inner Band · B"
-								val={S}
-								set={setS}
+								val={B}
+								set={setB}
 								min={1}
 								max={10}
 								stp={0.5}
@@ -336,20 +336,20 @@ export default function BaseFeeLab() {
 							<rect
 								x={xAt(0)}
 								y={PT}
-								width={Math.max(0, xAt(S / 2) - xAt(0))}
+								width={Math.max(0, xAt(B / 2) - xAt(0))}
 								height={PB - PT}
 								style={{ fill: C.band, transition: "all 220ms ease" }}
 							/>
 							<line
-								x1={xAt(S / 2)}
-								x2={xAt(S / 2)}
+								x1={xAt(B / 2)}
+								x2={xAt(B / 2)}
 								y1={PT}
 								y2={PB}
 								strokeDasharray="3 4"
 								style={{ stroke: C.bandEdge, transition: "all 220ms ease" }}
 							/>
 							<text
-								x={xAt(S / 2)}
+								x={xAt(B / 2)}
 								y={PT - 6}
 								textAnchor="middle"
 								fontSize={12}

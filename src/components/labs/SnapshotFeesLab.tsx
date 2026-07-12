@@ -121,7 +121,7 @@ const SCENARIOS: Scenario[] = [
 		key: "wide",
 		title: "Quoting Wide",
 		blurb:
-			"Two-sided and fully matched, but placed outside the band, so the only charge is the stamp for imprecision. Widen S and watch the band swallow the quotes and the fees fall away.",
+			"Two-sided and fully matched, but placed outside the band, so the only charge is the stamp for imprecision. Widen B and watch the band swallow the quotes and the fees fall away.",
 		book: () =>
 			bookOf({
 				[CENTER - 9]: 8000,
@@ -172,7 +172,7 @@ const mono = "var(--lab-mono)";
 
 // What each dial does, narrated as you move it
 const DIAL_EFFECT: Record<string, { up: string; down: string }> = {
-	S: {
+	B: {
 		up: "Wider inner band: more placement stamps at zero.",
 		down: "Tighter inner band: precision is judged more strictly.",
 	},
@@ -301,7 +301,7 @@ interface DragState {
 
 export default function SnapshotFeesLab() {
 	// —— market standard ——
-	const [S, setS] = useState(2); // spread standard, bps
+	const [B, setB] = useState(2); // inner band width, bps
 	const [T, setT] = useState(20000); // typical trade size, $
 	// —— fee schedule ——
 	const [F, setF] = useState(10); // cap / taker rate, bps
@@ -332,10 +332,10 @@ export default function SnapshotFeesLab() {
 		}));
 		return computeModel(
 			book,
-			{ S, T, F, Z: ZONE_BPS, slope, slope2: SLOPE2, comp },
+			{ B, T, F, Z: ZONE_BPS, slope, slope2: SLOPE2, comp },
 			lastM.current,
 		);
-	}, [sizes, S, T, F, slope, comp, sideOf]);
+	}, [sizes, B, T, F, slope, comp, sideOf]);
 
 	useEffect(() => {
 		if (!model.frozen) lastM.current = model.M;
@@ -405,7 +405,7 @@ export default function SnapshotFeesLab() {
 		setSizes(sc.book());
 		setCenterSide("bid");
 		setEffect(null);
-		setS(2);
+		setB(2);
 		setT(20000);
 		setF(10);
 		setSlope(0.8);
@@ -535,7 +535,7 @@ export default function SnapshotFeesLab() {
 			{/* formulas — the full pipeline, on demand */}
 			{showFormula &&
 				(() => {
-					const half = (S / 2).toFixed(2);
+					const half = (B / 2).toFixed(2);
 					const stampEx = (d: number) =>
 						Math.min(
 							F,
@@ -705,7 +705,7 @@ export default function SnapshotFeesLab() {
 									each matched dollar pays its worse leg (a round trip is as
 									good as its worse leg) and unbacked dollars pay F. Width
 									pressure = slope; the full taker rate is reached{" "}
-									{(S / 2 + dCap).toFixed(1)}bps from M, and past that point
+									{(B / 2 + dCap).toFixed(1)}bps from M, and past that point
 									backing no longer matters in either direction.
 								</div>
 							</div>
@@ -772,8 +772,8 @@ export default function SnapshotFeesLab() {
 					/>
 					<Param
 						name="Inner Band · B"
-						val={S}
-						set={touch("S", S, setS)}
+						val={B}
+						set={touch("B", B, setB)}
 						min={1}
 						max={10}
 						stp={0.5}
@@ -826,7 +826,7 @@ export default function SnapshotFeesLab() {
 						<span style={label}>Full fee reached</span>
 						<span style={{ fontFamily: mono, fontSize: 12, color: C.text }}>
 							{(
-								S / 2 +
+								B / 2 +
 								stampCapBps({ F, Z: ZONE_BPS, slope, slope2: SLOPE2 })
 							).toFixed(1)}
 							bps from M
