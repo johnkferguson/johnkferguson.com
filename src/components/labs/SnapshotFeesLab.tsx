@@ -14,8 +14,10 @@ import "./snapshot-fees-lab.css";
 // Mechanism lives in src/lib/snapshot-fees/engine.ts — this file only renders.
 // ————————————————————————————————————————————————————————————————
 
-const N = 21; // levels
-const CENTER = 10; // index of 100.00
+const N = 41; // levels
+const CENTER = 20; // index of 100.00
+// zoom steps: ticks visible either side of 100.00 (view only, never the book)
+const ZOOM_HALVES = [10, 15, 20];
 const TICK = 0.005; // $ per level
 const MAX_DEPTH = 25000; // $ per level
 const STEP_DOLLARS = 250;
@@ -97,10 +99,10 @@ const SCENARIOS: Scenario[] = [
 				1500, 1700, 1500, 1700, 2200, 3200, 5200, 14000, 17000, 21100,
 			];
 			bids.forEach((v, k) => {
-				a[k] = v;
+				a[CENTER - 10 + k] = v;
 			});
 			asks.forEach((v, k) => {
-				a[11 + k] = v;
+				a[CENTER + 1 + k] = v;
 			});
 			return a;
 		},
@@ -117,7 +119,13 @@ const SCENARIOS: Scenario[] = [
 		title: "Quoting Wide",
 		blurb:
 			"Two-sided and fully matched, but placed outside the band, so the only charge is the stamp for imprecision. Widen S and watch the band swallow the quotes and the fees fall away.",
-		book: () => bookOf({ 1: 8000, 3: 6000, 17: 6000, 19: 8000 }),
+		book: () =>
+			bookOf({
+				[CENTER - 9]: 8000,
+				[CENTER - 7]: 6000,
+				[CENTER + 7]: 6000,
+				[CENTER + 9]: 8000,
+			}),
 	},
 	{
 		key: "spill",
@@ -286,6 +294,7 @@ export default function SnapshotFeesLab() {
 	const [mHover, setMHover] = useState(false);
 	const [feeHover, setFeeHover] = useState<number | null>(null);
 	const [feePinned, setFeePinned] = useState<number | null>(null);
+	const [zoom, setZoom] = useState(0);
 	const lastM = useRef(100);
 	const drag = useRef<DragState | null>(null);
 
@@ -328,9 +337,13 @@ export default function SnapshotFeesLab() {
 	const AXIS_Y = PB + 4;
 	// inner padding keeps the outermost bars clear of both axis gutters
 	const PAD = 16;
-	const step = (PR - PL - 2 * PAD) / (N - 1);
-	const xAt = (i: number) => PL + PAD + i * step;
-	const xOfPrice = (p: number) => PL + PAD + ((p - priceAt(0)) / TICK) * step;
+	const viewHalf = ZOOM_HALVES[zoom];
+	const loI = CENTER - viewHalf;
+	const inView = (i: number) => i >= loI && i <= CENTER + viewHalf;
+	const labelStride = [2, 3, 4][zoom];
+	const step = (PR - PL - 2 * PAD) / (viewHalf * 2);
+	const xAt = (i: number) => PL + PAD + (i - loI) * step;
+	const xOfPrice = (p: number) => PL + PAD + ((p - priceAt(loI)) / TICK) * step;
 	const barW = step * 0.6;
 	const depthTop = PT; // depth scale spans the full plot: $25k = top gridline
 	const yDepth = (v: number) => PB - (v / MAX_DEPTH) * (PB - depthTop);
@@ -449,7 +462,9 @@ export default function SnapshotFeesLab() {
 	if (tip != null) involved.add(tip);
 	const dimIf = (i: number) => (tip != null && !involved.has(i) ? 0.35 : 1);
 
-	const feePts = model.levels.filter((l) => l.size > 0 && l.side !== "mid");
+	const feePts = model.levels.filter(
+		(l) => l.size > 0 && l.side !== "mid" && inView(l.i),
+	);
 	const feePath = feePts
 		.map((l, k) => `${k ? "L" : "M"}${xAt(l.i)},${yFee(l.bk?.final ?? 0)}`)
 		.join(" ");
@@ -697,6 +712,53 @@ export default function SnapshotFeesLab() {
 					}}
 				>
 					SINGLE MARKET MAKER BATCH AUCTION FEES
+				</div>
+				{/* zoom: view only — the book and M never change */}
+				<div
+					style={{
+						position: "absolute",
+						top: 10,
+						right: 12,
+						display: "flex",
+						alignItems: "center",
+						gap: 6,
+					}}
+				>
+					<button
+						type="button"
+						disabled={zoom >= ZOOM_HALVES.length - 1}
+						onClick={() =>
+							setZoom((z) => Math.min(ZOOM_HALVES.length - 1, z + 1))
+						}
+						title="Zoom out: show more of the book"
+						style={{
+							...btn(false),
+							padding: "1px 8px",
+							fontSize: 13,
+							opacity: zoom >= ZOOM_HALVES.length - 1 ? 0.35 : 1,
+							cursor: zoom >= ZOOM_HALVES.length - 1 ? "default" : "pointer",
+						}}
+					>
+						−
+					</button>
+					<span style={{ fontFamily: mono, fontSize: 10.5, color: C.faint }}>
+						±{viewHalf % 2 ? (viewHalf / 2).toFixed(1) : viewHalf / 2}bps
+					</span>
+					<button
+						type="button"
+						disabled={zoom === 0}
+						onClick={() => setZoom((z) => Math.max(0, z - 1))}
+						title="Zoom in"
+						style={{
+							...btn(false),
+							padding: "1px 8px",
+							fontSize: 13,
+							opacity: zoom === 0 ? 0.35 : 1,
+							cursor: zoom === 0 ? "default" : "pointer",
+						}}
+					>
+						+
+					</button>
 				</div>
 				<div
 					style={{
@@ -1016,7 +1078,7 @@ export default function SnapshotFeesLab() {
 
 					{/* bars + hit zones */}
 					{model.levels.map((lv) =>
-						lv.side === "mid" ? null : (
+						lv.side === "mid" || !inView(lv.i) ? null : (
 							<g key={lv.i}>
 								{/* bar body: hovering reads the level's fee, clicking pins it */}
 								{/* biome-ignore lint/a11y/noStaticElementInteractions: SVG hover surface; the fee dots are the accessible pin control */}
@@ -1116,20 +1178,22 @@ export default function SnapshotFeesLab() {
 					)}
 
 					{/* partner highlight — the dollars matched with the hovered level */}
-					{matchSlices.map((sl) => (
-						<rect
-							key={sl.i}
-							x={xAt(sl.i) - barW / 2}
-							y={yDepth(sl.to)}
-							width={barW}
-							height={Math.max(0, yDepth(sl.from) - yDepth(sl.to))}
-							fill="none"
-							strokeWidth={1.75}
-							rx={1.5}
-							pointerEvents="none"
-							style={{ stroke: C.text }}
-						/>
-					))}
+					{matchSlices
+						.filter((sl) => inView(sl.i))
+						.map((sl) => (
+							<rect
+								key={sl.i}
+								x={xAt(sl.i) - barW / 2}
+								y={yDepth(sl.to)}
+								width={barW}
+								height={Math.max(0, yDepth(sl.from) - yDepth(sl.to))}
+								fill="none"
+								strokeWidth={1.75}
+								rx={1.5}
+								pointerEvents="none"
+								style={{ stroke: C.text }}
+							/>
+						))}
 
 					{/* hovered/pinned-fee reference line across the whole plot */}
 					{tipLv && tipBk && (
@@ -1204,36 +1268,38 @@ export default function SnapshotFeesLab() {
 
 					{/* price axis */}
 					<line x1={PL} x2={PR} y1={PB} y2={PB} style={{ stroke: C.line }} />
-					{model.levels.map((lv) => (
-						<g key={lv.i}>
-							<line
-								x1={xAt(lv.i)}
-								x2={xAt(lv.i)}
-								y1={PB}
-								y2={PB + 4}
-								style={{ stroke: C.faint }}
-							/>
-							{lv.i % 2 === 0 && (
-								<text
-									x={xAt(lv.i)}
-									y={AXIS_Y + 15}
-									textAnchor="middle"
-									fontSize={12}
-									style={{
-										fill:
-											lv.i === CENTER
-												? centerSide === "bid"
-													? C.bid
-													: C.ask
-												: C.faint,
-										fontFamily: mono,
-									}}
-								>
-									{fmtPx(lv.price)}
-								</text>
-							)}
-						</g>
-					))}
+					{model.levels.map((lv) =>
+						!inView(lv.i) ? null : (
+							<g key={lv.i}>
+								<line
+									x1={xAt(lv.i)}
+									x2={xAt(lv.i)}
+									y1={PB}
+									y2={PB + 4}
+									style={{ stroke: C.faint }}
+								/>
+								{(lv.i - CENTER) % labelStride === 0 && (
+									<text
+										x={xAt(lv.i)}
+										y={AXIS_Y + 15}
+										textAnchor="middle"
+										fontSize={12}
+										style={{
+											fill:
+												lv.i === CENTER
+													? centerSide === "bid"
+														? C.bid
+														: C.ask
+													: C.faint,
+											fontFamily: mono,
+										}}
+									>
+										{fmtPx(lv.price)}
+									</text>
+								)}
+							</g>
+						),
+					)}
 
 					{/* key — its own strip below the price axis */}
 					<g pointerEvents="none" style={{ fontFamily: mono }}>

@@ -14,8 +14,10 @@ import "./snapshot-fees-lab.css";
 // the band) span both halves; personal things live in their own half.
 // ————————————————————————————————————————————————————————————————
 
-const N = 21;
-const CENTER = 10;
+const N = 41;
+const CENTER = 20;
+// zoom steps: ticks visible either side of 100.00 (view only, never the book)
+const ZOOM_HALVES = [10, 15, 20];
 const TICK = 0.005;
 const DMAX = 40000; // $ per level, per half
 const YOUR_MAX = 25000;
@@ -340,6 +342,7 @@ export default function SnapshotFeesMultiLab() {
 	const [feeHover, setFeeHover] = useState<number | null>(null);
 	const [makerHover, setMakerHover] = useState<number | null>(null);
 	const [feePinned, setFeePinned] = useState<number | null>(null);
+	const [zoom, setZoom] = useState(0);
 	const [mHist, setMHist] = useState<number[]>([]);
 	const lastM = useRef(100);
 	const drag = useRef<DragState | null>(null);
@@ -498,9 +501,13 @@ export default function SnapshotFeesMultiLab() {
 	const H = 656;
 	const AXIS_Y = PB + 4;
 	const PAD = 16;
-	const step = (PR - PL - 2 * PAD) / (N - 1);
-	const xAt = (i: number) => PL + PAD + i * step;
-	const xOfPrice = (p: number) => PL + PAD + ((p - priceAt(0)) / TICK) * step;
+	const viewHalf = ZOOM_HALVES[zoom];
+	const loI = CENTER - viewHalf;
+	const inView = (i: number) => i >= loI && i <= CENTER + viewHalf;
+	const labelStride = [2, 3, 4][zoom];
+	const step = (PR - PL - 2 * PAD) / (viewHalf * 2);
+	const xAt = (i: number) => PL + PAD + (i - loI) * step;
+	const xOfPrice = (p: number) => PL + PAD + ((p - priceAt(loI)) / TICK) * step;
 	const barW = step * 0.6;
 	const yUp = (v: number) => Math.max(PT, MID - (v / DMAX) * (MID - PT));
 	const yDn = (v: number) => Math.min(PB, MID + (v / DMAX) * (PB - MID));
@@ -621,12 +628,14 @@ export default function SnapshotFeesMultiLab() {
 	});
 
 	const feeLevels = fees.levels;
-	const feePts = feeLevels.filter((l) => l.size > 0 && l.side !== "mid");
+	const feePts = feeLevels.filter(
+		(l) => l.size > 0 && l.side !== "mid" && inView(l.i),
+	);
 	const feePath = feePts
 		.map((l, k) => `${k ? "L" : "M"}${xAt(l.i)},${yFeeUp(l.bk?.final ?? 0)}`)
 		.join(" ");
 	const makerPts = makerFees.levels.filter(
-		(l) => l.size > 0 && l.side !== "mid",
+		(l) => l.size > 0 && l.side !== "mid" && inView(l.i),
 	);
 	const makerPath = makerPts
 		.map((l, k) => `${k ? "L" : "M"}${xAt(l.i)},${yFeeDn(l.bk?.final ?? 0)}`)
@@ -744,6 +753,53 @@ export default function SnapshotFeesMultiLab() {
 					}}
 				>
 					MULTI MAKER BATCH AUCTION FEES
+				</div>
+				{/* zoom: view only — the books and M never change */}
+				<div
+					style={{
+						position: "absolute",
+						top: 10,
+						right: 12,
+						display: "flex",
+						alignItems: "center",
+						gap: 6,
+					}}
+				>
+					<button
+						type="button"
+						disabled={zoom >= ZOOM_HALVES.length - 1}
+						onClick={() =>
+							setZoom((z) => Math.min(ZOOM_HALVES.length - 1, z + 1))
+						}
+						title="Zoom out: show more of the book"
+						style={{
+							...btn(false),
+							padding: "1px 8px",
+							fontSize: 13,
+							opacity: zoom >= ZOOM_HALVES.length - 1 ? 0.35 : 1,
+							cursor: zoom >= ZOOM_HALVES.length - 1 ? "default" : "pointer",
+						}}
+					>
+						−
+					</button>
+					<span style={{ fontFamily: mono, fontSize: 10.5, color: C.faint }}>
+						±{viewHalf % 2 ? (viewHalf / 2).toFixed(1) : viewHalf / 2}bps
+					</span>
+					<button
+						type="button"
+						disabled={zoom === 0}
+						onClick={() => setZoom((z) => Math.max(0, z - 1))}
+						title="Zoom in"
+						style={{
+							...btn(false),
+							padding: "1px 8px",
+							fontSize: 13,
+							opacity: zoom === 0 ? 0.35 : 1,
+							cursor: zoom === 0 ? "default" : "pointer",
+						}}
+					>
+						+
+					</button>
 				</div>
 				<div
 					style={{
@@ -1233,6 +1289,7 @@ export default function SnapshotFeesMultiLab() {
 
 					{/* mirrored books */}
 					{yourSizes.map((yv, i) => {
+						if (!inView(i)) return null;
 						const side = sideOf(i);
 						const av = makerSizes[i];
 						const usedYou = mm.used.get("you")?.get(i) ?? 0;
@@ -1371,20 +1428,22 @@ export default function SnapshotFeesMultiLab() {
 					})}
 
 					{/* partner highlight within your book */}
-					{matchSlices.map((sl) => (
-						<rect
-							key={sl.i}
-							x={xAt(sl.i) - barW / 2}
-							y={yUp(sl.to)}
-							width={barW}
-							height={Math.max(0, yUp(sl.from) - yUp(sl.to))}
-							fill="none"
-							strokeWidth={1.75}
-							rx={1.5}
-							pointerEvents="none"
-							style={{ stroke: C.text }}
-						/>
-					))}
+					{matchSlices
+						.filter((sl) => inView(sl.i))
+						.map((sl) => (
+							<rect
+								key={sl.i}
+								x={xAt(sl.i) - barW / 2}
+								y={yUp(sl.to)}
+								width={barW}
+								height={Math.max(0, yUp(sl.from) - yUp(sl.to))}
+								fill="none"
+								strokeWidth={1.75}
+								rx={1.5}
+								pointerEvents="none"
+								style={{ stroke: C.text }}
+							/>
+						))}
 
 					{/* hovered/pinned-fee reference line, your half */}
 					{tipLv && tipBk && (
@@ -1509,36 +1568,38 @@ export default function SnapshotFeesMultiLab() {
 
 					{/* price axis at the bottom */}
 					<line x1={PL} x2={PR} y1={PB} y2={PB} style={{ stroke: C.line }} />
-					{yourSizes.map((_, i) => (
-						<g key={priceAt(i)}>
-							<line
-								x1={xAt(i)}
-								x2={xAt(i)}
-								y1={PB}
-								y2={PB + 4}
-								style={{ stroke: C.faint }}
-							/>
-							{i % 2 === 0 && (
-								<text
-									x={xAt(i)}
-									y={AXIS_Y + 15}
-									textAnchor="middle"
-									fontSize={12}
-									style={{
-										fill:
-											i === CENTER
-												? centerSide === "bid"
-													? C.bid
-													: C.ask
-												: C.faint,
-										fontFamily: mono,
-									}}
-								>
-									{fmtPx(priceAt(i))}
-								</text>
-							)}
-						</g>
-					))}
+					{yourSizes.map((_, i) =>
+						!inView(i) ? null : (
+							<g key={priceAt(i)}>
+								<line
+									x1={xAt(i)}
+									x2={xAt(i)}
+									y1={PB}
+									y2={PB + 4}
+									style={{ stroke: C.faint }}
+								/>
+								{(i - CENTER) % labelStride === 0 && (
+									<text
+										x={xAt(i)}
+										y={AXIS_Y + 15}
+										textAnchor="middle"
+										fontSize={12}
+										style={{
+											fill:
+												i === CENTER
+													? centerSide === "bid"
+														? C.bid
+														: C.ask
+													: C.faint,
+											fontFamily: mono,
+										}}
+									>
+										{fmtPx(priceAt(i))}
+									</text>
+								)}
+							</g>
+						),
+					)}
 
 					{/* key */}
 					<g pointerEvents="none" style={{ fontFamily: mono }}>
