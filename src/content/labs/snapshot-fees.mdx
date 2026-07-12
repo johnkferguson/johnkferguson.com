@@ -1,0 +1,146 @@
+{/*
+  Snapshot Fees — the article body. Edit prose, headings, and lab placement
+  here like a normal markdown file. The page shell (layout, width, the fixed
+  TOC rail, styles) lives in src/pages/lab/snapshot-fees.astro.
+
+  Notes:
+  - `##` headings get ids automatically and feed the table of contents.
+  - Interactive labs are imported below and dropped in with client:visible.
+  - `<div class="stub">` marks outline bullets; delete the wrapper as each
+    section becomes prose.
+*/}
+
+import TableOfContents from "../../components/TableOfContents.astro";
+import BaseFeeLab from "../../components/labs/BaseFeeLab";
+import SnapshotFeesLab from "../../components/labs/SnapshotFeesLab";
+import SnapshotFeesMultiLab from "../../components/labs/SnapshotFeesMultiLab";
+
+# Snapshot Fees
+
+<p class="stub">Outline skeleton. Bullets are placeholders for prose, not prose.</p>
+
+<TableOfContents inline />
+
+<div class="stub">
+
+- Lede: a fee schedule that looks at what you are doing right now, not what you did last month
+- One sentence on batch auctions as the setting
+- Promise of the piece: play with the mechanism, not just read about it
+
+</div>
+
+## Why fees need rethinking
+
+<div class="stub">
+
+- Batch auctions: discrete windows, sealed books, no latency race
+- CLOB fee logic (volume tiers) gets imported by default; why it fits badly here
+- Volume tiers: incumbents get discounts, new makers pay full freight, long-tail markets crowded out
+- Volume measures history, not the quality of liquidity standing right now
+- A sealed window produces a complete snapshot: price the snapshot instead
+
+</div>
+
+## The idea: directionality is the price
+
+<div class="stub">
+
+- Replace maker/taker with a spectrum of directionality
+- Confidently two-sided near fair value: trades free. Fully one-sided: pays the taker rate
+- A one-sided resting order is a patient taker
+- Everything is computed fresh from one sealed snapshot per window: memoryless, verifiable, no tiers, no identity
+
+</div>
+
+## The base fee: placement against a standard
+
+<div class="stub">
+
+- The market declares a standard: the band, M ± S/2. Placement inside it is free
+- Outside the band the fee rises linearly: k per bps of imprecision, capped at F
+- The cap means no resting order ever pays more than a taker
+- Net edge: distance earns 1:1, the fee takes k per bps, k below 1 keeps width profitable
+- Full-fee point: beyond S/2 + F/k the schedule stops caring
+
+</div>
+
+<div class="labwrap">
+  <BaseFeeLab client:visible />
+</div>
+
+## One maker, two sides
+
+<div class="stub">
+
+- Introduce M: the mark price, measured at size by walking T dollars into each side
+- Matching: your own opposite side stands behind your fills
+- Worse leg per dollar; whatever has no match behind it is directional and pays F
+- Read a fee receipt: base fee, surcharges per match, total, net edge
+- Scenario tour: balanced ladder, directional maker, the moving mark, spillover
+
+</div>
+
+<div class="labwrap">
+  <SnapshotFeesLab client:visible />
+</div>
+
+## The Mark is communal
+
+<div class="stub">
+
+- In a real market M is measured from everyone's book at once
+- Eligibility: only demonstrated two-sided size near the touch gets a vote
+- Your voice is your share of the measuring walk
+- Confident non-directionality toward the mid is a vote for M, and tighter quoting carries more weight
+- Your fees come from your book, but judged against a yardstick you only partly control
+- Needs its own beat: what happens when there is not enough stock to compute M
+
+</div>
+
+## Many makers
+
+<div class="stub">
+
+- You against the aggregate makers, mirrored
+- Lessons: small fish, equal voice, the makers lean and re-price your resting book
+- Try to bend it: one-sided walls have no vote; the only way to fake the metric is to do the job
+- Press play: watch M drift while your book stands still
+
+</div>
+
+<div class="labwrap">
+  <SnapshotFeesMultiLab client:visible />
+</div>
+
+## The math, precisely
+
+<div class="stub">
+
+- The pipeline: eligibility, walk, M, band, stamps, pairing, worse-of
+- The one-line fee: (Σ matched × max(own, partner) + directional × F) / size
+- Reference computation anyone can recompute from the published window
+- Placement TBD: this section may move earlier, before or beside the labs
+
+</div>
+
+## Concerns, variations, open questions
+
+<div class="stub">
+
+- Semi-far coverage earns a discount: paid optionality, priced by fill risk and adverse selection
+- Manipulation economics: junk coverage is worthless, bending M requires standing real paired size
+- Parameters and governance: S declared and sticky, F venue-wide, k the one width dial, T measured from demand
+- Variations considered: partner-stamp grace interval, asymptotic stamps (rejected: softens the junk anchor), inside compensation (parked), partial fills
+- Open: cross-window dynamics, staking-based fee caps, thin-market M fallbacks
+
+</div>
+
+## Closing
+
+<div class="stub">
+
+- Recap: one snapshot, one standard, one question per fill: how directional were you really
+- What evidence would validate or break this design
+- Invitation: the labs are the argument; go bend them
+
+</div>
