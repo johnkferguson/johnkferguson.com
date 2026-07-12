@@ -4,6 +4,7 @@ import {
 	BP,
 	computeModel,
 	type Side,
+	stampCapBps,
 } from "../../lib/snapshot-fees/engine";
 import "./snapshot-fees-lab.css";
 
@@ -21,10 +22,12 @@ const ZOOM_HALVES = [10, 15, 20, 25, 30];
 const TICK = 0.005; // $ per level
 const MAX_DEPTH = 25000; // $ per level
 const STEP_DOLLARS = 250;
-// Window W: the Mark's absolute working radius, bps — eligibility range,
-// walk truncation, and boundary-fill price. Fixed for now; a dial (with k₂)
-// belongs to the advanced set.
-const WINDOW_BPS = 8;
+// Maker Zone Z: the Mark's absolute working radius, bps — eligibility range,
+// walk truncation, boundary-fill price, and the stamp knee. Fixed here;
+// dialable in the base-fee lab.
+const ZONE_BPS = 8;
+// Far slope k₂: stamp slope beyond the zone edge. Fixed here too.
+const SLOPE2 = 1;
 
 const priceAt = (i: number) => +(100 + (i - CENTER) * TICK).toFixed(3);
 // 100.000 (i = CENTER) is a quotable bid; asks start one tick above.
@@ -303,7 +306,6 @@ export default function SnapshotFeesLab() {
 	// —— fee schedule ——
 	const [F, setF] = useState(10); // cap / taker rate, bps
 	const [slope, setSlope] = useState(0.8); // k: stamp bps per bp beyond edge
-	const expo = 1; // stamp curvature — pinned linear; superlinear kills net edge mid-book
 	const [comp, setComp] = useState(0); // inside compensation max, bps (parked module)
 
 	const [sizes, setSizes] = useState<number[]>(() => SCENARIOS[0].book());
@@ -330,10 +332,10 @@ export default function SnapshotFeesLab() {
 		}));
 		return computeModel(
 			book,
-			{ S, T, F, W: WINDOW_BPS, slope, expo, comp },
+			{ S, T, F, Z: ZONE_BPS, slope, slope2: SLOPE2, comp },
 			lastM.current,
 		);
-	}, [sizes, S, T, F, slope, expo, comp, sideOf]);
+	}, [sizes, S, T, F, slope, comp, sideOf]);
 
 	useEffect(() => {
 		if (!model.frozen) lastM.current = model.M;
@@ -534,12 +536,18 @@ export default function SnapshotFeesLab() {
 			{showFormula &&
 				(() => {
 					const half = (S / 2).toFixed(2);
-					const stampEx = (d: number) => Math.min(F, slope * d ** expo);
-					const dCap = (F / slope) ** (1 / expo);
+					const stampEx = (d: number) =>
+						Math.min(
+							F,
+							d <= ZONE_BPS
+								? slope * d
+								: slope * ZONE_BPS + SLOPE2 * (d - ZONE_BPS),
+						);
+					const dCap = stampCapBps({ F, Z: ZONE_BPS, slope, slope2: SLOPE2 });
 					const dMax = Math.max(6, Math.ceil(dCap) + 2);
 					const pts = Array.from({ length: 41 }, (_, k) => {
 						const d = (dMax * k) / 40;
-						return `${10 + (d / dMax) * 150},${60 - (Math.min(F, slope * d ** expo) / F) * 48}`;
+						return `${10 + (d / dMax) * 150},${60 - (stampEx(d) / F) * 48}`;
 					}).join(" ");
 					const row = { marginBottom: 10 };
 					const eyebrow = { ...label, color: C.fee, marginRight: 10 };
@@ -573,8 +581,9 @@ export default function SnapshotFeesLab() {
 								<div style={note}>
 									impact price = volume-weighted price of trading $
 									{T.toLocaleString()} into that side, best levels first · only
-									matched size (min of your bid and ask dollars) within {W}bps
-									of the touch votes; missing depth is priced at the window edge
+									matched size (min of your bid and ask dollars) within{" "}
+									{ZONE_BPS}bps of the touch votes; missing depth is priced at
+									the zone edge
 								</div>
 								{model.iBid != null && model.iAsk != null && (
 									<div style={{ color: C.mark }}>
@@ -602,15 +611,17 @@ export default function SnapshotFeesLab() {
 								}}
 							>
 								<div style={{ flex: "1 1 320px" }}>
-									<span style={eyebrow}>3 · Stamp</span>stamp(d) = min(F, slope
-									× d) = min({F}, {slope} × d)
+									<span style={eyebrow}>3 · Stamp</span>stamp(d) = min(F,{" "}
+									{slope}× d) inside the zone; then min(F, {slope} × Z +{" "}
+									{SLOPE2} × (d − Z)) past its edge
 									<div style={note}>
 										d = bps of placement beyond your side's edge (0 if inside).
-										Slope is the price of every bps of imprecision.
+										Gentle k₁ prices retreat inside the Maker Zone (Z ={" "}
+										{ZONE_BPS}bps); the far slope k₂ takes over at its edge.
 									</div>
 									<div style={{ color: C.text }}>
-										d=1 → {fmtBp(stampEx(1))} · d=2 → {fmtBp(stampEx(2))} · d=4
-										→ {fmtBp(stampEx(4))} · hits the cap at d ={" "}
+										d=1 → {fmtBp(stampEx(1))} · d=4 → {fmtBp(stampEx(4))} · knee
+										at d={ZONE_BPS} → {fmtBp(stampEx(ZONE_BPS))} · cap at d ={" "}
 										{dCap.toFixed(1)}bps
 									</div>
 								</div>
@@ -693,8 +704,8 @@ export default function SnapshotFeesLab() {
 									each matched dollar pays its worse leg (a round trip is as
 									good as its worse leg) and unbacked dollars pay F. Width
 									pressure = slope; the full taker rate is reached{" "}
-									{(S / 2 + F / slope).toFixed(1)}bps from M, and past that
-									point backing no longer matters in either direction.
+									{(S / 2 + dCap).toFixed(1)}bps from M, and past that point
+									backing no longer matters in either direction.
 								</div>
 							</div>
 
@@ -813,7 +824,11 @@ export default function SnapshotFeesLab() {
 					>
 						<span style={label}>Full fee reached</span>
 						<span style={{ fontFamily: mono, fontSize: 12, color: C.text }}>
-							{(S / 2 + F / slope).toFixed(1)}bps from M
+							{(
+								S / 2 +
+								stampCapBps({ F, Z: ZONE_BPS, slope, slope2: SLOPE2 })
+							).toFixed(1)}
+							bps from M
 						</span>
 					</div>
 					{effect && (
@@ -1649,7 +1664,7 @@ export default function SnapshotFeesLab() {
 											style={{ fill: C.faint, fontFamily: mono }}
 										>
 											{anyShort
-												? "faint rows: missing depth, priced at the window edge"
+												? "faint rows: missing depth, priced at the zone edge"
 												: "purple slices = the depth each walk consumed"}
 										</text>
 									</g>

@@ -32,15 +32,15 @@ export interface FeeParams {
 	/** Fee cap / taker rate, in bps. */
 	F: number;
 	/**
-	 * Window W — absolute working radius, in bps. Governs the Mark's
-	 * eligibility range, walk truncation, and boundary-fill price.
-	 * Validity: W ≥ S.
+	 * Maker Zone Z — absolute working radius, in bps. Governs the Mark's
+	 * eligibility range, walk truncation, boundary-fill price, and the
+	 * stamp knee. Validity: Z ≥ S.
 	 */
-	W: number;
-	/** Stamp slope k — fee bps per bp of placement beyond the band edge. */
+	Z: number;
+	/** Stamp slope k₁ — fee bps per bp beyond the band edge, inside the zone. */
 	slope: number;
-	/** Stamp curvature e. */
-	expo: number;
+	/** Stamp slope k₂ — fee bps per bp beyond the zone edge (the knee). */
+	slope2: number;
 	/** Inside compensation max, bps (parked module — reward channel). */
 	comp: number;
 }
@@ -101,7 +101,7 @@ export function computeAccountFees(
 	p: FeeParams,
 	M: number,
 ): AccountFees {
-	const { S, F, slope, expo, comp } = p;
+	const { S, F, Z, slope, slope2, comp } = p;
 	const bids = book
 		.filter((l) => l.side === "bid")
 		.sort((a, b) => b.price - a.price);
@@ -113,10 +113,13 @@ export function computeAccountFees(
 	const edgeBid = M - half;
 	const edgeAsk = M + half;
 
+	// Piecewise stamp: gentle k₁ inside the Maker Zone, steeper k₂ beyond
+	// its edge, capped at F.
 	const stampOf = (price: number, side: "bid" | "ask"): number => {
 		const d = side === "ask" ? price - edgeAsk : edgeBid - price;
 		const bps = Math.max(0, d / BP);
-		return Math.min(F, slope * bps ** expo);
+		const raw = bps <= Z ? slope * bps : slope * Z + slope2 * (bps - Z);
+		return Math.min(F, raw);
 	};
 
 	// Joint allocation: opposite-side stock is CONSUMED across same-side
@@ -209,7 +212,7 @@ export interface MakerBook {
 export interface MarkShort {
 	/** Dollars the walk could not source from eligible size. */
 	missing: number;
-	/** Where those dollars were priced: the side's anchor ± W. */
+	/** Where those dollars were priced: the side's anchor ± Z. */
 	price: number;
 }
 
@@ -237,7 +240,7 @@ export interface MultiMark {
 /**
  * The Mark. Only matched (demonstrated two-sided) size votes: per account
  * and side, quotes count up to the account's overlap — min(in-range bid $,
- * in-range ask $) — allocated best-first, where in range means within W of
+ * in-range ask $) — allocated best-first, where in range means within Z of
  * that side's anchor.
  *
  * Anchoring is exactly two passes: pass 1 anchors each side at the best
@@ -248,7 +251,7 @@ export interface MultiMark {
  *
  * The T-walk consumes the pooled eligible ladder best-first, pro-rata across
  * accounts at equal prices; if the ladder holds less than T, the missing
- * dollars are priced at the anchor ± W (boundary fill). Because every
+ * dollars are priced at the anchor ± Z (boundary fill). Because every
  * account's eligible size is equal on both sides by construction, the
  * eligible book is dollar-symmetric: shortfalls are always equal, so raw
  * size imbalance never tilts M. Boundary fill only interpolates —
@@ -257,11 +260,11 @@ export interface MultiMark {
  */
 export function computeMark(
 	books: MakerBook[],
-	p: { S: number; T: number; W: number },
+	p: { S: number; T: number; Z: number },
 	fallbackM: number,
 ): MultiMark {
-	const { S, T, W } = p;
-	const wD = W * BP;
+	const { S, T, Z } = p;
+	const zD = Z * BP;
 	const half = (S / 2) * BP;
 
 	const mapBy = <V>(mk: () => V): Map<string, V> => {
@@ -320,13 +323,13 @@ export function computeMark(
 			const bids = b.levels
 				.filter(
 					(l) =>
-						l.side === "bid" && l.size > 0 && anchorBid - l.price <= wD + 1e-9,
+						l.side === "bid" && l.size > 0 && anchorBid - l.price <= zD + 1e-9,
 				)
 				.sort((a, c) => c.price - a.price);
 			const asks = b.levels
 				.filter(
 					(l) =>
-						l.side === "ask" && l.size > 0 && l.price - anchorAsk <= wD + 1e-9,
+						l.side === "ask" && l.size > 0 && l.price - anchorAsk <= zD + 1e-9,
 				)
 				.sort((a, c) => a.price - c.price);
 			const overlap = Math.min(
@@ -406,8 +409,8 @@ export function computeMark(
 		return { price: cost / T, walked: T - (short?.missing ?? 0), short };
 	};
 
-	const wBid = walkSide(pass.elBids, "bid", a2Bid - wD);
-	const wAsk = walkSide(pass.elAsks, "ask", a2Ask + wD);
+	const wBid = walkSide(pass.elBids, "bid", a2Bid - zD);
+	const wAsk = walkSide(pass.elAsks, "ask", a2Ask + zD);
 	const M = (wBid.price + wAsk.price) / 2;
 
 	const share = (tm: Map<string, number>, tot: number) => {
@@ -468,10 +471,10 @@ export function computeModel(
 	p: FeeParams,
 	fallbackM: number,
 ): MarketModel {
-	const { S, T, W } = p;
+	const { S, T, Z } = p;
 	const mm = computeMark(
 		[{ id: "solo", levels: book }],
-		{ S, T, W },
+		{ S, T, Z },
 		fallbackM,
 	);
 	const af = computeAccountFees(book, p, mm.M);
@@ -499,4 +502,15 @@ export function computeModel(
 		markUsed: mm.used.get("solo") ?? new Map(),
 		stampOf: af.stampOf,
 	};
+}
+
+/** Bps beyond the band edge at which the stamp reaches the cap F. */
+export function stampCapBps(p: {
+	F: number;
+	Z: number;
+	slope: number;
+	slope2: number;
+}): number {
+	const { F, Z, slope, slope2 } = p;
+	return F <= slope * Z ? F / slope : Z + (F - slope * Z) / slope2;
 }

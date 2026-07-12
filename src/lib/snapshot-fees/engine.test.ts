@@ -6,11 +6,12 @@ import {
 	computeMark,
 	computeModel,
 	type FeeParams,
+	stampCapBps,
 } from "./engine";
 
 // Reference computation from the mechanism spec (worse-of revision) — "an
 // implementation must reproduce these numbers exactly."
-// Vector settings: F=15, k=0.5, e=1, S=4 (band M ± 2bp), T=$5,000, W=20bps
+// Vector settings: F=15, k=0.5, e=1, S=4 (band M ± 2bp), T=$5,000, Z=20bps (the Maker Zone, formerly W)
 // absolute (the spec's older drafts wrote this as the multiple "W=5", i.e.
 // 5×S; vectors verify arithmetic at their stated settings, which need not
 // match working defaults).
@@ -20,9 +21,9 @@ const P: FeeParams = {
 	S: 4,
 	T: 5000,
 	F: 15,
-	W: 20,
+	Z: 20,
 	slope: 0.5,
-	expo: 1,
+	slope2: 2,
 	comp: 0,
 };
 
@@ -133,7 +134,7 @@ describe("Mark pipeline: eligibility, two passes, boundary fill", () => {
 		expect((m.impactSpread ?? 0) / BP).toBeCloseTo(22, 8);
 	});
 
-	test("boundary fill is an interpolator: M = c·walkedMid + (1−c)·anchorMid, W cancels", () => {
+	test("boundary fill is an interpolator: M = c·walkedMid + (1−c)·anchorMid, Z cancels", () => {
 		const thin: BookLevel[] = [
 			{ i: 0, price: 99.95, side: "bid", size: 5000 },
 			{ i: 1, price: 99.99, side: "bid", size: 5000 },
@@ -143,9 +144,9 @@ describe("Mark pipeline: eligibility, two passes, boundary fill", () => {
 		// c = eligible/T = 0.5; walked mid = (99.97 + 100.01)/2 = 99.99;
 		// anchor mid = (99.99 + 100.01)/2 = 100.00
 		expect(m.M).toBeCloseTo(0.5 * 99.99 + 0.5 * 100.0, 10);
-		// the W terms cancel in the midpoint: same M at any window width
+		// the Z terms cancel in the midpoint: same M at any zone width
 		// (given the same eligible set), even as both impact prices move
-		const m10 = computeModel(thin, { ...P, T: 20000, W: 10 }, 100);
+		const m10 = computeModel(thin, { ...P, T: 20000, Z: 10 }, 100);
 		expect(m10.iBid).not.toBeCloseTo(m.iBid ?? Number.NaN, 6);
 		expect(m10.M).toBeCloseTo(m.M, 10);
 	});
@@ -171,7 +172,7 @@ describe("Mark pipeline: eligibility, two passes, boundary fill", () => {
 					],
 				},
 			],
-			{ S: 4, T: 5000, W: 20 },
+			{ S: 4, T: 5000, Z: 20 },
 			100.123,
 		);
 		expect(m.frozen).toBe(true);
@@ -197,7 +198,7 @@ describe("Mark pipeline: eligibility, two passes, boundary fill", () => {
 					],
 				},
 			],
-			{ S: 4, T: 5000, W: 20 },
+			{ S: 4, T: 5000, Z: 20 },
 			100,
 		);
 		expect(m.frozen).toBe(false);
@@ -337,7 +338,7 @@ describe("anchors and invariants", () => {
 });
 
 describe("multi-maker Mark", () => {
-	const MP = { S: 2, T: 20000, W: 8 };
+	const MP = { S: 2, T: 20000, Z: 8 };
 	const you = (levels: BookLevel[]) => ({ id: "you", levels });
 	const agg = (levels: BookLevel[]) => ({ id: "agg", levels });
 
@@ -414,9 +415,9 @@ describe("multi-maker Mark", () => {
 			S: 2,
 			T: 20000,
 			F: 15,
-			W: 8,
+			Z: 8,
 			slope: 0.5,
-			expo: 1,
+			slope2: 1,
 			comp: 0,
 		};
 		const yourBook: BookLevel[] = [
@@ -462,5 +463,35 @@ describe("multi-maker Mark", () => {
 		expect(feesAfter.levels[0].bk?.own).toBeCloseTo(0.5, 10);
 		expect(feesAfter.levels[0].bk?.final).toBeCloseTo(0.5, 10);
 		expect(feesAfter.levels[1].bk?.final).toBeCloseTo(0.5, 10);
+	});
+});
+
+describe("piecewise stamp (the zone knee)", () => {
+	// Settled calibration: S=2, Z=8, k1=0.8, k2=1, F=10: stamp 6.4bps at the
+	// knee, cap reached 11.6bps beyond the band edge (12.6bps from M).
+	const p: FeeParams = {
+		S: 2,
+		T: 20000,
+		F: 10,
+		Z: 8,
+		slope: 0.8,
+		slope2: 1,
+		comp: 0,
+	};
+
+	test("gentle inside the zone, steeper beyond, capped at F", () => {
+		const af = computeAccountFees([], p, 100);
+		const at = (dBps: number) => af.stampOf(100.01 + dBps * BP, "ask");
+		expect(at(4)).toBeCloseTo(3.2, 10); // k1 region
+		expect(at(8)).toBeCloseTo(6.4, 10); // the knee
+		expect(at(10)).toBeCloseTo(8.4, 10); // k2 region: 6.4 + 1 x 2
+		expect(at(11.6)).toBeCloseTo(10, 10); // cap arrives
+		expect(at(20)).toBe(10); // and holds
+	});
+
+	test("stampCapBps: cap distance honours the knee", () => {
+		expect(stampCapBps(p)).toBeCloseTo(11.6, 10);
+		// a cap below the knee never reaches k2: F/k1 alone
+		expect(stampCapBps({ ...p, F: 5 })).toBeCloseTo(6.25, 10);
 	});
 });

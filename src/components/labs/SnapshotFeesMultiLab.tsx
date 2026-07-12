@@ -23,10 +23,12 @@ const DMAX = 40000; // $ per level, per half
 const YOUR_MAX = 25000;
 const MAKER_MAX = 40000;
 const STEP_DOLLARS = 250;
-// Window W: the Mark's absolute working radius, bps — eligibility range,
-// walk truncation, and boundary-fill price. Fixed for now; a dial (with k₂)
-// belongs to the advanced set.
-const WINDOW_BPS = 8;
+// Maker Zone Z: the Mark's absolute working radius, bps — eligibility range,
+// walk truncation, boundary-fill price, and the stamp knee. Fixed here;
+// dialable in the base-fee lab.
+const ZONE_BPS = 8;
+// Far slope k₂: stamp slope beyond the zone edge. Fixed here too.
+const SLOPE2 = 1;
 
 const priceAt = (i: number) => +(100 + (i - CENTER) * TICK).toFixed(3);
 // 100.000 (i = CENTER) is a quotable bid; asks start one tick above.
@@ -397,10 +399,10 @@ export default function SnapshotFeesMultiLab() {
 				{ id: "you", levels: yourBook },
 				{ id: "agg", levels: makerBook },
 			],
-			{ S, T, W: WINDOW_BPS },
+			{ S, T, Z: ZONE_BPS },
 			lastM.current,
 		);
-		const p = { S, T, F, W: WINDOW_BPS, slope, expo: 1, comp: 0 };
+		const p = { S, T, F, Z: ZONE_BPS, slope, slope2: SLOPE2, comp: 0 };
 		const fees = computeAccountFees(yourBook, p, mm.M);
 		const makerFees = computeAccountFees(makerBook, p, mm.M);
 		return { mm, fees, makerFees };

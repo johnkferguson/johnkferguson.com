@@ -1,10 +1,12 @@
 import { useEffect, useRef, useState } from "react";
+import { stampCapBps } from "../../lib/snapshot-fees/engine";
 import "./snapshot-fees-lab.css";
 
 // ————————————————————————————————————————————————————————————————
 // Snapshot Fees — base fee laboratory. The simplest piece of the
 // mechanism: one order's placement against the declared standard.
-// fee(d) = min(F, k × bps beyond the band edge). Drag to place.
+// fee(d): free in the band, k₁ per bps inside the Maker Zone, k₂ beyond
+// its edge, capped at F. Hover to trace.
 // Left: dials + the curve. Right: the schedule, live, in 0.5bps rows.
 // ————————————————————————————————————————————————————————————————
 
@@ -91,14 +93,22 @@ function Param({ name, val, set, min, max, stp, suffix, hint }: ParamProps) {
 
 export default function BaseFeeLab() {
 	const [S, setS] = useState(2);
+	const [Z, setZ] = useState(8); // Maker Zone width, bps beyond the band edge
 	const [F, setF] = useState(10);
-	const [slope, setSlope] = useState(0.8);
+	const [slope, setSlope] = useState(0.8); // k₁, inside the zone
+	const [slope2, setSlope2] = useState(1); // k₂, beyond the zone edge
 	const [hover, setHover] = useState<number | null>(null);
 	const tableRef = useRef<HTMLDivElement | null>(null);
 	const activeRowRef = useRef<HTMLDivElement | null>(null);
 
-	const feeAt = (d: number) => Math.min(F, slope * Math.max(0, d - S / 2));
-	const dFull = S / 2 + F / slope;
+	// piecewise stamp: gentle k₁ inside the Maker Zone, steeper k₂ beyond
+	const feeAt = (d: number) => {
+		const dd = Math.max(0, d - S / 2);
+		const raw = dd <= Z ? slope * dd : slope * Z + slope2 * (dd - Z);
+		return Math.min(F, raw);
+	};
+	const dFull = S / 2 + stampCapBps({ F, Z, slope, slope2 });
+	const dKnee = S / 2 + Z;
 
 	// geometry — viewBox sized for the two-thirds slot so text stays legible
 	const W = 580;
@@ -203,6 +213,16 @@ export default function BaseFeeLab() {
 								hint="The free band, M ± S/2."
 							/>
 							<Param
+								name="Maker Zone · Z"
+								val={Z}
+								set={setZ}
+								min={2}
+								max={20}
+								stp={0.5}
+								suffix="bps"
+								hint="Working radius past the band edge."
+							/>
+							<Param
 								name="Fee Cap · F"
 								val={F}
 								set={setF}
@@ -213,14 +233,24 @@ export default function BaseFeeLab() {
 								hint="Taker rate. Every fee's ceiling."
 							/>
 							<Param
-								name="Fee Slope · k"
+								name="Zone Slope · k₁"
 								val={slope}
 								set={setSlope}
 								min={0.25}
 								max={3}
 								stp={0.05}
 								suffix="×"
-								hint="Fee per bps outside the band."
+								hint="Fee per bps inside the zone."
+							/>
+							<Param
+								name="Far Slope · k₂"
+								val={slope2}
+								set={setSlope2}
+								min={0.25}
+								max={3}
+								stp={0.05}
+								suffix="×"
+								hint="Fee per bps beyond the zone."
 							/>
 						</div>
 
@@ -331,6 +361,37 @@ export default function BaseFeeLab() {
 							>
 								band edge
 							</text>
+
+							{/* the zone edge: where the far slope takes over */}
+							{dKnee <= DMAX && (
+								<>
+									<line
+										x1={xAt(dKnee)}
+										x2={xAt(dKnee)}
+										y1={PT}
+										y2={PB}
+										strokeDasharray="3 4"
+										opacity={0.7}
+										style={{
+											stroke: C.bandEdge,
+											transition: "all 220ms ease",
+										}}
+									/>
+									<text
+										x={xAt(dKnee)}
+										y={PT - 6}
+										textAnchor="middle"
+										fontSize={12}
+										style={{
+											fill: C.mark,
+											fontFamily: mono,
+											transition: "all 220ms ease",
+										}}
+									>
+										zone edge
+									</text>
+								</>
+							)}
 
 							{/* full-fee point on the distance axis */}
 							{dFull <= DMAX && (
@@ -522,8 +583,8 @@ export default function BaseFeeLab() {
 								fontSize={12.5}
 								style={{ fill: C.faint, fontFamily: mono, fontStyle: "italic" }}
 							>
-								Instructions: Hover the chart to trace the schedule. Dial S, F,
-								and k.
+								Instructions: Hover the chart to trace the schedule. Dial the
+								standard, zone, cap, and slopes.
 							</text>
 						</svg>
 					</div>
