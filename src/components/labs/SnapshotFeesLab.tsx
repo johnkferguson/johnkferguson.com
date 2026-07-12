@@ -735,53 +735,7 @@ export default function SnapshotFeesLab() {
 				>
 					SINGLE MARKET MAKER BATCH AUCTION FEES
 				</div>
-				{/* zoom: view only — the book and M never change */}
-				<div
-					style={{
-						position: "absolute",
-						top: 10,
-						right: 12,
-						display: "flex",
-						alignItems: "center",
-						gap: 6,
-					}}
-				>
-					<button
-						type="button"
-						disabled={zoom >= ZOOM_HALVES.length - 1}
-						onClick={() =>
-							setZoom((z) => Math.min(ZOOM_HALVES.length - 1, z + 1))
-						}
-						title="Zoom out: show more of the book"
-						aria-label="Zoom out"
-						style={{
-							...btn(false),
-							padding: "4px 7px",
-							opacity: zoom >= ZOOM_HALVES.length - 1 ? 0.35 : 1,
-							cursor: zoom >= ZOOM_HALVES.length - 1 ? "default" : "pointer",
-						}}
-					>
-						<ZoomIcon />
-					</button>
-					<span style={{ fontFamily: mono, fontSize: 10.5, color: C.faint }}>
-						±{viewHalf % 2 ? (viewHalf / 2).toFixed(1) : viewHalf / 2}bps
-					</span>
-					<button
-						type="button"
-						disabled={zoom === 0}
-						onClick={() => setZoom((z) => Math.max(0, z - 1))}
-						title="Zoom in"
-						aria-label="Zoom in"
-						style={{
-							...btn(false),
-							padding: "4px 7px",
-							opacity: zoom === 0 ? 0.35 : 1,
-							cursor: zoom === 0 ? "default" : "pointer",
-						}}
-					>
-						<ZoomIcon plus />
-					</button>
-				</div>
+
 				<div
 					style={{
 						display: "flex",
@@ -906,922 +860,986 @@ export default function SnapshotFeesLab() {
 						</div>
 					)}
 				</div>
-				<svg
-					viewBox={`0 0 ${W} ${H}`}
-					style={{ width: "100%", display: "block", touchAction: "none" }}
-					role="img"
-					aria-label="Order-book depth chart: drag bars to reshape your quotes; the violet curve shows each level's fee"
-				>
-					<defs>
-						<pattern
-							id="sf-hatch"
-							width="6"
-							height="6"
-							patternUnits="userSpaceOnUse"
-							patternTransform="rotate(45)"
-						>
-							<line
-								x1="0"
-								y1="0"
-								x2="0"
-								y2="6"
-								strokeWidth="1.6"
-								style={{ stroke: C.hatch }}
-							/>
-						</pattern>
-					</defs>
-					{/* fee gridlines */}
-					{Array.from(
-						{ length: 6 },
-						(_, k) => feeMin + ((feeMax - feeMin) * k) / 5,
-					).map((v) => (
-						<g key={v}>
-							<line
-								x1={PL}
-								x2={PR}
-								y1={yFee(v)}
-								y2={yFee(v)}
-								strokeWidth={1}
-								style={{ stroke: C.grid }}
-							/>
-							{(tipFeeY == null || Math.abs(yFee(v) - tipFeeY) > 13) &&
-								Math.abs(yFee(v) - yFee(F)) > 12 && (
-									<text
-										x={PL - 20}
-										y={yFee(v) + 4.5}
-										textAnchor="end"
-										fontSize={13}
-										style={{ fill: C.faint, fontFamily: mono }}
-									>
-										{v.toFixed(2)}
-									</text>
-								)}
-						</g>
-					))}
-					<text
-						x={16}
-						y={(PT + PB) / 2}
-						fontSize={12}
-						transform={`rotate(-90 16 ${(PT + PB) / 2})`}
-						textAnchor="middle"
-						letterSpacing="0.12em"
-						style={{ fill: C.dim, fontFamily: mono }}
+				<div style={{ position: "relative" }}>
+					{/* zoom control above the right axis: view only — the book and M never change */}
+					<div
+						style={{
+							position: "absolute",
+							top: 0,
+							right: 6,
+							display: "flex",
+							alignItems: "center",
+							gap: 4,
+						}}
 					>
-						FEE · BPS
-					</text>
-					<text
-						x={W - 10}
-						y={(depthTop + PB) / 2}
-						fontSize={12}
-						transform={`rotate(90 ${W - 10} ${(depthTop + PB) / 2})`}
-						textAnchor="middle"
-						letterSpacing="0.12em"
-						style={{ fill: C.dim, fontFamily: mono }}
-					>
-						DEPTH · $
-					</text>
-					{[0, 5000, 10000, 15000, 20000, 25000].map((v) => (
-						<text
-							key={v}
-							x={PR + 18}
-							y={yDepth(v) + 4.5}
-							fontSize={13}
-							style={{ fill: C.faint, fontFamily: mono }}
-						>
-							{v / 1000}k
-						</text>
-					))}
-					{comp > 0 && (
-						<line
-							x1={PL}
-							x2={PR}
-							y1={yFee(0)}
-							y2={yFee(0)}
-							strokeDasharray="4 4"
-							style={{ stroke: C.faint }}
-						/>
-					)}
-					{/* fee cap: a red-marked tick on the axis, riding with F */}
-					<g pointerEvents="none" style={{ transition: "all 150ms" }}>
-						<text
-							x={PL - 20}
-							y={yFee(F) - 9}
-							textAnchor="end"
-							fontSize={9}
-							letterSpacing="0.12em"
-							style={{ fill: C.fee, fontFamily: mono }}
-						>
-							CAP
-						</text>
-						<text
-							x={PL - 20}
-							y={yFee(F) + 4.5}
-							textAnchor="end"
-							fontSize={13}
-							style={{ fill: C.fee, fontFamily: mono }}
-						>
-							{F.toFixed(2)}
-						</text>
-						<path
-							d={`M${PL - 16},${yFee(F) - 5} L${PL - 6},${yFee(F)} L${PL - 16},${yFee(F) + 5} Z`}
-							style={{ fill: C.fee }}
-						/>
-					</g>
-
-					{/* band (slides with M) */}
-					<g
-						style={{ transition: "transform 220ms ease" }}
-						transform={`translate(${xOfPrice(model.edgeBid)},0)`}
-					>
-						<rect
-							x={0}
-							y={PT}
-							width={Math.max(
-								0,
-								xOfPrice(model.edgeAsk) - xOfPrice(model.edgeBid),
-							)}
-							height={PB - PT}
-							style={{ fill: C.band }}
-						/>
-					</g>
-					<line
-						x1={xOfPrice(model.edgeBid)}
-						x2={xOfPrice(model.edgeBid)}
-						y1={PT}
-						y2={PB}
-						strokeDasharray="3 4"
-						style={{ stroke: C.bandEdge, transition: "all 220ms ease" }}
-					/>
-					<line
-						x1={xOfPrice(model.edgeAsk)}
-						x2={xOfPrice(model.edgeAsk)}
-						y1={PT}
-						y2={PB}
-						strokeDasharray="3 4"
-						style={{ stroke: C.bandEdge, transition: "all 220ms ease" }}
-					/>
-					{/* band-edge labels — hidden when the band is too narrow on screen */}
-					{xOfPrice(model.edgeAsk) - xOfPrice(model.edgeBid) > 56 && (
-						<>
-							<text
-								x={xOfPrice(model.edgeBid)}
-								y={PT - 6}
-								textAnchor="middle"
-								fontSize={12}
-								style={{
-									fill: C.mark,
-									fontFamily: mono,
-									transition: "all 220ms ease",
-								}}
-							>
-								{fmtPx(model.edgeBid)}
-							</text>
-							<text
-								x={xOfPrice(model.edgeAsk)}
-								y={PT - 6}
-								textAnchor="middle"
-								fontSize={12}
-								style={{
-									fill: C.mark,
-									fontFamily: mono,
-									transition: "all 220ms ease",
-								}}
-							>
-								{fmtPx(model.edgeAsk)}
-							</text>
-						</>
-					)}
-
-					{/* the bid/ask boundary, between 100.000 and 100.005 */}
-					<line
-						x1={(xAt(CENTER) + xAt(CENTER + 1)) / 2}
-						x2={(xAt(CENTER) + xAt(CENTER + 1)) / 2}
-						y1={PT}
-						y2={PB}
-						strokeWidth={1}
-						style={{ stroke: C.line }}
-					/>
-
-					{/* bars + hit zones */}
-					{model.levels.map((lv) =>
-						lv.side === "mid" || !inView(lv.i) ? null : (
-							<g key={lv.i}>
-								{/* bar body: hovering reads the level's fee, clicking pins it */}
-								{/* biome-ignore lint/a11y/noStaticElementInteractions: SVG hover surface; the fee dots are the accessible pin control */}
-								<rect
-									x={xAt(lv.i) - step / 2}
-									y={PT}
-									width={step}
-									height={PB - PT}
-									fill="transparent"
-									style={{ cursor: lv.bk ? "pointer" : "default" }}
-									onPointerEnter={() => setFeeHover(lv.bk ? lv.i : null)}
-									onPointerLeave={() => setFeeHover(null)}
-									onClick={() => togglePin(lv.i)}
-									onDblClick={() => {
-										if (lv.i === CENTER)
-											setCenterSide((cs) => (cs === "bid" ? "ask" : "bid"));
-									}}
-								/>
-								{/* grab handle: hugs the bar's top edge, mostly outside it */}
-								<rect
-									x={xAt(lv.i) - step / 2}
-									y={lv.size > 0 ? Math.max(PT, yDepth(lv.size) - 12) : PB - 14}
-									width={step}
-									height={lv.size > 0 ? 16 : 14}
-									fill="transparent"
-									style={{ cursor: "ns-resize" }}
-									onPointerEnter={() => setFeeHover(lv.bk ? lv.i : null)}
-									onPointerLeave={() => setFeeHover(null)}
-									onPointerDown={(e) => onDown(e, lv.i)}
-									onPointerMove={onMove}
-									onPointerUp={(e) => onUp(e, lv.i)}
-									onPointerCancel={() => {
-										drag.current = null;
-									}}
-								/>
-								{lv.size > 0 && (
-									<rect
-										x={xAt(lv.i) - barW / 2}
-										y={yDepth(lv.size)}
-										width={barW}
-										height={PB - yDepth(lv.size)}
-										opacity={0.85 * dimIf(lv.i)}
-										rx={2}
-										pointerEvents="none"
-										strokeWidth={tip === lv.i ? 1.5 : 0}
-										style={{
-											fill: lv.side === "bid" ? C.bid : C.ask,
-											stroke: tip === lv.i ? C.text : "none",
-										}}
-									/>
-								)}
-								{lv.size > 0 && (model.markUsed.get(lv.i) || 0) > 0 && (
-									<rect
-										x={xAt(lv.i) - barW / 2}
-										y={yDepth(model.markUsed.get(lv.i) ?? 0)}
-										width={barW}
-										height={Math.max(
-											0,
-											PB - yDepth(model.markUsed.get(lv.i) ?? 0),
-										)}
-										strokeWidth={1.25}
-										rx={2}
-										opacity={dimIf(lv.i)}
-										pointerEvents="none"
-										style={{ fill: C.markSlice, stroke: C.mark }}
-									/>
-								)}
-								{lv.size > 0 && lv.bk && lv.bk.unpaired > 0 && (
-									<rect
-										x={xAt(lv.i) - barW / 2}
-										y={yDepth(lv.size)}
-										width={barW}
-										height={Math.max(
-											0,
-											yDepth(lv.size - lv.bk.unpaired) - yDepth(lv.size),
-										)}
-										fill="url(#sf-hatch)"
-										rx={2}
-										opacity={dimIf(lv.i)}
-										pointerEvents="none"
-									/>
-								)}
-								{lv.size === 0 && (
-									<line
-										x1={xAt(lv.i) - barW / 2}
-										x2={xAt(lv.i) + barW / 2}
-										y1={PB}
-										y2={PB}
-										strokeWidth={2}
-										pointerEvents="none"
-										opacity={0.45}
-										style={{ stroke: lv.side === "bid" ? C.bid : C.ask }}
-									/>
-								)}
-							</g>
-						),
-					)}
-
-					{/* partner highlight — the dollars matched with the hovered level */}
-					{matchSlices
-						.filter((sl) => inView(sl.i))
-						.map((sl) => (
-							<rect
-								key={sl.i}
-								x={xAt(sl.i) - barW / 2}
-								y={yDepth(sl.to)}
-								width={barW}
-								height={Math.max(0, yDepth(sl.from) - yDepth(sl.to))}
-								fill="none"
-								strokeWidth={1.75}
-								rx={1.5}
-								pointerEvents="none"
-								style={{ stroke: C.text }}
-							/>
-						))}
-
-					{/* hovered/pinned-fee reference line across the whole plot */}
-					{tipLv && tipBk && (
-						<g pointerEvents="none">
-							<line
-								x1={PL}
-								x2={PR}
-								y1={yFee(tipBk.final)}
-								y2={yFee(tipBk.final)}
-								strokeDasharray="5 5"
-								strokeWidth={1}
-								opacity={0.7}
-								style={{ stroke: C.fee, transition: "all 150ms" }}
-							/>
-							{/* the CAP tick already prints the value when they coincide */}
-							{Math.abs(yFee(tipBk.final) - yFee(F)) > 12 && (
-								<text
-									x={PL - 18}
-									y={yFee(tipBk.final) + 4.5}
-									textAnchor="end"
-									fontSize={13}
-									style={{ fill: C.fee, fontFamily: mono }}
-								>
-									{tipBk.final.toFixed(2)}
-								</text>
-							)}
-						</g>
-					)}
-
-					{/* fee curve */}
-					{feePts.length > 1 && (
-						<path
-							d={feePath}
-							fill="none"
-							strokeWidth={2.75}
-							pointerEvents="none"
-							style={{ stroke: C.fee, transition: "d 120ms" }}
-						/>
-					)}
-					{feePts.map((l) => (
-						<circle
-							key={l.i}
-							cx={xAt(l.i)}
-							cy={yFee(l.bk?.final ?? 0)}
-							r={feeHover === l.i || feePinned === l.i ? 5.5 : 4}
-							strokeWidth={1.5}
-							pointerEvents="none"
-							style={{ fill: C.fee, stroke: C.panel }}
-						/>
-					))}
-					{/* fee hit zones — hover a dot for its breakdown */}
-					{feePts.map((l) => (
-						// biome-ignore lint/a11y/useSemanticElements: SVG hit area — a real <button> cannot exist inside <svg>
-						<circle
-							key={l.i}
-							cx={xAt(l.i)}
-							cy={yFee(l.bk?.final ?? 0)}
-							r={13}
-							fill="transparent"
-							role="button"
-							tabIndex={0}
-							aria-label={`Pin fee details for ${fmtPx(l.price)}`}
-							onPointerEnter={() => setFeeHover(l.i)}
-							onPointerLeave={() => setFeeHover(null)}
-							onClick={() => togglePin(l.i)}
-							onKeyDown={(e) => {
-								if (e.key === "Enter") togglePin(l.i);
+						<button
+							type="button"
+							disabled={zoom >= ZOOM_HALVES.length - 1}
+							onClick={() =>
+								setZoom((z) => Math.min(ZOOM_HALVES.length - 1, z + 1))
+							}
+							title="Zoom out: show more of the book"
+							aria-label="Zoom out"
+							style={{
+								...btn(false),
+								padding: "4px 7px",
+								opacity: zoom >= ZOOM_HALVES.length - 1 ? 0.35 : 1,
+								cursor: zoom >= ZOOM_HALVES.length - 1 ? "default" : "pointer",
 							}}
-							style={{ cursor: "pointer" }}
-						/>
-					))}
-
-					{/* price axis */}
-					<line x1={PL} x2={PR} y1={PB} y2={PB} style={{ stroke: C.line }} />
-					{model.levels.map((lv) =>
-						!inView(lv.i) ? null : (
-							<g key={lv.i}>
-								<line
-									x1={xAt(lv.i)}
-									x2={xAt(lv.i)}
-									y1={PB}
-									y2={PB + 4}
-									style={{ stroke: C.faint }}
-								/>
-								{(lv.i - CENTER) % labelStride === 0 && (
-									<text
-										x={xAt(lv.i)}
-										y={AXIS_Y + 15}
-										textAnchor="middle"
-										fontSize={12}
-										style={{
-											fill:
-												lv.i === CENTER
-													? centerSide === "bid"
-														? C.bid
-														: C.ask
-													: C.faint,
-											fontFamily: mono,
-										}}
-									>
-										{fmtPx(lv.price)}
-									</text>
-								)}
-							</g>
-						),
-					)}
-
-					{/* key — its own strip below the price axis */}
-					<g pointerEvents="none" style={{ fontFamily: mono }}>
-						<rect
-							x={212}
-							y={PB + 46}
-							width={14}
-							height={14}
-							rx={2}
-							style={{ fill: C.bid }}
-						/>
-						<text
-							x={233}
-							y={PB + 59}
-							fontSize={16}
-							style={{ fill: C.dim, fontFamily: mono }}
 						>
-							Bids
-						</text>
-						<rect
-							x={301}
-							y={PB + 46}
-							width={14}
-							height={14}
-							rx={2}
-							style={{ fill: C.ask }}
-						/>
-						<text
-							x={322}
-							y={PB + 59}
-							fontSize={16}
-							style={{ fill: C.dim, fontFamily: mono }}
+							<ZoomIcon />
+						</button>
+						<span
+							style={{
+								fontFamily: mono,
+								fontSize: 10.5,
+								color: C.faint,
+								width: 54,
+								textAlign: "center",
+							}}
 						>
-							Asks
-						</text>
-						<rect
-							x={390}
-							y={PB + 46}
-							width={14}
-							height={14}
-							fill="url(#sf-hatch)"
-							strokeWidth={0.5}
-							style={{ stroke: C.dim }}
-						/>
-						<text
-							x={411}
-							y={PB + 59}
-							fontSize={16}
-							style={{ fill: C.dim, fontFamily: mono }}
+							±{viewHalf % 2 ? (viewHalf / 2).toFixed(1) : viewHalf / 2}bps
+						</span>
+						<button
+							type="button"
+							disabled={zoom === 0}
+							onClick={() => setZoom((z) => Math.max(0, z - 1))}
+							title="Zoom in"
+							aria-label="Zoom in"
+							style={{
+								...btn(false),
+								padding: "4px 7px",
+								opacity: zoom === 0 ? 0.35 : 1,
+								cursor: zoom === 0 ? "default" : "pointer",
+							}}
 						>
-							Directional
-						</text>
-						<circle
-							cx={553}
-							cy={PB + 53}
-							r={6}
-							strokeWidth={1}
-							style={{ fill: C.fee, stroke: C.panel }}
-						/>
-						<text
-							x={566}
-							y={PB + 59}
-							fontSize={16}
-							style={{ fill: C.dim, fontFamily: mono }}
-						>
-							Fee if Fully Filled
-						</text>
-						<text
-							x={W / 2}
-							y={PB + 90}
-							textAnchor="middle"
-							fontSize={12.5}
-							style={{ fill: C.faint, fontFamily: mono, fontStyle: "italic" }}
-						>
-							Instructions: Drag a bar's top edge to resize it. Hover a bar for
-							its fee, <tspan style={{ fill: C.mark }}>M</tspan> for its math.
-							Double-click 100.000 to flip its side.
-						</text>
-					</g>
-
-					{/* Mark carriage — the signature. Rides the top strip; hover for
-					    the walk that produced it. */}
-					<g
-						style={{ transition: "transform 220ms ease" }}
-						transform={`translate(${xOfPrice(model.M)},0)`}
+							<ZoomIcon plus />
+						</button>
+					</div>
+					<svg
+						viewBox={`0 0 ${W} ${H}`}
+						style={{ width: "100%", display: "block", touchAction: "none" }}
+						role="img"
+						aria-label="Order-book depth chart: drag bars to reshape your quotes; the violet curve shows each level's fee"
 					>
+						<defs>
+							<pattern
+								id="sf-hatch"
+								width="6"
+								height="6"
+								patternUnits="userSpaceOnUse"
+								patternTransform="rotate(45)"
+							>
+								<line
+									x1="0"
+									y1="0"
+									x2="0"
+									y2="6"
+									strokeWidth="1.6"
+									style={{ stroke: C.hatch }}
+								/>
+							</pattern>
+						</defs>
+						{/* fee gridlines */}
+						{Array.from(
+							{ length: 6 },
+							(_, k) => feeMin + ((feeMax - feeMin) * k) / 5,
+						).map((v) => (
+							<g key={v}>
+								<line
+									x1={PL}
+									x2={PR}
+									y1={yFee(v)}
+									y2={yFee(v)}
+									strokeWidth={1}
+									style={{ stroke: C.grid }}
+								/>
+								{(tipFeeY == null || Math.abs(yFee(v) - tipFeeY) > 13) &&
+									Math.abs(yFee(v) - yFee(F)) > 12 && (
+										<text
+											x={PL - 20}
+											y={yFee(v) + 4.5}
+											textAnchor="end"
+											fontSize={13}
+											style={{ fill: C.faint, fontFamily: mono }}
+										>
+											{v.toFixed(2)}
+										</text>
+									)}
+							</g>
+						))}
+						<text
+							x={16}
+							y={(PT + PB) / 2}
+							fontSize={12}
+							transform={`rotate(-90 16 ${(PT + PB) / 2})`}
+							textAnchor="middle"
+							letterSpacing="0.12em"
+							style={{ fill: C.dim, fontFamily: mono }}
+						>
+							FEE · BPS
+						</text>
+						<text
+							x={W - 10}
+							y={(depthTop + PB) / 2}
+							fontSize={12}
+							transform={`rotate(90 ${W - 10} ${(depthTop + PB) / 2})`}
+							textAnchor="middle"
+							letterSpacing="0.12em"
+							style={{ fill: C.dim, fontFamily: mono }}
+						>
+							DEPTH · $
+						</text>
+						{[0, 5000, 10000, 15000, 20000, 25000].map((v) => (
+							<text
+								key={v}
+								x={PR + 18}
+								y={yDepth(v) + 4.5}
+								fontSize={13}
+								style={{ fill: C.faint, fontFamily: mono }}
+							>
+								{v / 1000}k
+							</text>
+						))}
+						{comp > 0 && (
+							<line
+								x1={PL}
+								x2={PR}
+								y1={yFee(0)}
+								y2={yFee(0)}
+								strokeDasharray="4 4"
+								style={{ stroke: C.faint }}
+							/>
+						)}
+						{/* fee cap: a red-marked tick on the axis, riding with F */}
+						<g pointerEvents="none" style={{ transition: "all 150ms" }}>
+							<text
+								x={PL - 20}
+								y={yFee(F) - 9}
+								textAnchor="end"
+								fontSize={9}
+								letterSpacing="0.12em"
+								style={{ fill: C.fee, fontFamily: mono }}
+							>
+								CAP
+							</text>
+							<text
+								x={PL - 20}
+								y={yFee(F) + 4.5}
+								textAnchor="end"
+								fontSize={13}
+								style={{ fill: C.fee, fontFamily: mono }}
+							>
+								{F.toFixed(2)}
+							</text>
+							<path
+								d={`M${PL - 16},${yFee(F) - 5} L${PL - 6},${yFee(F)} L${PL - 16},${yFee(F) + 5} Z`}
+								style={{ fill: C.fee }}
+							/>
+						</g>
+
+						{/* band (slides with M) */}
+						<g
+							style={{ transition: "transform 220ms ease" }}
+							transform={`translate(${xOfPrice(model.edgeBid)},0)`}
+						>
+							<rect
+								x={0}
+								y={PT}
+								width={Math.max(
+									0,
+									xOfPrice(model.edgeAsk) - xOfPrice(model.edgeBid),
+								)}
+								height={PB - PT}
+								style={{ fill: C.band }}
+							/>
+						</g>
 						<line
-							x1={0}
-							x2={0}
+							x1={xOfPrice(model.edgeBid)}
+							x2={xOfPrice(model.edgeBid)}
+							y1={PT}
+							y2={PB}
+							strokeDasharray="3 4"
+							style={{ stroke: C.bandEdge, transition: "all 220ms ease" }}
+						/>
+						<line
+							x1={xOfPrice(model.edgeAsk)}
+							x2={xOfPrice(model.edgeAsk)}
+							y1={PT}
+							y2={PB}
+							strokeDasharray="3 4"
+							style={{ stroke: C.bandEdge, transition: "all 220ms ease" }}
+						/>
+						{/* band-edge labels — hidden when the band is too narrow on screen */}
+						{xOfPrice(model.edgeAsk) - xOfPrice(model.edgeBid) > 56 && (
+							<>
+								<text
+									x={xOfPrice(model.edgeBid)}
+									y={PT - 6}
+									textAnchor="middle"
+									fontSize={12}
+									style={{
+										fill: C.mark,
+										fontFamily: mono,
+										transition: "all 220ms ease",
+									}}
+								>
+									{fmtPx(model.edgeBid)}
+								</text>
+								<text
+									x={xOfPrice(model.edgeAsk)}
+									y={PT - 6}
+									textAnchor="middle"
+									fontSize={12}
+									style={{
+										fill: C.mark,
+										fontFamily: mono,
+										transition: "all 220ms ease",
+									}}
+								>
+									{fmtPx(model.edgeAsk)}
+								</text>
+							</>
+						)}
+
+						{/* the bid/ask boundary, between 100.000 and 100.005 */}
+						<line
+							x1={(xAt(CENTER) + xAt(CENTER + 1)) / 2}
+							x2={(xAt(CENTER) + xAt(CENTER + 1)) / 2}
 							y1={PT}
 							y2={PB}
 							strokeWidth={1}
-							opacity={0.5}
-							pointerEvents="none"
-							style={{ stroke: C.mark }}
+							style={{ stroke: C.line }}
 						/>
-						<path
-							d={`M0,${PT - 3} l -6,-10 l 12,0 z`}
-							style={{ fill: C.mark }}
-						/>
-						<rect
-							x={-58}
-							y={16}
-							width={116}
-							height={22}
-							rx={4}
-							strokeWidth={0.75}
-							style={{ fill: C.panel2, stroke: C.mark }}
-						/>
-						<text
-							x={0}
-							y={32}
-							textAnchor="middle"
-							fontSize={13.5}
-							style={{ fill: C.mark, fontFamily: mono }}
-						>
-							M {fmtPx(model.M)}
-							{model.frozen ? " ❄" : ""}
-						</text>
-						{/* hover hit zone: the label box and arrow only, not the line */}
-						<rect
-							x={-58}
-							y={14}
-							width={116}
-							height={PT - 15}
-							fill="transparent"
-							onPointerEnter={() => setMHover(true)}
-							onPointerLeave={() => setMHover(false)}
-							style={{ cursor: "help" }}
-						/>
-					</g>
 
-					{/* Mark tooltip — the walk that produced M, side by side */}
-					{mHover &&
-						(() => {
-							const xT = Math.min(
-								Math.max(xOfPrice(model.M), PL + 190),
-								PR - 190,
-							);
-							const top = PT + 8;
-							if (model.frozen) {
-								const rows = [
-									{ t: "M frozen: no matched two-sided size", c: C.text },
-									{ t: "nothing is eligible to walk;", c: C.dim },
-									{ t: `showing last computed M ${fmtPx(model.M)}`, c: C.dim },
-								];
-								return (
-									<g pointerEvents="none">
+						{/* bars + hit zones */}
+						{model.levels.map((lv) =>
+							lv.side === "mid" || !inView(lv.i) ? null : (
+								<g key={lv.i}>
+									{/* bar body: hovering reads the level's fee, clicking pins it */}
+									{/* biome-ignore lint/a11y/noStaticElementInteractions: SVG hover surface; the fee dots are the accessible pin control */}
+									<rect
+										x={xAt(lv.i) - step / 2}
+										y={PT}
+										width={step}
+										height={PB - PT}
+										fill="transparent"
+										style={{ cursor: lv.bk ? "pointer" : "default" }}
+										onPointerEnter={() => setFeeHover(lv.bk ? lv.i : null)}
+										onPointerLeave={() => setFeeHover(null)}
+										onClick={() => togglePin(lv.i)}
+										onDblClick={() => {
+											if (lv.i === CENTER)
+												setCenterSide((cs) => (cs === "bid" ? "ask" : "bid"));
+										}}
+									/>
+									{/* grab handle: hugs the bar's top edge, mostly outside it */}
+									<rect
+										x={xAt(lv.i) - step / 2}
+										y={
+											lv.size > 0 ? Math.max(PT, yDepth(lv.size) - 12) : PB - 14
+										}
+										width={step}
+										height={lv.size > 0 ? 16 : 14}
+										fill="transparent"
+										style={{ cursor: "ns-resize" }}
+										onPointerEnter={() => setFeeHover(lv.bk ? lv.i : null)}
+										onPointerLeave={() => setFeeHover(null)}
+										onPointerDown={(e) => onDown(e, lv.i)}
+										onPointerMove={onMove}
+										onPointerUp={(e) => onUp(e, lv.i)}
+										onPointerCancel={() => {
+											drag.current = null;
+										}}
+									/>
+									{lv.size > 0 && (
 										<rect
-											x={xT - 165}
+											x={xAt(lv.i) - barW / 2}
+											y={yDepth(lv.size)}
+											width={barW}
+											height={PB - yDepth(lv.size)}
+											opacity={0.85 * dimIf(lv.i)}
+											rx={2}
+											pointerEvents="none"
+											strokeWidth={tip === lv.i ? 1.5 : 0}
+											style={{
+												fill: lv.side === "bid" ? C.bid : C.ask,
+												stroke: tip === lv.i ? C.text : "none",
+											}}
+										/>
+									)}
+									{lv.size > 0 && (model.markUsed.get(lv.i) || 0) > 0 && (
+										<rect
+											x={xAt(lv.i) - barW / 2}
+											y={yDepth(model.markUsed.get(lv.i) ?? 0)}
+											width={barW}
+											height={Math.max(
+												0,
+												PB - yDepth(model.markUsed.get(lv.i) ?? 0),
+											)}
+											strokeWidth={1.25}
+											rx={2}
+											opacity={dimIf(lv.i)}
+											pointerEvents="none"
+											style={{ fill: C.markSlice, stroke: C.mark }}
+										/>
+									)}
+									{lv.size > 0 && lv.bk && lv.bk.unpaired > 0 && (
+										<rect
+											x={xAt(lv.i) - barW / 2}
+											y={yDepth(lv.size)}
+											width={barW}
+											height={Math.max(
+												0,
+												yDepth(lv.size - lv.bk.unpaired) - yDepth(lv.size),
+											)}
+											fill="url(#sf-hatch)"
+											rx={2}
+											opacity={dimIf(lv.i)}
+											pointerEvents="none"
+										/>
+									)}
+									{lv.size === 0 && (
+										<line
+											x1={xAt(lv.i) - barW / 2}
+											x2={xAt(lv.i) + barW / 2}
+											y1={PB}
+											y2={PB}
+											strokeWidth={2}
+											pointerEvents="none"
+											opacity={0.45}
+											style={{ stroke: lv.side === "bid" ? C.bid : C.ask }}
+										/>
+									)}
+								</g>
+							),
+						)}
+
+						{/* partner highlight — the dollars matched with the hovered level */}
+						{matchSlices
+							.filter((sl) => inView(sl.i))
+							.map((sl) => (
+								<rect
+									key={sl.i}
+									x={xAt(sl.i) - barW / 2}
+									y={yDepth(sl.to)}
+									width={barW}
+									height={Math.max(0, yDepth(sl.from) - yDepth(sl.to))}
+									fill="none"
+									strokeWidth={1.75}
+									rx={1.5}
+									pointerEvents="none"
+									style={{ stroke: C.text }}
+								/>
+							))}
+
+						{/* hovered/pinned-fee reference line across the whole plot */}
+						{tipLv && tipBk && (
+							<g pointerEvents="none">
+								<line
+									x1={PL}
+									x2={PR}
+									y1={yFee(tipBk.final)}
+									y2={yFee(tipBk.final)}
+									strokeDasharray="5 5"
+									strokeWidth={1}
+									opacity={0.7}
+									style={{ stroke: C.fee, transition: "all 150ms" }}
+								/>
+								{/* the CAP tick already prints the value when they coincide */}
+								{Math.abs(yFee(tipBk.final) - yFee(F)) > 12 && (
+									<text
+										x={PL - 18}
+										y={yFee(tipBk.final) + 4.5}
+										textAnchor="end"
+										fontSize={13}
+										style={{ fill: C.fee, fontFamily: mono }}
+									>
+										{tipBk.final.toFixed(2)}
+									</text>
+								)}
+							</g>
+						)}
+
+						{/* fee curve */}
+						{feePts.length > 1 && (
+							<path
+								d={feePath}
+								fill="none"
+								strokeWidth={2.75}
+								pointerEvents="none"
+								style={{ stroke: C.fee, transition: "d 120ms" }}
+							/>
+						)}
+						{feePts.map((l) => (
+							<circle
+								key={l.i}
+								cx={xAt(l.i)}
+								cy={yFee(l.bk?.final ?? 0)}
+								r={feeHover === l.i || feePinned === l.i ? 5.5 : 4}
+								strokeWidth={1.5}
+								pointerEvents="none"
+								style={{ fill: C.fee, stroke: C.panel }}
+							/>
+						))}
+						{/* fee hit zones — hover a dot for its breakdown */}
+						{feePts.map((l) => (
+							// biome-ignore lint/a11y/useSemanticElements: SVG hit area — a real <button> cannot exist inside <svg>
+							<circle
+								key={l.i}
+								cx={xAt(l.i)}
+								cy={yFee(l.bk?.final ?? 0)}
+								r={13}
+								fill="transparent"
+								role="button"
+								tabIndex={0}
+								aria-label={`Pin fee details for ${fmtPx(l.price)}`}
+								onPointerEnter={() => setFeeHover(l.i)}
+								onPointerLeave={() => setFeeHover(null)}
+								onClick={() => togglePin(l.i)}
+								onKeyDown={(e) => {
+									if (e.key === "Enter") togglePin(l.i);
+								}}
+								style={{ cursor: "pointer" }}
+							/>
+						))}
+
+						{/* price axis */}
+						<line x1={PL} x2={PR} y1={PB} y2={PB} style={{ stroke: C.line }} />
+						{model.levels.map((lv) =>
+							!inView(lv.i) ? null : (
+								<g key={lv.i}>
+									<line
+										x1={xAt(lv.i)}
+										x2={xAt(lv.i)}
+										y1={PB}
+										y2={PB + 4}
+										style={{ stroke: C.faint }}
+									/>
+									{(lv.i - CENTER) % labelStride === 0 && (
+										<text
+											x={xAt(lv.i)}
+											y={AXIS_Y + 15}
+											textAnchor="middle"
+											fontSize={12}
+											style={{
+												fill:
+													lv.i === CENTER
+														? centerSide === "bid"
+															? C.bid
+															: C.ask
+														: C.faint,
+												fontFamily: mono,
+											}}
+										>
+											{fmtPx(lv.price)}
+										</text>
+									)}
+								</g>
+							),
+						)}
+
+						{/* key — its own strip below the price axis */}
+						<g pointerEvents="none" style={{ fontFamily: mono }}>
+							<rect
+								x={212}
+								y={PB + 46}
+								width={14}
+								height={14}
+								rx={2}
+								style={{ fill: C.bid }}
+							/>
+							<text
+								x={233}
+								y={PB + 59}
+								fontSize={16}
+								style={{ fill: C.dim, fontFamily: mono }}
+							>
+								Bids
+							</text>
+							<rect
+								x={301}
+								y={PB + 46}
+								width={14}
+								height={14}
+								rx={2}
+								style={{ fill: C.ask }}
+							/>
+							<text
+								x={322}
+								y={PB + 59}
+								fontSize={16}
+								style={{ fill: C.dim, fontFamily: mono }}
+							>
+								Asks
+							</text>
+							<rect
+								x={390}
+								y={PB + 46}
+								width={14}
+								height={14}
+								fill="url(#sf-hatch)"
+								strokeWidth={0.5}
+								style={{ stroke: C.dim }}
+							/>
+							<text
+								x={411}
+								y={PB + 59}
+								fontSize={16}
+								style={{ fill: C.dim, fontFamily: mono }}
+							>
+								Directional
+							</text>
+							<circle
+								cx={553}
+								cy={PB + 53}
+								r={6}
+								strokeWidth={1}
+								style={{ fill: C.fee, stroke: C.panel }}
+							/>
+							<text
+								x={566}
+								y={PB + 59}
+								fontSize={16}
+								style={{ fill: C.dim, fontFamily: mono }}
+							>
+								Fee if Fully Filled
+							</text>
+							<text
+								x={W / 2}
+								y={PB + 90}
+								textAnchor="middle"
+								fontSize={12.5}
+								style={{ fill: C.faint, fontFamily: mono, fontStyle: "italic" }}
+							>
+								Instructions: Drag a bar's top edge to resize it. Hover a bar
+								for its fee, <tspan style={{ fill: C.mark }}>M</tspan> for its
+								math. Double-click 100.000 to flip its side.
+							</text>
+						</g>
+
+						{/* Mark carriage — the signature. Rides the top strip; hover for
+					    the walk that produced it. */}
+						<g
+							style={{ transition: "transform 220ms ease" }}
+							transform={`translate(${xOfPrice(model.M)},0)`}
+						>
+							<line
+								x1={0}
+								x2={0}
+								y1={PT}
+								y2={PB}
+								strokeWidth={1}
+								opacity={0.5}
+								pointerEvents="none"
+								style={{ stroke: C.mark }}
+							/>
+							<path
+								d={`M0,${PT - 3} l -6,-10 l 12,0 z`}
+								style={{ fill: C.mark }}
+							/>
+							<rect
+								x={-58}
+								y={16}
+								width={116}
+								height={22}
+								rx={4}
+								strokeWidth={0.75}
+								style={{ fill: C.panel2, stroke: C.mark }}
+							/>
+							<text
+								x={0}
+								y={32}
+								textAnchor="middle"
+								fontSize={13.5}
+								style={{ fill: C.mark, fontFamily: mono }}
+							>
+								M {fmtPx(model.M)}
+								{model.frozen ? " ❄" : ""}
+							</text>
+							{/* hover hit zone: the label box and arrow only, not the line */}
+							<rect
+								x={-58}
+								y={14}
+								width={116}
+								height={PT - 15}
+								fill="transparent"
+								onPointerEnter={() => setMHover(true)}
+								onPointerLeave={() => setMHover(false)}
+								style={{ cursor: "help" }}
+							/>
+						</g>
+
+						{/* Mark tooltip — the walk that produced M, side by side */}
+						{mHover &&
+							(() => {
+								const xT = Math.min(
+									Math.max(xOfPrice(model.M), PL + 190),
+									PR - 190,
+								);
+								const top = PT + 8;
+								if (model.frozen) {
+									const rows = [
+										{ t: "M frozen: no matched two-sided size", c: C.text },
+										{ t: "nothing is eligible to walk;", c: C.dim },
+										{
+											t: `showing last computed M ${fmtPx(model.M)}`,
+											c: C.dim,
+										},
+									];
+									return (
+										<g pointerEvents="none">
+											<rect
+												x={xT - 165}
+												y={top}
+												width={330}
+												height={16 + rows.length * 19}
+												rx={6}
+												strokeWidth={0.75}
+												style={{ fill: C.panel2, stroke: C.mark }}
+											/>
+											{rows.map((r, k) => (
+												<text
+													key={r.t}
+													x={xT - 151}
+													y={top + 22 + k * 19}
+													fontSize={14}
+													style={{ fill: r.c, fontFamily: mono }}
+												>
+													{r.t}
+												</text>
+											))}
+										</g>
+									);
+								}
+								const walk = (side: Side) =>
+									model.levels
+										.filter(
+											(l) =>
+												l.side === side && (model.markUsed.get(l.i) ?? 0) > 0,
+										)
+										.sort((a, b) =>
+											side === "bid" ? b.price - a.price : a.price - b.price,
+										)
+										.map((l) => ({
+											t: `${fmtPx(l.price)} · ${fmt$(model.markUsed.get(l.i) ?? 0)}`,
+											c: C.text,
+										}));
+								const colOf = (side: Side) => {
+									const rows = walk(side);
+									const short =
+										side === "bid" ? model.shortBid : model.shortAsk;
+									if (short)
+										rows.push({
+											t: `${fmt$(short.missing)} @ ${fmtPx(short.price)}`,
+											c: C.faint,
+										});
+									return rows;
+								};
+								const anyShort =
+									model.shortBid != null || model.shortAsk != null;
+								const L = colOf("bid");
+								const R = colOf("ask");
+								const nRows = Math.max(L.length, R.length, 1);
+								const headY = top + 44;
+								const rowY = (k: number) => top + 64 + k * 17;
+								const resY = rowY(nRows - 1) + 21;
+								const footY = resY + 23;
+								const noteY = footY + 18;
+								const h = noteY + 10 - top;
+								const colL = xT - 168;
+								const colR = xT + 16;
+								return (
+									<g pointerEvents="none" style={{ fontFamily: mono }}>
+										<rect
+											x={xT - 180}
 											y={top}
-											width={330}
-											height={16 + rows.length * 19}
+											width={360}
+											height={h}
 											rx={6}
 											strokeWidth={0.75}
 											style={{ fill: C.panel2, stroke: C.mark }}
 										/>
-										{rows.map((r, k) => (
+										<text
+											x={xT}
+											y={top + 22}
+											textAnchor="middle"
+											fontSize={14}
+											style={{ fill: C.dim, fontFamily: mono }}
+										>
+											M: the mark price of this snapshot
+										</text>
+										<line
+											x1={xT}
+											x2={xT}
+											y1={top + 32}
+											y2={resY + 4}
+											style={{ stroke: C.line }}
+										/>
+										<text
+											x={colL}
+											y={headY}
+											fontSize={13.5}
+											style={{ fill: C.bid, fontFamily: mono }}
+										>
+											sell {fmt$(T)} → bids
+										</text>
+										<text
+											x={colR}
+											y={headY}
+											fontSize={13.5}
+											style={{ fill: C.ask, fontFamily: mono }}
+										>
+											buy {fmt$(T)} → asks
+										</text>
+										{L.map((r, k) => (
 											<text
 												key={r.t}
-												x={xT - 151}
-												y={top + 22 + k * 19}
-												fontSize={14}
+												x={colL}
+												y={rowY(k)}
+												fontSize={13.5}
 												style={{ fill: r.c, fontFamily: mono }}
 											>
 												{r.t}
 											</text>
 										))}
+										{R.map((r, k) => (
+											<text
+												key={r.t}
+												x={colR}
+												y={rowY(k)}
+												fontSize={13.5}
+												style={{ fill: r.c, fontFamily: mono }}
+											>
+												{r.t}
+											</text>
+										))}
+										<text
+											x={colL}
+											y={resY}
+											fontSize={14}
+											style={{ fill: C.bid, fontFamily: mono }}
+										>
+											gets → {model.iBid != null ? fmtPx(model.iBid) : "–"}
+										</text>
+										<text
+											x={colR}
+											y={resY}
+											fontSize={14}
+											style={{ fill: C.ask, fontFamily: mono }}
+										>
+											pays → {model.iAsk != null ? fmtPx(model.iAsk) : "–"}
+										</text>
+										<text
+											x={xT}
+											y={footY}
+											textAnchor="middle"
+											fontSize={14}
+											style={{ fill: C.mark, fontFamily: mono }}
+										>
+											M = ({model.iBid != null ? fmtPx(model.iBid) : "–"} +{" "}
+											{model.iAsk != null ? fmtPx(model.iAsk) : "–"}) / 2 ={" "}
+											{fmtPx(model.M)}
+										</text>
+										<text
+											x={xT}
+											y={noteY}
+											textAnchor="middle"
+											fontSize={12}
+											style={{ fill: C.faint, fontFamily: mono }}
+										>
+											{anyShort
+												? "faint rows: missing depth, priced at the window edge"
+												: "purple slices = the depth each walk consumed"}
+										</text>
 									</g>
 								);
-							}
-							const walk = (side: Side) =>
-								model.levels
-									.filter(
-										(l) =>
-											l.side === side && (model.markUsed.get(l.i) ?? 0) > 0,
-									)
-									.sort((a, b) =>
-										side === "bid" ? b.price - a.price : a.price - b.price,
-									)
-									.map((l) => ({
-										t: `${fmtPx(l.price)} · ${fmt$(model.markUsed.get(l.i) ?? 0)}`,
-										c: C.text,
-									}));
-							const colOf = (side: Side) => {
-								const rows = walk(side);
-								const short = side === "bid" ? model.shortBid : model.shortAsk;
-								if (short)
-									rows.push({
-										t: `${fmt$(short.missing)} @ ${fmtPx(short.price)}`,
-										c: C.faint,
-									});
-								return rows;
-							};
-							const anyShort = model.shortBid != null || model.shortAsk != null;
-							const L = colOf("bid");
-							const R = colOf("ask");
-							const nRows = Math.max(L.length, R.length, 1);
-							const headY = top + 44;
-							const rowY = (k: number) => top + 64 + k * 17;
-							const resY = rowY(nRows - 1) + 21;
-							const footY = resY + 23;
-							const noteY = footY + 18;
-							const h = noteY + 10 - top;
-							const colL = xT - 168;
-							const colR = xT + 16;
-							return (
-								<g pointerEvents="none" style={{ fontFamily: mono }}>
-									<rect
-										x={xT - 180}
-										y={top}
-										width={360}
-										height={h}
-										rx={6}
-										strokeWidth={0.75}
-										style={{ fill: C.panel2, stroke: C.mark }}
-									/>
-									<text
-										x={xT}
-										y={top + 22}
-										textAnchor="middle"
-										fontSize={14}
-										style={{ fill: C.dim, fontFamily: mono }}
-									>
-										M: the mark price of this snapshot
-									</text>
-									<line
-										x1={xT}
-										x2={xT}
-										y1={top + 32}
-										y2={resY + 4}
-										style={{ stroke: C.line }}
-									/>
-									<text
-										x={colL}
-										y={headY}
-										fontSize={13.5}
-										style={{ fill: C.bid, fontFamily: mono }}
-									>
-										sell {fmt$(T)} → bids
-									</text>
-									<text
-										x={colR}
-										y={headY}
-										fontSize={13.5}
-										style={{ fill: C.ask, fontFamily: mono }}
-									>
-										buy {fmt$(T)} → asks
-									</text>
-									{L.map((r, k) => (
-										<text
-											key={r.t}
-											x={colL}
-											y={rowY(k)}
-											fontSize={13.5}
-											style={{ fill: r.c, fontFamily: mono }}
-										>
-											{r.t}
-										</text>
-									))}
-									{R.map((r, k) => (
-										<text
-											key={r.t}
-											x={colR}
-											y={rowY(k)}
-											fontSize={13.5}
-											style={{ fill: r.c, fontFamily: mono }}
-										>
-											{r.t}
-										</text>
-									))}
-									<text
-										x={colL}
-										y={resY}
-										fontSize={14}
-										style={{ fill: C.bid, fontFamily: mono }}
-									>
-										gets → {model.iBid != null ? fmtPx(model.iBid) : "–"}
-									</text>
-									<text
-										x={colR}
-										y={resY}
-										fontSize={14}
-										style={{ fill: C.ask, fontFamily: mono }}
-									>
-										pays → {model.iAsk != null ? fmtPx(model.iAsk) : "–"}
-									</text>
-									<text
-										x={xT}
-										y={footY}
-										textAnchor="middle"
-										fontSize={14}
-										style={{ fill: C.mark, fontFamily: mono }}
-									>
-										M = ({model.iBid != null ? fmtPx(model.iBid) : "–"} +{" "}
-										{model.iAsk != null ? fmtPx(model.iAsk) : "–"}) / 2 ={" "}
-										{fmtPx(model.M)}
-									</text>
-									<text
-										x={xT}
-										y={noteY}
-										textAnchor="middle"
-										fontSize={12}
-										style={{ fill: C.faint, fontFamily: mono }}
-									>
-										{anyShort
-											? "faint rows: missing depth, priced at the window edge"
-											: "purple slices = the depth each walk consumed"}
-									</text>
-								</g>
-							);
-						})()}
+							})()}
 
-					{/* fee tooltip — itemized receipt in the fixed top-center slot
+						{/* fee tooltip — itemized receipt in the fixed top-center slot
 					    (shares it with the M tooltip, which takes precedence) */}
-					{(feeHover ?? feePinned) != null &&
-						!mHover &&
-						(() => {
-							const tipI = feeHover ?? feePinned;
-							if (tipI == null) return null;
-							const lv = model.levels[tipI];
-							const b = lv?.bk;
-							if (!lv || !b || lv.side === "mid") return null;
-							const d = Math.max(
-								0,
-								(lv.side === "bid"
-									? model.edgeBid - lv.price
-									: lv.price - model.edgeAsk) / BP,
-							);
-							const dist = Math.abs(lv.price - model.M) / BP;
-							const net = dist - b.final;
-							interface TipRow {
-								label?: string;
-								t?: string;
-								c?: string;
-								s?: number;
-								gap?: number;
-								indent?: number;
-								rule?: boolean;
-							}
-							const rows: TipRow[] = [];
-							const amt$ = (v: number, sign = "") =>
-								`${(sign + v.toFixed(2)).padStart(6)}bps`;
-							rows.push({
-								label: "BASE FEE",
-								t:
-									b.own > 0
-										? `${amt$(b.own)} · ${d.toFixed(2)}bps Outside the Band`
-										: `${amt$(0)} · Inside the Band`,
-								c: C.text,
-							});
-							const items: { amt: number; t: string; c: string }[] = [];
-							// matches at-or-inside the base fee collapse into one line
-							const atOrInside = b.pairs
-								.filter((pr) => pr.stamp <= b.own)
-								.reduce((sum, pr) => sum + pr.matched, 0);
-							if (atOrInside > 0)
-								items.push({
-									amt: 0,
-									t: `${amt$(0, "+")} · ${Math.round((atOrInside / b.q) * 100)}% ≤ Base Fee`,
-									c: C.dim,
-								});
-							for (const pr of b.pairs) {
-								const extra = Math.max(0, pr.stamp - b.own);
-								if (extra <= 0) continue;
-								const pct = Math.round((pr.matched / b.q) * 100);
-								const amt = (pr.matched / b.q) * extra;
-								items.push({
-									amt,
-									t: `${amt$(amt, "+")} · ${pct}% @ ${extra.toFixed(2)}bps > Base Fee`,
+						{(feeHover ?? feePinned) != null &&
+							!mHover &&
+							(() => {
+								const tipI = feeHover ?? feePinned;
+								if (tipI == null) return null;
+								const lv = model.levels[tipI];
+								const b = lv?.bk;
+								if (!lv || !b || lv.side === "mid") return null;
+								const d = Math.max(
+									0,
+									(lv.side === "bid"
+										? model.edgeBid - lv.price
+										: lv.price - model.edgeAsk) / BP,
+								);
+								const dist = Math.abs(lv.price - model.M) / BP;
+								const net = dist - b.final;
+								interface TipRow {
+									label?: string;
+									t?: string;
+									c?: string;
+									s?: number;
+									gap?: number;
+									indent?: number;
+									rule?: boolean;
+								}
+								const rows: TipRow[] = [];
+								const amt$ = (v: number, sign = "") =>
+									`${(sign + v.toFixed(2)).padStart(6)}bps`;
+								rows.push({
+									label: "BASE FEE",
+									t:
+										b.own > 0
+											? `${amt$(b.own)} · ${d.toFixed(2)}bps Outside the Band`
+											: `${amt$(0)} · Inside the Band`,
 									c: C.text,
 								});
-							}
-							if (b.unpaired > 0) {
-								const pct = Math.round((b.unpaired / b.q) * 100);
-								const amt = (b.unpaired / b.q) * (F - b.own);
-								items.push({
-									amt,
-									t: `${amt$(amt, "+")} · ${pct}% directional → taker rate`,
-									c: C.ask,
+								const items: { amt: number; t: string; c: string }[] = [];
+								// matches at-or-inside the base fee collapse into one line
+								const atOrInside = b.pairs
+									.filter((pr) => pr.stamp <= b.own)
+									.reduce((sum, pr) => sum + pr.matched, 0);
+								if (atOrInside > 0)
+									items.push({
+										amt: 0,
+										t: `${amt$(0, "+")} · ${Math.round((atOrInside / b.q) * 100)}% ≤ Base Fee`,
+										c: C.dim,
+									});
+								for (const pr of b.pairs) {
+									const extra = Math.max(0, pr.stamp - b.own);
+									if (extra <= 0) continue;
+									const pct = Math.round((pr.matched / b.q) * 100);
+									const amt = (pr.matched / b.q) * extra;
+									items.push({
+										amt,
+										t: `${amt$(amt, "+")} · ${pct}% @ ${extra.toFixed(2)}bps > Base Fee`,
+										c: C.text,
+									});
+								}
+								if (b.unpaired > 0) {
+									const pct = Math.round((b.unpaired / b.q) * 100);
+									const amt = (b.unpaired / b.q) * (F - b.own);
+									items.push({
+										amt,
+										t: `${amt$(amt, "+")} · ${pct}% directional → taker rate`,
+										c: C.ask,
+									});
+								}
+								items.forEach((it, k) => {
+									rows.push({
+										label: k === 0 ? "SURCHARGES" : "",
+										t: it.t,
+										c: it.c,
+									});
 								});
-							}
-							items.forEach((it, k) => {
+								if (b.claimedBefore > 0 && b.unpaired > 0)
+									rows.push({
+										label: "",
+										t: "(better-priced bars claimed the matches first)",
+										c: C.faint,
+										s: 12.5,
+									});
 								rows.push({
-									label: k === 0 ? "SURCHARGES" : "",
-									t: it.t,
-									c: it.c,
+									label: "TOTAL FEE",
+									t: amt$(b.final),
+									c: C.fee,
+									gap: 6,
 								});
-							});
-							if (b.claimedBefore > 0 && b.unpaired > 0)
+								rows.push({ rule: true, gap: 8 });
+								rows.push({
+									label: "NET EDGE",
+									t: `${amt$(Math.abs(net), net >= 0 ? "+" : "−")} = ${dist.toFixed(2)}bps − ${fmtBp(b.final)}`,
+									c: C.text,
+									gap: 2,
+								});
 								rows.push({
 									label: "",
-									t: "(better-priced bars claimed the matches first)",
+									// starts under the equation's right-hand side, whose terms
+									// it defines: 12 mono chars (" +0.92bps = ") at 14px ≈ 101
+									indent: 101,
+									t: "(M Distance − Total Fee)",
 									c: C.faint,
-									s: 12.5,
+									s: 12,
 								});
-							rows.push({
-								label: "TOTAL FEE",
-								t: amt$(b.final),
-								c: C.fee,
-								gap: 6,
-							});
-							rows.push({ rule: true, gap: 8 });
-							rows.push({
-								label: "NET EDGE",
-								t: `${amt$(Math.abs(net), net >= 0 ? "+" : "−")} = ${dist.toFixed(2)}bps − ${fmtBp(b.final)}`,
-								c: C.text,
-								gap: 2,
-							});
-							rows.push({
-								label: "",
-								// starts under the equation's right-hand side, whose terms
-								// it defines: 12 mono chars (" +0.92bps = ") at 14px ≈ 101
-								indent: 101,
-								t: "(M Distance − Total Fee)",
-								c: C.faint,
-								s: 12,
-							});
-							if (feePinned === tipI && feeHover == null)
-								rows.push({
-									t: "pinned. Click the dot again or press Esc",
-									c: C.faint,
-									s: 11.5,
-									gap: 7,
+								if (feePinned === tipI && feeHover == null)
+									rows.push({
+										t: "pinned. Click the dot again or press Esc",
+										c: C.faint,
+										s: 11.5,
+										gap: 7,
+									});
+								let yAcc = 24;
+								const placed = rows.map((r) => {
+									yAcc += r.gap ?? 0;
+									const y = yAcc;
+									yAcc += 19;
+									return { ...r, y };
 								});
-							let yAcc = 24;
-							const placed = rows.map((r) => {
-								yAcc += r.gap ?? 0;
-								const y = yAcc;
-								yAcc += 19;
-								return { ...r, y };
-							});
-							const h = yAcc - 2;
-							const xT = W / 2;
-							const yT = PT + 8;
-							return (
-								<g
-									pointerEvents={
-										feePinned === tipI && feeHover == null ? "auto" : "none"
-									}
-									style={{ userSelect: "text" }}
-								>
-									<rect
-										x={xT - 240}
-										y={yT}
-										width={480}
-										height={h}
-										rx={6}
-										strokeWidth={0.75}
-										style={{ fill: C.panel2, stroke: C.fee }}
-									/>
-									{placed.map((r) =>
-										r.rule ? (
-											<line
-												key={`rule${r.y}`}
-												x1={xT - 228}
-												x2={xT + 228}
-												y1={yT + r.y - 11}
-												y2={yT + r.y - 11}
-												style={{ stroke: C.line }}
-											/>
-										) : (
-											<g key={`${r.t}${r.y}`}>
-												{r.label ? (
+								const h = yAcc - 2;
+								const xT = W / 2;
+								const yT = PT + 8;
+								return (
+									<g
+										pointerEvents={
+											feePinned === tipI && feeHover == null ? "auto" : "none"
+										}
+										style={{ userSelect: "text" }}
+									>
+										<rect
+											x={xT - 240}
+											y={yT}
+											width={480}
+											height={h}
+											rx={6}
+											strokeWidth={0.75}
+											style={{ fill: C.panel2, stroke: C.fee }}
+										/>
+										{placed.map((r) =>
+											r.rule ? (
+												<line
+													key={`rule${r.y}`}
+													x1={xT - 228}
+													x2={xT + 228}
+													y1={yT + r.y - 11}
+													y2={yT + r.y - 11}
+													style={{ stroke: C.line }}
+												/>
+											) : (
+												<g key={`${r.t}${r.y}`}>
+													{r.label ? (
+														<text
+															x={xT - 228}
+															y={yT + r.y}
+															fontSize={12}
+															letterSpacing="0.08em"
+															style={{ fill: C.faint, fontFamily: mono }}
+														>
+															{r.label}
+														</text>
+													) : null}
 													<text
-														x={xT - 228}
+														x={
+															(r.label !== undefined ? xT - 124 : xT - 228) +
+															(r.indent ?? 0)
+														}
 														y={yT + r.y}
-														fontSize={12}
-														letterSpacing="0.08em"
-														style={{ fill: C.faint, fontFamily: mono }}
+														fontSize={r.s ?? 14}
+														style={{
+															fill: r.c,
+															fontFamily: mono,
+															whiteSpace: "pre",
+														}}
 													>
-														{r.label}
+														{r.t}
 													</text>
-												) : null}
-												<text
-													x={
-														(r.label !== undefined ? xT - 124 : xT - 228) +
-														(r.indent ?? 0)
-													}
-													y={yT + r.y}
-													fontSize={r.s ?? 14}
-													style={{
-														fill: r.c,
-														fontFamily: mono,
-														whiteSpace: "pre",
-													}}
-												>
-													{r.t}
-												</text>
-											</g>
-										),
-									)}
-								</g>
-							);
-						})()}
-				</svg>
+												</g>
+											),
+										)}
+									</g>
+								);
+							})()}
+					</svg>
+				</div>
 			</div>
 
 			{/* scenarios — the guided tour */}

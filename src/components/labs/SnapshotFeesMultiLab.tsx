@@ -776,53 +776,7 @@ export default function SnapshotFeesMultiLab() {
 				>
 					MULTI MAKER BATCH AUCTION FEES
 				</div>
-				{/* zoom: view only — the books and M never change */}
-				<div
-					style={{
-						position: "absolute",
-						top: 10,
-						right: 12,
-						display: "flex",
-						alignItems: "center",
-						gap: 6,
-					}}
-				>
-					<button
-						type="button"
-						disabled={zoom >= ZOOM_HALVES.length - 1}
-						onClick={() =>
-							setZoom((z) => Math.min(ZOOM_HALVES.length - 1, z + 1))
-						}
-						title="Zoom out: show more of the book"
-						aria-label="Zoom out"
-						style={{
-							...btn(false),
-							padding: "4px 7px",
-							opacity: zoom >= ZOOM_HALVES.length - 1 ? 0.35 : 1,
-							cursor: zoom >= ZOOM_HALVES.length - 1 ? "default" : "pointer",
-						}}
-					>
-						<ZoomIcon />
-					</button>
-					<span style={{ fontFamily: mono, fontSize: 10.5, color: C.faint }}>
-						±{viewHalf % 2 ? (viewHalf / 2).toFixed(1) : viewHalf / 2}bps
-					</span>
-					<button
-						type="button"
-						disabled={zoom === 0}
-						onClick={() => setZoom((z) => Math.max(0, z - 1))}
-						title="Zoom in"
-						aria-label="Zoom in"
-						style={{
-							...btn(false),
-							padding: "4px 7px",
-							opacity: zoom === 0 ? 0.35 : 1,
-							cursor: zoom === 0 ? "default" : "pointer",
-						}}
-					>
-						<ZoomIcon plus />
-					</button>
-				</div>
+
 				<div
 					style={{
 						display: "flex",
@@ -1066,55 +1020,122 @@ export default function SnapshotFeesMultiLab() {
 					)}
 				</div>
 
-				<svg
-					viewBox={`0 0 ${W} ${H}`}
-					style={{ width: "100%", display: "block", touchAction: "none" }}
-					role="img"
-					aria-label="Mirrored order book: your quotes grow up from the midline, the aggregate makers grow down, with the communal Mark spanning both"
-				>
-					<defs>
-						<pattern
-							id="sfm-hatch"
-							width="6"
-							height="6"
-							patternUnits="userSpaceOnUse"
-							patternTransform="rotate(45)"
+				<div style={{ position: "relative" }}>
+					{/* zoom control above the right axis: view only — the books and M never change */}
+					<div
+						style={{
+							position: "absolute",
+							top: 0,
+							right: 6,
+							display: "flex",
+							alignItems: "center",
+							gap: 4,
+						}}
+					>
+						<button
+							type="button"
+							disabled={zoom >= ZOOM_HALVES.length - 1}
+							onClick={() =>
+								setZoom((z) => Math.min(ZOOM_HALVES.length - 1, z + 1))
+							}
+							title="Zoom out: show more of the book"
+							aria-label="Zoom out"
+							style={{
+								...btn(false),
+								padding: "4px 7px",
+								opacity: zoom >= ZOOM_HALVES.length - 1 ? 0.35 : 1,
+								cursor: zoom >= ZOOM_HALVES.length - 1 ? "default" : "pointer",
+							}}
 						>
-							<line
-								x1="0"
-								y1="0"
-								x2="0"
-								y2="6"
-								strokeWidth="1.6"
-								style={{ stroke: C.hatch }}
-							/>
-						</pattern>
-					</defs>
+							<ZoomIcon />
+						</button>
+						<span
+							style={{
+								fontFamily: mono,
+								fontSize: 10.5,
+								color: C.faint,
+								width: 54,
+								textAlign: "center",
+							}}
+						>
+							±{viewHalf % 2 ? (viewHalf / 2).toFixed(1) : viewHalf / 2}bps
+						</span>
+						<button
+							type="button"
+							disabled={zoom === 0}
+							onClick={() => setZoom((z) => Math.max(0, z - 1))}
+							title="Zoom in"
+							aria-label="Zoom in"
+							style={{
+								...btn(false),
+								padding: "4px 7px",
+								opacity: zoom === 0 ? 0.35 : 1,
+								cursor: zoom === 0 ? "default" : "pointer",
+							}}
+						>
+							<ZoomIcon plus />
+						</button>
+					</div>
+					<svg
+						viewBox={`0 0 ${W} ${H}`}
+						style={{ width: "100%", display: "block", touchAction: "none" }}
+						role="img"
+						aria-label="Mirrored order book: your quotes grow up from the midline, the aggregate makers grow down, with the communal Mark spanning both"
+					>
+						<defs>
+							<pattern
+								id="sfm-hatch"
+								width="6"
+								height="6"
+								patternUnits="userSpaceOnUse"
+								patternTransform="rotate(45)"
+							>
+								<line
+									x1="0"
+									y1="0"
+									x2="0"
+									y2="6"
+									strokeWidth="1.6"
+									style={{ stroke: C.hatch }}
+								/>
+							</pattern>
+						</defs>
 
-					{/* fee gridlines, both halves */}
-					{[5, 10, 15, 20, 25].map((v) => (
-						<g key={v}>
-							<line
-								x1={PL}
-								x2={PR}
-								y1={yFeeUp(v)}
-								y2={yFeeUp(v)}
-								strokeWidth={1}
-								style={{ stroke: C.grid }}
-							/>
-							<line
-								x1={PL}
-								x2={PR}
-								y1={yFeeDn(v)}
-								y2={yFeeDn(v)}
-								strokeWidth={1}
-								style={{ stroke: C.grid }}
-							/>
-							{(tipFeeY == null || Math.abs(yFeeUp(v) - tipFeeY) > 13) &&
-								Math.abs(yFeeUp(v) - yFeeUp(F)) > 12 && (
+						{/* fee gridlines, both halves */}
+						{[5, 10, 15, 20, 25].map((v) => (
+							<g key={v}>
+								<line
+									x1={PL}
+									x2={PR}
+									y1={yFeeUp(v)}
+									y2={yFeeUp(v)}
+									strokeWidth={1}
+									style={{ stroke: C.grid }}
+								/>
+								<line
+									x1={PL}
+									x2={PR}
+									y1={yFeeDn(v)}
+									y2={yFeeDn(v)}
+									strokeWidth={1}
+									style={{ stroke: C.grid }}
+								/>
+								{(tipFeeY == null || Math.abs(yFeeUp(v) - tipFeeY) > 13) &&
+									Math.abs(yFeeUp(v) - yFeeUp(F)) > 12 && (
+										<text
+											x={PL - 20}
+											y={yFeeUp(v) + 4.5}
+											textAnchor="end"
+											fontSize={13}
+											style={{ fill: C.faint, fontFamily: mono }}
+										>
+											{v.toFixed(0)}
+										</text>
+									)}
+								{Math.abs(yFeeDn(v) - yFeeDn(F)) > 12 && (
 									<text
 										x={PL - 20}
-										y={yFeeUp(v) + 4.5}
+										y={yFeeDn(v) + 4.5}
 										textAnchor="end"
 										fontSize={13}
 										style={{ fill: C.faint, fontFamily: mono }}
@@ -1122,906 +1143,899 @@ export default function SnapshotFeesMultiLab() {
 										{v.toFixed(0)}
 									</text>
 								)}
-							{Math.abs(yFeeDn(v) - yFeeDn(F)) > 12 && (
+							</g>
+						))}
+						<text
+							x={PL - 20}
+							y={MID + 4.5}
+							textAnchor="end"
+							fontSize={13}
+							style={{ fill: C.faint, fontFamily: mono }}
+						>
+							0
+						</text>
+						<text
+							x={16}
+							y={(PT + PB) / 2}
+							fontSize={12}
+							transform={`rotate(-90 16 ${(PT + PB) / 2})`}
+							textAnchor="middle"
+							letterSpacing="0.12em"
+							style={{ fill: C.dim, fontFamily: mono }}
+						>
+							FEE · BPS
+						</text>
+						<text
+							x={W - 10}
+							y={(PT + PB) / 2}
+							fontSize={12}
+							transform={`rotate(90 ${W - 10} ${(PT + PB) / 2})`}
+							textAnchor="middle"
+							letterSpacing="0.12em"
+							style={{ fill: C.dim, fontFamily: mono }}
+						>
+							DEPTH · $
+						</text>
+						{[10000, 20000, 30000, 40000].map((v) => (
+							<g key={v}>
 								<text
-									x={PL - 20}
-									y={yFeeDn(v) + 4.5}
-									textAnchor="end"
+									x={PR + 18}
+									y={yUp(v) + 4.5}
 									fontSize={13}
 									style={{ fill: C.faint, fontFamily: mono }}
 								>
-									{v.toFixed(0)}
+									{v / 1000}k
 								</text>
-							)}
-						</g>
-					))}
-					<text
-						x={PL - 20}
-						y={MID + 4.5}
-						textAnchor="end"
-						fontSize={13}
-						style={{ fill: C.faint, fontFamily: mono }}
-					>
-						0
-					</text>
-					<text
-						x={16}
-						y={(PT + PB) / 2}
-						fontSize={12}
-						transform={`rotate(-90 16 ${(PT + PB) / 2})`}
-						textAnchor="middle"
-						letterSpacing="0.12em"
-						style={{ fill: C.dim, fontFamily: mono }}
-					>
-						FEE · BPS
-					</text>
-					<text
-						x={W - 10}
-						y={(PT + PB) / 2}
-						fontSize={12}
-						transform={`rotate(90 ${W - 10} ${(PT + PB) / 2})`}
-						textAnchor="middle"
-						letterSpacing="0.12em"
-						style={{ fill: C.dim, fontFamily: mono }}
-					>
-						DEPTH · $
-					</text>
-					{[10000, 20000, 30000, 40000].map((v) => (
-						<g key={v}>
-							<text
-								x={PR + 18}
-								y={yUp(v) + 4.5}
-								fontSize={13}
-								style={{ fill: C.faint, fontFamily: mono }}
-							>
-								{v / 1000}k
-							</text>
-							<text
-								x={PR + 18}
-								y={yDn(v) + 4.5}
-								fontSize={13}
-								style={{ fill: C.faint, fontFamily: mono }}
-							>
-								{v / 1000}k
-							</text>
-						</g>
-					))}
-					<text
-						x={PR + 18}
-						y={MID + 4.5}
-						fontSize={13}
-						style={{ fill: C.faint, fontFamily: mono }}
-					>
-						0k
-					</text>
-
-					{/* fee cap ticks on both half-axes */}
-					<g pointerEvents="none" style={{ transition: "all 150ms" }}>
-						<text
-							x={PL - 20}
-							y={yFeeUp(F) - 9}
-							textAnchor="end"
-							fontSize={9}
-							letterSpacing="0.12em"
-							style={{ fill: C.fee, fontFamily: mono }}
-						>
-							CAP
-						</text>
-						<text
-							x={PL - 20}
-							y={yFeeUp(F) + 4.5}
-							textAnchor="end"
-							fontSize={13}
-							style={{ fill: C.fee, fontFamily: mono }}
-						>
-							{F.toFixed(2)}
-						</text>
-						<path
-							d={`M${PL - 16},${yFeeUp(F) - 5} L${PL - 6},${yFeeUp(F)} L${PL - 16},${yFeeUp(F) + 5} Z`}
-							style={{ fill: C.fee }}
-						/>
-						<text
-							x={PL - 20}
-							y={yFeeDn(F) + 4.5}
-							textAnchor="end"
-							fontSize={13}
-							style={{ fill: C.fee, fontFamily: mono }}
-						>
-							{F.toFixed(2)}
-						</text>
-						<path
-							d={`M${PL - 16},${yFeeDn(F) - 5} L${PL - 6},${yFeeDn(F)} L${PL - 16},${yFeeDn(F) + 5} Z`}
-							style={{ fill: C.fee }}
-						/>
-					</g>
-
-					{/* band spans both halves */}
-					<g
-						style={{ transition: "transform 220ms ease" }}
-						transform={`translate(${xOfPrice(mm.edgeBid)},0)`}
-					>
-						<rect
-							x={0}
-							y={PT}
-							width={Math.max(0, xOfPrice(mm.edgeAsk) - xOfPrice(mm.edgeBid))}
-							height={PB - PT}
-							style={{ fill: C.band }}
-						/>
-					</g>
-					<line
-						x1={xOfPrice(mm.edgeBid)}
-						x2={xOfPrice(mm.edgeBid)}
-						y1={PT}
-						y2={PB}
-						strokeDasharray="3 4"
-						style={{ stroke: C.bandEdge, transition: "all 220ms ease" }}
-					/>
-					<line
-						x1={xOfPrice(mm.edgeAsk)}
-						x2={xOfPrice(mm.edgeAsk)}
-						y1={PT}
-						y2={PB}
-						strokeDasharray="3 4"
-						style={{ stroke: C.bandEdge, transition: "all 220ms ease" }}
-					/>
-					{/* band-edge labels — hidden when the band is too narrow on screen */}
-					{xOfPrice(mm.edgeAsk) - xOfPrice(mm.edgeBid) > 56 && (
-						<>
-							<text
-								x={xOfPrice(mm.edgeBid)}
-								y={PT - 6}
-								textAnchor="middle"
-								fontSize={12}
-								style={{
-									fill: C.mark,
-									fontFamily: mono,
-									transition: "all 220ms ease",
-								}}
-							>
-								{fmtPx(mm.edgeBid)}
-							</text>
-							<text
-								x={xOfPrice(mm.edgeAsk)}
-								y={PT - 6}
-								textAnchor="middle"
-								fontSize={12}
-								style={{
-									fill: C.mark,
-									fontFamily: mono,
-									transition: "all 220ms ease",
-								}}
-							>
-								{fmtPx(mm.edgeAsk)}
-							</text>
-						</>
-					)}
-
-					{/* the bid/ask boundary + depth midline */}
-					<line
-						x1={(xAt(CENTER) + xAt(CENTER + 1)) / 2}
-						x2={(xAt(CENTER) + xAt(CENTER + 1)) / 2}
-						y1={PT}
-						y2={PB}
-						strokeWidth={1}
-						style={{ stroke: C.line }}
-					/>
-					<line
-						x1={PL}
-						x2={PR}
-						y1={MID}
-						y2={MID}
-						strokeWidth={1.25}
-						style={{ stroke: C.line }}
-					/>
-
-					{/* mirrored books */}
-					{yourSizes.map((yv, i) => {
-						if (!inView(i)) return null;
-						const side = sideOf(i);
-						const av = makerSizes[i];
-						const usedYou = mm.used.get("you")?.get(i) ?? 0;
-						const usedAgg = mm.used.get("agg")?.get(i) ?? 0;
-						const lv = feeLevels[i];
-						return (
-							<g key={priceAt(i)}>
-								{/* bar body: hovering reads that half's fee, clicking pins yours */}
-								{/* biome-ignore lint/a11y/noStaticElementInteractions: SVG hover surface; the fee dots are the accessible pin control */}
-								<rect
-									x={xAt(i) - step / 2}
-									y={PT}
-									width={step}
-									height={PB - PT}
-									fill="transparent"
-									style={{ cursor: "pointer" }}
-									onPointerMove={(e) => onBodyMove(e, i)}
-									onPointerLeave={() => {
-										setFeeHover(null);
-										setMakerHover(null);
-									}}
-									onClick={(e) => {
-										if (halfAt(e) === "you") togglePin(i);
-									}}
-									onDblClick={() => {
-										if (i === CENTER)
-											setCenterSide((cs) => (cs === "bid" ? "ask" : "bid"));
-									}}
-								/>
-								{/* grab handles: hug each bar's outer edge, mostly outside it */}
-								<rect
-									x={xAt(i) - step / 2}
-									y={yv > 0 ? Math.max(PT, yUp(yv) - 12) : MID - 14}
-									width={step}
-									height={yv > 0 ? 16 : 14}
-									fill="transparent"
-									style={{ cursor: "ns-resize" }}
-									onPointerEnter={() => setFeeHover(lv?.bk ? i : null)}
-									onPointerLeave={() => setFeeHover(null)}
-									onPointerDown={(e) => onDown(e, i, "you")}
-									onPointerMove={onMove}
-									onPointerUp={(e) => onUp(e, i)}
-									onPointerCancel={() => {
-										drag.current = null;
-									}}
-								/>
-								<rect
-									x={xAt(i) - step / 2}
-									y={av > 0 ? Math.min(PB - 16, yDn(av) - 4) : MID + 1}
-									width={step}
-									height={av > 0 ? 16 : 14}
-									fill="transparent"
-									style={{ cursor: "ns-resize" }}
-									onPointerEnter={() =>
-										setMakerHover(makerFees.levels[i]?.bk ? i : null)
-									}
-									onPointerLeave={() => setMakerHover(null)}
-									onPointerDown={(e) => onDown(e, i, "makers")}
-									onPointerMove={onMove}
-									onPointerUp={(e) => onUp(e, i)}
-									onPointerCancel={() => {
-										drag.current = null;
-									}}
-								/>
-								{yv > 0 && (
-									<rect
-										x={xAt(i) - barW / 2}
-										y={yUp(yv)}
-										width={barW}
-										height={MID - yUp(yv)}
-										opacity={0.85 * dimIf(i)}
-										rx={2}
-										pointerEvents="none"
-										strokeWidth={tip === i ? 1.5 : 0}
-										style={{
-											fill: side === "bid" ? C.bid : C.ask,
-											stroke: tip === i ? C.text : "none",
-											...barTrans,
-										}}
-									/>
-								)}
-								{usedYou > 0 && (
-									<rect
-										x={xAt(i) - barW / 2}
-										y={yUp(usedYou)}
-										width={barW}
-										height={Math.max(0, MID - yUp(usedYou))}
-										strokeWidth={1.25}
-										rx={2}
-										opacity={dimIf(i)}
-										pointerEvents="none"
-										style={{ fill: C.markSlice, stroke: C.mark, ...barTrans }}
-									/>
-								)}
-								{yv > 0 && lv?.bk && lv.bk.unpaired > 0 && (
-									<rect
-										x={xAt(i) - barW / 2}
-										y={yUp(yv)}
-										width={barW}
-										height={Math.max(0, yUp(yv - lv.bk.unpaired) - yUp(yv))}
-										fill="url(#sfm-hatch)"
-										rx={2}
-										opacity={dimIf(i)}
-										pointerEvents="none"
-									/>
-								)}
-								{av > 0 && (
-									<rect
-										x={xAt(i) - barW / 2}
-										y={MID + 1}
-										width={barW}
-										height={Math.max(0, yDn(av) - MID - 1)}
-										opacity={0.45}
-										rx={2}
-										pointerEvents="none"
-										style={{
-											fill: side === "bid" ? C.bid : C.ask,
-											...barTrans,
-										}}
-									/>
-								)}
-								{usedAgg > 0 && (
-									<rect
-										x={xAt(i) - barW / 2}
-										y={MID + 1}
-										width={barW}
-										height={Math.max(0, yDn(usedAgg) - MID - 1)}
-										strokeWidth={1.25}
-										rx={2}
-										pointerEvents="none"
-										style={{ fill: C.markSlice, stroke: C.mark, ...barTrans }}
-									/>
-								)}
+								<text
+									x={PR + 18}
+									y={yDn(v) + 4.5}
+									fontSize={13}
+									style={{ fill: C.faint, fontFamily: mono }}
+								>
+									{v / 1000}k
+								</text>
 							</g>
-						);
-					})}
-
-					{/* partner highlight within your book */}
-					{matchSlices
-						.filter((sl) => inView(sl.i))
-						.map((sl) => (
-							<rect
-								key={sl.i}
-								x={xAt(sl.i) - barW / 2}
-								y={yUp(sl.to)}
-								width={barW}
-								height={Math.max(0, yUp(sl.from) - yUp(sl.to))}
-								fill="none"
-								strokeWidth={1.75}
-								rx={1.5}
-								pointerEvents="none"
-								style={{ stroke: C.text }}
-							/>
 						))}
+						<text
+							x={PR + 18}
+							y={MID + 4.5}
+							fontSize={13}
+							style={{ fill: C.faint, fontFamily: mono }}
+						>
+							0k
+						</text>
 
-					{/* hovered/pinned-fee reference line, your half */}
-					{tipLv && tipBk && (
-						<g pointerEvents="none">
-							<line
-								x1={PL}
-								x2={PR}
-								y1={yFeeUp(tipBk.final)}
-								y2={yFeeUp(tipBk.final)}
-								strokeDasharray="5 5"
-								strokeWidth={1}
-								opacity={0.7}
-								style={{ stroke: C.fee, transition: "all 150ms" }}
+						{/* fee cap ticks on both half-axes */}
+						<g pointerEvents="none" style={{ transition: "all 150ms" }}>
+							<text
+								x={PL - 20}
+								y={yFeeUp(F) - 9}
+								textAnchor="end"
+								fontSize={9}
+								letterSpacing="0.12em"
+								style={{ fill: C.fee, fontFamily: mono }}
+							>
+								CAP
+							</text>
+							<text
+								x={PL - 20}
+								y={yFeeUp(F) + 4.5}
+								textAnchor="end"
+								fontSize={13}
+								style={{ fill: C.fee, fontFamily: mono }}
+							>
+								{F.toFixed(2)}
+							</text>
+							<path
+								d={`M${PL - 16},${yFeeUp(F) - 5} L${PL - 6},${yFeeUp(F)} L${PL - 16},${yFeeUp(F) + 5} Z`}
+								style={{ fill: C.fee }}
 							/>
-							{/* the CAP tick already prints the value when they coincide */}
-							{Math.abs(yFeeUp(tipBk.final) - yFeeUp(F)) > 12 && (
-								<text
-									x={PL - 20}
-									y={yFeeUp(tipBk.final) + 4.5}
-									textAnchor="end"
-									fontSize={13}
-									style={{ fill: C.fee, fontFamily: mono }}
-								>
-									{tipBk.final.toFixed(2)}
-								</text>
-							)}
-						</g>
-					)}
-
-					{/* hovered maker-fee reference line, lower half */}
-					{makerTipBk && (
-						<g pointerEvents="none">
-							<line
-								x1={PL}
-								x2={PR}
-								y1={yFeeDn(makerTipBk.final)}
-								y2={yFeeDn(makerTipBk.final)}
-								strokeDasharray="5 5"
-								strokeWidth={1}
-								opacity={0.7}
-								style={{ stroke: C.fee, transition: "all 150ms" }}
+							<text
+								x={PL - 20}
+								y={yFeeDn(F) + 4.5}
+								textAnchor="end"
+								fontSize={13}
+								style={{ fill: C.fee, fontFamily: mono }}
+							>
+								{F.toFixed(2)}
+							</text>
+							<path
+								d={`M${PL - 16},${yFeeDn(F) - 5} L${PL - 6},${yFeeDn(F)} L${PL - 16},${yFeeDn(F) + 5} Z`}
+								style={{ fill: C.fee }}
 							/>
-							{Math.abs(yFeeDn(makerTipBk.final) - yFeeDn(F)) > 12 && (
-								<text
-									x={PL - 20}
-									y={yFeeDn(makerTipBk.final) + 4.5}
-									textAnchor="end"
-									fontSize={13}
-									style={{ fill: C.fee, fontFamily: mono }}
-								>
-									{makerTipBk.final.toFixed(2)}
-								</text>
-							)}
 						</g>
-					)}
 
-					{/* makers' fee curve, mirrored */}
-					{makerPts.length > 1 && (
-						<path
-							d={makerPath}
-							fill="none"
-							strokeWidth={1.75}
-							strokeDasharray="5 4"
-							opacity={0.75}
-							pointerEvents="none"
-							style={{ stroke: C.fee, transition: "d 120ms" }}
-						/>
-					)}
-					{makerPts.map((l) => (
-						<circle
-							key={l.i}
-							cx={xAt(l.i)}
-							cy={yFeeDn(l.bk?.final ?? 0)}
-							r={makerHover === l.i ? 4.5 : 3}
-							strokeWidth={1.5}
-							pointerEvents="none"
-							style={{ fill: C.panel, stroke: C.fee }}
-						/>
-					))}
-
-					{/* your fee curve */}
-					{feePts.length > 1 && (
-						<path
-							d={feePath}
-							fill="none"
-							strokeWidth={2.75}
-							pointerEvents="none"
-							style={{ stroke: C.fee, transition: "d 120ms" }}
-						/>
-					)}
-					{feePts.map((l) => (
-						<circle
-							key={l.i}
-							cx={xAt(l.i)}
-							cy={yFeeUp(l.bk?.final ?? 0)}
-							r={feeHover === l.i || feePinned === l.i ? 5.5 : 4}
-							strokeWidth={1.5}
-							pointerEvents="none"
-							style={{ fill: C.fee, stroke: C.panel }}
-						/>
-					))}
-					{feePts.map((l) => (
-						// biome-ignore lint/a11y/useSemanticElements: SVG hit area, a real <button> cannot exist inside <svg>
-						<circle
-							key={l.i}
-							cx={xAt(l.i)}
-							cy={yFeeUp(l.bk?.final ?? 0)}
-							r={13}
-							fill="transparent"
-							role="button"
-							tabIndex={0}
-							aria-label={`Pin fee details for ${fmtPx(l.price)}`}
-							onPointerEnter={() => setFeeHover(l.i)}
-							onPointerLeave={() => setFeeHover(null)}
-							onClick={() => togglePin(l.i)}
-							onKeyDown={(e) => {
-								if (e.key === "Enter") togglePin(l.i);
-							}}
-							style={{ cursor: "pointer" }}
-						/>
-					))}
-
-					{/* price axis at the bottom */}
-					<line x1={PL} x2={PR} y1={PB} y2={PB} style={{ stroke: C.line }} />
-					{yourSizes.map((_, i) =>
-						!inView(i) ? null : (
-							<g key={priceAt(i)}>
-								<line
-									x1={xAt(i)}
-									x2={xAt(i)}
-									y1={PB}
-									y2={PB + 4}
-									style={{ stroke: C.faint }}
-								/>
-								{(i - CENTER) % labelStride === 0 && (
-									<text
-										x={xAt(i)}
-										y={AXIS_Y + 15}
-										textAnchor="middle"
-										fontSize={12}
-										style={{
-											fill:
-												i === CENTER
-													? centerSide === "bid"
-														? C.bid
-														: C.ask
-													: C.faint,
-											fontFamily: mono,
-										}}
-									>
-										{fmtPx(priceAt(i))}
-									</text>
-								)}
-							</g>
-						),
-					)}
-
-					{/* key */}
-					<g pointerEvents="none" style={{ fontFamily: mono }}>
-						<rect
-							x={150}
-							y={PB + 40}
-							width={14}
-							height={14}
-							rx={2}
-							style={{ fill: C.bid }}
-						/>
-						<text
-							x={171}
-							y={PB + 53}
-							fontSize={16}
-							style={{ fill: C.dim, fontFamily: mono }}
+						{/* band spans both halves */}
+						<g
+							style={{ transition: "transform 220ms ease" }}
+							transform={`translate(${xOfPrice(mm.edgeBid)},0)`}
 						>
-							Your Bids ↑
-						</text>
-						<rect
-							x={318}
-							y={PB + 40}
-							width={14}
-							height={14}
-							rx={2}
-							style={{ fill: C.ask }}
-						/>
-						<text
-							x={339}
-							y={PB + 53}
-							fontSize={16}
-							style={{ fill: C.dim, fontFamily: mono }}
-						>
-							Your Asks ↑
-						</text>
-						<rect
-							x={486}
-							y={PB + 40}
-							width={14}
-							height={14}
-							rx={2}
-							opacity={0.45}
-							style={{ fill: C.bid }}
-						/>
-						<rect
-							x={493}
-							y={PB + 40}
-							width={14}
-							height={14}
-							rx={2}
-							opacity={0.45}
-							style={{ fill: C.ask }}
-						/>
-						<text
-							x={514}
-							y={PB + 53}
-							fontSize={16}
-							style={{ fill: C.dim, fontFamily: mono }}
-						>
-							Aggregate Makers ↓
-						</text>
-						<circle
-							cx={157}
-							cy={PB + 72}
-							r={6}
-							strokeWidth={1}
-							style={{ fill: C.fee, stroke: C.panel }}
-						/>
-						<text
-							x={170}
-							y={PB + 78}
-							fontSize={16}
-							style={{ fill: C.dim, fontFamily: mono }}
-						>
-							Your Fee if Filled
-						</text>
-						<circle
-							cx={420}
-							cy={PB + 72}
-							r={6}
-							strokeWidth={1.5}
-							style={{ fill: C.panel, stroke: C.fee }}
-						/>
-						<text
-							x={433}
-							y={PB + 78}
-							fontSize={16}
-							style={{ fill: C.dim, fontFamily: mono }}
-						>
-							Makers Fee if Filled
-						</text>
-						<text
-							x={W / 2}
-							y={PB + 104}
-							textAnchor="middle"
-							fontSize={12.5}
-							style={{ fill: C.faint, fontFamily: mono, fontStyle: "italic" }}
-						>
-							Instructions: Drag a bar's outer edge to resize it. Hover a bar
-							for its fee, <tspan style={{ fill: C.mark }}>M</tspan> for the
-							walk. Double-click 100.000 to flip its side.
-						</text>
-					</g>
-
-					{/* Mark carriage */}
-					<g
-						style={{ transition: "transform 220ms ease" }}
-						transform={`translate(${xOfPrice(mm.M)},0)`}
-					>
+							<rect
+								x={0}
+								y={PT}
+								width={Math.max(0, xOfPrice(mm.edgeAsk) - xOfPrice(mm.edgeBid))}
+								height={PB - PT}
+								style={{ fill: C.band }}
+							/>
+						</g>
 						<line
-							x1={0}
-							x2={0}
+							x1={xOfPrice(mm.edgeBid)}
+							x2={xOfPrice(mm.edgeBid)}
+							y1={PT}
+							y2={PB}
+							strokeDasharray="3 4"
+							style={{ stroke: C.bandEdge, transition: "all 220ms ease" }}
+						/>
+						<line
+							x1={xOfPrice(mm.edgeAsk)}
+							x2={xOfPrice(mm.edgeAsk)}
+							y1={PT}
+							y2={PB}
+							strokeDasharray="3 4"
+							style={{ stroke: C.bandEdge, transition: "all 220ms ease" }}
+						/>
+						{/* band-edge labels — hidden when the band is too narrow on screen */}
+						{xOfPrice(mm.edgeAsk) - xOfPrice(mm.edgeBid) > 56 && (
+							<>
+								<text
+									x={xOfPrice(mm.edgeBid)}
+									y={PT - 6}
+									textAnchor="middle"
+									fontSize={12}
+									style={{
+										fill: C.mark,
+										fontFamily: mono,
+										transition: "all 220ms ease",
+									}}
+								>
+									{fmtPx(mm.edgeBid)}
+								</text>
+								<text
+									x={xOfPrice(mm.edgeAsk)}
+									y={PT - 6}
+									textAnchor="middle"
+									fontSize={12}
+									style={{
+										fill: C.mark,
+										fontFamily: mono,
+										transition: "all 220ms ease",
+									}}
+								>
+									{fmtPx(mm.edgeAsk)}
+								</text>
+							</>
+						)}
+
+						{/* the bid/ask boundary + depth midline */}
+						<line
+							x1={(xAt(CENTER) + xAt(CENTER + 1)) / 2}
+							x2={(xAt(CENTER) + xAt(CENTER + 1)) / 2}
 							y1={PT}
 							y2={PB}
 							strokeWidth={1}
-							opacity={0.5}
-							pointerEvents="none"
-							style={{ stroke: C.mark }}
+							style={{ stroke: C.line }}
 						/>
-						<path
-							d={`M0,${PT - 3} l -6,-10 l 12,0 z`}
-							style={{ fill: C.mark }}
+						<line
+							x1={PL}
+							x2={PR}
+							y1={MID}
+							y2={MID}
+							strokeWidth={1.25}
+							style={{ stroke: C.line }}
 						/>
-						<rect
-							x={-58}
-							y={16}
-							width={116}
-							height={22}
-							rx={4}
-							strokeWidth={0.75}
-							style={{ fill: C.panel2, stroke: C.mark }}
-						/>
-						<text
-							x={0}
-							y={32}
-							textAnchor="middle"
-							fontSize={13.5}
-							style={{ fill: C.mark, fontFamily: mono }}
-						>
-							M {fmtPx(mm.M)}
-							{mm.frozen ? " ❄" : ""}
-						</text>
-						<rect
-							x={-58}
-							y={14}
-							width={116}
-							height={PT - 15}
-							fill="transparent"
-							onPointerEnter={() => setMHover(true)}
-							onPointerLeave={() => setMHover(false)}
-							style={{ cursor: "help" }}
-						/>
-					</g>
 
-					{/* M tooltip */}
-					{mHover &&
-						(() => {
-							const xT = Math.min(Math.max(xOfPrice(mm.M), PL + 175), PR - 175);
-							const top = PT + 8;
-							const rows = mm.frozen
-								? [
-										{ t: "M frozen: no two-sided size to walk", c: C.text },
-										{ t: `showing last computed M ${fmtPx(mm.M)}`, c: C.dim },
-									]
-								: [
-										{ t: "M: the communal mark", c: C.dim },
-										{
-											t: `sell walk → ${mm.iBid != null ? fmtPx(mm.iBid) : "–"} · you ${yourShareBid.toFixed(0)}%`,
-											c: C.bid,
-										},
-										{
-											t: `buy walk → ${mm.iAsk != null ? fmtPx(mm.iAsk) : "–"} · you ${yourShareAsk.toFixed(0)}%`,
-											c: C.ask,
-										},
-										{ t: `M = midpoint = ${fmtPx(mm.M)}`, c: C.mark },
-										{
-											t: `impact spread ${
-												mm.impactSpread != null
-													? (mm.impactSpread / BP).toFixed(1)
-													: "–"
-											}bps · S = ${S}bps`,
-											c: C.faint,
-										},
-										{
-											t: "only two-sided size near the touch votes",
-											c: C.faint,
-										},
-									];
-							const h = 16 + rows.length * 19;
+						{/* mirrored books */}
+						{yourSizes.map((yv, i) => {
+							if (!inView(i)) return null;
+							const side = sideOf(i);
+							const av = makerSizes[i];
+							const usedYou = mm.used.get("you")?.get(i) ?? 0;
+							const usedAgg = mm.used.get("agg")?.get(i) ?? 0;
+							const lv = feeLevels[i];
 							return (
-								<g pointerEvents="none">
+								<g key={priceAt(i)}>
+									{/* bar body: hovering reads that half's fee, clicking pins yours */}
+									{/* biome-ignore lint/a11y/noStaticElementInteractions: SVG hover surface; the fee dots are the accessible pin control */}
 									<rect
-										x={xT - 170}
-										y={top}
-										width={340}
-										height={h}
-										rx={6}
-										strokeWidth={0.75}
-										style={{ fill: C.panel2, stroke: C.mark }}
+										x={xAt(i) - step / 2}
+										y={PT}
+										width={step}
+										height={PB - PT}
+										fill="transparent"
+										style={{ cursor: "pointer" }}
+										onPointerMove={(e) => onBodyMove(e, i)}
+										onPointerLeave={() => {
+											setFeeHover(null);
+											setMakerHover(null);
+										}}
+										onClick={(e) => {
+											if (halfAt(e) === "you") togglePin(i);
+										}}
+										onDblClick={() => {
+											if (i === CENTER)
+												setCenterSide((cs) => (cs === "bid" ? "ask" : "bid"));
+										}}
 									/>
-									{rows.map((r, kk) => (
-										<text
-											key={r.t}
-											x={xT - 156}
-											y={top + 24 + kk * 19}
-											fontSize={13.5}
-											style={{ fill: r.c, fontFamily: mono }}
-										>
-											{r.t}
-										</text>
-									))}
-								</g>
-							);
-						})()}
-
-					{/* fee receipt: rendered in the makers' half, opposite what
-					    it inspects */}
-					{(feeHover ?? feePinned) != null &&
-						!mHover &&
-						(() => {
-							const tipI = feeHover ?? feePinned;
-							if (tipI == null) return null;
-							const lv = feeLevels[tipI];
-							const b = lv?.bk;
-							if (!lv || !b || lv.side === "mid") return null;
-							const d = Math.max(
-								0,
-								(lv.side === "bid"
-									? fees.edgeBid - lv.price
-									: lv.price - fees.edgeAsk) / BP,
-							);
-							const dist = Math.abs(lv.price - mm.M) / BP;
-							const net = dist - b.final;
-							interface TipRow {
-								label?: string;
-								t?: string;
-								c?: string;
-								s?: number;
-								gap?: number;
-								indent?: number;
-								rule?: boolean;
-							}
-							const rows: TipRow[] = [];
-							const amt$ = (v: number, sign = "") =>
-								`${(sign + v.toFixed(2)).padStart(6)}bps`;
-							rows.push({
-								label: "BASE FEE",
-								t:
-									b.own > 0
-										? `${amt$(b.own)} · ${d.toFixed(2)}bps Outside the Band`
-										: `${amt$(0)} · Inside the Band`,
-								c: C.text,
-							});
-							const items: { amt: number; t: string; c: string }[] = [];
-							const atOrInside = b.pairs
-								.filter((pr) => pr.stamp <= b.own)
-								.reduce((sum, pr) => sum + pr.matched, 0);
-							if (atOrInside > 0)
-								items.push({
-									amt: 0,
-									t: `${amt$(0, "+")} · ${Math.round((atOrInside / b.q) * 100)}% ≤ Base Fee`,
-									c: C.dim,
-								});
-							for (const pr of b.pairs) {
-								const extra = Math.max(0, pr.stamp - b.own);
-								if (extra <= 0) continue;
-								const pct = Math.round((pr.matched / b.q) * 100);
-								const amt = (pr.matched / b.q) * extra;
-								items.push({
-									amt,
-									t: `${amt$(amt, "+")} · ${pct}% @ ${extra.toFixed(2)}bps > Base Fee`,
-									c: C.text,
-								});
-							}
-							if (b.unpaired > 0) {
-								const pct = Math.round((b.unpaired / b.q) * 100);
-								const amt = (b.unpaired / b.q) * (F - b.own);
-								items.push({
-									amt,
-									t: `${amt$(amt, "+")} · ${pct}% directional → taker rate`,
-									c: C.ask,
-								});
-							}
-							items.forEach((it, kk) => {
-								rows.push({
-									label: kk === 0 ? "SURCHARGES" : "",
-									t: it.t,
-									c: it.c,
-								});
-							});
-							if (b.claimedBefore > 0 && b.unpaired > 0)
-								rows.push({
-									label: "",
-									t: "(better-priced bars claimed the matches first)",
-									c: C.faint,
-									s: 12.5,
-								});
-							rows.push({
-								label: "TOTAL FEE",
-								t: amt$(b.final),
-								c: C.fee,
-								gap: 6,
-							});
-							rows.push({ rule: true, gap: 8 });
-							rows.push({
-								label: "NET EDGE",
-								t: `${amt$(Math.abs(net), net >= 0 ? "+" : "−")} = ${dist.toFixed(2)}bps − ${fmtBp(b.final)}`,
-								c: C.text,
-								gap: 2,
-							});
-							rows.push({
-								label: "",
-								indent: 101,
-								t: "(M Distance − Total Fee)",
-								c: C.faint,
-								s: 12,
-							});
-							if (feePinned === tipI && feeHover == null)
-								rows.push({
-									t: "pinned. Click the dot again or press Esc",
-									c: C.faint,
-									s: 11.5,
-									gap: 7,
-								});
-							let yAcc = 24;
-							const placed = rows.map((r) => {
-								yAcc += r.gap ?? 0;
-								const y = yAcc;
-								yAcc += 19;
-								return { ...r, y };
-							});
-							const h = yAcc - 2;
-							const xT = W / 2;
-							const yT = PB - h - 10;
-							return (
-								<g
-									pointerEvents={
-										feePinned === tipI && feeHover == null ? "auto" : "none"
-									}
-									style={{ userSelect: "text" }}
-								>
+									{/* grab handles: hug each bar's outer edge, mostly outside it */}
 									<rect
-										x={xT - 240}
-										y={yT}
-										width={480}
-										height={h}
-										rx={6}
-										strokeWidth={0.75}
-										style={{ fill: C.panel2, stroke: C.fee }}
+										x={xAt(i) - step / 2}
+										y={yv > 0 ? Math.max(PT, yUp(yv) - 12) : MID - 14}
+										width={step}
+										height={yv > 0 ? 16 : 14}
+										fill="transparent"
+										style={{ cursor: "ns-resize" }}
+										onPointerEnter={() => setFeeHover(lv?.bk ? i : null)}
+										onPointerLeave={() => setFeeHover(null)}
+										onPointerDown={(e) => onDown(e, i, "you")}
+										onPointerMove={onMove}
+										onPointerUp={(e) => onUp(e, i)}
+										onPointerCancel={() => {
+											drag.current = null;
+										}}
 									/>
-									{placed.map((r) =>
-										r.rule ? (
-											<line
-												key={`rule${r.y}`}
-												x1={xT - 228}
-												x2={xT + 228}
-												y1={yT + r.y - 11}
-												y2={yT + r.y - 11}
-												style={{ stroke: C.line }}
-											/>
-										) : (
-											<g key={`${r.t}${r.y}`}>
-												{r.label ? (
-													<text
-														x={xT - 228}
-														y={yT + r.y}
-														fontSize={12}
-														letterSpacing="0.08em"
-														style={{ fill: C.faint, fontFamily: mono }}
-													>
-														{r.label}
-													</text>
-												) : null}
-												<text
-													x={
-														(r.label !== undefined ? xT - 124 : xT - 228) +
-														(r.indent ?? 0)
-													}
-													y={yT + r.y}
-													fontSize={r.s ?? 14}
-													style={{
-														fill: r.c,
-														fontFamily: mono,
-														whiteSpace: "pre",
-													}}
-												>
-													{r.t}
-												</text>
-											</g>
-										),
+									<rect
+										x={xAt(i) - step / 2}
+										y={av > 0 ? Math.min(PB - 16, yDn(av) - 4) : MID + 1}
+										width={step}
+										height={av > 0 ? 16 : 14}
+										fill="transparent"
+										style={{ cursor: "ns-resize" }}
+										onPointerEnter={() =>
+											setMakerHover(makerFees.levels[i]?.bk ? i : null)
+										}
+										onPointerLeave={() => setMakerHover(null)}
+										onPointerDown={(e) => onDown(e, i, "makers")}
+										onPointerMove={onMove}
+										onPointerUp={(e) => onUp(e, i)}
+										onPointerCancel={() => {
+											drag.current = null;
+										}}
+									/>
+									{yv > 0 && (
+										<rect
+											x={xAt(i) - barW / 2}
+											y={yUp(yv)}
+											width={barW}
+											height={MID - yUp(yv)}
+											opacity={0.85 * dimIf(i)}
+											rx={2}
+											pointerEvents="none"
+											strokeWidth={tip === i ? 1.5 : 0}
+											style={{
+												fill: side === "bid" ? C.bid : C.ask,
+												stroke: tip === i ? C.text : "none",
+												...barTrans,
+											}}
+										/>
+									)}
+									{usedYou > 0 && (
+										<rect
+											x={xAt(i) - barW / 2}
+											y={yUp(usedYou)}
+											width={barW}
+											height={Math.max(0, MID - yUp(usedYou))}
+											strokeWidth={1.25}
+											rx={2}
+											opacity={dimIf(i)}
+											pointerEvents="none"
+											style={{ fill: C.markSlice, stroke: C.mark, ...barTrans }}
+										/>
+									)}
+									{yv > 0 && lv?.bk && lv.bk.unpaired > 0 && (
+										<rect
+											x={xAt(i) - barW / 2}
+											y={yUp(yv)}
+											width={barW}
+											height={Math.max(0, yUp(yv - lv.bk.unpaired) - yUp(yv))}
+											fill="url(#sfm-hatch)"
+											rx={2}
+											opacity={dimIf(i)}
+											pointerEvents="none"
+										/>
+									)}
+									{av > 0 && (
+										<rect
+											x={xAt(i) - barW / 2}
+											y={MID + 1}
+											width={barW}
+											height={Math.max(0, yDn(av) - MID - 1)}
+											opacity={0.45}
+											rx={2}
+											pointerEvents="none"
+											style={{
+												fill: side === "bid" ? C.bid : C.ask,
+												...barTrans,
+											}}
+										/>
+									)}
+									{usedAgg > 0 && (
+										<rect
+											x={xAt(i) - barW / 2}
+											y={MID + 1}
+											width={barW}
+											height={Math.max(0, yDn(usedAgg) - MID - 1)}
+											strokeWidth={1.25}
+											rx={2}
+											pointerEvents="none"
+											style={{ fill: C.markSlice, stroke: C.mark, ...barTrans }}
+										/>
 									)}
 								</g>
 							);
-						})()}
-				</svg>
+						})}
+
+						{/* partner highlight within your book */}
+						{matchSlices
+							.filter((sl) => inView(sl.i))
+							.map((sl) => (
+								<rect
+									key={sl.i}
+									x={xAt(sl.i) - barW / 2}
+									y={yUp(sl.to)}
+									width={barW}
+									height={Math.max(0, yUp(sl.from) - yUp(sl.to))}
+									fill="none"
+									strokeWidth={1.75}
+									rx={1.5}
+									pointerEvents="none"
+									style={{ stroke: C.text }}
+								/>
+							))}
+
+						{/* hovered/pinned-fee reference line, your half */}
+						{tipLv && tipBk && (
+							<g pointerEvents="none">
+								<line
+									x1={PL}
+									x2={PR}
+									y1={yFeeUp(tipBk.final)}
+									y2={yFeeUp(tipBk.final)}
+									strokeDasharray="5 5"
+									strokeWidth={1}
+									opacity={0.7}
+									style={{ stroke: C.fee, transition: "all 150ms" }}
+								/>
+								{/* the CAP tick already prints the value when they coincide */}
+								{Math.abs(yFeeUp(tipBk.final) - yFeeUp(F)) > 12 && (
+									<text
+										x={PL - 20}
+										y={yFeeUp(tipBk.final) + 4.5}
+										textAnchor="end"
+										fontSize={13}
+										style={{ fill: C.fee, fontFamily: mono }}
+									>
+										{tipBk.final.toFixed(2)}
+									</text>
+								)}
+							</g>
+						)}
+
+						{/* hovered maker-fee reference line, lower half */}
+						{makerTipBk && (
+							<g pointerEvents="none">
+								<line
+									x1={PL}
+									x2={PR}
+									y1={yFeeDn(makerTipBk.final)}
+									y2={yFeeDn(makerTipBk.final)}
+									strokeDasharray="5 5"
+									strokeWidth={1}
+									opacity={0.7}
+									style={{ stroke: C.fee, transition: "all 150ms" }}
+								/>
+								{Math.abs(yFeeDn(makerTipBk.final) - yFeeDn(F)) > 12 && (
+									<text
+										x={PL - 20}
+										y={yFeeDn(makerTipBk.final) + 4.5}
+										textAnchor="end"
+										fontSize={13}
+										style={{ fill: C.fee, fontFamily: mono }}
+									>
+										{makerTipBk.final.toFixed(2)}
+									</text>
+								)}
+							</g>
+						)}
+
+						{/* makers' fee curve, mirrored */}
+						{makerPts.length > 1 && (
+							<path
+								d={makerPath}
+								fill="none"
+								strokeWidth={1.75}
+								strokeDasharray="5 4"
+								opacity={0.75}
+								pointerEvents="none"
+								style={{ stroke: C.fee, transition: "d 120ms" }}
+							/>
+						)}
+						{makerPts.map((l) => (
+							<circle
+								key={l.i}
+								cx={xAt(l.i)}
+								cy={yFeeDn(l.bk?.final ?? 0)}
+								r={makerHover === l.i ? 4.5 : 3}
+								strokeWidth={1.5}
+								pointerEvents="none"
+								style={{ fill: C.panel, stroke: C.fee }}
+							/>
+						))}
+
+						{/* your fee curve */}
+						{feePts.length > 1 && (
+							<path
+								d={feePath}
+								fill="none"
+								strokeWidth={2.75}
+								pointerEvents="none"
+								style={{ stroke: C.fee, transition: "d 120ms" }}
+							/>
+						)}
+						{feePts.map((l) => (
+							<circle
+								key={l.i}
+								cx={xAt(l.i)}
+								cy={yFeeUp(l.bk?.final ?? 0)}
+								r={feeHover === l.i || feePinned === l.i ? 5.5 : 4}
+								strokeWidth={1.5}
+								pointerEvents="none"
+								style={{ fill: C.fee, stroke: C.panel }}
+							/>
+						))}
+						{feePts.map((l) => (
+							// biome-ignore lint/a11y/useSemanticElements: SVG hit area, a real <button> cannot exist inside <svg>
+							<circle
+								key={l.i}
+								cx={xAt(l.i)}
+								cy={yFeeUp(l.bk?.final ?? 0)}
+								r={13}
+								fill="transparent"
+								role="button"
+								tabIndex={0}
+								aria-label={`Pin fee details for ${fmtPx(l.price)}`}
+								onPointerEnter={() => setFeeHover(l.i)}
+								onPointerLeave={() => setFeeHover(null)}
+								onClick={() => togglePin(l.i)}
+								onKeyDown={(e) => {
+									if (e.key === "Enter") togglePin(l.i);
+								}}
+								style={{ cursor: "pointer" }}
+							/>
+						))}
+
+						{/* price axis at the bottom */}
+						<line x1={PL} x2={PR} y1={PB} y2={PB} style={{ stroke: C.line }} />
+						{yourSizes.map((_, i) =>
+							!inView(i) ? null : (
+								<g key={priceAt(i)}>
+									<line
+										x1={xAt(i)}
+										x2={xAt(i)}
+										y1={PB}
+										y2={PB + 4}
+										style={{ stroke: C.faint }}
+									/>
+									{(i - CENTER) % labelStride === 0 && (
+										<text
+											x={xAt(i)}
+											y={AXIS_Y + 15}
+											textAnchor="middle"
+											fontSize={12}
+											style={{
+												fill:
+													i === CENTER
+														? centerSide === "bid"
+															? C.bid
+															: C.ask
+														: C.faint,
+												fontFamily: mono,
+											}}
+										>
+											{fmtPx(priceAt(i))}
+										</text>
+									)}
+								</g>
+							),
+						)}
+
+						{/* key */}
+						<g pointerEvents="none" style={{ fontFamily: mono }}>
+							<rect
+								x={150}
+								y={PB + 40}
+								width={14}
+								height={14}
+								rx={2}
+								style={{ fill: C.bid }}
+							/>
+							<text
+								x={171}
+								y={PB + 53}
+								fontSize={16}
+								style={{ fill: C.dim, fontFamily: mono }}
+							>
+								Your Bids ↑
+							</text>
+							<rect
+								x={318}
+								y={PB + 40}
+								width={14}
+								height={14}
+								rx={2}
+								style={{ fill: C.ask }}
+							/>
+							<text
+								x={339}
+								y={PB + 53}
+								fontSize={16}
+								style={{ fill: C.dim, fontFamily: mono }}
+							>
+								Your Asks ↑
+							</text>
+							<rect
+								x={486}
+								y={PB + 40}
+								width={14}
+								height={14}
+								rx={2}
+								opacity={0.45}
+								style={{ fill: C.bid }}
+							/>
+							<rect
+								x={493}
+								y={PB + 40}
+								width={14}
+								height={14}
+								rx={2}
+								opacity={0.45}
+								style={{ fill: C.ask }}
+							/>
+							<text
+								x={514}
+								y={PB + 53}
+								fontSize={16}
+								style={{ fill: C.dim, fontFamily: mono }}
+							>
+								Aggregate Makers ↓
+							</text>
+							<circle
+								cx={157}
+								cy={PB + 72}
+								r={6}
+								strokeWidth={1}
+								style={{ fill: C.fee, stroke: C.panel }}
+							/>
+							<text
+								x={170}
+								y={PB + 78}
+								fontSize={16}
+								style={{ fill: C.dim, fontFamily: mono }}
+							>
+								Your Fee if Filled
+							</text>
+							<circle
+								cx={420}
+								cy={PB + 72}
+								r={6}
+								strokeWidth={1.5}
+								style={{ fill: C.panel, stroke: C.fee }}
+							/>
+							<text
+								x={433}
+								y={PB + 78}
+								fontSize={16}
+								style={{ fill: C.dim, fontFamily: mono }}
+							>
+								Makers Fee if Filled
+							</text>
+							<text
+								x={W / 2}
+								y={PB + 104}
+								textAnchor="middle"
+								fontSize={12.5}
+								style={{ fill: C.faint, fontFamily: mono, fontStyle: "italic" }}
+							>
+								Instructions: Drag a bar's outer edge to resize it. Hover a bar
+								for its fee, <tspan style={{ fill: C.mark }}>M</tspan> for the
+								walk. Double-click 100.000 to flip its side.
+							</text>
+						</g>
+
+						{/* Mark carriage */}
+						<g
+							style={{ transition: "transform 220ms ease" }}
+							transform={`translate(${xOfPrice(mm.M)},0)`}
+						>
+							<line
+								x1={0}
+								x2={0}
+								y1={PT}
+								y2={PB}
+								strokeWidth={1}
+								opacity={0.5}
+								pointerEvents="none"
+								style={{ stroke: C.mark }}
+							/>
+							<path
+								d={`M0,${PT - 3} l -6,-10 l 12,0 z`}
+								style={{ fill: C.mark }}
+							/>
+							<rect
+								x={-58}
+								y={16}
+								width={116}
+								height={22}
+								rx={4}
+								strokeWidth={0.75}
+								style={{ fill: C.panel2, stroke: C.mark }}
+							/>
+							<text
+								x={0}
+								y={32}
+								textAnchor="middle"
+								fontSize={13.5}
+								style={{ fill: C.mark, fontFamily: mono }}
+							>
+								M {fmtPx(mm.M)}
+								{mm.frozen ? " ❄" : ""}
+							</text>
+							<rect
+								x={-58}
+								y={14}
+								width={116}
+								height={PT - 15}
+								fill="transparent"
+								onPointerEnter={() => setMHover(true)}
+								onPointerLeave={() => setMHover(false)}
+								style={{ cursor: "help" }}
+							/>
+						</g>
+
+						{/* M tooltip */}
+						{mHover &&
+							(() => {
+								const xT = Math.min(
+									Math.max(xOfPrice(mm.M), PL + 175),
+									PR - 175,
+								);
+								const top = PT + 8;
+								const rows = mm.frozen
+									? [
+											{ t: "M frozen: no two-sided size to walk", c: C.text },
+											{ t: `showing last computed M ${fmtPx(mm.M)}`, c: C.dim },
+										]
+									: [
+											{ t: "M: the communal mark", c: C.dim },
+											{
+												t: `sell walk → ${mm.iBid != null ? fmtPx(mm.iBid) : "–"} · you ${yourShareBid.toFixed(0)}%`,
+												c: C.bid,
+											},
+											{
+												t: `buy walk → ${mm.iAsk != null ? fmtPx(mm.iAsk) : "–"} · you ${yourShareAsk.toFixed(0)}%`,
+												c: C.ask,
+											},
+											{ t: `M = midpoint = ${fmtPx(mm.M)}`, c: C.mark },
+											{
+												t: `impact spread ${
+													mm.impactSpread != null
+														? (mm.impactSpread / BP).toFixed(1)
+														: "–"
+												}bps · S = ${S}bps`,
+												c: C.faint,
+											},
+											{
+												t: "only two-sided size near the touch votes",
+												c: C.faint,
+											},
+										];
+								const h = 16 + rows.length * 19;
+								return (
+									<g pointerEvents="none">
+										<rect
+											x={xT - 170}
+											y={top}
+											width={340}
+											height={h}
+											rx={6}
+											strokeWidth={0.75}
+											style={{ fill: C.panel2, stroke: C.mark }}
+										/>
+										{rows.map((r, kk) => (
+											<text
+												key={r.t}
+												x={xT - 156}
+												y={top + 24 + kk * 19}
+												fontSize={13.5}
+												style={{ fill: r.c, fontFamily: mono }}
+											>
+												{r.t}
+											</text>
+										))}
+									</g>
+								);
+							})()}
+
+						{/* fee receipt: rendered in the makers' half, opposite what
+					    it inspects */}
+						{(feeHover ?? feePinned) != null &&
+							!mHover &&
+							(() => {
+								const tipI = feeHover ?? feePinned;
+								if (tipI == null) return null;
+								const lv = feeLevels[tipI];
+								const b = lv?.bk;
+								if (!lv || !b || lv.side === "mid") return null;
+								const d = Math.max(
+									0,
+									(lv.side === "bid"
+										? fees.edgeBid - lv.price
+										: lv.price - fees.edgeAsk) / BP,
+								);
+								const dist = Math.abs(lv.price - mm.M) / BP;
+								const net = dist - b.final;
+								interface TipRow {
+									label?: string;
+									t?: string;
+									c?: string;
+									s?: number;
+									gap?: number;
+									indent?: number;
+									rule?: boolean;
+								}
+								const rows: TipRow[] = [];
+								const amt$ = (v: number, sign = "") =>
+									`${(sign + v.toFixed(2)).padStart(6)}bps`;
+								rows.push({
+									label: "BASE FEE",
+									t:
+										b.own > 0
+											? `${amt$(b.own)} · ${d.toFixed(2)}bps Outside the Band`
+											: `${amt$(0)} · Inside the Band`,
+									c: C.text,
+								});
+								const items: { amt: number; t: string; c: string }[] = [];
+								const atOrInside = b.pairs
+									.filter((pr) => pr.stamp <= b.own)
+									.reduce((sum, pr) => sum + pr.matched, 0);
+								if (atOrInside > 0)
+									items.push({
+										amt: 0,
+										t: `${amt$(0, "+")} · ${Math.round((atOrInside / b.q) * 100)}% ≤ Base Fee`,
+										c: C.dim,
+									});
+								for (const pr of b.pairs) {
+									const extra = Math.max(0, pr.stamp - b.own);
+									if (extra <= 0) continue;
+									const pct = Math.round((pr.matched / b.q) * 100);
+									const amt = (pr.matched / b.q) * extra;
+									items.push({
+										amt,
+										t: `${amt$(amt, "+")} · ${pct}% @ ${extra.toFixed(2)}bps > Base Fee`,
+										c: C.text,
+									});
+								}
+								if (b.unpaired > 0) {
+									const pct = Math.round((b.unpaired / b.q) * 100);
+									const amt = (b.unpaired / b.q) * (F - b.own);
+									items.push({
+										amt,
+										t: `${amt$(amt, "+")} · ${pct}% directional → taker rate`,
+										c: C.ask,
+									});
+								}
+								items.forEach((it, kk) => {
+									rows.push({
+										label: kk === 0 ? "SURCHARGES" : "",
+										t: it.t,
+										c: it.c,
+									});
+								});
+								if (b.claimedBefore > 0 && b.unpaired > 0)
+									rows.push({
+										label: "",
+										t: "(better-priced bars claimed the matches first)",
+										c: C.faint,
+										s: 12.5,
+									});
+								rows.push({
+									label: "TOTAL FEE",
+									t: amt$(b.final),
+									c: C.fee,
+									gap: 6,
+								});
+								rows.push({ rule: true, gap: 8 });
+								rows.push({
+									label: "NET EDGE",
+									t: `${amt$(Math.abs(net), net >= 0 ? "+" : "−")} = ${dist.toFixed(2)}bps − ${fmtBp(b.final)}`,
+									c: C.text,
+									gap: 2,
+								});
+								rows.push({
+									label: "",
+									indent: 101,
+									t: "(M Distance − Total Fee)",
+									c: C.faint,
+									s: 12,
+								});
+								if (feePinned === tipI && feeHover == null)
+									rows.push({
+										t: "pinned. Click the dot again or press Esc",
+										c: C.faint,
+										s: 11.5,
+										gap: 7,
+									});
+								let yAcc = 24;
+								const placed = rows.map((r) => {
+									yAcc += r.gap ?? 0;
+									const y = yAcc;
+									yAcc += 19;
+									return { ...r, y };
+								});
+								const h = yAcc - 2;
+								const xT = W / 2;
+								const yT = PB - h - 10;
+								return (
+									<g
+										pointerEvents={
+											feePinned === tipI && feeHover == null ? "auto" : "none"
+										}
+										style={{ userSelect: "text" }}
+									>
+										<rect
+											x={xT - 240}
+											y={yT}
+											width={480}
+											height={h}
+											rx={6}
+											strokeWidth={0.75}
+											style={{ fill: C.panel2, stroke: C.fee }}
+										/>
+										{placed.map((r) =>
+											r.rule ? (
+												<line
+													key={`rule${r.y}`}
+													x1={xT - 228}
+													x2={xT + 228}
+													y1={yT + r.y - 11}
+													y2={yT + r.y - 11}
+													style={{ stroke: C.line }}
+												/>
+											) : (
+												<g key={`${r.t}${r.y}`}>
+													{r.label ? (
+														<text
+															x={xT - 228}
+															y={yT + r.y}
+															fontSize={12}
+															letterSpacing="0.08em"
+															style={{ fill: C.faint, fontFamily: mono }}
+														>
+															{r.label}
+														</text>
+													) : null}
+													<text
+														x={
+															(r.label !== undefined ? xT - 124 : xT - 228) +
+															(r.indent ?? 0)
+														}
+														y={yT + r.y}
+														fontSize={r.s ?? 14}
+														style={{
+															fill: r.c,
+															fontFamily: mono,
+															whiteSpace: "pre",
+														}}
+													>
+														{r.t}
+													</text>
+												</g>
+											),
+										)}
+									</g>
+								);
+							})()}
+					</svg>
+				</div>
 			</div>
 
 			{/* scenarios */}
