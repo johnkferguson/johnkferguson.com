@@ -89,7 +89,7 @@ function Param({ name, val, set, min, max, stp, suffix, hint }: ParamProps) {
 
 export default function BaseFeeLab() {
 	const [S, setS] = useState(2);
-	const [F, setF] = useState(15);
+	const [F, setF] = useState(10);
 	const [slope, setSlope] = useState(0.8);
 	const [place, setPlace] = useState(6); // bps from M
 	const dragging = useRef(false);

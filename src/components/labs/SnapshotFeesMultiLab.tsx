@@ -319,7 +319,7 @@ interface DragState {
 export default function SnapshotFeesMultiLab() {
 	const [S, setS] = useState(2);
 	const [T, setT] = useState(20000);
-	const [F, setF] = useState(15);
+	const [F, setF] = useState(10);
 	const [slope, setSlope] = useState(0.8);
 	const [depth, setDepth] = useState(SCENARIOS[0].depth);
 	const [lean, setLean] = useState(SCENARIOS[0].lean);
@@ -567,7 +567,7 @@ export default function SnapshotFeesMultiLab() {
 		regenMakers(sc.depth, sc.lean, sc.spread);
 		setS(2);
 		setT(20000);
-		setF(15);
+		setF(10);
 		setSlope(0.8);
 		setEffect(null);
 		setPlaying(false);
