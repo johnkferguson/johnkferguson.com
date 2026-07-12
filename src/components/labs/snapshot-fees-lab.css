@@ -16,6 +16,8 @@
 	--lab-ask: #d95926;
 	--lab-fee: #e34948;
 	--lab-mark: #4a3aa7;
+	--lab-zone: #2a78d6;
+	--lab-zone-soft: rgba(42, 120, 214, 0.07);
 	--lab-danger: #d03b3b;
 	--lab-band: rgba(120, 120, 120, 0.12);
 	--lab-band-edge: rgba(74, 58, 167, 0.55);
@@ -39,6 +41,8 @@
 .dark .sf-lab {
 	--lab-fee: #e66767;
 	--lab-mark: #9085e9;
+	--lab-zone: #4b8fdd;
+	--lab-zone-soft: rgba(75, 143, 221, 0.09);
 	--lab-band: rgba(255, 255, 255, 0.06);
 	--lab-band-edge: rgba(144, 133, 233, 0.6);
 	--lab-mark-slice: rgba(144, 133, 233, 0.14);

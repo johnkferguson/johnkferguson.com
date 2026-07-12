@@ -5,9 +5,9 @@ import "./snapshot-fees-lab.css";
 // ————————————————————————————————————————————————————————————————
 // Snapshot Fees — base fee laboratory. The simplest piece of the
 // mechanism: one order's placement against the declared standard.
-// fee(d): free in the band, k₁ per bps inside the Maker Zone, k₂ beyond
-// its edge, capped at F. Hover to trace.
-// Left: dials + the curve. Right: the schedule, live, in 0.5bps rows.
+// fee(d) = min(F, k₁ × min(d, Z) + k₂ × max(0, d − Z)) past the band.
+// Left: dials + the curve (Band Edge, Zone Edge, and Cap are draggable).
+// Right: the schedule, live, in 0.5bps rows with region separators.
 // ————————————————————————————————————————————————————————————————
 
 const C = {
@@ -22,6 +22,8 @@ const C = {
 	mark: "var(--lab-mark)",
 	band: "var(--lab-band)",
 	bandEdge: "var(--lab-band-edge)",
+	zone: "var(--lab-zone)",
+	zoneSoft: "var(--lab-zone-soft)",
 	danger: "var(--lab-danger)",
 	inset: "var(--lab-inset)",
 };
@@ -50,30 +52,22 @@ interface ParamProps {
 
 function Param({ name, val, set, min, max, stp, suffix, hint }: ParamProps) {
 	return (
-		<div
-			style={{
-				display: "flex",
-				flexDirection: "column",
-				gap: 4,
-				minWidth: 128,
-				maxWidth: 150,
-			}}
-		>
-			<span style={label}>{name}</span>
-			<div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-				<input
-					type="range"
-					min={min}
-					max={max}
-					step={stp}
-					value={val}
-					onChange={(e) => set(+(e.currentTarget as HTMLInputElement).value)}
-					style={{ width: 84, accentColor: "var(--lab-slider)" }}
-				/>
+		<div style={{ display: "flex", flexDirection: "column", gap: 3 }}>
+			<div
+				style={{
+					display: "flex",
+					justifyContent: "space-between",
+					alignItems: "baseline",
+					gap: 8,
+				}}
+			>
+				<span style={{ ...label, fontSize: 9.5, letterSpacing: "0.1em" }}>
+					{name}
+				</span>
 				<span
 					style={{
 						fontFamily: mono,
-						fontSize: 12,
+						fontSize: 11.5,
 						color: C.text,
 						whiteSpace: "nowrap",
 					}}
@@ -82,14 +76,29 @@ function Param({ name, val, set, min, max, stp, suffix, hint }: ParamProps) {
 					{suffix || ""}
 				</span>
 			</div>
+			<input
+				type="range"
+				min={min}
+				max={max}
+				step={stp}
+				value={val}
+				onChange={(e) => set(+(e.currentTarget as HTMLInputElement).value)}
+				style={{ width: "100%", accentColor: "var(--lab-slider)" }}
+			/>
 			{hint && (
-				<span style={{ fontSize: 11, color: C.faint, lineHeight: 1.45 }}>
+				<span style={{ fontSize: 10.5, color: C.faint, lineHeight: 1.35 }}>
 					{hint}
 				</span>
 			)}
 		</div>
 	);
 }
+
+const snap = (v: number, step: number) => Math.round(v / step) * step;
+const clamp = (v: number, lo: number, hi: number) =>
+	Math.max(lo, Math.min(hi, v));
+
+type EdgeDrag = "band" | "zone" | "cap" | null;
 
 export default function BaseFeeLab() {
 	const [B, setB] = useState(2); // inner band width, bps
@@ -100,6 +109,8 @@ export default function BaseFeeLab() {
 	const [hover, setHover] = useState<number | null>(null);
 	const tableRef = useRef<HTMLDivElement | null>(null);
 	const activeRowRef = useRef<HTMLDivElement | null>(null);
+	const svgRef = useRef<SVGSVGElement | null>(null);
+	const edgeDrag = useRef<EdgeDrag>(null);
 
 	// bracketed stamp: the first Z bps at k₁, the excess at k₂, capped at F
 	const feeAt = (d: number) => {
@@ -107,12 +118,13 @@ export default function BaseFeeLab() {
 		const raw = slope * Math.min(dd, Z) + slope2 * Math.max(0, dd - Z);
 		return Math.min(F, raw);
 	};
+	const netAt = (d: number) => d - feeAt(d);
 	const dFull = B / 2 + stampCapBps({ F, Z, slope, slope2 });
 	const dKnee = B / 2 + Z;
 
 	// geometry — viewBox sized for the two-thirds slot so text stays legible
 	const W = 580;
-	const H = 400;
+	const H = 390;
 	const PL = 78;
 	const PR = 545;
 	const PT = 42;
@@ -121,15 +133,15 @@ export default function BaseFeeLab() {
 	const xAt = (d: number) => PL + (d / DMAX) * (PR - PL);
 	const yAt = (v: number) => PB - (v / 25) * (PB - PT);
 
-	const curve = (() => {
+	const pathOf = (fn: (d: number) => number) => {
 		const pts: string[] = [];
 		for (let d = 0; d <= DMAX + 0.001; d += 0.25) {
-			pts.push(`${xAt(d)},${yAt(feeAt(d))}`);
+			pts.push(`${xAt(d)},${yAt(fn(d))}`);
 		}
 		return pts.join(" ");
-	})();
-	// gross edge reference: one bps of distance is one bps of edge
-	const edgeEnd = Math.min(DMAX, 25);
+	};
+	const curve = pathOf(feeAt);
+	const netCurve = pathOf(netAt);
 
 	const dAt = (e: PointerEvent) => {
 		const el = e.currentTarget as SVGRectElement;
@@ -139,11 +151,57 @@ export default function BaseFeeLab() {
 		return Math.round(d * 10) / 10;
 	};
 
+	// map client coordinates through the scaled viewBox for the edge drags
+	const dFromClientX = (clientX: number) => {
+		const r = svgRef.current?.getBoundingClientRect();
+		if (!r) return 0;
+		const sx = ((clientX - r.left) / r.width) * W;
+		return clamp(((sx - PL) / (PR - PL)) * DMAX, 0, DMAX);
+	};
+	const feeFromClientY = (clientY: number) => {
+		const r = svgRef.current?.getBoundingClientRect();
+		if (!r) return 0;
+		const sy = ((clientY - r.top) / r.height) * H;
+		return clamp(((PB - sy) / (PB - PT)) * 25, 0, 25);
+	};
+	const applyEdgeDrag = (e: PointerEvent) => {
+		if (edgeDrag.current === "band")
+			setB(clamp(snap(2 * dFromClientX(e.clientX), 0.5), 1, 10));
+		else if (edgeDrag.current === "zone")
+			setZ(clamp(snap(dFromClientX(e.clientX) - B / 2, 0.5), 2, 20));
+		else if (edgeDrag.current === "cap")
+			setF(clamp(snap(feeFromClientY(e.clientY), 0.5), 5, 25));
+	};
+	const edgeStrip = (kind: Exclude<EdgeDrag, null>) => ({
+		onPointerEnter: () => setHover(null),
+		onPointerDown: (e: PointerEvent) => {
+			(e.currentTarget as SVGRectElement).setPointerCapture(e.pointerId);
+			edgeDrag.current = kind;
+			applyEdgeDrag(e);
+		},
+		onPointerMove: (e: PointerEvent) => {
+			if (edgeDrag.current === kind) applyEdgeDrag(e);
+		},
+		onPointerUp: () => {
+			edgeDrag.current = null;
+		},
+		onPointerCancel: () => {
+			edgeDrag.current = null;
+		},
+	});
+
 	// the schedule, live: one row per 0.5bps of distance from M. The pointer
-	// drives the highlighted row.
+	// drives the highlighted row; colored rules mark the region boundaries.
 	const schedRows: number[] = [];
 	for (let d = 0; d <= DMAX + 0.001; d += 0.5) schedRows.push(d);
 	const hoverRow = hover != null ? Math.round(hover * 2) / 2 : null;
+	const sepColor = (d: number, next: number | undefined): string | null => {
+		if (next == null) return null;
+		if (d <= B / 2 + 1e-9 && next > B / 2 + 1e-9) return C.mark;
+		if (d <= dKnee + 1e-9 && next > dKnee + 1e-9) return C.zone;
+		if (feeAt(d) < F - 1e-9 && feeAt(next) >= F - 1e-9) return C.fee;
+		return null;
+	};
 
 	// keep the hovered row in view — scroll the box only, never the page
 	useEffect(() => {
@@ -184,8 +242,8 @@ export default function BaseFeeLab() {
 					style={{
 						display: "flex",
 						flexWrap: "wrap",
-						gap: "4px 14px",
-						alignItems: "flex-start",
+						gap: "4px 16px",
+						alignItems: "stretch",
 						margin: "0 10px",
 						borderTop: `1px solid ${C.line}`,
 					}}
@@ -194,12 +252,10 @@ export default function BaseFeeLab() {
 					<div style={{ flex: "2 1 400px", minWidth: 300 }}>
 						<div
 							style={{
-								display: "flex",
-								flexWrap: "wrap",
-								gap: "10px 14px",
-								alignItems: "flex-start",
-								justifyContent: "space-between",
-								padding: "8px 4px 6px",
+								display: "grid",
+								gridTemplateColumns: "repeat(3, 1fr)",
+								gap: "10px 16px",
+								padding: "10px 12px 8px 4px",
 							}}
 						>
 							<Param
@@ -255,11 +311,17 @@ export default function BaseFeeLab() {
 						</div>
 
 						<svg
+							ref={svgRef}
 							viewBox={`0 0 ${W} ${H}`}
 							style={{ width: "100%", display: "block", touchAction: "none" }}
 							role="img"
-							aria-label="Base fee curve: fee in bps against placement distance from the Mark"
+							aria-label="Base fee curve with draggable Band Edge, Zone Edge, and Cap; fee in bps against placement distance from the Mark"
 						>
+							<defs>
+								<clipPath id="bf-plot">
+									<rect x={PL} y={PT} width={PR - PL} height={PB - PT} />
+								</clipPath>
+							</defs>
 							{/* gridlines */}
 							{[5, 10, 15, 20, 25].map((v) => (
 								<g key={v}>
@@ -305,7 +367,7 @@ export default function BaseFeeLab() {
 								FEE · BPS
 							</text>
 
-							{/* fee cap tick */}
+							{/* fee cap: axis tick plus a draggable line across the plot */}
 							<g pointerEvents="none" style={{ transition: "all 150ms" }}>
 								<text
 									x={PL - 20}
@@ -330,9 +392,18 @@ export default function BaseFeeLab() {
 									d={`M${PL - 16},${yAt(F) - 5} L${PL - 6},${yAt(F)} L${PL - 16},${yAt(F) + 5} Z`}
 									style={{ fill: C.fee }}
 								/>
+								<line
+									x1={PL}
+									x2={PR}
+									y1={yAt(F)}
+									y2={yAt(F)}
+									strokeDasharray="4 5"
+									opacity={0.35}
+									style={{ stroke: C.fee }}
+								/>
 							</g>
 
-							{/* the free band */}
+							{/* the inner band, then the Maker Zone tint */}
 							<rect
 								x={xAt(0)}
 								y={PT}
@@ -340,12 +411,20 @@ export default function BaseFeeLab() {
 								height={PB - PT}
 								style={{ fill: C.band, transition: "all 220ms ease" }}
 							/>
+							<rect
+								x={xAt(B / 2)}
+								y={PT}
+								width={Math.max(0, xAt(Math.min(dKnee, DMAX)) - xAt(B / 2))}
+								height={PB - PT}
+								style={{ fill: C.zoneSoft, transition: "all 220ms ease" }}
+							/>
 							<line
 								x1={xAt(B / 2)}
 								x2={xAt(B / 2)}
 								y1={PT}
 								y2={PB}
 								strokeDasharray="3 4"
+								strokeWidth={1.25}
 								style={{ stroke: C.bandEdge, transition: "all 220ms ease" }}
 							/>
 							<text
@@ -359,7 +438,7 @@ export default function BaseFeeLab() {
 									transition: "all 220ms ease",
 								}}
 							>
-								band edge
+								Band Edge
 							</text>
 
 							{/* the zone edge: where the far slope takes over */}
@@ -371,11 +450,8 @@ export default function BaseFeeLab() {
 										y1={PT}
 										y2={PB}
 										strokeDasharray="3 4"
-										opacity={0.7}
-										style={{
-											stroke: C.bandEdge,
-											transition: "all 220ms ease",
-										}}
+										strokeWidth={1.25}
+										style={{ stroke: C.zone, transition: "all 220ms ease" }}
 									/>
 									<text
 										x={xAt(dKnee)}
@@ -383,12 +459,12 @@ export default function BaseFeeLab() {
 										textAnchor="middle"
 										fontSize={12}
 										style={{
-											fill: C.mark,
+											fill: C.zone,
 											fontFamily: mono,
 											transition: "all 220ms ease",
 										}}
 									>
-										zone edge
+										Zone Edge
 									</text>
 								</>
 							)}
@@ -407,29 +483,30 @@ export default function BaseFeeLab() {
 										fontSize={11}
 										style={{ fill: C.fee, fontFamily: mono }}
 									>
-										full fee
+										Full Fee
 									</text>
 								</g>
 							)}
 
-							{/* gross edge reference: a bps of distance is a bps of edge */}
-							<line
-								x1={xAt(0)}
-								y1={yAt(0)}
-								x2={xAt(edgeEnd)}
-								y2={yAt(edgeEnd)}
-								strokeDasharray="2 5"
-								opacity={0.6}
-								style={{ stroke: C.faint }}
+							{/* net edge: what distance keeps after the fee */}
+							<polyline
+								points={netCurve}
+								fill="none"
+								strokeWidth={1.75}
+								strokeDasharray="6 4"
+								clipPath="url(#bf-plot)"
+								pointerEvents="none"
+								opacity={0.85}
+								style={{ stroke: C.dim, transition: "all 120ms" }}
 							/>
 							<text
-								x={xAt(edgeEnd) - 6}
-								y={yAt(edgeEnd) + 14}
+								x={PR - 6}
+								y={clamp(yAt(netAt(DMAX)) - 8, PT + 10, PB - 6)}
 								textAnchor="end"
 								fontSize={11}
-								style={{ fill: C.faint, fontFamily: mono }}
+								style={{ fill: C.dim, fontFamily: mono }}
 							>
-								your edge (1:1)
+								Net Edge
 							</text>
 
 							{/* the base fee curve */}
@@ -437,6 +514,7 @@ export default function BaseFeeLab() {
 								points={curve}
 								fill="none"
 								strokeWidth={2.75}
+								clipPath="url(#bf-plot)"
 								pointerEvents="none"
 								style={{ stroke: C.fee, transition: "all 120ms" }}
 							/>
@@ -446,7 +524,7 @@ export default function BaseFeeLab() {
 								(() => {
 									const hf = feeAt(hover);
 									const hn = hover - hf;
-									const bw = 128;
+									const bw = 136;
 									const bh = 56;
 									const bx =
 										xAt(hover) + 12 + bw > PR
@@ -498,7 +576,7 @@ export default function BaseFeeLab() {
 												fontSize={12}
 												style={{ fill: C.fee, fontFamily: mono }}
 											>
-												fee {hf.toFixed(2)}
+												Fee {hf.toFixed(2)}
 											</text>
 											<text
 												x={bx + 10}
@@ -509,7 +587,7 @@ export default function BaseFeeLab() {
 													fontFamily: mono,
 												}}
 											>
-												net {hn >= 0 ? "+" : "−"}
+												Net Edge {hn >= 0 ? "+" : "−"}
 												{Math.abs(hn).toFixed(2)}
 											</text>
 										</g>
@@ -536,6 +614,38 @@ export default function BaseFeeLab() {
 								onPointerLeave={() => {
 									setHover(null);
 								}}
+							/>
+
+							{/* drag strips: Band Edge and Zone Edge move sideways, the
+							    Cap moves up and down (they sit above the hover surface) */}
+							<rect
+								x={xAt(B / 2) - 7}
+								y={PT}
+								width={14}
+								height={PB - PT}
+								fill="transparent"
+								style={{ cursor: "ew-resize" }}
+								{...edgeStrip("band")}
+							/>
+							{dKnee <= DMAX && (
+								<rect
+									x={xAt(dKnee) - 7}
+									y={PT}
+									width={14}
+									height={PB - PT}
+									fill="transparent"
+									style={{ cursor: "ew-resize" }}
+									{...edgeStrip("zone")}
+								/>
+							)}
+							<rect
+								x={PL}
+								y={yAt(F) - 7}
+								width={PR - PL}
+								height={14}
+								fill="transparent"
+								style={{ cursor: "ns-resize" }}
+								{...edgeStrip("cap")}
 							/>
 
 							{/* distance axis */}
@@ -576,17 +686,20 @@ export default function BaseFeeLab() {
 							>
 								PLACEMENT · BPS FROM M
 							</text>
-							<text
-								x={W / 2}
-								y={PB + 78}
-								textAnchor="middle"
-								fontSize={12.5}
-								style={{ fill: C.faint, fontFamily: mono, fontStyle: "italic" }}
-							>
-								Instructions: Hover the chart to trace the schedule. Dial the
-								band, zone, cap, and slopes.
-							</text>
 						</svg>
+						<div
+							style={{
+								fontSize: 12,
+								fontStyle: "italic",
+								color: C.faint,
+								textAlign: "center",
+								padding: "4px 8px 8px",
+								lineHeight: 1.5,
+							}}
+						>
+							Instructions: Hover the chart to trace the schedule. Drag the Band
+							Edge, Zone Edge, or Cap. Dials work too.
+						</div>
 					</div>
 
 					{/* —— right third: the schedule, live —— */}
@@ -595,6 +708,8 @@ export default function BaseFeeLab() {
 							flex: "1 1 200px",
 							minWidth: 190,
 							padding: "8px 0 8px",
+							display: "flex",
+							flexDirection: "column",
 						}}
 					>
 						<div
@@ -604,57 +719,63 @@ export default function BaseFeeLab() {
 								position: "relative",
 								border: `1px solid ${C.line}`,
 								borderRadius: 6,
-								maxHeight: 440,
+								flex: "1 1 0",
+								minHeight: 0,
+								maxHeight: 560,
 								overflowY: "auto",
 							}}
 						>
 							<div
 								style={{
 									display: "grid",
-									gridTemplateColumns: "1fr 1fr 1.1fr",
+									gridTemplateColumns: "1fr 1fr 1fr",
 									position: "sticky",
 									top: 0,
 									background: C.inset,
-									padding: "8px 10px 6px",
+									padding: "8px 8px 6px",
 									borderBottom: `1px solid ${C.line}`,
 									zIndex: 1,
 								}}
 							>
-								<span style={{ ...label, fontSize: 9 }}>M Dist</span>
-								<span style={{ ...label, fontSize: 9, textAlign: "right" }}>
+								<span style={{ ...label, fontSize: 9, textAlign: "center" }}>
+									M Dist
+								</span>
+								<span style={{ ...label, fontSize: 9, textAlign: "center" }}>
 									Base Fee
 								</span>
-								<span style={{ ...label, fontSize: 9, textAlign: "right" }}>
+								<span style={{ ...label, fontSize: 9, textAlign: "center" }}>
 									Net Edge
 								</span>
 							</div>
-							{schedRows.map((d) => {
+							{schedRows.map((d, i) => {
 								const f = feeAt(d);
 								const n = d - f;
 								const isHover =
 									hoverRow != null && Math.abs(d - hoverRow) < 0.001;
+								const sep = sepColor(d, schedRows[i + 1]);
 								return (
 									<div
 										key={d}
 										ref={isHover ? activeRowRef : undefined}
 										style={{
 											display: "grid",
-											gridTemplateColumns: "1fr 1fr 1.1fr",
+											gridTemplateColumns: "1fr 1fr 1fr",
 											width: "100%",
-											padding: "2px 10px 2px 8px",
+											padding: "2px 8px",
 											borderLeft: `2px solid ${isHover ? C.fee : "transparent"}`,
+											borderBottom: `2px solid ${sep ?? "transparent"}`,
 											background: isHover ? C.band : "transparent",
 											fontFamily: mono,
 											fontSize: 12,
 											lineHeight: 1.5,
 										}}
 									>
-										<span style={{ textAlign: "left", color: C.dim }}>
+										<span style={{ textAlign: "center", color: C.dim }}>
 											{d.toFixed(1)}
 										</span>
 										<span
 											style={{
-												textAlign: "right",
+												textAlign: "center",
 												color: f > 0 ? C.fee : C.dim,
 											}}
 										>
@@ -662,7 +783,7 @@ export default function BaseFeeLab() {
 										</span>
 										<span
 											style={{
-												textAlign: "right",
+												textAlign: "center",
 												color: n < 0 ? C.danger : C.text,
 											}}
 										>
@@ -681,7 +802,10 @@ export default function BaseFeeLab() {
 								lineHeight: 1.45,
 							}}
 						>
-							All values in bps. Hover the chart to trace rows.
+							All values in bps. Rules mark the{" "}
+							<span style={{ color: C.mark }}>Band Edge</span>,{" "}
+							<span style={{ color: C.zone }}>Zone Edge</span>, and{" "}
+							<span style={{ color: C.fee }}>Cap</span>.
 						</div>
 					</div>
 				</div>
