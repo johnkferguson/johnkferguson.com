@@ -1343,15 +1343,18 @@ export default function SnapshotFeesMultiLab() {
 								opacity={0.7}
 								style={{ stroke: C.fee, transition: "all 150ms" }}
 							/>
-							<text
-								x={PL - 20}
-								y={yFeeUp(bk.final) + 4.5}
-								textAnchor="end"
-								fontSize={13}
-								style={{ fill: C.fee, fontFamily: mono }}
-							>
-								{bk.final.toFixed(2)}
-							</text>
+							{/* the CAP tick already prints the value when they coincide */}
+							{Math.abs(yFeeUp(bk.final) - yFeeUp(F)) > 12 && (
+								<text
+									x={PL - 20}
+									y={yFeeUp(bk.final) + 4.5}
+									textAnchor="end"
+									fontSize={13}
+									style={{ fill: C.fee, fontFamily: mono }}
+								>
+									{bk.final.toFixed(2)}
+								</text>
+							)}
 						</g>
 					)}
 

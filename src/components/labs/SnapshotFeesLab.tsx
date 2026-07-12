@@ -1129,15 +1129,18 @@ export default function SnapshotFeesLab() {
 								opacity={0.7}
 								style={{ stroke: C.fee, transition: "all 150ms" }}
 							/>
-							<text
-								x={PL - 18}
-								y={yFee(bk.final) + 4.5}
-								textAnchor="end"
-								fontSize={13}
-								style={{ fill: C.fee, fontFamily: mono }}
-							>
-								{bk.final.toFixed(2)}
-							</text>
+							{/* the CAP tick already prints the value when they coincide */}
+							{Math.abs(yFee(bk.final) - yFee(F)) > 12 && (
+								<text
+									x={PL - 18}
+									y={yFee(bk.final) + 4.5}
+									textAnchor="end"
+									fontSize={13}
+									style={{ fill: C.fee, fontFamily: mono }}
+								>
+									{bk.final.toFixed(2)}
+								</text>
+							)}
 						</g>
 					)}
 
