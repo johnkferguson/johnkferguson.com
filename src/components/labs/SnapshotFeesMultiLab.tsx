@@ -802,14 +802,14 @@ export default function SnapshotFeesMultiLab() {
 						hint="Per side size for measuring M."
 					/>
 					<Param
-						name="Inner Band · S"
+						name="Inner Band · B"
 						val={S}
 						set={touch("S", S, setS)}
 						min={1}
 						max={10}
 						stp={0.5}
 						suffix="bps"
-						hint="Width S, drawn M ± S/2."
+						hint="Width B, drawn M ± B/2."
 					/>
 					<Param
 						name="Fee Cap · F"
@@ -1822,7 +1822,7 @@ export default function SnapshotFeesMultiLab() {
 													mm.impactSpread != null
 														? (mm.impactSpread / BP).toFixed(1)
 														: "–"
-												}bps · S = ${S}bps`,
+												}bps · B = ${S}bps`,
 												c: C.faint,
 											},
 											{

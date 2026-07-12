@@ -594,7 +594,7 @@ export default function SnapshotFeesLab() {
 							</div>
 
 							<div style={row}>
-								<span style={eyebrow}>2 · Band</span>edges = M ± S/2 = M ±{" "}
+								<span style={eyebrow}>2 · Band</span>edges = M ± B/2 = M ±{" "}
 								{half}bps → {fmtPx(model.edgeBid)} … {fmtPx(model.edgeAsk)}
 								<div style={note}>
 									the inner band, declared by the market: placement inside it
@@ -716,7 +716,7 @@ export default function SnapshotFeesLab() {
 								{comp > 0 && (
 									<span>
 										{" "}
-										− insideComp × max(0, 1 − dist/(S/2)) × size ÷ 10,000
+										− insideComp × max(0, 1 − dist/(B/2)) × size ÷ 10,000
 									</span>
 								)}
 							</div>
@@ -771,14 +771,14 @@ export default function SnapshotFeesLab() {
 						hint="Per side size for measuring M."
 					/>
 					<Param
-						name="Inner Band · S"
+						name="Inner Band · B"
 						val={S}
 						set={touch("S", S, setS)}
 						min={1}
 						max={10}
 						stp={0.5}
 						suffix="bps"
-						hint="Width S, drawn M ± S/2."
+						hint="Width B, drawn M ± B/2."
 					/>
 					<Param
 						name="Fee Cap · F"

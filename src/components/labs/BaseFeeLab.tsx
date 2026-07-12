@@ -203,14 +203,14 @@ export default function BaseFeeLab() {
 							}}
 						>
 							<Param
-								name="Inner Band · S"
+								name="Inner Band · B"
 								val={S}
 								set={setS}
 								min={1}
 								max={10}
 								stp={0.5}
 								suffix="bps"
-								hint="Width S, drawn M ± S/2."
+								hint="Width B, drawn M ± B/2."
 							/>
 							<Param
 								name="Maker Zone · Z"
@@ -584,7 +584,7 @@ export default function BaseFeeLab() {
 								style={{ fill: C.faint, fontFamily: mono, fontStyle: "italic" }}
 							>
 								Instructions: Hover the chart to trace the schedule. Dial the
-								standard, zone, cap, and slopes.
+								band, zone, cap, and slopes.
 							</text>
 						</svg>
 					</div>
