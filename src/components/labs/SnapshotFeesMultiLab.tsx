@@ -336,9 +336,9 @@ export default function SnapshotFeesMultiLab() {
 	);
 	const [centerSide, setCenterSide] = useState<"bid" | "ask">("bid");
 	const [playing, setPlaying] = useState(false);
-	const [sel, setSel] = useState(CENTER - 1);
 	const [mHover, setMHover] = useState(false);
 	const [feeHover, setFeeHover] = useState<number | null>(null);
+	const [makerHover, setMakerHover] = useState<number | null>(null);
 	const [feePinned, setFeePinned] = useState<number | null>(null);
 	const [mHist, setMHist] = useState<number[]>([]);
 	const lastM = useRef(100);
@@ -508,13 +508,10 @@ export default function SnapshotFeesMultiLab() {
 	const yFeeUp = (v: number) => MID - (v / feeMax) * (MID - PT);
 	const yFeeDn = (v: number) => MID + (v / feeMax) * (PB - MID);
 
-	// —— drag: upper half edits you, lower half edits the makers ——
-	const onDown = (e: PointerEvent, i: number) => {
+	// —— drag: each bar resizes from its outer edge; handles know their half ——
+	const onDown = (e: PointerEvent, i: number, who: "you" | "makers") => {
 		const el = e.currentTarget as SVGRectElement;
 		el.setPointerCapture(e.pointerId);
-		const r = el.getBoundingClientRect();
-		const viewY = PT + ((e.clientY - r.top) / r.height) * (PB - PT);
-		const who: "you" | "makers" = viewY < MID ? "you" : "makers";
 		drag.current = {
 			i,
 			who,
@@ -548,11 +545,32 @@ export default function SnapshotFeesMultiLab() {
 				s[d.i] === v ? s : s.map((x, k) => (k === d.i ? v : x)),
 			);
 	};
+	const togglePin = (i: number) => {
+		if (!fees.levels[i]?.bk) return;
+		setFeePinned((p) => (p === i ? null : i));
+	};
+
 	const onUp = (_e: PointerEvent, i: number) => {
 		const d = drag.current;
 		drag.current = null;
-		if (d && !d.moved) setSel(i);
-		else if (d && d.who === "you") setSel(d.i);
+		if (d && !d.moved && d.who === "you") togglePin(i);
+	};
+
+	// hover on a bar body reads that half's fee; clicking pins yours
+	const halfAt = (e: PointerEvent | MouseEvent) => {
+		const el = e.currentTarget as SVGRectElement;
+		const r = el.getBoundingClientRect();
+		const viewY = PT + ((e.clientY - r.top) / r.height) * (PB - PT);
+		return viewY < MID ? "you" : "makers";
+	};
+	const onBodyMove = (e: PointerEvent, i: number) => {
+		if (halfAt(e) === "you") {
+			setFeeHover(fees.levels[i]?.bk ? i : null);
+			setMakerHover(null);
+		} else {
+			setMakerHover(makerFees.levels[i]?.bk ? i : null);
+			setFeeHover(null);
+		}
 	};
 
 	const regenMakers = (nd: number, nl: number, ns: number) => {
@@ -603,9 +621,6 @@ export default function SnapshotFeesMultiLab() {
 	});
 
 	const feeLevels = fees.levels;
-	const selLv = feeLevels[sel];
-	const bk = selLv?.bk;
-	const selFeeY = bk ? yFeeUp(bk.final) : null;
 	const feePts = feeLevels.filter((l) => l.size > 0 && l.side !== "mid");
 	const feePath = feePts
 		.map((l, k) => `${k ? "L" : "M"}${xAt(l.i)},${yFeeUp(l.bk?.final ?? 0)}`)
@@ -628,6 +643,9 @@ export default function SnapshotFeesMultiLab() {
 	const tip = feeHover ?? feePinned;
 	const tipLv = tip != null ? feeLevels[tip] : null;
 	const tipBk = tipLv?.bk ?? null;
+	const tipFeeY = tipBk ? yFeeUp(tipBk.final) : null;
+	const makerTipBk =
+		makerHover != null ? (makerFees.levels[makerHover]?.bk ?? null) : null;
 	let matchSlices: { i: number; from: number; to: number }[] = [];
 	if (tipLv && tipBk && tipLv.side !== "mid") {
 		const offset = new Map<number, number>();
@@ -1014,7 +1032,7 @@ export default function SnapshotFeesMultiLab() {
 								strokeWidth={1}
 								style={{ stroke: C.grid }}
 							/>
-							{(selFeeY == null || Math.abs(yFeeUp(v) - selFeeY) > 13) &&
+							{(tipFeeY == null || Math.abs(yFeeUp(v) - tipFeeY) > 13) &&
 								Math.abs(yFeeUp(v) - yFeeUp(F)) > 12 && (
 									<text
 										x={PL - 20}
@@ -1222,21 +1240,59 @@ export default function SnapshotFeesMultiLab() {
 						const lv = feeLevels[i];
 						return (
 							<g key={priceAt(i)}>
-								{/* biome-ignore lint/a11y/noStaticElementInteractions: SVG drag surface; keyboard editing is out of scope for the lab */}
+								{/* bar body: hovering reads that half's fee, clicking pins yours */}
+								{/* biome-ignore lint/a11y/noStaticElementInteractions: SVG hover surface; the fee dots are the accessible pin control */}
 								<rect
 									x={xAt(i) - step / 2}
 									y={PT}
 									width={step}
 									height={PB - PT}
 									fill="transparent"
-									style={{ cursor: "ns-resize" }}
-									onPointerDown={(e) => onDown(e, i)}
-									onPointerMove={onMove}
-									onPointerUp={(e) => onUp(e, i)}
+									style={{ cursor: "pointer" }}
+									onPointerMove={(e) => onBodyMove(e, i)}
+									onPointerLeave={() => {
+										setFeeHover(null);
+										setMakerHover(null);
+									}}
+									onClick={(e) => {
+										if (halfAt(e) === "you") togglePin(i);
+									}}
 									onDblClick={() => {
 										if (i === CENTER)
 											setCenterSide((cs) => (cs === "bid" ? "ask" : "bid"));
 									}}
+								/>
+								{/* grab handles: resizing lives at each bar's outer edge only */}
+								<rect
+									x={xAt(i) - step / 2}
+									y={yv > 0 ? Math.max(PT, yUp(yv) - 9) : MID - 14}
+									width={step}
+									height={yv > 0 ? 18 : 14}
+									fill="transparent"
+									style={{ cursor: "ns-resize" }}
+									onPointerEnter={() => setFeeHover(lv?.bk ? i : null)}
+									onPointerLeave={() => setFeeHover(null)}
+									onPointerDown={(e) => onDown(e, i, "you")}
+									onPointerMove={onMove}
+									onPointerUp={(e) => onUp(e, i)}
+									onPointerCancel={() => {
+										drag.current = null;
+									}}
+								/>
+								<rect
+									x={xAt(i) - step / 2}
+									y={av > 0 ? Math.min(PB - 18, yDn(av) - 9) : MID + 1}
+									width={step}
+									height={av > 0 ? 18 : 14}
+									fill="transparent"
+									style={{ cursor: "ns-resize" }}
+									onPointerEnter={() =>
+										setMakerHover(makerFees.levels[i]?.bk ? i : null)
+									}
+									onPointerLeave={() => setMakerHover(null)}
+									onPointerDown={(e) => onDown(e, i, "makers")}
+									onPointerMove={onMove}
+									onPointerUp={(e) => onUp(e, i)}
 									onPointerCancel={() => {
 										drag.current = null;
 									}}
@@ -1250,10 +1306,10 @@ export default function SnapshotFeesMultiLab() {
 										opacity={0.85 * dimIf(i)}
 										rx={2}
 										pointerEvents="none"
-										strokeWidth={sel === i ? 1.5 : 0}
+										strokeWidth={tip === i ? 1.5 : 0}
 										style={{
 											fill: side === "bid" ? C.bid : C.ask,
-											stroke: sel === i ? C.text : "none",
+											stroke: tip === i ? C.text : "none",
 											...barTrans,
 										}}
 									/>
@@ -1330,29 +1386,56 @@ export default function SnapshotFeesMultiLab() {
 						/>
 					))}
 
-					{/* selected-fee reference line, your half */}
-					{selLv && bk && (
+					{/* hovered/pinned-fee reference line, your half */}
+					{tipLv && tipBk && (
 						<g pointerEvents="none">
 							<line
 								x1={PL}
 								x2={PR}
-								y1={yFeeUp(bk.final)}
-								y2={yFeeUp(bk.final)}
+								y1={yFeeUp(tipBk.final)}
+								y2={yFeeUp(tipBk.final)}
 								strokeDasharray="5 5"
 								strokeWidth={1}
 								opacity={0.7}
 								style={{ stroke: C.fee, transition: "all 150ms" }}
 							/>
 							{/* the CAP tick already prints the value when they coincide */}
-							{Math.abs(yFeeUp(bk.final) - yFeeUp(F)) > 12 && (
+							{Math.abs(yFeeUp(tipBk.final) - yFeeUp(F)) > 12 && (
 								<text
 									x={PL - 20}
-									y={yFeeUp(bk.final) + 4.5}
+									y={yFeeUp(tipBk.final) + 4.5}
 									textAnchor="end"
 									fontSize={13}
 									style={{ fill: C.fee, fontFamily: mono }}
 								>
-									{bk.final.toFixed(2)}
+									{tipBk.final.toFixed(2)}
+								</text>
+							)}
+						</g>
+					)}
+
+					{/* hovered maker-fee reference line, lower half */}
+					{makerTipBk && (
+						<g pointerEvents="none">
+							<line
+								x1={PL}
+								x2={PR}
+								y1={yFeeDn(makerTipBk.final)}
+								y2={yFeeDn(makerTipBk.final)}
+								strokeDasharray="5 5"
+								strokeWidth={1}
+								opacity={0.7}
+								style={{ stroke: C.fee, transition: "all 150ms" }}
+							/>
+							{Math.abs(yFeeDn(makerTipBk.final) - yFeeDn(F)) > 12 && (
+								<text
+									x={PL - 20}
+									y={yFeeDn(makerTipBk.final) + 4.5}
+									textAnchor="end"
+									fontSize={13}
+									style={{ fill: C.fee, fontFamily: mono }}
+								>
+									{makerTipBk.final.toFixed(2)}
 								</text>
 							)}
 						</g>
@@ -1375,7 +1458,7 @@ export default function SnapshotFeesMultiLab() {
 							key={l.i}
 							cx={xAt(l.i)}
 							cy={yFeeDn(l.bk?.final ?? 0)}
-							r={3}
+							r={makerHover === l.i ? 4.5 : 3}
 							strokeWidth={1.5}
 							pointerEvents="none"
 							style={{ fill: C.panel, stroke: C.fee }}
@@ -1397,7 +1480,7 @@ export default function SnapshotFeesMultiLab() {
 							key={l.i}
 							cx={xAt(l.i)}
 							cy={yFeeUp(l.bk?.final ?? 0)}
-							r={sel === l.i || feeHover === l.i || feePinned === l.i ? 5.5 : 4}
+							r={feeHover === l.i || feePinned === l.i ? 5.5 : 4}
 							strokeWidth={1.5}
 							pointerEvents="none"
 							style={{ fill: C.fee, stroke: C.panel }}
@@ -1416,10 +1499,9 @@ export default function SnapshotFeesMultiLab() {
 							aria-label={`Pin fee details for ${fmtPx(l.price)}`}
 							onPointerEnter={() => setFeeHover(l.i)}
 							onPointerLeave={() => setFeeHover(null)}
-							onClick={() => setFeePinned(feePinned === l.i ? null : l.i)}
+							onClick={() => togglePin(l.i)}
 							onKeyDown={(e) => {
-								if (e.key === "Enter")
-									setFeePinned(feePinned === l.i ? null : l.i);
+								if (e.key === "Enter") togglePin(l.i);
 							}}
 							style={{ cursor: "pointer" }}
 						/>
@@ -1555,10 +1637,9 @@ export default function SnapshotFeesMultiLab() {
 							fontSize={12.5}
 							style={{ fill: C.faint, fontFamily: mono, fontStyle: "italic" }}
 						>
-							Instructions: Drag up for your book, down for the makers. Hover{" "}
-							<tspan style={{ fill: C.fee }}>●</tspan> for fees,{" "}
-							<tspan style={{ fill: C.mark }}>M</tspan> for the walk.
-							Double-click 100.000 to flip its side.
+							Instructions: Drag a bar's outer edge to resize it. Hover a bar
+							for its fee, <tspan style={{ fill: C.mark }}>M</tspan> for the
+							walk. Double-click 100.000 to flip its side.
 						</text>
 					</g>
 

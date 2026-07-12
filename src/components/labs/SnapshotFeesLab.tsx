@@ -277,7 +277,6 @@ export default function SnapshotFeesLab() {
 	const [comp, setComp] = useState(0); // inside compensation max, bps (parked module)
 
 	const [sizes, setSizes] = useState<number[]>(() => SCENARIOS[0].book());
-	const [sel, setSel] = useState(CENTER - 1);
 	const [showFormula, setShowFormula] = useState(false);
 	const [scenario, setScenario] = useState<string | null>(SCENARIOS[0].key);
 	const [effect, setEffect] = useState<{ t: string; warn: boolean } | null>(
@@ -394,11 +393,15 @@ export default function SnapshotFeesLab() {
 				});
 		};
 
+	const togglePin = (i: number) => {
+		if (!model.levels[i]?.bk) return;
+		setFeePinned((p) => (p === i ? null : i));
+	};
+
 	const onUp = (_e: PointerEvent, i: number) => {
 		const d = drag.current;
 		drag.current = null;
-		if (d && !d.moved) setSel(i);
-		else if (d) setSel(d.i);
+		if (d && !d.moved) togglePin(i);
 	};
 
 	const btn = (active: boolean) => ({
@@ -411,15 +414,12 @@ export default function SnapshotFeesLab() {
 		cursor: "pointer",
 	});
 
-	const selLv = model.levels[sel];
-	const bk = selLv?.bk;
-	const selFeeY = bk ? yFee(bk.final) : null;
-
 	// —— partner highlighting: the exact dollars matched with the hovered
 	// level, located inside each partner bar via the spillover order ——
 	const tip = feeHover ?? feePinned;
 	const tipLv = tip != null ? model.levels[tip] : null;
 	const tipBk = tipLv?.bk ?? null;
+	const tipFeeY = tipBk ? yFee(tipBk.final) : null;
 	let matchSlices: { i: number; from: number; to: number }[] = [];
 	if (tipLv && tipBk && tipLv.side !== "mid") {
 		const offset = new Map<number, number>();
@@ -860,7 +860,7 @@ export default function SnapshotFeesLab() {
 								strokeWidth={1}
 								style={{ stroke: C.grid }}
 							/>
-							{(selFeeY == null || Math.abs(yFee(v) - selFeeY) > 13) &&
+							{(tipFeeY == null || Math.abs(yFee(v) - tipFeeY) > 13) &&
 								Math.abs(yFee(v) - yFee(F)) > 12 && (
 									<text
 										x={PL - 20}
@@ -1018,21 +1018,36 @@ export default function SnapshotFeesLab() {
 					{model.levels.map((lv) =>
 						lv.side === "mid" ? null : (
 							<g key={lv.i}>
-								{/* biome-ignore lint/a11y/noStaticElementInteractions: SVG drag surface; keyboard editing is out of scope for the lab */}
+								{/* bar body: hovering reads the level's fee, clicking pins it */}
+								{/* biome-ignore lint/a11y/noStaticElementInteractions: SVG hover surface; the fee dots are the accessible pin control */}
 								<rect
 									x={xAt(lv.i) - step / 2}
 									y={PT}
 									width={step}
 									height={PB - PT}
 									fill="transparent"
-									style={{ cursor: "ns-resize" }}
-									onPointerDown={(e) => onDown(e, lv.i)}
-									onPointerMove={onMove}
-									onPointerUp={(e) => onUp(e, lv.i)}
+									style={{ cursor: lv.bk ? "pointer" : "default" }}
+									onPointerEnter={() => setFeeHover(lv.bk ? lv.i : null)}
+									onPointerLeave={() => setFeeHover(null)}
+									onClick={() => togglePin(lv.i)}
 									onDblClick={() => {
 										if (lv.i === CENTER)
 											setCenterSide((cs) => (cs === "bid" ? "ask" : "bid"));
 									}}
+								/>
+								{/* grab handle: resizing lives at the bar's top edge only */}
+								<rect
+									x={xAt(lv.i) - step / 2}
+									y={lv.size > 0 ? Math.max(PT, yDepth(lv.size) - 9) : PB - 14}
+									width={step}
+									height={lv.size > 0 ? 18 : 14}
+									fill="transparent"
+									style={{ cursor: "ns-resize" }}
+									onPointerEnter={() => setFeeHover(lv.bk ? lv.i : null)}
+									onPointerLeave={() => setFeeHover(null)}
+									onPointerDown={(e) => onDown(e, lv.i)}
+									onPointerMove={onMove}
+									onPointerUp={(e) => onUp(e, lv.i)}
 									onPointerCancel={() => {
 										drag.current = null;
 									}}
@@ -1046,10 +1061,10 @@ export default function SnapshotFeesLab() {
 										opacity={0.85 * dimIf(lv.i)}
 										rx={2}
 										pointerEvents="none"
-										strokeWidth={sel === lv.i ? 1.5 : 0}
+										strokeWidth={tip === lv.i ? 1.5 : 0}
 										style={{
 											fill: lv.side === "bid" ? C.bid : C.ask,
-											stroke: sel === lv.i ? C.text : "none",
+											stroke: tip === lv.i ? C.text : "none",
 										}}
 									/>
 								)}
@@ -1116,29 +1131,29 @@ export default function SnapshotFeesLab() {
 						/>
 					))}
 
-					{/* selected-fee reference line */}
-					{selLv && bk && (
+					{/* hovered/pinned-fee reference line across the whole plot */}
+					{tipLv && tipBk && (
 						<g pointerEvents="none">
 							<line
 								x1={PL}
 								x2={PR}
-								y1={yFee(bk.final)}
-								y2={yFee(bk.final)}
+								y1={yFee(tipBk.final)}
+								y2={yFee(tipBk.final)}
 								strokeDasharray="5 5"
 								strokeWidth={1}
 								opacity={0.7}
 								style={{ stroke: C.fee, transition: "all 150ms" }}
 							/>
 							{/* the CAP tick already prints the value when they coincide */}
-							{Math.abs(yFee(bk.final) - yFee(F)) > 12 && (
+							{Math.abs(yFee(tipBk.final) - yFee(F)) > 12 && (
 								<text
 									x={PL - 18}
-									y={yFee(bk.final) + 4.5}
+									y={yFee(tipBk.final) + 4.5}
 									textAnchor="end"
 									fontSize={13}
 									style={{ fill: C.fee, fontFamily: mono }}
 								>
-									{bk.final.toFixed(2)}
+									{tipBk.final.toFixed(2)}
 								</text>
 							)}
 						</g>
@@ -1159,7 +1174,7 @@ export default function SnapshotFeesLab() {
 							key={l.i}
 							cx={xAt(l.i)}
 							cy={yFee(l.bk?.final ?? 0)}
-							r={sel === l.i || feeHover === l.i || feePinned === l.i ? 5.5 : 4}
+							r={feeHover === l.i || feePinned === l.i ? 5.5 : 4}
 							strokeWidth={1.5}
 							pointerEvents="none"
 							style={{ fill: C.fee, stroke: C.panel }}
@@ -1179,10 +1194,9 @@ export default function SnapshotFeesLab() {
 							aria-label={`Pin fee details for ${fmtPx(l.price)}`}
 							onPointerEnter={() => setFeeHover(l.i)}
 							onPointerLeave={() => setFeeHover(null)}
-							onClick={() => setFeePinned(feePinned === l.i ? null : l.i)}
+							onClick={() => togglePin(l.i)}
 							onKeyDown={(e) => {
-								if (e.key === "Enter")
-									setFeePinned(feePinned === l.i ? null : l.i);
+								if (e.key === "Enter") togglePin(l.i);
 							}}
 							style={{ cursor: "pointer" }}
 						/>
@@ -1294,9 +1308,8 @@ export default function SnapshotFeesLab() {
 							fontSize={12.5}
 							style={{ fill: C.faint, fontFamily: mono, fontStyle: "italic" }}
 						>
-							Instructions: Drag bars to adjust the book. Hover{" "}
-							<tspan style={{ fill: C.fee }}>●</tspan> for fees,{" "}
-							<tspan style={{ fill: C.mark }}>M</tspan> for its math.
+							Instructions: Drag a bar's top edge to resize it. Hover a bar for
+							its fee, <tspan style={{ fill: C.mark }}>M</tspan> for its math.
 							Double-click 100.000 to flip its side.
 						</text>
 					</g>
