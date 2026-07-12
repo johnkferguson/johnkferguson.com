@@ -203,14 +203,14 @@ export default function BaseFeeLab() {
 							}}
 						>
 							<Param
-								name="Spread standard · S"
+								name="Inner Band · S"
 								val={S}
 								set={setS}
 								min={1}
 								max={10}
 								stp={0.5}
 								suffix="bps"
-								hint="The free band, M ± S/2."
+								hint="Width S, drawn M ± S/2."
 							/>
 							<Param
 								name="Maker Zone · Z"

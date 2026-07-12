@@ -173,8 +173,8 @@ const mono = "var(--lab-mono)";
 // What each dial does, narrated as you move it
 const DIAL_EFFECT: Record<string, { up: string; down: string }> = {
 	S: {
-		up: "Wider band: more placement counts as standard and trades free.",
-		down: "Tighter band: precision is judged more strictly.",
+		up: "Wider inner band: more placement stamps at zero.",
+		down: "Tighter inner band: precision is judged more strictly.",
 	},
 	F: {
 		up: "Higher cap: directional fills pay more, and the cap line rises.",
@@ -597,7 +597,8 @@ export default function SnapshotFeesLab() {
 								<span style={eyebrow}>2 · Band</span>edges = M ± S/2 = M ±{" "}
 								{half}bps → {fmtPx(model.edgeBid)} … {fmtPx(model.edgeAsk)}
 								<div style={note}>
-									the declared free zone. Placement inside it stamps at zero
+									the inner band, declared by the market: placement inside it
+									stamps at zero
 								</div>
 							</div>
 
@@ -770,14 +771,14 @@ export default function SnapshotFeesLab() {
 						hint="Per side size for measuring M."
 					/>
 					<Param
-						name="Spread standard · S"
+						name="Inner Band · S"
 						val={S}
 						set={touch("S", S, setS)}
 						min={1}
 						max={10}
 						stp={0.5}
 						suffix="bps"
-						hint="The free band, M ± S/2."
+						hint="Width S, drawn M ± S/2."
 					/>
 					<Param
 						name="Fee Cap · F"

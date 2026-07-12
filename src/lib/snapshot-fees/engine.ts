@@ -25,7 +25,7 @@ export interface BookLevel {
 }
 
 export interface FeeParams {
-	/** Spread standard — width of the free band, in bps. */
+	/** Inner band width S, in bps — the band is drawn M ± S/2. */
 	S: number;
 	/** Typical trade — the measuring size for the Mark walk, in $. */
 	T: number;

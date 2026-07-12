@@ -172,8 +172,8 @@ const SCENARIOS: Scenario[] = [
 // What each dial does, narrated as you move it
 const DIAL_EFFECT: Record<string, { up: string; down: string }> = {
 	S: {
-		up: "Wider band: more placement counts as standard and trades free.",
-		down: "Tighter band: precision is judged more strictly.",
+		up: "Wider inner band: more placement stamps at zero.",
+		down: "Tighter inner band: precision is judged more strictly.",
 	},
 	F: {
 		up: "Higher cap: directional fills pay more, and the cap tick rises.",
@@ -802,14 +802,14 @@ export default function SnapshotFeesMultiLab() {
 						hint="Per side size for measuring M."
 					/>
 					<Param
-						name="Spread standard · S"
+						name="Inner Band · S"
 						val={S}
 						set={touch("S", S, setS)}
 						min={1}
 						max={10}
 						stp={0.5}
 						suffix="bps"
-						hint="The free band, M ± S/2."
+						hint="Width S, drawn M ± S/2."
 					/>
 					<Param
 						name="Fee Cap · F"
