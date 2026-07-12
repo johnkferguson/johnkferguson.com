@@ -14,10 +14,10 @@ import "./snapshot-fees-lab.css";
 // Mechanism lives in src/lib/snapshot-fees/engine.ts — this file only renders.
 // ————————————————————————————————————————————————————————————————
 
-const N = 41; // levels
-const CENTER = 20; // index of 100.00
+const N = 61; // levels
+const CENTER = 30; // index of 100.00
 // zoom steps: ticks visible either side of 100.00 (view only, never the book)
-const ZOOM_HALVES = [10, 15, 20];
+const ZOOM_HALVES = [10, 15, 20, 25, 30];
 const TICK = 0.005; // $ per level
 const MAX_DEPTH = 25000; // $ per level
 const STEP_DOLLARS = 250;
@@ -340,7 +340,7 @@ export default function SnapshotFeesLab() {
 	const viewHalf = ZOOM_HALVES[zoom];
 	const loI = CENTER - viewHalf;
 	const inView = (i: number) => i >= loI && i <= CENTER + viewHalf;
-	const labelStride = [2, 3, 4][zoom];
+	const labelStride = [2, 3, 4, 5, 6][zoom];
 	const step = (PR - PL - 2 * PAD) / (viewHalf * 2);
 	const xAt = (i: number) => PL + PAD + (i - loI) * step;
 	const xOfPrice = (p: number) => PL + PAD + ((p - priceAt(loI)) / TICK) * step;
@@ -1038,33 +1038,37 @@ export default function SnapshotFeesLab() {
 						strokeDasharray="3 4"
 						style={{ stroke: C.bandEdge, transition: "all 220ms ease" }}
 					/>
-					{/* band-edge labels — centered on their lines */}
-					<text
-						x={xOfPrice(model.edgeBid)}
-						y={PT - 6}
-						textAnchor="middle"
-						fontSize={12}
-						style={{
-							fill: C.mark,
-							fontFamily: mono,
-							transition: "all 220ms ease",
-						}}
-					>
-						{fmtPx(model.edgeBid)}
-					</text>
-					<text
-						x={xOfPrice(model.edgeAsk)}
-						y={PT - 6}
-						textAnchor="middle"
-						fontSize={12}
-						style={{
-							fill: C.mark,
-							fontFamily: mono,
-							transition: "all 220ms ease",
-						}}
-					>
-						{fmtPx(model.edgeAsk)}
-					</text>
+					{/* band-edge labels — hidden when the band is too narrow on screen */}
+					{xOfPrice(model.edgeAsk) - xOfPrice(model.edgeBid) > 56 && (
+						<>
+							<text
+								x={xOfPrice(model.edgeBid)}
+								y={PT - 6}
+								textAnchor="middle"
+								fontSize={12}
+								style={{
+									fill: C.mark,
+									fontFamily: mono,
+									transition: "all 220ms ease",
+								}}
+							>
+								{fmtPx(model.edgeBid)}
+							</text>
+							<text
+								x={xOfPrice(model.edgeAsk)}
+								y={PT - 6}
+								textAnchor="middle"
+								fontSize={12}
+								style={{
+									fill: C.mark,
+									fontFamily: mono,
+									transition: "all 220ms ease",
+								}}
+							>
+								{fmtPx(model.edgeAsk)}
+							</text>
+						</>
+					)}
 
 					{/* the bid/ask boundary, between 100.000 and 100.005 */}
 					<line

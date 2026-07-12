@@ -14,10 +14,10 @@ import "./snapshot-fees-lab.css";
 // the band) span both halves; personal things live in their own half.
 // ————————————————————————————————————————————————————————————————
 
-const N = 41;
-const CENTER = 20;
+const N = 61;
+const CENTER = 30;
 // zoom steps: ticks visible either side of 100.00 (view only, never the book)
-const ZOOM_HALVES = [10, 15, 20];
+const ZOOM_HALVES = [10, 15, 20, 25, 30];
 const TICK = 0.005;
 const DMAX = 40000; // $ per level, per half
 const YOUR_MAX = 25000;
@@ -504,7 +504,7 @@ export default function SnapshotFeesMultiLab() {
 	const viewHalf = ZOOM_HALVES[zoom];
 	const loI = CENTER - viewHalf;
 	const inView = (i: number) => i >= loI && i <= CENTER + viewHalf;
-	const labelStride = [2, 3, 4][zoom];
+	const labelStride = [2, 3, 4, 5, 6][zoom];
 	const step = (PR - PL - 2 * PAD) / (viewHalf * 2);
 	const xAt = (i: number) => PL + PAD + (i - loI) * step;
 	const xOfPrice = (p: number) => PL + PAD + ((p - priceAt(loI)) / TICK) * step;
@@ -1242,32 +1242,37 @@ export default function SnapshotFeesMultiLab() {
 						strokeDasharray="3 4"
 						style={{ stroke: C.bandEdge, transition: "all 220ms ease" }}
 					/>
-					<text
-						x={xOfPrice(mm.edgeBid)}
-						y={PT - 6}
-						textAnchor="middle"
-						fontSize={12}
-						style={{
-							fill: C.mark,
-							fontFamily: mono,
-							transition: "all 220ms ease",
-						}}
-					>
-						{fmtPx(mm.edgeBid)}
-					</text>
-					<text
-						x={xOfPrice(mm.edgeAsk)}
-						y={PT - 6}
-						textAnchor="middle"
-						fontSize={12}
-						style={{
-							fill: C.mark,
-							fontFamily: mono,
-							transition: "all 220ms ease",
-						}}
-					>
-						{fmtPx(mm.edgeAsk)}
-					</text>
+					{/* band-edge labels — hidden when the band is too narrow on screen */}
+					{xOfPrice(mm.edgeAsk) - xOfPrice(mm.edgeBid) > 56 && (
+						<>
+							<text
+								x={xOfPrice(mm.edgeBid)}
+								y={PT - 6}
+								textAnchor="middle"
+								fontSize={12}
+								style={{
+									fill: C.mark,
+									fontFamily: mono,
+									transition: "all 220ms ease",
+								}}
+							>
+								{fmtPx(mm.edgeBid)}
+							</text>
+							<text
+								x={xOfPrice(mm.edgeAsk)}
+								y={PT - 6}
+								textAnchor="middle"
+								fontSize={12}
+								style={{
+									fill: C.mark,
+									fontFamily: mono,
+									transition: "all 220ms ease",
+								}}
+							>
+								{fmtPx(mm.edgeAsk)}
+							</text>
+						</>
+					)}
 
 					{/* the bid/ask boundary + depth midline */}
 					<line
