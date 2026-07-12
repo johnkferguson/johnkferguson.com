@@ -310,6 +310,28 @@ function Param({
 	);
 }
 
+function ZoomIcon({ plus }: { plus?: boolean }) {
+	return (
+		<svg
+			width="13"
+			height="13"
+			viewBox="0 0 24 24"
+			fill="none"
+			stroke="currentColor"
+			strokeWidth="2.2"
+			strokeLinecap="round"
+			strokeLinejoin="round"
+			aria-hidden="true"
+			style={{ display: "block" }}
+		>
+			<circle cx="11" cy="11" r="7" />
+			<line x1="20.5" y1="20.5" x2="16" y2="16" />
+			<line x1="8" y1="11" x2="14" y2="11" />
+			{plus && <line x1="11" y1="8" x2="11" y2="14" />}
+		</svg>
+	);
+}
+
 interface DragState {
 	i: number;
 	who: "you" | "makers";
@@ -772,15 +794,15 @@ export default function SnapshotFeesMultiLab() {
 							setZoom((z) => Math.min(ZOOM_HALVES.length - 1, z + 1))
 						}
 						title="Zoom out: show more of the book"
+						aria-label="Zoom out"
 						style={{
 							...btn(false),
-							padding: "1px 8px",
-							fontSize: 13,
+							padding: "4px 7px",
 							opacity: zoom >= ZOOM_HALVES.length - 1 ? 0.35 : 1,
 							cursor: zoom >= ZOOM_HALVES.length - 1 ? "default" : "pointer",
 						}}
 					>
-						−
+						<ZoomIcon />
 					</button>
 					<span style={{ fontFamily: mono, fontSize: 10.5, color: C.faint }}>
 						±{viewHalf % 2 ? (viewHalf / 2).toFixed(1) : viewHalf / 2}bps
@@ -790,15 +812,15 @@ export default function SnapshotFeesMultiLab() {
 						disabled={zoom === 0}
 						onClick={() => setZoom((z) => Math.max(0, z - 1))}
 						title="Zoom in"
+						aria-label="Zoom in"
 						style={{
 							...btn(false),
-							padding: "1px 8px",
-							fontSize: 13,
+							padding: "4px 7px",
 							opacity: zoom === 0 ? 0.35 : 1,
 							cursor: zoom === 0 ? "default" : "pointer",
 						}}
 					>
-						+
+						<ZoomIcon plus />
 					</button>
 				</div>
 				<div
