@@ -1035,12 +1035,12 @@ export default function SnapshotFeesLab() {
 											setCenterSide((cs) => (cs === "bid" ? "ask" : "bid"));
 									}}
 								/>
-								{/* grab handle: resizing lives at the bar's top edge only */}
+								{/* grab handle: hugs the bar's top edge, mostly outside it */}
 								<rect
 									x={xAt(lv.i) - step / 2}
-									y={lv.size > 0 ? Math.max(PT, yDepth(lv.size) - 9) : PB - 14}
+									y={lv.size > 0 ? Math.max(PT, yDepth(lv.size) - 12) : PB - 14}
 									width={step}
-									height={lv.size > 0 ? 18 : 14}
+									height={lv.size > 0 ? 16 : 14}
 									fill="transparent"
 									style={{ cursor: "ns-resize" }}
 									onPointerEnter={() => setFeeHover(lv.bk ? lv.i : null)}

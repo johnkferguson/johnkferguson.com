@@ -1262,12 +1262,12 @@ export default function SnapshotFeesMultiLab() {
 											setCenterSide((cs) => (cs === "bid" ? "ask" : "bid"));
 									}}
 								/>
-								{/* grab handles: resizing lives at each bar's outer edge only */}
+								{/* grab handles: hug each bar's outer edge, mostly outside it */}
 								<rect
 									x={xAt(i) - step / 2}
-									y={yv > 0 ? Math.max(PT, yUp(yv) - 9) : MID - 14}
+									y={yv > 0 ? Math.max(PT, yUp(yv) - 12) : MID - 14}
 									width={step}
-									height={yv > 0 ? 18 : 14}
+									height={yv > 0 ? 16 : 14}
 									fill="transparent"
 									style={{ cursor: "ns-resize" }}
 									onPointerEnter={() => setFeeHover(lv?.bk ? i : null)}
@@ -1281,9 +1281,9 @@ export default function SnapshotFeesMultiLab() {
 								/>
 								<rect
 									x={xAt(i) - step / 2}
-									y={av > 0 ? Math.min(PB - 18, yDn(av) - 9) : MID + 1}
+									y={av > 0 ? Math.min(PB - 16, yDn(av) - 4) : MID + 1}
 									width={step}
-									height={av > 0 ? 18 : 14}
+									height={av > 0 ? 16 : 14}
 									fill="transparent"
 									style={{ cursor: "ns-resize" }}
 									onPointerEnter={() =>
