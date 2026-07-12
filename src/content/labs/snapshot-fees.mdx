@@ -113,9 +113,9 @@ base fee(d) = min(F, k₁ × min(d, Z) + k₂ × max(0, d − Z))
 
 <div class="stub">
 
-- Introduce M: the mark price, measured at size by walking T dollars into each side
+- Introduce `M`: the mark price, measured at size by walking `T` dollars into each side
 - Matching: your own opposite side stands behind your fills
-- Worse leg per dollar; whatever has no match behind it is directional and pays F
+- Worse leg per dollar; whatever has no match behind it is directional and pays `F`
 - Read a fee receipt: base fee, surcharges per match, total, net edge
 - Scenario tour: balanced ladder, directional maker, the moving mark, spillover
 
@@ -129,12 +129,12 @@ base fee(d) = min(F, k₁ × min(d, Z) + k₂ × max(0, d − Z))
 
 <div class="stub">
 
-- In a real market M is measured from everyone's book at once
+- In a real market `M` is measured from everyone's book at once
 - Eligibility: only demonstrated two-sided size near the touch gets a vote
 - Your voice is your share of the measuring walk
-- Confident non-directionality toward the mid is a vote for M, and tighter quoting carries more weight
+- Confident non-directionality toward the mid is a vote for `M`, and tighter quoting carries more weight
 - Your fees come from your book, but judged against a yardstick you only partly control
-- Needs its own beat: what happens when there is not enough stock to compute M
+- Needs its own beat: what happens when there is not enough stock to compute `M`
 
 </div>
 
@@ -145,7 +145,7 @@ base fee(d) = min(F, k₁ × min(d, Z) + k₂ × max(0, d − Z))
 - You against the aggregate makers, mirrored
 - Lessons: small fish, equal voice, the makers lean and re-price your resting book
 - Try to bend it: one-sided walls have no vote; the only way to fake the metric is to do the job
-- Press play: watch M drift while your book stands still
+- Press play: watch `M` drift while your book stands still
 
 </div>
 
@@ -157,8 +157,8 @@ base fee(d) = min(F, k₁ × min(d, Z) + k₂ × max(0, d − Z))
 
 <div class="stub">
 
-- The pipeline: eligibility, walk, M, band, stamps, pairing, worse-of
-- The one-line fee: (Σ matched × max(own, partner) + directional × F) / size
+- The pipeline: eligibility, walk, `M`, band, stamps, pairing, worse-of
+- The one-line fee: `(Σ matched × max(own, partner) + directional × F) / size`
 - Reference computation anyone can recompute from the published window
 - Placement TBD: this section may move earlier, before or beside the labs
 
@@ -182,10 +182,10 @@ base fee(d) = min(F, k₁ × min(d, Z) + k₂ × max(0, d − Z))
 <div class="stub">
 
 - Semi-far coverage earns a discount: paid optionality, priced by fill risk and adverse selection
-- Manipulation economics: junk coverage is worthless, bending M requires standing real paired size
-- Parameters and governance: B declared and sticky, F venue-wide, Z and the two slopes shape the curve, T measured from demand
+- Manipulation economics: junk coverage is worthless, bending `M` requires standing real paired size
+- Parameters and governance: `B` declared and sticky, `F` venue-wide, `Z` and the two slopes shape the curve, `T` measured from demand
 - Variations considered: partner-stamp grace interval, asymptotic stamps (rejected: softens the junk anchor), inside compensation (parked), partial fills
-- Open: cross-window dynamics, staking-based fee caps, thin-market M fallbacks
+- Open: cross-window dynamics, staking-based fee caps, thin-market `M` fallbacks
 
 </div>
 
