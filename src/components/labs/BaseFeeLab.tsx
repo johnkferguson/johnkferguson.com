@@ -538,6 +538,7 @@ export default function BaseFeeLab() {
 					>
 						<div
 							ref={tableRef}
+							class="sf-scroll"
 							style={{
 								position: "relative",
 								border: `1px solid ${C.line}`,

@@ -49,6 +49,25 @@
 	--lab-slider: #f0ebe5;
 }
 
+/* scrollable insets (e.g. the base-fee schedule) — theme-aware thin bar */
+.sf-lab .sf-scroll {
+	scrollbar-width: thin;
+	scrollbar-color: var(--border-color) transparent;
+}
+
+.sf-lab .sf-scroll::-webkit-scrollbar {
+	width: 8px;
+}
+
+.sf-lab .sf-scroll::-webkit-scrollbar-thumb {
+	background: var(--border-color);
+	border-radius: 4px;
+}
+
+.sf-lab .sf-scroll::-webkit-scrollbar-track {
+	background: transparent;
+}
+
 /* the Effect readout fades in the first time a dial moves */
 .sf-lab .sf-effect {
 	animation: sf-fade-in 400ms ease;
