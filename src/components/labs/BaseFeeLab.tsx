@@ -424,13 +424,14 @@ export default function BaseFeeLab() {
 								y1={PT}
 								y2={PB}
 								strokeDasharray="3 4"
-								strokeWidth={1.25}
+								strokeWidth={1}
+								opacity={0.75}
 								style={{ stroke: C.bandEdge, transition: "all 220ms ease" }}
 							/>
 							<text
-								x={xAt(B / 2)}
+								x={xAt(B / 2) - 6}
 								y={PT - 6}
-								textAnchor="middle"
+								textAnchor="end"
 								fontSize={12}
 								style={{
 									fill: C.mark,
@@ -450,13 +451,14 @@ export default function BaseFeeLab() {
 										y1={PT}
 										y2={PB}
 										strokeDasharray="3 4"
-										strokeWidth={1.25}
+										strokeWidth={1}
+										opacity={0.5}
 										style={{ stroke: C.zone, transition: "all 220ms ease" }}
 									/>
 									<text
-										x={xAt(dKnee)}
+										x={xAt(dKnee) + 6}
 										y={PT - 6}
-										textAnchor="middle"
+										textAnchor="start"
 										fontSize={12}
 										style={{
 											fill: C.zone,
@@ -470,7 +472,7 @@ export default function BaseFeeLab() {
 							)}
 
 							{/* full-fee point on the distance axis */}
-							{dFull <= DMAX && (
+							{dFull <= DMAX ? (
 								<g pointerEvents="none" style={{ transition: "all 150ms" }}>
 									<path
 										d={`M${xAt(dFull) - 5},${PB + 14} L${xAt(dFull)},${PB + 5} L${xAt(dFull) + 5},${PB + 14} Z`}
@@ -483,9 +485,20 @@ export default function BaseFeeLab() {
 										fontSize={11}
 										style={{ fill: C.fee, fontFamily: mono }}
 									>
-										Full Fee
+										Full Fee · {dFull.toFixed(1)}
 									</text>
 								</g>
+							) : (
+								<text
+									x={PR}
+									y={PB + 27}
+									textAnchor="end"
+									fontSize={11}
+									pointerEvents="none"
+									style={{ fill: C.fee, fontFamily: mono }}
+								>
+									Full Fee · {dFull.toFixed(1)} →
+								</text>
 							)}
 
 							{/* net edge: what distance keeps after the fee */}
