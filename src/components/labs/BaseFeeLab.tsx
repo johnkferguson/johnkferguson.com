@@ -200,6 +200,23 @@ export default function BaseFeeLab() {
 		},
 	});
 
+	// in-plot line strips: draggable like the labels, but hover-transparent
+	// so the crosshair keeps tracing straight through them
+	const lineStrip = (kind: Exclude<EdgeDrag, null>) => {
+		const base = edgeStrip(kind);
+		return {
+			...base,
+			onPointerMove: (e: PointerEvent) => {
+				setHover(Math.round(dFromClientX(e.clientX) * 10) / 10);
+				base.onPointerMove(e);
+			},
+			onPointerLeave: () => {
+				setHover(null);
+				setGrabHover((g) => (g === kind ? null : g));
+			},
+		};
+	};
+
 	// the schedule, live: one row per 0.5bps of distance from M. The pointer
 	// drives the highlighted row; colored rules mark the region boundaries.
 	const schedRows: number[] = [];
@@ -702,6 +719,38 @@ export default function BaseFeeLab() {
 								onPointerLeave={() => {
 									setHover(null);
 								}}
+							/>
+
+							{/* in-plot strips over the lines: drag works here too, and the
+							    crosshair traces straight through */}
+							<rect
+								x={xAt(B / 2) - 7}
+								y={PT}
+								width={14}
+								height={PB - PT}
+								fill="transparent"
+								style={{ cursor: "ew-resize" }}
+								{...lineStrip("band")}
+							/>
+							{dKnee <= DMAX && (
+								<rect
+									x={xAt(dKnee) - 7}
+									y={PT}
+									width={14}
+									height={PB - PT}
+									fill="transparent"
+									style={{ cursor: "ew-resize" }}
+									{...lineStrip("zone")}
+								/>
+							)}
+							<rect
+								x={PL}
+								y={yAt(F) - 7}
+								width={PR - PL}
+								height={14}
+								fill="transparent"
+								style={{ cursor: "ns-resize" }}
+								{...lineStrip("cap")}
 							/>
 
 							{/* the CAP marker in the gutter is the vertical drag handle */}
