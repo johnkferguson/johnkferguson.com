@@ -807,11 +807,14 @@ export default function BaseFeeLab() {
 									<div
 										key={d}
 										ref={isHover ? activeRowRef : undefined}
+										onPointerEnter={() => setHover(d)}
+										onPointerLeave={() => setHover(null)}
 										style={{
 											display: "grid",
 											gridTemplateColumns: "1fr 1fr 1fr",
 											width: "100%",
 											padding: "2px 8px",
+											cursor: "crosshair",
 											borderLeft: `2px solid ${isHover ? C.fee : "transparent"}`,
 											borderBottom: `2px solid ${
 												sep
