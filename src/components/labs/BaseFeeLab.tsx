@@ -119,6 +119,7 @@ export default function BaseFeeLab() {
 	const activeRowRef = useRef<HTMLDivElement | null>(null);
 	const svgRef = useRef<SVGSVGElement | null>(null);
 	const edgeDrag = useRef<EdgeDrag>(null);
+	const [grabHover, setGrabHover] = useState<EdgeDrag>(null);
 
 	// bracketed stamp: the first Z bps at k₁, the excess at k₂, capped at F
 	const feeAt = (d: number) => {
@@ -181,7 +182,8 @@ export default function BaseFeeLab() {
 			setF(clamp(snap(feeFromClientY(e.clientY), 0.5), 5, 25));
 	};
 	const edgeStrip = (kind: Exclude<EdgeDrag, null>) => ({
-		onPointerEnter: () => setHover(null),
+		onPointerEnter: () => setGrabHover(kind),
+		onPointerLeave: () => setGrabHover((g) => (g === kind ? null : g)),
 		onPointerDown: (e: PointerEvent) => {
 			(e.currentTarget as SVGRectElement).setPointerCapture(e.pointerId);
 			edgeDrag.current = kind;
@@ -429,6 +431,22 @@ export default function BaseFeeLab() {
 									d={`M${PL - 16},${yAt(F) - 5} L${PL - 6},${yAt(F)} L${PL - 16},${yAt(F) + 5} Z`}
 									style={{ fill: C.fee }}
 								/>
+								{grabHover === "cap" && (
+									<>
+										<path
+											d={`M${PL - 15},${yAt(F) - 16} l 4,-5 l 4,5`}
+											fill="none"
+											strokeWidth={1.5}
+											style={{ stroke: C.fee }}
+										/>
+										<path
+											d={`M${PL - 15},${yAt(F) + 16} l 4,5 l 4,-5`}
+											fill="none"
+											strokeWidth={1.5}
+											style={{ stroke: C.fee }}
+										/>
+									</>
+								)}
 								<line
 									x1={PL}
 									x2={PR}
@@ -470,14 +488,24 @@ export default function BaseFeeLab() {
 								y={PT - 6}
 								textAnchor="end"
 								fontSize={12}
+								pointerEvents="none"
 								style={{
 									fill: C.mark,
 									fontFamily: mono,
 									transition: "all 220ms ease",
 								}}
 							>
-								Band Edge
+								{grabHover === "band" ? "‹ Band Edge ›" : "Band Edge"}
 							</text>
+							<rect
+								x={xAt(B / 2) - 92}
+								y={PT - 22}
+								width={98}
+								height={22}
+								fill="transparent"
+								style={{ cursor: "ew-resize" }}
+								{...edgeStrip("band")}
+							/>
 
 							{/* the zone edge: where the far slope takes over */}
 							{dKnee <= DMAX && (
@@ -497,14 +525,24 @@ export default function BaseFeeLab() {
 										y={PT - 6}
 										textAnchor="start"
 										fontSize={12}
+										pointerEvents="none"
 										style={{
 											fill: C.zone,
 											fontFamily: mono,
 											transition: "all 220ms ease",
 										}}
 									>
-										Zone Edge
+										{grabHover === "zone" ? "‹ Zone Edge ›" : "Zone Edge"}
 									</text>
+									<rect
+										x={xAt(dKnee) - 6}
+										y={PT - 22}
+										width={98}
+										height={22}
+										fill="transparent"
+										style={{ cursor: "ew-resize" }}
+										{...edgeStrip("zone")}
+									/>
 								</>
 							)}
 
@@ -666,33 +704,12 @@ export default function BaseFeeLab() {
 								}}
 							/>
 
-							{/* drag strips: Band Edge and Zone Edge move sideways, the
-							    Cap moves up and down (they sit above the hover surface) */}
+							{/* the CAP marker in the gutter is the vertical drag handle */}
 							<rect
-								x={xAt(B / 2) - 7}
-								y={PT}
-								width={14}
-								height={PB - PT}
-								fill="transparent"
-								style={{ cursor: "ew-resize" }}
-								{...edgeStrip("band")}
-							/>
-							{dKnee <= DMAX && (
-								<rect
-									x={xAt(dKnee) - 7}
-									y={PT}
-									width={14}
-									height={PB - PT}
-									fill="transparent"
-									style={{ cursor: "ew-resize" }}
-									{...edgeStrip("zone")}
-								/>
-							)}
-							<rect
-								x={PL}
-								y={yAt(F) - 7}
-								width={PR - PL}
-								height={14}
+								x={PL - 56}
+								y={yAt(F) - 22}
+								width={52}
+								height={44}
 								fill="transparent"
 								style={{ cursor: "ns-resize" }}
 								{...edgeStrip("cap")}
@@ -748,7 +765,7 @@ export default function BaseFeeLab() {
 							}}
 						>
 							Instructions: Hover the chart to trace the schedule. Drag the Band
-							Edge, Zone Edge, or Cap. Dials work too.
+							Edge and Zone Edge labels, or the CAP marker. Dials work too.
 						</div>
 					</div>
 
