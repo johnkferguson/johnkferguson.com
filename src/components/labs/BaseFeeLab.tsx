@@ -52,25 +52,39 @@ interface ParamProps {
 
 function Param({ name, val, set, min, max, stp, suffix, hint }: ParamProps) {
 	return (
-		<div style={{ display: "flex", flexDirection: "column", gap: 3 }}>
-			<div
-				style={{
-					display: "flex",
-					justifyContent: "space-between",
-					alignItems: "baseline",
-					gap: 8,
-				}}
-			>
-				<span style={{ ...label, fontSize: 9.5, letterSpacing: "0.1em" }}>
-					{name}
-				</span>
+		<div
+			style={{
+				display: "flex",
+				flexDirection: "column",
+				gap: 3,
+				minWidth: 0,
+				overflow: "hidden",
+			}}
+		>
+			<span style={{ ...label, fontSize: 9.5, letterSpacing: "0.1em" }}>
+				{name}
+			</span>
+			<div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+				<input
+					type="range"
+					min={min}
+					max={max}
+					step={stp}
+					value={val}
+					onChange={(e) => set(+(e.currentTarget as HTMLInputElement).value)}
+					style={{
+						flex: "1 1 auto",
+						minWidth: 0,
+						accentColor: "var(--lab-slider)",
+					}}
+				/>
 				<span
 					style={{
 						fontFamily: mono,
 						fontSize: 11.5,
 						color: C.text,
 						whiteSpace: "nowrap",
-						width: 48,
+						width: "7ch",
 						textAlign: "right",
 						flexShrink: 0,
 					}}
@@ -79,15 +93,6 @@ function Param({ name, val, set, min, max, stp, suffix, hint }: ParamProps) {
 					{suffix || ""}
 				</span>
 			</div>
-			<input
-				type="range"
-				min={min}
-				max={max}
-				step={stp}
-				value={val}
-				onChange={(e) => set(+(e.currentTarget as HTMLInputElement).value)}
-				style={{ width: "100%", accentColor: "var(--lab-slider)" }}
-			/>
 			{hint && (
 				<span style={{ fontSize: 10.5, color: C.faint, lineHeight: 1.35 }}>
 					{hint}
