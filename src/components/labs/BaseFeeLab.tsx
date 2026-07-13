@@ -70,6 +70,9 @@ function Param({ name, val, set, min, max, stp, suffix, hint }: ParamProps) {
 						fontSize: 11.5,
 						color: C.text,
 						whiteSpace: "nowrap",
+						width: 48,
+						textAlign: "right",
+						flexShrink: 0,
 					}}
 				>
 					{val}
@@ -253,7 +256,7 @@ export default function BaseFeeLab() {
 						<div
 							style={{
 								display: "grid",
-								gridTemplateColumns: "repeat(3, 1fr)",
+								gridTemplateColumns: "repeat(3, minmax(0, 1fr))",
 								gap: "10px 16px",
 								padding: "10px 12px 8px 4px",
 							}}
@@ -776,7 +779,11 @@ export default function BaseFeeLab() {
 											width: "100%",
 											padding: "2px 8px",
 											borderLeft: `2px solid ${isHover ? C.fee : "transparent"}`,
-											borderBottom: `2px solid ${sep ?? "transparent"}`,
+											borderBottom: `2px solid ${
+												sep
+													? `color-mix(in srgb, ${sep} 55%, transparent)`
+													: "transparent"
+											}`,
 											background: isHover ? C.band : "transparent",
 											fontFamily: mono,
 											fontSize: 12,
