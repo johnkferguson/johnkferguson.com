@@ -427,7 +427,7 @@ export default function BaseFeeLab() {
 							<g pointerEvents="none" style={{ transition: "all 150ms" }}>
 								<text
 									x={PL - 20}
-									y={yAt(F) - 9}
+									y={yAt(F) + 16}
 									textAnchor="end"
 									fontSize={9}
 									letterSpacing="0.12em"
@@ -457,7 +457,7 @@ export default function BaseFeeLab() {
 											style={{ stroke: C.fee }}
 										/>
 										<path
-											d={`M${PL - 15},${yAt(F) + 16} l 4,5 l 4,-5`}
+											d={`M${PL - 15},${yAt(F) + 26} l 4,5 l 4,-5`}
 											fill="none"
 											strokeWidth={1.5}
 											style={{ stroke: C.fee }}
@@ -512,7 +512,7 @@ export default function BaseFeeLab() {
 									transition: "all 220ms ease",
 								}}
 							>
-								{grabHover === "band" ? "‹ Band Edge ›" : "Band Edge"}
+								Band Edge
 							</text>
 							<rect
 								x={xAt(B / 2) - 92}
@@ -523,6 +523,22 @@ export default function BaseFeeLab() {
 								style={{ cursor: "ew-resize" }}
 								{...edgeStrip("band")}
 							/>
+							{grabHover === "band" && (
+								<g pointerEvents="none">
+									<path
+										d={`M${xAt(B / 2) - 9},${PT + 8} l -5,4 l 5,4`}
+										fill="none"
+										strokeWidth={1.5}
+										style={{ stroke: C.mark }}
+									/>
+									<path
+										d={`M${xAt(B / 2) + 9},${PT + 8} l 5,4 l -5,4`}
+										fill="none"
+										strokeWidth={1.5}
+										style={{ stroke: C.mark }}
+									/>
+								</g>
+							)}
 
 							{/* the zone edge: where the far slope takes over */}
 							{dKnee <= DMAX && (
@@ -549,7 +565,7 @@ export default function BaseFeeLab() {
 											transition: "all 220ms ease",
 										}}
 									>
-										{grabHover === "zone" ? "‹ Zone Edge ›" : "Zone Edge"}
+										Zone Edge
 									</text>
 									<rect
 										x={xAt(dKnee) - 6}
@@ -560,6 +576,22 @@ export default function BaseFeeLab() {
 										style={{ cursor: "ew-resize" }}
 										{...edgeStrip("zone")}
 									/>
+									{grabHover === "zone" && (
+										<g pointerEvents="none">
+											<path
+												d={`M${xAt(dKnee) - 9},${PT + 8} l -5,4 l 5,4`}
+												fill="none"
+												strokeWidth={1.5}
+												style={{ stroke: C.zone }}
+											/>
+											<path
+												d={`M${xAt(dKnee) + 9},${PT + 8} l 5,4 l -5,4`}
+												fill="none"
+												strokeWidth={1.5}
+												style={{ stroke: C.zone }}
+											/>
+										</g>
+									)}
 								</>
 							)}
 
@@ -814,7 +846,7 @@ export default function BaseFeeLab() {
 							}}
 						>
 							Instructions: Hover the chart to trace the schedule. Drag the Band
-							Edge and Zone Edge labels, or the CAP marker. Dials work too.
+							Edge, Zone Edge, or CAP by their lines or labels. Dials work too.
 						</div>
 					</div>
 
