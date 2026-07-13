@@ -115,7 +115,7 @@ base fee(d) = min(F, k₁ × min(d, Z) + k₂ × max(0, d − Z))
 
 - Introduce `M`: the mark price, measured at size by walking `T` dollars into each side
 - Pairing: your own opposite side stands behind your fills
-- Worse leg per dollar; whatever has no pair behind it is directional and pays `F`
+- Worse leg per dollar; whatever has no liquidity paired against it is directional and pays `F`
 - Read a fee receipt: base fee, surcharges per pair, total, net edge
 - Scenario tour: balanced ladder, directional maker, the moving mark, spillover
 

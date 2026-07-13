@@ -67,7 +67,7 @@ const SCENARIOS: Scenario[] = [
 		key: "taker",
 		title: "Directional Maker",
 		blurb:
-			"The same bid ladder, but ask depth grows far more slowly, so pairing runs out on the way to the edge. The inner book is unchanged, so M stays put and near quotes still trade free. The missing ask depth strands the outer bids: whatever has no pair behind it pays like a taker, and the farthest bids hit F in full. Directional size is priced as the taker it is, level by level.",
+			"The same bid ladder, but ask depth grows far more slowly, so pairing runs out on the way to the edge. The inner book is unchanged, so M stays put and near quotes still trade free. The missing ask depth strands the outer bids: whatever has no liquidity paired against it pays like a taker, and the farthest bids hit F in full. Directional size is priced as the taker it is, level by level.",
 		book: () => {
 			const a = Array(N).fill(0);
 			for (let k = 0; k < 30; k++) {
@@ -693,7 +693,7 @@ export default function SnapshotFeesLab() {
 								opposite side, consumed inside-first
 								<div style={note}>
 									better-priced bars claim it before this one (spillover).
-									Whatever finds no pair is directional.
+									Whatever goes unpaired is directional.
 								</div>
 							</div>
 
