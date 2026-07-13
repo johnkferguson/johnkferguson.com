@@ -23,12 +23,11 @@ const DMAX = 40000; // $ per level, per half
 const YOUR_MAX = 25000;
 const MAKER_MAX = 40000;
 const STEP_DOLLARS = 250;
-// Maker Zone Z: the Mark's absolute working radius, bps — eligibility range,
-// walk truncation, boundary-fill price, and the stamp knee. Fixed here;
-// dialable in the base-fee lab.
-const ZONE_BPS = 4;
-// Far slope k₂: stamp slope beyond the zone edge. Fixed here too.
-const SLOPE2 = 0.95;
+// Defaults for the Maker Zone Z (the Mark's working radius: eligibility
+// range, walk truncation, boundary-fill price, and the stamp knee) and the
+// far slope k₂ beyond the zone edge.
+const Z_DEFAULT = 4;
+const SLOPE2_DEFAULT = 0.95;
 
 const priceAt = (i: number) => +(100 + (i - CENTER) * TICK).toFixed(3);
 // 100.000 (i = CENTER) is a quotable bid; asks start one tick above.
@@ -37,8 +36,11 @@ const sideAt = (i: number): Side => (i <= CENTER ? "bid" : "ask");
 const round$ = (v: number) =>
 	Math.max(0, Math.round(v / STEP_DOLLARS) * STEP_DOLLARS);
 
-// Aggregate Makers ladder, outward from CENTER ± spread
-const AGG_LADDER = [6000, 7000, 8000, 9000, 10000, 11000];
+// Aggregate Makers ladder, outward from CENTER ± spread, spanning the book
+const AGG_LADDER = Array.from(
+	{ length: 29 },
+	(_, k) => 6000 + Math.round((14000 * k) / 28 / 500) * 500,
+);
 const aggSizesOf = (depth: number, leanPct: number, spread: number) => {
 	const a = Array(N).fill(0);
 	const lean = leanPct / 100;
@@ -183,9 +185,17 @@ const DIAL_EFFECT: Record<string, { up: string; down: string }> = {
 		up: "Bigger measuring trade: the walk reaches deeper, so more of the book gets a vote.",
 		down: "Smaller measuring trade: only the nearest size votes on M.",
 	},
+	Z: {
+		up: "Wider zone: more of the book votes on M, and the gentle slope reaches further out.",
+		down: "Tighter zone: only nearer size votes on M, and the far slope starts sooner.",
+	},
 	k: {
-		up: "Steeper: each bps outside the band costs more; full fee arrives closer to M.",
-		down: "Gentler: width is taxed less; full fee moves further out.",
+		up: "Steeper zone slope: each bps outside the band costs more; full fee arrives closer to M.",
+		down: "Gentler zone slope: width is taxed less; full fee moves further out.",
+	},
+	k2: {
+		up: "Steeper far slope: past the zone edge the fee runs to the cap faster.",
+		down: "Gentler far slope: the cap arrives further out.",
 	},
 	depth: {
 		up: "Deeper aggregate book: your dollars are a smaller share of the walk, so M listens to you less.",
@@ -215,6 +225,7 @@ const C = {
 	mark: "var(--lab-mark)",
 	band: "var(--lab-band)",
 	bandEdge: "var(--lab-band-edge)",
+	zone: "var(--lab-zone)",
 	markSlice: "var(--lab-mark-slice)",
 	hatch: "var(--lab-hatch)",
 	danger: "var(--lab-danger)",
@@ -258,6 +269,7 @@ interface ParamProps {
 	suffix?: string;
 	hint?: string;
 	fmt?: (v: number) => string;
+	warn?: boolean;
 }
 
 function Param({
@@ -270,18 +282,21 @@ function Param({
 	suffix,
 	hint,
 	fmt,
+	warn,
 }: ParamProps) {
 	return (
 		<div
 			style={{
 				display: "flex",
 				flexDirection: "column",
-				gap: 4,
-				minWidth: 128,
-				maxWidth: 150,
+				gap: 3,
+				minWidth: 0,
+				overflow: "hidden",
 			}}
 		>
-			<span style={label}>{name}</span>
+			<span style={{ ...label, fontSize: 9.5, letterSpacing: "0.1em" }}>
+				{name}
+			</span>
 			<div style={{ display: "flex", alignItems: "center", gap: 6 }}>
 				<input
 					type="range"
@@ -290,21 +305,28 @@ function Param({
 					step={stp}
 					value={val}
 					onChange={(e) => set(+(e.currentTarget as HTMLInputElement).value)}
-					style={{ width: 84, accentColor: "var(--lab-slider)" }}
+					style={{
+						flex: "1 1 auto",
+						minWidth: 0,
+						accentColor: warn ? C.danger : "var(--lab-slider)",
+					}}
 				/>
 				<span
 					style={{
 						fontFamily: mono,
-						fontSize: 12,
-						color: C.text,
+						fontSize: 11.5,
+						color: warn ? C.danger : C.text,
 						whiteSpace: "nowrap",
+						width: "8ch",
+						textAlign: "right",
+						flexShrink: 0,
 					}}
 				>
 					{fmt ? fmt(val) : val + (suffix || "")}
 				</span>
 			</div>
 			{hint && (
-				<span style={{ fontSize: 11, color: C.faint, lineHeight: 1.45 }}>
+				<span style={{ fontSize: 10.5, color: C.faint, lineHeight: 1.35 }}>
 					{hint}
 				</span>
 			)}
@@ -346,7 +368,9 @@ export default function SnapshotFeesMultiLab() {
 	const [B, setB] = useState(2); // inner band width, bps
 	const [T, setT] = useState(20000);
 	const [F, setF] = useState(10);
+	const [Z, setZ] = useState(Z_DEFAULT);
 	const [slope, setSlope] = useState(0.8);
+	const [slope2, setSlope2] = useState(SLOPE2_DEFAULT);
 	const [depth, setDepth] = useState(SCENARIOS[0].depth);
 	const [lean, setLean] = useState(SCENARIOS[0].lean);
 	const [spread, setSpread] = useState(SCENARIOS[0].spread);
@@ -399,14 +423,14 @@ export default function SnapshotFeesMultiLab() {
 				{ id: "you", levels: yourBook },
 				{ id: "agg", levels: makerBook },
 			],
-			{ B, T, Z: ZONE_BPS },
+			{ B, T, Z },
 			lastM.current,
 		);
-		const p = { B, T, F, Z: ZONE_BPS, slope, slope2: SLOPE2, comp: 0 };
+		const p = { B, T, F, Z, slope, slope2, comp: 0 };
 		const fees = computeAccountFees(yourBook, p, mm.M);
 		const makerFees = computeAccountFees(makerBook, p, mm.M);
 		return { mm, fees, makerFees };
-	}, [yourSizes, makerSizes, B, T, F, slope, sideOf]);
+	}, [yourSizes, makerSizes, B, T, F, Z, slope, slope2, sideOf]);
 
 	const { mm, fees, makerFees } = model;
 
@@ -617,7 +641,9 @@ export default function SnapshotFeesMultiLab() {
 		setB(2);
 		setT(20000);
 		setF(10);
+		setZ(Z_DEFAULT);
 		setSlope(0.8);
+		setSlope2(SLOPE2_DEFAULT);
 		setEffect(null);
 		setPlaying(false);
 		setScenario(sc.key);
@@ -781,13 +807,11 @@ export default function SnapshotFeesMultiLab() {
 
 				<div
 					style={{
-						display: "flex",
-						flexWrap: "wrap",
-						gap: "10px 14px",
-						alignItems: "flex-start",
-						justifyContent: "space-between",
+						display: "grid",
+						gridTemplateColumns: "repeat(3, minmax(0, 1fr))",
+						gap: "10px 16px",
 						margin: "0 10px",
-						padding: "8px 4px 6px",
+						padding: "10px 4px 8px",
 						borderTop: `1px solid ${C.line}`,
 					}}
 				>
@@ -812,6 +836,16 @@ export default function SnapshotFeesMultiLab() {
 						hint="Width B, drawn M ± B/2."
 					/>
 					<Param
+						name="Maker Zone · Z"
+						val={Z}
+						set={touch("Z", Z, setZ)}
+						min={2}
+						max={20}
+						stp={0.5}
+						suffix="bps"
+						hint="Working radius past the band edge."
+					/>
+					<Param
 						name="Fee Cap · F"
 						val={F}
 						set={touch("F", F, setF)}
@@ -822,14 +856,25 @@ export default function SnapshotFeesMultiLab() {
 						hint="Taker rate. Every fee's ceiling."
 					/>
 					<Param
-						name="Fee Slope · k"
+						name="Zone Slope · k₁"
 						val={slope}
 						set={touch("k", slope, setSlope)}
 						min={0.25}
 						max={3}
 						stp={0.05}
 						suffix="×"
-						hint="Fee per bps outside the band."
+						warn={slope >= 1}
+						hint="Fee per bps inside the zone."
+					/>
+					<Param
+						name="Far Slope · k₂"
+						val={slope2}
+						set={touch("k2", slope2, setSlope2)}
+						min={0.25}
+						max={3}
+						stp={0.05}
+						suffix="×"
+						hint="Fee per bps beyond the zone."
 					/>
 				</div>
 				<div
@@ -1307,6 +1352,26 @@ export default function SnapshotFeesMultiLab() {
 								</text>
 							</>
 						)}
+
+						{/* zone edges: where the far slope takes over, either side */}
+						{[mm.edgeBid - Z * BP, mm.edgeAsk + Z * BP].map((zp) => {
+							const zx = xOfPrice(zp);
+							if (zx < PL || zx > PR) return null;
+							return (
+								<line
+									key={zp}
+									x1={zx}
+									x2={zx}
+									y1={PT}
+									y2={PB}
+									strokeDasharray="3 4"
+									strokeWidth={1}
+									opacity={0.5}
+									pointerEvents="none"
+									style={{ stroke: C.zone, transition: "all 220ms ease" }}
+								/>
+							);
+						})}
 
 						{/* the bid/ask boundary + depth midline */}
 						<line

@@ -22,12 +22,11 @@ const ZOOM_HALVES = [10, 15, 20, 25, 30];
 const TICK = 0.005; // $ per level
 const MAX_DEPTH = 25000; // $ per level
 const STEP_DOLLARS = 250;
-// Maker Zone Z: the Mark's absolute working radius, bps — eligibility range,
-// walk truncation, boundary-fill price, and the stamp knee. Fixed here;
-// dialable in the base-fee lab.
-const ZONE_BPS = 4;
-// Far slope k₂: stamp slope beyond the zone edge. Fixed here too.
-const SLOPE2 = 0.95;
+// Defaults for the Maker Zone Z (the Mark's working radius: eligibility
+// range, walk truncation, boundary-fill price, and the stamp knee) and the
+// far slope k₂ beyond the zone edge.
+const Z_DEFAULT = 4;
+const SLOPE2_DEFAULT = 0.95;
 
 const priceAt = (i: number) => +(100 + (i - CENTER) * TICK).toFixed(3);
 // 100.000 (i = CENTER) is a quotable bid; asks start one tick above.
@@ -53,16 +52,14 @@ const SCENARIOS: Scenario[] = [
 		key: "balanced",
 		title: "Balanced Maker",
 		blurb:
-			"A mirrored ladder across every price level. Everything is matched, so each level pays only its placement: fees sit at zero near M and rise gently with distance. Even the farthest quote pays a small fraction of the taker rate. Using every price level stays cheap.",
+			"A mirrored ladder across the full book (zoom out to see it all). Everything is matched, so each level pays only its placement: zero inside the band, a gentle climb through the Maker Zone, and the cap far beyond it. Past the full-fee point, extra distance costs nothing more.",
 		book: () => {
 			const a = Array(N).fill(0);
-			const ladder = [
-				5000, 6500, 8000, 9500, 11000, 12500, 14000, 15500, 17500, 20000,
-			];
-			ladder.forEach((v, k) => {
+			for (let k = 0; k < 30; k++) {
+				const v = Math.round((3000 + (17000 * k) / 29) / 250) * 250;
 				a[CENTER - 1 - k] = v;
 				a[CENTER + 1 + k] = v;
-			});
+			}
 			return a;
 		},
 	},
@@ -70,21 +67,13 @@ const SCENARIOS: Scenario[] = [
 		key: "taker",
 		title: "Directional Maker",
 		blurb:
-			"The same bid ladder, but the asks thin out toward the edge. The inner book is unchanged, so M stays put and near quotes still trade free. But the missing ask depth strands the outermost bids: whatever has no match behind it pays like a taker, and the farthest bid hits F in full. Directional size is priced as the taker it is, level by level.",
+			"The same bid ladder, but ask depth grows far more slowly, so coverage runs out on the way to the edge. The inner book is unchanged, so M stays put and near quotes still trade free. The missing ask depth strands the outer bids: whatever has no match behind it pays like a taker, and the farthest bids hit F in full. Directional size is priced as the taker it is, level by level.",
 		book: () => {
 			const a = Array(N).fill(0);
-			const bids = [
-				5000, 6500, 8000, 9500, 11000, 12500, 14000, 15500, 17500, 20000,
-			];
-			const asks = [
-				5000, 6500, 8000, 8500, 9000, 9500, 10000, 10500, 11000, 12000,
-			];
-			bids.forEach((v, k) => {
-				a[CENTER - 1 - k] = v;
-			});
-			asks.forEach((v, k) => {
-				a[CENTER + 1 + k] = v;
-			});
+			for (let k = 0; k < 30; k++) {
+				a[CENTER - 1 - k] = Math.round((3000 + (17000 * k) / 29) / 250) * 250;
+				a[CENTER + 1 + k] = Math.round((3000 + (6500 * k) / 29) / 250) * 250;
+			}
 			return a;
 		},
 	},
@@ -92,21 +81,19 @@ const SCENARIOS: Scenario[] = [
 		key: "thin",
 		title: "Thin Side, Moving Mark",
 		blurb:
-			"Ask depth sits far from the mid while the bids crowd it, so the measuring walk pays up to reach it: M slides toward the heavy side and the band follows, leaving every bid a touch below the new standard. Even in-band asks pay a faint echo of their partners' stamps: placement is judged against the Mark this snapshot produces, not the mid you quoted around.",
+			"Bids crowd the mid while the asks stay thin through the whole Maker Zone; the real ask depth waits at the zone's edge and beyond. The measuring walk pays up through what it can reach, so M slides toward the heavy side and the band follows, leaving every bid a touch below the new standard. The wall past the zone barely matters. Raise T and watch M lurch as the walk digs into it.",
 		book: () => {
 			const a = Array(N).fill(0);
-			const bids = [
-				1500, 2000, 4000, 5500, 6200, 7000, 8000, 9700, 12000, 13200,
-			];
-			const asks = [
-				1500, 1700, 1500, 1700, 2200, 3200, 5200, 14000, 17000, 21100,
-			];
-			bids.forEach((v, k) => {
-				a[CENTER - 10 + k] = v;
-			});
-			asks.forEach((v, k) => {
+			// heavy near bids, then a moderate ladder to the far edge
+			for (let k = 0; k < 8; k++) a[CENTER - 1 - k] = 8000;
+			for (let j = 0; j < 22; j++)
+				a[CENTER - 9 - j] = Math.round((9000 + (9000 * j) / 21) / 250) * 250;
+			// asks: thin through the zone, a wall at its reach, taper beyond
+			[1500, 1500, 2000, 2000, 2500, 3000, 3500, 4000].forEach((v, k) => {
 				a[CENTER + 1 + k] = v;
 			});
+			for (let j = 0; j < 7; j++) a[CENTER + 9 + j] = 16000;
+			for (let j = 0; j < 15; j++) a[CENTER + 16 + j] = 12000;
 			return a;
 		},
 	},
@@ -160,6 +147,7 @@ const C = {
 	mark: "var(--lab-mark)",
 	band: "var(--lab-band)",
 	bandEdge: "var(--lab-band-edge)",
+	zone: "var(--lab-zone)",
 	markSlice: "var(--lab-mark-slice)",
 	hatch: "var(--lab-hatch)",
 	danger: "var(--lab-danger)",
@@ -184,9 +172,17 @@ const DIAL_EFFECT: Record<string, { up: string; down: string }> = {
 		up: "Bigger measuring trade: it takes more size near the touch to move M.",
 		down: "Smaller measuring trade: less size near the touch moves M.",
 	},
+	Z: {
+		up: "Wider zone: more of the book votes on M, and the gentle slope reaches further out.",
+		down: "Tighter zone: only nearer size votes on M, and the far slope starts sooner.",
+	},
 	k: {
-		up: "Steeper: each bps outside the band costs more; full fee arrives closer to M.",
-		down: "Gentler: width is taxed less; full fee moves further out.",
+		up: "Steeper zone slope: each bps outside the band costs more; full fee arrives closer to M.",
+		down: "Gentler zone slope: width is taxed less; full fee moves further out.",
+	},
+	k2: {
+		up: "Steeper far slope: past the zone edge the fee runs to the cap faster.",
+		down: "Gentler far slope: the cap arrives further out.",
 	},
 };
 
@@ -231,12 +227,14 @@ function Param({
 			style={{
 				display: "flex",
 				flexDirection: "column",
-				gap: 4,
-				minWidth: 128,
-				maxWidth: 150,
+				gap: 3,
+				minWidth: 0,
+				overflow: "hidden",
 			}}
 		>
-			<span style={label}>{name}</span>
+			<span style={{ ...label, fontSize: 9.5, letterSpacing: "0.1em" }}>
+				{name}
+			</span>
 			<div style={{ display: "flex", alignItems: "center", gap: 6 }}>
 				<input
 					type="range"
@@ -246,23 +244,27 @@ function Param({
 					value={val}
 					onChange={(e) => set(+(e.currentTarget as HTMLInputElement).value)}
 					style={{
-						width: 84,
+						flex: "1 1 auto",
+						minWidth: 0,
 						accentColor: warn ? C.danger : "var(--lab-slider)",
 					}}
 				/>
 				<span
 					style={{
 						fontFamily: mono,
-						fontSize: 12,
+						fontSize: 11.5,
 						color: warn ? C.danger : C.text,
 						whiteSpace: "nowrap",
+						width: "7ch",
+						textAlign: "right",
+						flexShrink: 0,
 					}}
 				>
 					{suffix === "$" ? fmt$(val) : val + (suffix || "")}
 				</span>
 			</div>
 			{hint && (
-				<span style={{ fontSize: 11, color: C.faint, lineHeight: 1.45 }}>
+				<span style={{ fontSize: 10.5, color: C.faint, lineHeight: 1.35 }}>
 					{hint}
 				</span>
 			)}
@@ -305,7 +307,9 @@ export default function SnapshotFeesLab() {
 	const [T, setT] = useState(20000); // typical trade size, $
 	// —— fee schedule ——
 	const [F, setF] = useState(10); // cap / taker rate, bps
-	const [slope, setSlope] = useState(0.8); // k: stamp bps per bp beyond edge
+	const [Z, setZ] = useState(Z_DEFAULT); // Maker Zone, bps past the band edge
+	const [slope, setSlope] = useState(0.8); // k₁: stamp bps per bp inside the zone
+	const [slope2, setSlope2] = useState(SLOPE2_DEFAULT); // k₂ beyond the zone
 	const [comp, setComp] = useState(0); // inside compensation max, bps (parked module)
 
 	const [sizes, setSizes] = useState<number[]>(() => SCENARIOS[0].book());
@@ -332,10 +336,10 @@ export default function SnapshotFeesLab() {
 		}));
 		return computeModel(
 			book,
-			{ B, T, F, Z: ZONE_BPS, slope, slope2: SLOPE2, comp },
+			{ B, T, F, Z, slope, slope2, comp },
 			lastM.current,
 		);
-	}, [sizes, B, T, F, slope, comp, sideOf]);
+	}, [sizes, B, T, F, Z, slope, slope2, comp, sideOf]);
 
 	useEffect(() => {
 		if (!model.frozen) lastM.current = model.M;
@@ -408,7 +412,9 @@ export default function SnapshotFeesLab() {
 		setB(2);
 		setT(20000);
 		setF(10);
+		setZ(Z_DEFAULT);
 		setSlope(0.8);
+		setSlope2(SLOPE2_DEFAULT);
 		setComp(0);
 		setScenario(sc.key);
 	};
@@ -537,12 +543,8 @@ export default function SnapshotFeesLab() {
 				(() => {
 					const half = (B / 2).toFixed(2);
 					const stampEx = (d: number) =>
-						Math.min(
-							F,
-							slope * Math.min(d, ZONE_BPS) +
-								SLOPE2 * Math.max(0, d - ZONE_BPS),
-						);
-					const dCap = stampCapBps({ F, Z: ZONE_BPS, slope, slope2: SLOPE2 });
+						Math.min(F, slope * Math.min(d, Z) + slope2 * Math.max(0, d - Z));
+					const dCap = stampCapBps({ F, Z, slope, slope2 });
 					const dMax = Math.max(6, Math.ceil(dCap) + 2);
 					const pts = Array.from({ length: 41 }, (_, k) => {
 						const d = (dMax * k) / 40;
@@ -580,9 +582,8 @@ export default function SnapshotFeesLab() {
 								<div style={note}>
 									impact price = volume-weighted price of trading $
 									{T.toLocaleString()} into that side, best levels first · only
-									matched size (min of your bid and ask dollars) within{" "}
-									{ZONE_BPS}bps of the touch votes; missing depth is priced at
-									the zone edge
+									matched size (min of your bid and ask dollars) within {Z}bps
+									of the touch votes; missing depth is priced at the zone edge
 								</div>
 								{model.iBid != null && model.iAsk != null && (
 									<div style={{ color: C.mark }}>
@@ -612,15 +613,15 @@ export default function SnapshotFeesLab() {
 							>
 								<div style={{ flex: "1 1 320px" }}>
 									<span style={eyebrow}>3 · Stamp</span>stamp(d) = min(F,{" "}
-									{slope} × min(d, Z) + {SLOPE2} × max(0, d − Z))
+									{slope} × min(d, Z) + {slope2} × max(0, d − Z))
 									<div style={note}>
 										d = bps of placement beyond your side's edge (0 if inside).
-										Gentle k₁ prices retreat inside the Maker Zone (Z ={" "}
-										{ZONE_BPS}bps); the far slope k₂ takes over at its edge.
+										Gentle k₁ prices retreat inside the Maker Zone (Z = {Z}bps);
+										the far slope k₂ takes over at its edge.
 									</div>
 									<div style={{ color: C.text }}>
 										d=1 → {fmtBp(stampEx(1))} · d=4 → {fmtBp(stampEx(4))} · knee
-										at d={ZONE_BPS} → {fmtBp(stampEx(ZONE_BPS))} · cap at d ={" "}
+										at d={Z} → {fmtBp(stampEx(Z))} · cap at d ={" "}
 										{dCap.toFixed(1)}bps
 									</div>
 								</div>
@@ -748,13 +749,11 @@ export default function SnapshotFeesLab() {
 
 				<div
 					style={{
-						display: "flex",
-						flexWrap: "wrap",
-						gap: "10px 14px",
-						alignItems: "flex-start",
-						justifyContent: "space-between",
+						display: "grid",
+						gridTemplateColumns: "repeat(3, minmax(0, 1fr))",
+						gap: "10px 16px",
 						margin: "0 10px",
-						padding: "8px 4px 6px",
+						padding: "10px 4px 8px",
 						borderTop: `1px solid ${C.line}`,
 					}}
 				>
@@ -779,6 +778,16 @@ export default function SnapshotFeesLab() {
 						hint="Width B, drawn M ± B/2."
 					/>
 					<Param
+						name="Maker Zone · Z"
+						val={Z}
+						set={touch("Z", Z, setZ)}
+						min={2}
+						max={20}
+						stp={0.5}
+						suffix="bps"
+						hint="Working radius past the band edge."
+					/>
+					<Param
 						name="Fee Cap · F"
 						val={F}
 						set={touch("F", F, setF)}
@@ -789,7 +798,7 @@ export default function SnapshotFeesLab() {
 						hint="Taker rate. Every fee's ceiling."
 					/>
 					<Param
-						name="Fee Slope · k"
+						name="Zone Slope · k₁"
 						val={slope}
 						set={touch("k", slope, setSlope)}
 						min={0.25}
@@ -797,7 +806,17 @@ export default function SnapshotFeesLab() {
 						stp={0.05}
 						suffix="×"
 						warn={slope >= 1}
-						hint="Fee per bps outside the band."
+						hint="Fee per bps inside the zone."
+					/>
+					<Param
+						name="Far Slope · k₂"
+						val={slope2}
+						set={touch("k2", slope2, setSlope2)}
+						min={0.25}
+						max={3}
+						stp={0.05}
+						suffix="×"
+						hint="Fee per bps beyond the zone."
 					/>
 				</div>
 				<div
@@ -823,10 +842,7 @@ export default function SnapshotFeesLab() {
 					>
 						<span style={label}>Full fee reached</span>
 						<span style={{ fontFamily: mono, fontSize: 12, color: C.text }}>
-							{(
-								B / 2 +
-								stampCapBps({ F, Z: ZONE_BPS, slope, slope2: SLOPE2 })
-							).toFixed(1)}
+							{(B / 2 + stampCapBps({ F, Z, slope, slope2 })).toFixed(1)}
 							bps from M
 						</span>
 					</div>
@@ -1115,6 +1131,26 @@ export default function SnapshotFeesLab() {
 								</text>
 							</>
 						)}
+
+						{/* zone edges: where the far slope takes over, either side */}
+						{[model.edgeBid - Z * BP, model.edgeAsk + Z * BP].map((zp) => {
+							const zx = xOfPrice(zp);
+							if (zx < PL || zx > PR) return null;
+							return (
+								<line
+									key={zp}
+									x1={zx}
+									x2={zx}
+									y1={PT}
+									y2={PB}
+									strokeDasharray="3 4"
+									strokeWidth={1}
+									opacity={0.5}
+									pointerEvents="none"
+									style={{ stroke: C.zone, transition: "all 220ms ease" }}
+								/>
+							);
+						})}
 
 						{/* the bid/ask boundary, between 100.000 and 100.005 */}
 						<line
