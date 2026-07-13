@@ -626,7 +626,7 @@ export default function BaseFeeLab() {
 												fontSize={12}
 												style={{ fill: C.fee, fontFamily: mono }}
 											>
-												Fee {hf.toFixed(2)}
+												Fee {hf.toFixed(2)}bps
 											</text>
 											<text
 												x={bx + 10}
