@@ -1354,22 +1354,44 @@ export default function SnapshotFeesMultiLab() {
 						)}
 
 						{/* zone edges: where the far slope takes over, either side */}
-						{[mm.edgeBid - Z * BP, mm.edgeAsk + Z * BP].map((zp) => {
+						{[mm.edgeBid - Z * BP, mm.edgeAsk + Z * BP].map((zp, side) => {
 							const zx = xOfPrice(zp);
 							if (zx < PL || zx > PR) return null;
+							const bandX = xOfPrice(side === 0 ? mm.edgeBid : mm.edgeAsk);
+							const labelFits = Math.abs(zx - bandX) > 58;
 							return (
-								<line
-									key={zp}
-									x1={zx}
-									x2={zx}
-									y1={PT}
-									y2={PB}
-									strokeDasharray="3 4"
-									strokeWidth={1}
-									opacity={0.5}
-									pointerEvents="none"
-									style={{ stroke: C.zone, transition: "all 220ms ease" }}
-								/>
+								<g key={zp} pointerEvents="none">
+									<line
+										x1={zx}
+										x2={zx}
+										y1={PT}
+										y2={PB}
+										strokeDasharray="3 4"
+										strokeWidth={1}
+										opacity={0.5}
+										style={{ stroke: C.zone, transition: "all 220ms ease" }}
+									/>
+									<path
+										d={`M${zx},${PT - 3} l -5,-8 l 10,0 z`}
+										opacity={0.9}
+										style={{ fill: C.zone, transition: "all 220ms ease" }}
+									/>
+									{labelFits && (
+										<text
+											x={zx}
+											y={PT - 16}
+											textAnchor="middle"
+											fontSize={10.5}
+											style={{
+												fill: C.zone,
+												fontFamily: mono,
+												transition: "all 220ms ease",
+											}}
+										>
+											Zone Edge
+										</text>
+									)}
+								</g>
 							);
 						})}
 
