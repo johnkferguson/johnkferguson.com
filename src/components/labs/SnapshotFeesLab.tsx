@@ -322,7 +322,7 @@ export default function SnapshotFeesLab() {
 	const [mHover, setMHover] = useState(false);
 	const [feeHover, setFeeHover] = useState<number | null>(null);
 	const [feePinned, setFeePinned] = useState<number | null>(null);
-	const [zoom, setZoom] = useState(0);
+	const [zoom, setZoom] = useState(1); // default view: ±7.5bps
 	const lastM = useRef(100);
 	const drag = useRef<DragState | null>(null);
 

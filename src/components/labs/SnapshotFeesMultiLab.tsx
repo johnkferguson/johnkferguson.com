@@ -390,7 +390,7 @@ export default function SnapshotFeesMultiLab() {
 	const [feeHover, setFeeHover] = useState<number | null>(null);
 	const [makerHover, setMakerHover] = useState<number | null>(null);
 	const [feePinned, setFeePinned] = useState<number | null>(null);
-	const [zoom, setZoom] = useState(0);
+	const [zoom, setZoom] = useState(1); // default view: ±7.5bps
 	const [mHist, setMHist] = useState<number[]>([]);
 	const lastM = useRef(100);
 	const drag = useRef<DragState | null>(null);
