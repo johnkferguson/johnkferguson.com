@@ -26,9 +26,9 @@ const STEP_DOLLARS = 250;
 // Maker Zone Z: the Mark's absolute working radius, bps — eligibility range,
 // walk truncation, boundary-fill price, and the stamp knee. Fixed here;
 // dialable in the base-fee lab.
-const ZONE_BPS = 8;
+const ZONE_BPS = 4;
 // Far slope k₂: stamp slope beyond the zone edge. Fixed here too.
-const SLOPE2 = 1;
+const SLOPE2 = 0.95;
 
 const priceAt = (i: number) => +(100 + (i - CENTER) * TICK).toFixed(3);
 // 100.000 (i = CENTER) is a quotable bid; asks start one tick above.

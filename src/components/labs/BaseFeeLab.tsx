@@ -110,10 +110,10 @@ type EdgeDrag = "band" | "zone" | "cap" | null;
 
 export default function BaseFeeLab() {
 	const [B, setB] = useState(2); // inner band width, bps
-	const [Z, setZ] = useState(8); // Maker Zone width, bps beyond the band edge
+	const [Z, setZ] = useState(4); // Maker Zone width, bps beyond the band edge
 	const [F, setF] = useState(10);
 	const [slope, setSlope] = useState(0.8); // k₁, inside the zone
-	const [slope2, setSlope2] = useState(1); // k₂, beyond the zone edge
+	const [slope2, setSlope2] = useState(0.95); // k₂, beyond the zone edge
 	const [hover, setHover] = useState<number | null>(null);
 	const tableRef = useRef<HTMLDivElement | null>(null);
 	const activeRowRef = useRef<HTMLDivElement | null>(null);
