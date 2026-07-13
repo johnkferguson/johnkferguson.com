@@ -316,6 +316,35 @@ export default function BaseFeeLab() {
 								suffix="×"
 								hint="Fee per bps beyond the zone."
 							/>
+							<div
+								style={{
+									display: "flex",
+									flexDirection: "column",
+									gap: 3,
+									background: C.inset,
+									border: `1px solid ${C.line}`,
+									borderRadius: 6,
+									padding: "6px 10px",
+									alignSelf: "start",
+									minWidth: 0,
+								}}
+							>
+								<span
+									style={{ ...label, fontSize: 9.5, letterSpacing: "0.1em" }}
+								>
+									Full Fee Reached
+								</span>
+								<span
+									style={{
+										fontFamily: mono,
+										fontSize: 11.5,
+										color: C.text,
+										whiteSpace: "nowrap",
+									}}
+								>
+									{dFull.toFixed(1)}bps from M
+								</span>
+							</div>
 						</div>
 
 						<svg
@@ -493,7 +522,7 @@ export default function BaseFeeLab() {
 										fontSize={11}
 										style={{ fill: C.fee, fontFamily: mono }}
 									>
-										Full Fee · {dFull.toFixed(1)}
+										Full Fee
 									</text>
 								</g>
 							) : (
@@ -505,7 +534,7 @@ export default function BaseFeeLab() {
 									pointerEvents="none"
 									style={{ fill: C.fee, fontFamily: mono }}
 								>
-									Full Fee · {dFull.toFixed(1)} →
+									Full Fee →
 								</text>
 							)}
 
