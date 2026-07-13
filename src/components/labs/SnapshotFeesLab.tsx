@@ -52,7 +52,7 @@ const SCENARIOS: Scenario[] = [
 		key: "balanced",
 		title: "Balanced Maker",
 		blurb:
-			"A mirrored ladder across the full book (zoom out to see it all). Everything is matched, so each level pays only its placement: zero inside the band, a gentle climb through the Maker Zone, and the cap far beyond it. Past the full-fee point, extra distance costs nothing more.",
+			"A mirrored ladder across the full book (zoom out to see it all). Everything is paired, so each level pays only its placement: zero inside the band, a gentle climb through the Maker Zone, and the cap far beyond it. Past the full-fee point, extra distance costs nothing more.",
 		book: () => {
 			const a = Array(N).fill(0);
 			for (let k = 0; k < 30; k++) {
@@ -67,7 +67,7 @@ const SCENARIOS: Scenario[] = [
 		key: "taker",
 		title: "Directional Maker",
 		blurb:
-			"The same bid ladder, but ask depth grows far more slowly, so coverage runs out on the way to the edge. The inner book is unchanged, so M stays put and near quotes still trade free. The missing ask depth strands the outer bids: whatever has no match behind it pays like a taker, and the farthest bids hit F in full. Directional size is priced as the taker it is, level by level.",
+			"The same bid ladder, but ask depth grows far more slowly, so pairing runs out on the way to the edge. The inner book is unchanged, so M stays put and near quotes still trade free. The missing ask depth strands the outer bids: whatever has no pair behind it pays like a taker, and the farthest bids hit F in full. Directional size is priced as the taker it is, level by level.",
 		book: () => {
 			const a = Array(N).fill(0);
 			for (let k = 0; k < 30; k++) {
@@ -101,14 +101,14 @@ const SCENARIOS: Scenario[] = [
 		key: "half",
 		title: "Half-Covered",
 		blurb:
-			"A $10,000 bid against $5,000 of asks: half the bid is matched, half is directional, so its fee lands halfway to F. The small side is fully matched and still trades free.",
+			"A $10,000 bid against $5,000 of asks: half the bid is paired, half is directional, so its fee lands halfway to F. The small side is fully paired and still trades free.",
 		book: () => bookOf({ [CENTER - 1]: 10000, [CENTER + 1]: 5000 }),
 	},
 	{
 		key: "wide",
 		title: "Quoting Wide",
 		blurb:
-			"Two-sided and fully matched, but placed outside the band, so the only charge is the stamp for imprecision. Widen B and watch the band swallow the quotes and the fees fall away.",
+			"Two-sided and fully paired, but placed outside the band, so the only charge is the stamp for imprecision. Widen B and watch the band swallow the quotes and the fees fall away.",
 		book: () =>
 			bookOf({
 				[CENTER - 9]: 8000,
@@ -121,7 +121,7 @@ const SCENARIOS: Scenario[] = [
 		key: "spill",
 		title: "Spillover",
 		blurb:
-			"Three equal bids share one ask. The best bid claims coverage first and trades free; the middle one gets half; the last gets nothing and pays like a taker. Coverage is consumed, never reused. Hover the dots to watch it drain.",
+			"Three equal bids share one ask. The best bid pairs first and trades free; the middle one gets half; the last gets nothing and pays like a taker. Pairing is consumed, never reused. Hover the dots to watch it drain.",
 		book: () =>
 			bookOf({
 				[CENTER - 1]: 6000,
@@ -457,13 +457,13 @@ export default function SnapshotFeesLab() {
 		cursor: "pointer",
 	});
 
-	// —— partner highlighting: the exact dollars matched with the hovered
+	// —— partner highlighting: the exact dollars paired with the hovered
 	// level, located inside each partner bar via the spillover order ——
 	const tip = feeHover ?? feePinned;
 	const tipLv = tip != null ? model.levels[tip] : null;
 	const tipBk = tipLv?.bk ?? null;
 	const tipFeeY = tipBk ? yFee(tipBk.final) : null;
-	let matchSlices: { i: number; from: number; to: number }[] = [];
+	let pairSlices: { i: number; from: number; to: number }[] = [];
 	if (tipLv && tipBk && tipLv.side !== "mid") {
 		const offset = new Map<number, number>();
 		const sameSide = model.levels
@@ -474,9 +474,9 @@ export default function SnapshotFeesLab() {
 		for (const l of sameSide) {
 			if (l.i === tipLv.i) break;
 			for (const pr of l.bk?.pairs ?? [])
-				offset.set(pr.price, (offset.get(pr.price) ?? 0) + pr.matched);
+				offset.set(pr.price, (offset.get(pr.price) ?? 0) + pr.paired);
 		}
-		matchSlices = tipBk.pairs.flatMap((pr) => {
+		pairSlices = tipBk.pairs.flatMap((pr) => {
 			const partner = model.levels.find(
 				(l) =>
 					l.side !== tipLv.side &&
@@ -485,10 +485,10 @@ export default function SnapshotFeesLab() {
 			);
 			if (!partner) return [];
 			const from = offset.get(pr.price) ?? 0;
-			return [{ i: partner.i, from, to: from + pr.matched }];
+			return [{ i: partner.i, from, to: from + pr.paired }];
 		});
 	}
-	const involved = new Set(matchSlices.map((sl) => sl.i));
+	const involved = new Set(pairSlices.map((sl) => sl.i));
 	if (tip != null) involved.add(tip);
 	const dimIf = (i: number) => (tip != null && !involved.has(i) ? 0.35 : 1);
 
@@ -582,8 +582,8 @@ export default function SnapshotFeesLab() {
 								<div style={note}>
 									impact price = volume-weighted price of trading $
 									{T.toLocaleString()} into that side, best levels first · only
-									matched size (min of your bid and ask dollars) within {Z}bps
-									of the touch votes; missing depth is priced at the zone edge
+									paired size (min of your bid and ask dollars) within {Z}bps of
+									the touch votes; missing depth is priced at the zone edge
 								</div>
 								{model.iBid != null && model.iAsk != null && (
 									<div style={{ color: C.mark }}>
@@ -689,23 +689,23 @@ export default function SnapshotFeesLab() {
 							</div>
 
 							<div style={row}>
-								<span style={eyebrow}>4 · Pairing</span>backing = your own
+								<span style={eyebrow}>4 · Pairing</span>pairing = your own
 								opposite side, consumed inside-first
 								<div style={note}>
 									better-priced bars claim it before this one (spillover).
-									Whatever finds no match is directional.
+									Whatever finds no pair is directional.
 								</div>
 							</div>
 
 							<div style={row}>
-								<span style={eyebrow}>5 · Fee</span>fee = (Σ matched × max(own
-								stamp, partner stamp) + unbacked × F) / size
+								<span style={eyebrow}>5 · Fee</span>fee = (Σ paired × max(own
+								stamp, partner stamp) + directional × F) / size
 								<div style={note}>
-									each matched dollar pays its worse leg (a round trip is as
-									good as its worse leg) and unbacked dollars pay F. Width
+									each paired dollar pays its worse leg (a round trip is as good
+									as its worse leg) and directional dollars pay F. Width
 									pressure = slope; the full taker rate is reached{" "}
 									{(B / 2 + dCap).toFixed(1)}bps from M, and past that point
-									backing no longer matters in either direction.
+									pairing no longer matters in either direction.
 								</div>
 							</div>
 
@@ -1291,8 +1291,8 @@ export default function SnapshotFeesLab() {
 							),
 						)}
 
-						{/* partner highlight — the dollars matched with the hovered level */}
-						{matchSlices
+						{/* partner highlight — the dollars paired with the hovered level */}
+						{pairSlices
 							.filter((sl) => inView(sl.i))
 							.map((sl) => (
 								<rect
@@ -1556,7 +1556,7 @@ export default function SnapshotFeesLab() {
 								const top = PT + 8;
 								if (model.frozen) {
 									const rows = [
-										{ t: "M frozen: no matched two-sided size", c: C.text },
+										{ t: "M frozen: no paired two-sided size", c: C.text },
 										{ t: "nothing is eligible to walk;", c: C.dim },
 										{
 											t: `showing last computed M ${fmtPx(model.M)}`,
@@ -1774,7 +1774,7 @@ export default function SnapshotFeesLab() {
 								// matches at-or-inside the base fee collapse into one line
 								const atOrInside = b.pairs
 									.filter((pr) => pr.stamp <= b.own)
-									.reduce((sum, pr) => sum + pr.matched, 0);
+									.reduce((sum, pr) => sum + pr.paired, 0);
 								if (atOrInside > 0)
 									items.push({
 										amt: 0,
@@ -1784,8 +1784,8 @@ export default function SnapshotFeesLab() {
 								for (const pr of b.pairs) {
 									const extra = Math.max(0, pr.stamp - b.own);
 									if (extra <= 0) continue;
-									const pct = Math.round((pr.matched / b.q) * 100);
-									const amt = (pr.matched / b.q) * extra;
+									const pct = Math.round((pr.paired / b.q) * 100);
+									const amt = (pr.paired / b.q) * extra;
 									items.push({
 										amt,
 										t: `${amt$(amt, "+")} · ${pct}% @ ${extra.toFixed(2)}bps > Base Fee`,
@@ -1811,7 +1811,7 @@ export default function SnapshotFeesLab() {
 								if (b.claimedBefore > 0 && b.unpaired > 0)
 									rows.push({
 										label: "",
-										t: "(better-priced bars claimed the matches first)",
+										t: "(better-priced bars claimed the pairing first)",
 										c: C.faint,
 										s: 12.5,
 									});

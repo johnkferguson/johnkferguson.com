@@ -84,12 +84,6 @@ import SnapshotFeesMultiLab from "../../components/labs/SnapshotFeesMultiLab";
 The base fee prices a single order by one measure: how far it stands from the
 market's Mark Price: `M`.
 
-```
-d = bps beyond the band edge (0 if inside the band)
-
-base fee(d) = min(F, k₁ × min(d, Z) + k₂ × max(0, d − Z))
-```
-
 - `M`: the Mark price; a more accurate midpoint for the market. Liquidity standing in the inner band and Maker Zone contributes to its calculation. how comes later.
 - `B`: the Inner Band: the region `M ± B/2`, declared by the market. The base fee there is zero, so `d` starts counting at the band edge, `B/2` from `M`.
 - `Z`, the Maker Zone: the working radius past the band edge. Inside it, distance is priced gently.
@@ -97,6 +91,12 @@ base fee(d) = min(F, k₁ × min(d, Z) + k₂ × max(0, d − Z))
 - `k₂`, the far slope: takes over past the zone edge and runs the fee to
   the cap.
 - `F`, the fee cap: the taker rate. No resting order ever pays more than a taker.
+
+```
+d = bps beyond the band edge (0 if inside the band)
+
+base fee(d) = min(F, k₁ × min(d, Z) + k₂ × max(0, d − Z))
+```
 
 <div class="stub">
 
@@ -114,9 +114,9 @@ base fee(d) = min(F, k₁ × min(d, Z) + k₂ × max(0, d − Z))
 <div class="stub">
 
 - Introduce `M`: the mark price, measured at size by walking `T` dollars into each side
-- Matching: your own opposite side stands behind your fills
-- Worse leg per dollar; whatever has no match behind it is directional and pays `F`
-- Read a fee receipt: base fee, surcharges per match, total, net edge
+- Pairing: your own opposite side stands behind your fills
+- Worse leg per dollar; whatever has no pair behind it is directional and pays `F`
+- Read a fee receipt: base fee, surcharges per pair, total, net edge
 - Scenario tour: balanced ladder, directional maker, the moving mark, spillover
 
 </div>
@@ -158,7 +158,7 @@ base fee(d) = min(F, k₁ × min(d, Z) + k₂ × max(0, d − Z))
 <div class="stub">
 
 - The pipeline: eligibility, walk, `M`, band, stamps, pairing, worse-of
-- The one-line fee: `(Σ matched × max(own, partner) + directional × F) / size`
+- The one-line fee: `(Σ paired × max(own, partner) + directional × F) / size`
 - Reference computation anyone can recompute from the published window
 - Placement TBD: this section may move earlier, before or beside the labs
 
@@ -181,8 +181,8 @@ base fee(d) = min(F, k₁ × min(d, Z) + k₂ × max(0, d − Z))
 
 <div class="stub">
 
-- Semi-far coverage earns a discount: paid optionality, priced by fill risk and adverse selection
-- Manipulation economics: junk coverage is worthless, bending `M` requires standing real paired size
+- Semi-far pairing earns a discount: paid optionality, priced by fill risk and adverse selection
+- Manipulation economics: junk pairing is worthless, bending `M` requires standing real paired size
 - Parameters and governance: `B` declared and sticky, `F` venue-wide, `Z` and the two slopes shape the curve, `T` measured from demand
 - Variations considered: partner-stamp grace interval, asymptotic stamps (rejected: softens the junk anchor), inside compensation (parked), partial fills
 - Open: cross-window dynamics, staking-based fee caps, thin-market `M` fallbacks

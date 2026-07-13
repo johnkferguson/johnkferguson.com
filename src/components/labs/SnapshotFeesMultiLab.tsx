@@ -698,14 +698,14 @@ export default function SnapshotFeesMultiLab() {
 	const prevM = mHist.length > 1 ? mHist[mHist.length - 2] : mm.M;
 	const mArrow = mm.M > prevM + 1e-9 ? "↑" : mm.M < prevM - 1e-9 ? "↓" : "·";
 
-	// —— partner highlighting within your book ——
+	// —— partner highlighting: dollars paired within your book ——
 	const tip = feeHover ?? feePinned;
 	const tipLv = tip != null ? feeLevels[tip] : null;
 	const tipBk = tipLv?.bk ?? null;
 	const tipFeeY = tipBk ? yFeeUp(tipBk.final) : null;
 	const makerTipBk =
 		makerHover != null ? (makerFees.levels[makerHover]?.bk ?? null) : null;
-	let matchSlices: { i: number; from: number; to: number }[] = [];
+	let pairSlices: { i: number; from: number; to: number }[] = [];
 	if (tipLv && tipBk && tipLv.side !== "mid") {
 		const offset = new Map<number, number>();
 		const sameSide = feeLevels
@@ -716,9 +716,9 @@ export default function SnapshotFeesMultiLab() {
 		for (const l of sameSide) {
 			if (l.i === tipLv.i) break;
 			for (const pr of l.bk?.pairs ?? [])
-				offset.set(pr.price, (offset.get(pr.price) ?? 0) + pr.matched);
+				offset.set(pr.price, (offset.get(pr.price) ?? 0) + pr.paired);
 		}
-		matchSlices = tipBk.pairs.flatMap((pr) => {
+		pairSlices = tipBk.pairs.flatMap((pr) => {
 			const partner = feeLevels.find(
 				(l) =>
 					l.side !== tipLv.side &&
@@ -727,10 +727,10 @@ export default function SnapshotFeesMultiLab() {
 			);
 			if (!partner) return [];
 			const from = offset.get(pr.price) ?? 0;
-			return [{ i: partner.i, from, to: from + pr.matched }];
+			return [{ i: partner.i, from, to: from + pr.paired }];
 		});
 	}
-	const involved = new Set(matchSlices.map((sl) => sl.i));
+	const involved = new Set(pairSlices.map((sl) => sl.i));
 	if (tip != null) involved.add(tip);
 	const dimIf = (i: number) => (tip != null && !involved.has(i) ? 0.35 : 1);
 
@@ -1554,7 +1554,7 @@ export default function SnapshotFeesMultiLab() {
 						})}
 
 						{/* partner highlight within your book */}
-						{matchSlices
+						{pairSlices
 							.filter((sl) => inView(sl.i))
 							.map((sl) => (
 								<rect
@@ -1985,7 +1985,7 @@ export default function SnapshotFeesMultiLab() {
 								const items: { amt: number; t: string; c: string }[] = [];
 								const atOrInside = b.pairs
 									.filter((pr) => pr.stamp <= b.own)
-									.reduce((sum, pr) => sum + pr.matched, 0);
+									.reduce((sum, pr) => sum + pr.paired, 0);
 								if (atOrInside > 0)
 									items.push({
 										amt: 0,
@@ -1995,8 +1995,8 @@ export default function SnapshotFeesMultiLab() {
 								for (const pr of b.pairs) {
 									const extra = Math.max(0, pr.stamp - b.own);
 									if (extra <= 0) continue;
-									const pct = Math.round((pr.matched / b.q) * 100);
-									const amt = (pr.matched / b.q) * extra;
+									const pct = Math.round((pr.paired / b.q) * 100);
+									const amt = (pr.paired / b.q) * extra;
 									items.push({
 										amt,
 										t: `${amt$(amt, "+")} · ${pct}% @ ${extra.toFixed(2)}bps > Base Fee`,
@@ -2022,7 +2022,7 @@ export default function SnapshotFeesMultiLab() {
 								if (b.claimedBefore > 0 && b.unpaired > 0)
 									rows.push({
 										label: "",
-										t: "(better-priced bars claimed the matches first)",
+										t: "(better-priced bars claimed the pairing first)",
 										c: C.faint,
 										s: 12.5,
 									});

@@ -6,7 +6,7 @@
  * reference computation (see engine.test.ts).
  *
  * The Mark pipeline (computeMark) is shared by every lab: two-pass anchoring,
- * matched-only eligibility, and boundary fill at the window edge. A single
+ * paired-only eligibility, and boundary fill at the window edge. A single
  * account is just a one-book market.
  *
  * Conventions: prices near $100, so 1bp = $0.01. Floating-point is fine here —
@@ -48,14 +48,15 @@ export interface FeeParams {
 /** $ per basis point at the $100 reference price. */
 export const BP = 0.01;
 
-export interface CoveragePair {
+/** One leg of pairing: the partner level, the dollars paired with it, its stamp. */
+export interface PairLeg {
 	price: number;
-	matched: number;
+	paired: number;
 	stamp: number;
 }
 
 export interface Allocation {
-	pairs: CoveragePair[];
+	pairs: PairLeg[];
 	unpaired: number;
 	/** Opposite-side dollars already consumed by better-priced same-side levels. */
 	claimedBefore: number;
@@ -64,10 +65,10 @@ export interface Allocation {
 export interface FeeBreakdown {
 	/** This level's own placement stamp, bps. */
 	own: number;
-	pairs: CoveragePair[];
+	pairs: PairLeg[];
 	unpaired: number;
 	claimedBefore: number;
-	/** Per-dollar worse-of rate: matched $ pay max(own, partner), unbacked pay F. */
+	/** Per-dollar worse-of rate: paired $ pay max(own, partner), directional pay F. */
 	pairing: number;
 	/** min(F, pairing) — the cap is decorative; every per-dollar term is ≤ F. */
 	combined: number;
@@ -148,7 +149,7 @@ export function computeAccountFees(
 				const m = Math.min(rem, oRem);
 				entry.pairs.push({
 					price: opp[oi].price,
-					matched: m,
+					paired: m,
 					stamp: stampOf(opp[oi].price, opp[oi].side as "bid" | "ask"),
 				});
 				rem -= m;
@@ -172,11 +173,11 @@ export function computeAccountFees(
 			claimedBefore: 0,
 		};
 		const q = lv.size;
-		// Per-dollar worse-of: each matched dollar pays the worse of its two
-		// legs — this order's own stamp or its partner's — and unbacked
+		// Per-dollar worse-of: each paired dollar pays the worse of its two
+		// legs — this order's own stamp or its partner's — and directional
 		// dollars pay F. A round trip is as good as its worse leg.
 		const pairing =
-			(a.pairs.reduce((s, pr) => s + pr.matched * Math.max(own, pr.stamp), 0) +
+			(a.pairs.reduce((s, pr) => s + pr.paired * Math.max(own, pr.stamp), 0) +
 				a.unpaired * F) /
 			q;
 		const combined = Math.min(F, pairing);
@@ -238,7 +239,7 @@ export interface MultiMark {
 }
 
 /**
- * The Mark. Only matched (demonstrated two-sided) size votes: per account
+ * The Mark. Only paired (demonstrated two-sided) size votes: per account
  * and side, quotes count up to the account's overlap — min(in-range bid $,
  * in-range ask $) — allocated best-first, where in range means within Z of
  * that side's anchor.

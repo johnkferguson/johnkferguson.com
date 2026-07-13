@@ -15,8 +15,8 @@ import {
 // absolute (the spec's older drafts wrote this as the multiple "W=5", i.e.
 // 5×S; vectors verify arithmetic at their stated settings, which need not
 // match working defaults).
-// Fee rule: each matched dollar pays max(own stamp, partner stamp);
-// unbacked dollars pay F. λ and the combine step no longer exist.
+// Fee rule: each paired dollar pays max(own stamp, partner stamp);
+// directional dollars pay F. λ and the combine step no longer exist.
 const P: FeeParams = {
 	B: 4,
 	T: 5000,
@@ -83,7 +83,7 @@ describe("spec reference computation (worse-of)", () => {
 		expect(b.final / P.F).toBeCloseTo(0.3556, 4);
 	});
 
-	test("outer ask: fully matched, worse leg 0.5bp", () => {
+	test("outer ask: fully paired, worse leg 0.5bp", () => {
 		const b = bk(3);
 		expect(b.unpaired).toBe(0);
 		expect(b.final).toBeCloseTo(0.5, 10);
@@ -230,7 +230,7 @@ describe("anchors and invariants", () => {
 		expect(m.M).toBe(100.005);
 	});
 
-	test("worse-leg identity: a symmetric matched book pays one leg, not two", () => {
+	test("worse-leg identity: a symmetric paired book pays one leg, not two", () => {
 		// bids and asks both 2bp outside the band (stamp 1.0 at k=0.5):
 		// per-dollar max(1.0, 1.0) = 1.0 — width pressure is k alone.
 		const m = computeModel(
@@ -247,9 +247,9 @@ describe("anchors and invariants", () => {
 		expect(m.levels[1].bk?.final).toBeCloseTo(1.0, 10);
 	});
 
-	test("your scenario: backing at-or-inside your level costs nothing extra", () => {
+	test("your scenario: pairing at-or-inside your level costs nothing extra", () => {
 		// M lands at 99.99, so both quotes sit exactly on their band edges
-		// (own = 0); every matched dollar pays max(own, 0) = own only.
+		// (own = 0); every paired dollar pays max(own, 0) = own only.
 		const m = computeModel(
 			[
 				{ i: 0, price: 99.97, side: "bid", size: 5000 },
@@ -263,7 +263,7 @@ describe("anchors and invariants", () => {
 		expect(b?.final).toBeCloseTo(b?.own ?? Number.NaN, 10);
 	});
 
-	test("junk-coverage anchor: far coverage is worth exactly nothing", () => {
+	test("junk-pairing anchor: far pairing is worth exactly nothing", () => {
 		const withJunk = computeModel(
 			[
 				{ i: 0, price: 99.99, side: "bid", size: 5000 },
@@ -327,12 +327,12 @@ describe("anchors and invariants", () => {
 		}
 	});
 
-	test("allocation total is conserved: matched + unbacked = size", () => {
+	test("allocation total is conserved: paired + directional = size", () => {
 		const m = computeModel(book, P, 100);
 		for (const lv of m.levels) {
 			if (!lv.bk) continue;
-			const covered = lv.bk.pairs.reduce((s, pr) => s + pr.matched, 0);
-			expect(covered + lv.bk.unpaired).toBeCloseTo(lv.size, 6);
+			const paired = lv.bk.pairs.reduce((s, pr) => s + pr.paired, 0);
+			expect(paired + lv.bk.unpaired).toBeCloseTo(lv.size, 6);
 		}
 	});
 });
