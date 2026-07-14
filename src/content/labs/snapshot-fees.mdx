@@ -16,11 +16,6 @@ import SnapshotFeesMultiLab from "../../components/labs/SnapshotFeesMultiLab";
 
 # Snapshot Fees
 
-<p class="stub">
-  Outline skeleton. Bullets are beats, not prose. Section titles are working
-  placeholders.
-</p>
-
 <TableOfContents inline />
 
 <div class="stub">
@@ -32,17 +27,43 @@ import SnapshotFeesMultiLab from "../../components/labs/SnapshotFeesMultiLab";
 
 ## Understanding Batch Auctions
 
-<div class="stub">
+Most electronic markets, crypto exchanges included, run on a continuous limit
+order book (CLOB). Orders rest in a book sorted by price, and when a new order
+crosses the spread it trades immediately against the best resting quote. Ties
+at the same price go to whoever arrived first. For a continuous limit order book: every fill, quote, and cancel is processed one at a time, in arrival order.
 
-- Audience: knows CLOBs and trading generally; may not know batch auctions
-- CLOB baseline in one paragraph: continuous matching, price-time priority, being first is worth money
-- Sniping / latency arbitrage, told properly: stale quote, fastest sniper wins, maker eats the loss and widens to cover it, the market pays the spread. The arms race is a structural tax on takers (Budish et al.)
-- Frequent batch auctions (Budish): discretize time, seal the window, clear at one uniform price; speed stops being a weapon, competition moves to price
-- Dual-flow batch auctions (Jump Crypto, 2025): maker and taker as intent-declared flows; two simultaneous auctions per ~100ms window (maker bids vs taker sells, maker asks vs taker buys), each clearing at the single price that maximizes matched volume, pro-rata at ties; makers never trade with makers
-- DFBA vs slow batching: ~100ms to 1s cadence is imperceptible to humans (~250ms reaction time) while still killing the race
-- Landing: whichever variant, at every seal the venue holds something a CLOB structurally cannot: a complete, committed picture of the market
+Processing by arrival order creates a clear incentive: if the market moves, be the first
+to react. When a news event or external factor changes
+the fair price, a market maker's resting quote can become stale. If it does, a race begins. Whoever hits that stale
+quote first can extract profit from its mispricing. Inside the race, the maker's cancel is a single message trying to outpace every sniper's order. More often than not, the maker's stale quote gets picked off. These latency races, often referred to as sniping or latency arbitrage, are a form of
+adverse selection that concentrates on market makers. In response, makers size down and widen their tightest quotes, and
+this thinner, widened spread is an added cost paid by everyone trading for ordinary reasons.
 
-</div>
+[Aquilina, Budish, and O'Neill](https://academic.oup.com/qje/article/137/1/493/6368348)
+measured the race directly, using exchange message data that records the
+losers as well as the winners. In FTSE 100 stocks they found races running
+about once per minute per symbol, typically decided in five to ten microseconds, accounting for roughly 20% of trading volume, with the top six
+firms on one side or the other of more than 80% of them. Eliminating latency
+arbitrage, they estimate, would cut the market's cost of liquidity by 17%,
+about $5 billion a year in global equities. This additional liquidity cost is structurally inherent to
+the design of continuous order books.
+
+Frequent batch auctions are the design change
+[Budish, Cramton, and Shim proposed](https://academic.oup.com/qje/article/130/4/1547/1916146):
+instead of processing orders continuously, collect them for a short window,
+seal it, and clear every crossing order at one uniform price. Inside a window
+there is no first. A momentarily stale quote is no longer a prize for the
+fastest, because while the auction window is open, everyone has the same
+chance to react. A microsecond-level latency advantage no longer matters. With that form of adverse selection neutralized, a maker can quote
+tighter and with larger size.
+
+The design space has kept moving since. Jump Crypto's 2025
+[dual-flow batch auction](https://jumpcrypto.com/resources/dual-flow-batch-auction)
+splits each window into two auctions, maker bids against taker sells and maker
+asks against taker buys, so taker flow always trades against standing quotes
+instead of netting against itself. While the _Snapshot Fees_ mechanism proposed in this piece could work for any batch auction implementation, it is likely a more natural fit for a dual-flow batch auction. The reasoning behind that will be covered later.
+
+Batch auctions improve upon continuous books by neutralizing latency arbitrage and the widened spreads it forces. Structurally, operating within discrete time windows provides an additional feature continuous books cannot offer: a clean snapshot of the market's state, with each order in it committed and fillable at that instant. This piece asks whether that snapshot could be used to price orders directly, and whether pricing them well could improve the market further, with even tighter quotes and more size behind them.
 
 ## How fees work today
 
@@ -168,8 +189,11 @@ base fee(d) = min(F, k₁ × min(d, Z) + k₂ × max(0, d − Z))
 
 <div class="stub">
 
-- Placement TBD (likely here). The intro stays neutral on FBA vs DFBA; this section carries the argument
-- DFBA sends taker buys and sells to separate auctions: they never net against each other, so gross urgency walks the maker book. That is the venue type the gentle stamp slope is calibrated for; in netting venues deep excursions collapse and the calibration must be refit
+- Placement TBD (likely here). The intro gives DFBA only a cameo; this section carries the full description and the argument
+- The netting weakness of a single shared cross, told here: in a CLOB a buy and a sell each pay the spread; in one batch cross they net at the clearing price and the standing book is paid only on the imbalance. Thins the reason to be the standing book, which is what the market leans on when flow turns one-sided; effect grows with window length
+- DFBA mechanics in full (moved from the setting section): declared flows (intent, not urgency; orders on either flow can rest across windows), two simultaneous auctions per window (100ms to 1s), uniform price crossing the most volume, pro-rata at ties, makers never trade with makers; 250ms human reaction time makes the cadence feel instantaneous
+- DFBA keeps the sealed window and removes the netting: every taker fill pays a standing quote, in either direction, at any window length
+- Because taker buys and sells never net, gross urgency walks the maker book. That is the venue type the gentle stamp slope is calibrated for; in netting venues deep excursions collapse and the calibration must be refit
 - The maker flow is an explicit standing book: exactly the object the snapshot reads
 - Pro-rata at equal prices in DFBA matching rhymes with the attribution-free, pro-rata mark walk: a shared fairness grammar
 - Declared roles vs measured behavior: DFBA makes maker/taker an explicit declaration; snapshot fees reads directionality from the book. It can price within the declared maker flow, or dissolve the declaration entirely
@@ -186,6 +210,7 @@ base fee(d) = min(F, k₁ × min(d, Z) + k₂ × max(0, d − Z))
 - Parameters and governance: `B` declared and sticky, `F` venue-wide, `Z` and the two slopes shape the curve, `T` measured from demand
 - Variations considered: partner-stamp grace interval, asymptotic stamps (rejected: softens the junk anchor), inside compensation (parked), partial fills
 - Open: cross-window dynamics, staking-based fee caps, thin-market `M` fallbacks
+- Some ideas: make the cap itself volume derived but let it lower down to a floor. Still retains snapshot fees as the dominant driver as fees for makers. Example, 8bps Fee Cap. Cap can lower based on volume to 2bps. Still allows new makers to compete on pricing and inventory management.
 
 </div>
 
