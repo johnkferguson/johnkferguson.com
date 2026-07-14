@@ -92,16 +92,35 @@ possible. Jump Crypto's dual-flow paper alludes to this: maker fees could be
 priced by how far an order stands from the midpoint. This piece takes that
 idea and expands it into a full pricing mechanism.
 
-## The Idea: Directionality Is the Price
+## Pricing Each Auction's Liquidity
 
-<div class="stub">
+If the objective is to use fees to improve the market's quotes, then we can price that
+directly:
 
-- Replace maker/taker with a spectrum of directionality
-- Confidently two-sided near fair value: trades free. Fully one-sided: pays the taker rate
-- A one-sided resting order is a patient taker
-- Everything is computed fresh from one sealed snapshot per window: memoryless, verifiable, no tiers, no identity
+> Liquidity standing on one side of the book pays the cap, the same rate a
+> market order pays. Liquidity standing on both sides pays less. Liquidity
+> standing on both sides, close to the mid, pays the least.
 
-</div>
+That is the entire mechanism of Snapshot Fees: re-computed per auction and deterministically derived from its sealed state.
+
+This has the potential to unlock several key benefits:
+
+- **Day-one competition.** A new maker can pay the best rates from their
+  first window. Since the rate follows the
+  quality of the quotes, a newcomer willing to quote tight and two-sided
+  can compete with the largest incumbents immediately.
+- **Per-market competition.** Fees are calculated market by market, window by
+  window. A maker's standing in one market buys nothing in another, so every
+  market, however small, is independently contestable: a specialist quoting
+  one obscure pair well competes on equal terms with the largest firm in it.
+
+Together, these two make liquidity supply responsive. When interest arrives
+in an asset, makers can arrive with it at full strength without the need to
+build up history first.
+
+The rest of this piece builds out _Snapshot Fees_ one layer at a time, with a playable
+lab at each step: the price of placement for a single order, then a full
+one-maker book, then the market-wide version.
 
 ## The Base Fee: Pricing Distance from the Mark
 
@@ -137,6 +156,7 @@ base fee(d) = min(F, k₁ × min(d, Z) + k₂ × max(0, d − Z))
 
 <div class="stub">
 
+- Introduce the vocabulary here, mechanically: directional/non-directional; a one-sided resting order is a patient taker (it demands the same one-way trade a market order demands, just on a slower clock); unpaired liquidity is directional wherever it sits
 - Introduce `M`: the mark price, measured at size by walking `T` dollars into each side
 - Pairing: your own opposite side stands behind your fills
 - Worse leg per dollar; whatever has no liquidity paired against it is directional and pays `F`
@@ -215,6 +235,9 @@ base fee(d) = min(F, k₁ × min(d, Z) + k₂ × max(0, d − Z))
 - Variations considered: partner-stamp grace interval, asymptotic stamps (rejected: softens the junk anchor), inside compensation (parked), partial fills
 - Open: cross-window dynamics, staking-based fee caps, thin-market `M` fallbacks
 - Some ideas: make the cap itself volume derived but let it lower down to a floor. Still retains snapshot fees as the dominant driver as fees for makers. Example, 8bps Fee Cap. Cap can lower based on volume to 2bps. Still allows new makers to compete on pricing and inventory management.
+- Need to show the O complexity of what it costs to derive the Mark and the fee schedule per window. It's worthwhile to show how much it costs computationally.
+- Need a section to walk through/show dynamically deriving T over time.
+- May want a section showing how an order actually fills and what fees are paid, potentially comparing FBA to DFBA.
 
 </div>
 
