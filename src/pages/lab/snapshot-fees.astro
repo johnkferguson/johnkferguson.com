@@ -2,6 +2,7 @@
 // Page shell only: layout, width, TOC rail, article styling. The article
 // itself (prose, headings, labs) lives in src/content/labs/snapshot-fees.mdx.
 import "katex/dist/katex.min.css";
+import BackToTop from "../../components/BackToTop.astro";
 import TableOfContents from "../../components/TableOfContents.astro";
 import Article from "../../content/labs/snapshot-fees.mdx";
 import BaseLayout from "../../layouts/BaseLayout.astro";
@@ -13,6 +14,7 @@ import BaseLayout from "../../layouts/BaseLayout.astro";
 	noindex={true}
 >
 	<TableOfContents />
+	<BackToTop />
 	<main class="mx-auto w-full max-w-[720px] px-3 py-8">
 		<article data-toc-root>
 			<Article />
