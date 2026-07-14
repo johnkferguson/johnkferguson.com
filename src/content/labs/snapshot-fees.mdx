@@ -65,31 +65,34 @@ instead of netting against itself. While the _Snapshot Fees_ mechanism proposed 
 
 Batch auctions improve upon continuous books by neutralizing latency arbitrage and the widened spreads it forces. Structurally, operating within discrete time windows provides an additional feature continuous books cannot offer: a clean snapshot of the market's state, with each order in it committed and fillable at that instant. This piece asks whether that snapshot could be used to price orders directly, and whether pricing them well could improve the market further, with even tighter quotes and more size behind them.
 
-## How fees work today
+## Trading Fees Today
 
-<div class="stub">
+Exchanges everywhere charge for execution, and nearly everywhere the same two
+ideas shape the price: liquidity provision is treated better than liquidity
+demand, and activity is rewarded, with rates that fall as volume grows. In
+traditional markets these arrangements are more layered and bespoke, running
+through negotiated maker programs and rebate schedules that vary by venue and
+firm. This piece focuses on crypto markets, where fee structures are simpler
+and public, already quoted in bps, and the most congruent with what it
+proposes.
 
-- Status quo: maker/taker splits, volume tiers, rebates. Volume is not laziness: it is close to the only thing a continuous venue can price. No instant of coherent market state exists; quotes flash and cancel; roles are assigned by arrival; the only thing that accumulates verifiably is your executed tape
-- Side effects worth naming: new entrants pay full freight until they build history; tiers compound toward incumbents and crowd out the long tail
-- The seal changes what is knowable: every order committed, blind, simultaneous. Nobody can pose in it retroactively, since anything displayed was genuinely fillable that window. For the first time there is a coherent object to price besides the tape
-- Same natural flow, smaller number: a batch venue prints less volume than a CLOB for identical natural trading, because the latency-arb volume never happens (and what is missing is disproportionately the volume nobody wanted to reward). Volume tiers would still work here, just recalibrated
-- But rescaling admits the number was a proxy. Volume proxies a participant's relative value to the market (conflating liquidity brought with flow brought). The question writes itself: could that value be assessed directly, in the auction itself, instead of through the accumulated proxy?
+There, the typical schedule is compact: a maker/taker split, where takers pay
+a few bps of notional and makers pay less, sometimes nothing, occasionally a
+rebate. Tiers then scale those rates with each account's trailing volume. As a design this
+is a reasonable proxy: volume is easy to measure and roughly tracks how much
+value a participant brings to a venue. On a continuous book it is also close
+to the only thing an exchange can price. There is no moment when the market
+stands still to be judged, so fees attach to the one thing that accumulates:
+what you traded.
 
-</div>
+Batch auctions do have such a moment: every window ends with the market
+sealed and judgeable. Conventional fee standards like volume-based pricing
+still work here, but the sealed window makes a different kind of pricing
+possible. Jump Crypto's dual-flow paper alludes to this: maker fees could be
+priced by how far an order stands from the midpoint. This piece takes that
+idea and expands it into a full pricing mechanism.
 
-## Why price the snapshot
-
-<div class="stub">
-
-- Batch venues are young; the fee question is genuinely open. Existing designs reach for familiar shapes (flat taker bps, makers free; the DFBA paper sketches three such options in a paragraph). None yet price the snapshot. Before conventions calcify: what should fees on these venues be?
-- The proposal in one line: compute each participant's fee from the sealed market state, charging for what their orders are doing for the market in this window
-- Stakes, framed as open questions: would spreads tighten? would makers compete on the present quality of their liquidity instead of accumulated history? does that lower the bar for new entrants and make long-tail markets quotable?
-- Why crypto first: no entrenched designated-maker agreements or negotiated rebate deals to displace (tradfi maker relationships are bespoke contracts, a different world); fees already quoted in bps; venues young enough to adopt new structure
-- Pivot: the DFBA paper's third fee sketch is maker fees as a fixed fraction of distance from the midpoint, one sentence, left hanging. This piece pulls that thread
-
-</div>
-
-## The idea: directionality is the price
+## The Idea: Directionality Is the Price
 
 <div class="stub">
 
@@ -130,7 +133,7 @@ base fee(d) = min(F, k₁ × min(d, Z) + k₂ × max(0, d − Z))
   <BaseFeeLab client:visible />
 </div>
 
-## One maker, two sides
+## One Maker, Two Sides
 
 <div class="stub">
 
@@ -146,7 +149,7 @@ base fee(d) = min(F, k₁ × min(d, Z) + k₂ × max(0, d − Z))
   <SnapshotFeesLab client:visible />
 </div>
 
-## The Mark is communal
+## The Mark Is Communal
 
 <div class="stub">
 
@@ -159,7 +162,7 @@ base fee(d) = min(F, k₁ × min(d, Z) + k₂ × max(0, d − Z))
 
 </div>
 
-## Many makers
+## Many Makers
 
 <div class="stub">
 
@@ -174,7 +177,7 @@ base fee(d) = min(F, k₁ × min(d, Z) + k₂ × max(0, d − Z))
   <SnapshotFeesMultiLab client:visible />
 </div>
 
-## The math, precisely
+## The Math, Precisely
 
 <div class="stub">
 
@@ -185,7 +188,7 @@ base fee(d) = min(F, k₁ × min(d, Z) + k₂ × max(0, d − Z))
 
 </div>
 
-## Which auction design fits best
+## Which Auction Design Fits Best
 
 <div class="stub">
 
@@ -201,13 +204,14 @@ base fee(d) = min(F, k₁ × min(d, Z) + k₂ × max(0, d − Z))
 
 </div>
 
-## Concerns, variations, open questions
+## Concerns, Variations, Open Questions
 
 <div class="stub">
 
 - Semi-far pairing earns a discount: paid optionality, priced by fill risk and adverse selection
 - Manipulation economics: junk pairing is worthless, bending `M` requires standing real paired size
 - Parameters and governance: `B` declared and sticky, `F` venue-wide, `Z` and the two slopes shape the curve, `T` measured from demand
+- Volume pricing composes rather than competes: volume (like staking in the spec) can lower an account's cap `F` toward a floor. A 10bps cap might fall to 2.5bps on volume alone, but the last mile to zero is quality only. The floored cap preserves day-one competition for new makers and gives high-volume takers a legible benefit
 - Variations considered: partner-stamp grace interval, asymptotic stamps (rejected: softens the junk anchor), inside compensation (parked), partial fills
 - Open: cross-window dynamics, staking-based fee caps, thin-market `M` fallbacks
 - Some ideas: make the cap itself volume derived but let it lower down to a floor. Still retains snapshot fees as the dominant driver as fees for makers. Example, 8bps Fee Cap. Cap can lower based on volume to 2bps. Still allows new makers to compete on pricing and inventory management.
