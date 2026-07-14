@@ -1932,11 +1932,13 @@ export default function SnapshotFeesLab() {
 						key={sc.key}
 						type="button"
 						onClick={() => applyScenario(sc)}
-						style={btn(scenario === sc.key)}
+						style={{ ...btn(scenario === sc.key), flex: "1 1 auto" }}
 					>
 						{sc.title}
 					</button>
 				))}
+			</div>
+			<div style={{ display: "flex", gap: 6, margin: "6px 2px 0" }}>
 				<button
 					type="button"
 					onClick={() => setScenario(null)}

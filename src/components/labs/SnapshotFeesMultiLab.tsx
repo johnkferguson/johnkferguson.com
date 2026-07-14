@@ -2141,7 +2141,7 @@ export default function SnapshotFeesMultiLab() {
 						key={sc.key}
 						type="button"
 						onClick={() => applyScenario(sc)}
-						style={btn(scenario === sc.key)}
+						style={{ ...btn(scenario === sc.key), flex: "1 1 auto" }}
 					>
 						{sc.title}
 					</button>
@@ -2149,7 +2149,7 @@ export default function SnapshotFeesMultiLab() {
 				<button
 					type="button"
 					onClick={() => setScenario(null)}
-					style={btn(scenario === null)}
+					style={{ ...btn(scenario === null), flex: "1 1 auto" }}
 				>
 					Custom
 				</button>

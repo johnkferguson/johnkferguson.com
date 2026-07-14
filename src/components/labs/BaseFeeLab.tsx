@@ -106,6 +106,81 @@ const snap = (v: number, step: number) => Math.round(v / step) * step;
 const clamp = (v: number, lo: number, hi: number) =>
 	Math.max(lo, Math.min(hi, v));
 
+interface FeeScenario {
+	key: string;
+	title: string;
+	blurb: string;
+	params: { B: number; Z: number; F: number; slope: number; slope2: number };
+}
+
+// Calibration tour: each scenario is a full dial setting with a caption that
+// says what to notice. Selection is derived by matching the current dials, so
+// dialing back to a defined state re-highlights its button.
+const FEE_SCENARIOS: FeeScenario[] = [
+	{
+		key: "default",
+		title: "Default",
+		blurb: `The Inner Band is set to 2bps, giving a 1bps region on each side of M where the base fee is zero.
+
+The Maker Zone extends 4bps beyond the band's edge. Within it, the fee rises 0.8bps for every 1bps of additional distance, so a maker's net edge still grows by 0.2bps per bps while pricing further out.
+
+The Far Slope raises the fee 0.95bps per 1bps of distance beyond the zone. Net edge still inches upward, 0.05bps per bps, until the Fee Cap is reached at 12.2bps from M.
+
+The Fee Cap is set to 10bps: past the full-fee point, resting far costs the same as a market order, never more.`,
+		params: { B: 2, Z: 4, F: 10, slope: 0.8, slope2: 0.95 },
+	},
+	{
+		key: "flat",
+		title: "Flat Slopes",
+		blurb: `Both slopes are cut to 0.25bps of fee per 1bps of distance, the dials' floor. The band, zone, and cap stay at their [[Default]] settings.
+
+With so gentle a climb, the full fee is not reached until roughly 41bps from M, far off the chart (see the Full Fee readout). Between 2bps and 20bps out, the fee moves only about 4.5bps.
+
+The consequence: tight and wide placement pay nearly the same, so the schedule stops rewarding tight quotes. This is close to today's flat maker fee, expressed in this mechanism's terms.`,
+		params: { B: 2, Z: 4, F: 10, slope: 0.25, slope2: 0.25 },
+	},
+	{
+		key: "steep",
+		title: "Steep Slopes",
+		blurb: `Both slopes are raised above 1, to 1.1.
+
+Each 1bps of additional distance now adds 1.1bps of fee, so net edge falls by 0.1bps per bps as placement widens; the Net Edge curve slopes downward everywhere outside the band. Quoting wider is a net loss at every distance.
+
+The Fee Cap is reached at 10.1bps from M. The schedule taxes width instead of discounting it, pinning makers to the band's edge and making depth beyond it irrational.`,
+		params: { B: 2, Z: 4, F: 10, slope: 1.1, slope2: 1.1 },
+	},
+	{
+		key: "cliff",
+		title: "Cliff at the Zone Edge",
+		blurb: `The Zone Slope is cut to 0.3 while the Far Slope jumps to 2.5.
+
+Inside the zone, width is nearly free: the fee grows just 0.3bps per 1bps of distance, net edge grows 0.7bps per bps, and the entire 4bps zone costs only 1.2bps. Past the zone edge the fee sprints upward, reaching the cap at 8.5bps from M.
+
+The knee becomes a policy lever: the market discounts the working width it wants makers to use, and punishes parking liquidity beyond it.`,
+		params: { B: 2, Z: 4, F: 10, slope: 0.3, slope2: 2.5 },
+	},
+	{
+		key: "earlycap",
+		title: "Early Cap",
+		blurb: `The Fee Cap is lowered to 5bps and the Maker Zone widened to 8bps; both slopes stay at their defaults.
+
+The fee now reaches the cap at 7.3bps from M, inside the zone itself, so the Far Slope never engages. Every placement past the full-fee point prices identically: the schedule can no longer tell 8bps out from 20bps out.
+
+Set too low, the cap erases the distance signal the mechanism runs on. F protects resting orders from paying more than takers, but it has to be tuned together with the slopes and the zone.`,
+		params: { B: 2, Z: 8, F: 5, slope: 0.8, slope2: 0.95 },
+	},
+];
+
+const btn = (active: boolean) => ({
+	background: active ? C.text : C.panel2,
+	border: `1px solid ${active ? C.text : C.line}`,
+	color: active ? C.panel2 : C.dim,
+	fontSize: 11,
+	padding: "4px 10px",
+	borderRadius: 5,
+	cursor: "pointer",
+});
+
 type EdgeDrag = "band" | "zone" | "cap" | null;
 
 export default function BaseFeeLab() {
@@ -120,6 +195,55 @@ export default function BaseFeeLab() {
 	const svgRef = useRef<SVGSVGElement | null>(null);
 	const edgeDrag = useRef<EdgeDrag>(null);
 	const [grabHover, setGrabHover] = useState<EdgeDrag>(null);
+
+	// active scenario is derived, never stored: any dial state that exactly
+	// matches a defined calibration lights its button, custom otherwise
+	const dials = { B, Z, F, slope, slope2 };
+	const activeScenario = FEE_SCENARIOS.find((sc) =>
+		(Object.keys(sc.params) as (keyof FeeScenario["params"])[]).every(
+			(k) => Math.abs(sc.params[k] - dials[k]) < 1e-9,
+		),
+	);
+	const applyScenario = (sc: FeeScenario) => {
+		setB(sc.params.B);
+		setZ(sc.params.Z);
+		setF(sc.params.F);
+		setSlope(sc.params.slope);
+		setSlope2(sc.params.slope2);
+	};
+
+	// blurb markup: [[Title]] or [[Title|shown text]] renders as an inline
+	// link that selects that scenario
+	const renderBlurb = (text: string) => {
+		const parts = text.split(/\[\[([^\]]+)\]\]/g);
+		return parts.map((part, i) => {
+			if (i % 2 === 0) return part;
+			const [ref, shown] = part.split("|");
+			const target = FEE_SCENARIOS.find((sc) => sc.title === ref.trim());
+			const labelText = (shown ?? ref).trim();
+			if (!target) return labelText;
+			return (
+				<button
+					key={i}
+					type="button"
+					onClick={() => applyScenario(target)}
+					style={{
+						background: "none",
+						border: "none",
+						padding: 0,
+						font: "inherit",
+						color: C.text,
+						textDecoration: "underline",
+						textDecorationStyle: "dotted",
+						textUnderlineOffset: 3,
+						cursor: "pointer",
+					}}
+				>
+					{labelText}
+				</button>
+			);
+		});
+	};
 
 	// bracketed stamp: the first Z bps at k₁, the excess at k₂, capped at F
 	const feeAt = (d: number) => {
@@ -219,8 +343,11 @@ export default function BaseFeeLab() {
 
 	// the schedule, live: one row per 0.5bps of distance from M. The pointer
 	// drives the highlighted row; colored rules mark the region boundaries.
+	// The table always covers the chart's 30bps and keeps going when the
+	// full-fee point lands beyond it, so the cap row is always in reach.
+	const tableMax = Math.max(DMAX, Math.ceil(dFull) + 2);
 	const schedRows: number[] = [];
-	for (let d = 0; d <= DMAX + 0.001; d += 0.5) schedRows.push(d);
+	for (let d = 0; d <= tableMax + 0.001; d += 0.5) schedRows.push(d);
 	const hoverRow = hover != null ? Math.round(hover * 2) / 2 : null;
 	const sepColor = (d: number, next: number | undefined): string | null => {
 		if (next == null) return null;
@@ -656,8 +783,10 @@ export default function BaseFeeLab() {
 								style={{ stroke: C.fee, transition: "all 120ms" }}
 							/>
 
-							{/* hover crosshair: tracks the pointer, reads the schedule */}
+							{/* hover crosshair: tracks the pointer, reads the schedule.
+							    Skipped for table rows past the chart's 30bps range. */}
 							{hover != null &&
+								hover <= DMAX + 1e-9 &&
 								(() => {
 									const hf = feeAt(hover);
 									const hn = hover - hf;
@@ -964,6 +1093,52 @@ export default function BaseFeeLab() {
 						</div>
 					</div>
 				</div>
+			</div>
+
+			{/* scenarios — the calibration tour */}
+			<div
+				style={{
+					display: "flex",
+					gap: 6,
+					flexWrap: "wrap",
+					margin: "10px 2px 0",
+				}}
+			>
+				{FEE_SCENARIOS.map((sc) => (
+					<button
+						key={sc.key}
+						type="button"
+						onClick={() => applyScenario(sc)}
+						style={{ ...btn(activeScenario?.key === sc.key), flex: "1 1 auto" }}
+					>
+						{sc.title}
+					</button>
+				))}
+				<button
+					type="button"
+					style={{ ...btn(!activeScenario), flex: "1 1 auto" }}
+				>
+					Custom
+				</button>
+			</div>
+			<div
+				style={{
+					background: C.panel,
+					border: `1px solid ${C.line}`,
+					borderRadius: 8,
+					padding: "10px 14px",
+					margin: "8px 0 0",
+					fontSize: 14,
+					lineHeight: 1.6,
+					color: C.dim,
+					whiteSpace: "pre-line",
+				}}
+			>
+				{renderBlurb(
+					activeScenario
+						? activeScenario.blurb
+						: "Custom calibration, yours to shape. Drag the edges or dials freely; pick a scenario to return to a defined state.",
+				)}
 			</div>
 		</div>
 	);
