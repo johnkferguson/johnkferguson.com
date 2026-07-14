@@ -1,6 +1,7 @@
 ---
 // Page shell only: layout, width, TOC rail, article styling. The article
 // itself (prose, headings, labs) lives in src/content/labs/snapshot-fees.mdx.
+import "katex/dist/katex.min.css";
 import TableOfContents from "../../components/TableOfContents.astro";
 import Article from "../../content/labs/snapshot-fees.mdx";
 import BaseLayout from "../../layouts/BaseLayout.astro";
@@ -34,5 +35,19 @@ import BaseLayout from "../../layouts/BaseLayout.astro";
 
 	article :global(h2) {
 		margin-top: 2.4rem;
+	}
+
+	article :global(.katex-display) {
+		margin: 1.5rem 0;
+		padding: 0.9rem 1rem;
+		background: var(--code-background);
+		border: 1px solid var(--border-color);
+		border-radius: 6px;
+		overflow-x: auto;
+	}
+
+	/* KaTeX default is 1.21em; nudge up slightly at body size */
+	article :global(.katex-display .katex) {
+		font-size: 1.25em;
 	}
 </style>

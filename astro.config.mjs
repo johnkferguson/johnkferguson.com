@@ -7,6 +7,8 @@ import sitemap from "@astrojs/sitemap";
 import tailwindcss from "@tailwindcss/vite";
 import { defineConfig } from "astro/config";
 import rehypeExternalLinks from "rehype-external-links";
+import rehypeKatex from "rehype-katex";
+import remarkMath from "remark-math";
 
 export default defineConfig({
 	site: "https://johnkferguson.com",
@@ -36,11 +38,13 @@ export default defineConfig({
 	markdown: {
 		processor: unified(),
 		syntaxHighlight: false,
+		remarkPlugins: [remarkMath],
 		rehypePlugins: [
 			[
 				rehypeExternalLinks,
 				{ target: "_blank", rel: ["noopener", "noreferrer"] },
 			],
+			rehypeKatex,
 		],
 	},
 });
