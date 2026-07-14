@@ -101,7 +101,7 @@ directly:
 > market order pays. Liquidity standing on both sides pays less. Liquidity
 > standing on both sides, close to the mid, pays the least.
 
-That is the entire mechanism of Snapshot Fees: re-computed per auction and deterministically derived from its sealed state.
+That is the entire mechanism of _Snapshot Fees_: re-computed per auction and deterministically derived from its sealed state.
 
 This has the potential to unlock several key benefits:
 
@@ -122,31 +122,70 @@ The rest of this piece builds out _Snapshot Fees_ one layer at a time, with a pl
 lab at each step: the price of placement for a single order, then a full
 one-maker book, then the market-wide version.
 
-## The Base Fee: Pricing Distance from the Mark
+## The Base Fee
 
-The base fee prices a single order by one measure: how far it stands from the
-market's Mark Price: `M`.
+For liquidity nearest the mid to pay the least, distance from the mid has to
+carry a price. The base fee is the first leg of that price: it sets the
+lowest rate a resting order can be charged given its distance from the market's midpoint, referred to as the mark price,
+`M`, which is calculated from the sealed book. Whether an order
+actually gets that rate is the rest of the mechanism's job.
 
-- `M`: the Mark price; a more accurate midpoint for the market. Liquidity standing in the inner band and Maker Zone contributes to its calculation. how comes later.
-- `B`: the Inner Band: the region `M ± B/2`, declared by the market. The base fee there is zero, so `d` starts counting at the band edge, `B/2` from `M`.
-- `Z`, the Maker Zone: the working radius past the band edge. Inside it, distance is priced gently.
-- `k₁`, the zone slope: fee per bps of distance inside the zone.
-- `k₂`, the far slope: takes over past the zone edge and runs the fee to
-  the cap.
-- `F`, the fee cap: the taker rate. No resting order ever pays more than a taker.
+The schedule around the mark takes a simple shape. Nearest to `M` sits a band
+with a fee level of its own, zero in everything this piece shows. Beyond the
+band's edge the fee grows with distance, at rates the market configures; under the
+default calibration used here it grows gently through the zone where makers do much of their
+everyday quoting, then more steeply past it. The fee never exceeds the
+cap, which is the cap the rule referred to: `F`, the same rate a market order
+pays. No resting order is ever charged more than a taker.
 
-```
-d = bps beyond the band edge (0 if inside the band)
+Making that shape precise takes seven values, of three kinds.
 
-base fee(d) = min(F, k₁ × min(d, Z) + k₂ × max(0, d − Z))
-```
+The first value is dynamic and recomputed every window:
 
-<div class="stub">
+- `M`, the Mark Price: the market's midpoint, calculated from the sealed book.
+  Its exact formula is covered in
+  [The Mark Is Communal](#the-mark-is-communal) section below.
 
-- Net edge: distance earns 1:1 while the schedule takes its slope per bps; `k₁` below 1 keeps width profitable
-- Full-fee point: once the fee reaches `F`, the schedule stops caring
+The market's configuration settings, fixed from window to window, though the
+regions they define all sit relative to `M`:
 
-</div>
+- `B`, the Inner Band: the region `M ± B/2`, declared by the market. The base
+  fee there is zero throughout this piece.
+- `Z`, the Maker Zone: the working radius past the band edge.
+- `k₁`, the Zone Slope: fee per bps of distance inside the zone.
+- `k₂`, the Far Slope: takes over past the zone edge and runs the fee to the
+  cap.
+- `F`, the Fee Cap: the taker rate. No resting order ever pays more than a
+  taker.
+
+And the one value belonging to the order being priced:
+
+- `d`: an order's distance, in bps, beyond the band edge. It starts counting
+  at `B/2` from `M`, and inside the band it is zero. The fee is a function of
+  `d` and nothing else.
+
+Put together, the base fee for a single order is:
+
+$$
+\text{base fee}(d) = \min\bigl(F,\; k_1 \cdot \min(d, Z) + k_2 \cdot \max(0,\, d - Z)\bigr)
+$$
+
+Read left to right: distance inside the zone is charged at `k₁`, distance
+beyond it at `k₂`, and the total is clipped at `F`. Inside the band, `d` is
+zero, so the fee is zero.
+
+Alongside the fee, the lab below plots a second curve: the net edge, an
+order's distance from the mark minus the fee charged at that distance.
+
+An order's distance can be viewed as roughly the edge it is asking for: if it fills, it earns that many bps of price improvement
+relative to `M`. The net edge is what that improvement is worth once the
+schedule takes its share. This is an
+approximation, not a profit model; it ignores fill probability, adverse
+selection, and inventory, all of which matter more. But it is the right lens
+for seeing what the schedule rewards. With `k₁` below 1, a wider quote still
+nets more edge per fill, just less per bps. And once the fee reaches `F`,
+the schedule stops caring about distance entirely: past that point, every
+placement is priced like a market order.
 
 <div class="labwrap">
   <BaseFeeLab client:visible />
@@ -233,6 +272,7 @@ base fee(d) = min(F, k₁ × min(d, Z) + k₂ × max(0, d − Z))
 - Parameters and governance: `B` declared and sticky, `F` venue-wide, `Z` and the two slopes shape the curve, `T` measured from demand
 - Volume pricing composes rather than competes: volume (like staking in the spec) can lower an account's cap `F` toward a floor. A 10bps cap might fall to 2.5bps on volume alone, but the last mile to zero is quality only. The floored cap preserves day-one competition for new makers and gives high-volume takers a legible benefit
 - Variations considered: partner-stamp grace interval, asymptotic stamps (rejected: softens the junk anchor), inside compensation (parked), partial fills
+- Band fee level as a parameter: add an intercept `c` to the base fee, `min(F, c + k₁·min(d, Z) + k₂·max(0, d − Z))`; the band pays exactly `c`, and the piece's design is the special case `c = 0`. Negative `c` is a rebate for the tightest quotes. It leaks smoothly past the band edge (fee crosses zero at `d = −c/k₁`), needs `c > −F` so a self-cross costs `F + c > 0` (the taker cap bounds the rebate against wash trading), and reopens the standard maker-rebate manipulation literature that `c = 0` dismisses in one sentence
 - Open: cross-window dynamics, staking-based fee caps, thin-market `M` fallbacks
 - Some ideas: make the cap itself volume derived but let it lower down to a floor. Still retains snapshot fees as the dominant driver as fees for makers. Example, 8bps Fee Cap. Cap can lower based on volume to 2bps. Still allows new makers to compete on pricing and inventory management.
 - Need to show the O complexity of what it costs to derive the Mark and the fee schedule per window. It's worthwhile to show how much it costs computationally.
