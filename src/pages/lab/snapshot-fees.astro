@@ -39,6 +39,15 @@ import BaseLayout from "../../layouts/BaseLayout.astro";
 		margin-top: 2.4rem;
 	}
 
+	/* inline math ($x_i$) dressed like a code span: prose-sized, code color */
+	article :global(.katex) {
+		font-size: 1em;
+		color: var(--code-color);
+		background-color: var(--code-background);
+		padding: 0 0.25rem;
+		border-radius: 4px;
+	}
+
 	article :global(.katex-display) {
 		margin: 1.5rem 0;
 		padding: 0.9rem 1rem;
@@ -48,8 +57,13 @@ import BaseLayout from "../../layouts/BaseLayout.astro";
 		overflow-x: auto;
 	}
 
-	/* KaTeX default is 1.21em; nudge up slightly at body size */
+	/* KaTeX default is 1.21em; nudge up slightly at body size. Also undo
+	   the inline code-span dressing inside display blocks. */
 	article :global(.katex-display .katex) {
 		font-size: 1.25em;
+		color: inherit;
+		background-color: transparent;
+		padding: 0;
+		border-radius: 0;
 	}
 </style>

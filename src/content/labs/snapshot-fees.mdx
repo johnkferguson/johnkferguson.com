@@ -127,42 +127,42 @@ one-maker book, then the market-wide version.
 For liquidity nearest the mid to pay the least, distance from the mid has to
 carry a price. The base fee is the first leg of that price: it sets the
 lowest rate a resting order can be charged given its distance from the market's midpoint, referred to as the mark price,
-`M`, which is calculated from the sealed book. Whether an order
+$M$, which is calculated from the sealed book. Whether an order
 actually gets that rate is the rest of the mechanism's job.
 
-The schedule around the mark takes a simple shape. Nearest to `M` sits a band
+The schedule around the mark takes a simple shape. Nearest to $M$ sits a band
 with a fee level of its own, zero in everything this piece shows. Beyond the
 band's edge the fee grows with distance, at rates the market configures; under the
 default calibration used here it grows gently through the zone where makers do much of their
 everyday quoting, then more steeply past it. The fee never exceeds the
-cap, which is the cap the rule referred to: `F`, the same rate a market order
+cap, which is the cap the rule referred to: $F$, the same rate a market order
 pays. No resting order is ever charged more than a taker.
 
 Making that shape precise takes seven values, of three kinds.
 
 The first value is dynamic and recomputed every window:
 
-- `M`, the Mark Price: the market's midpoint, calculated from the sealed book.
-  Its exact formula is covered in
-  [The Mark Is Communal](#the-mark-is-communal) section below.
+- $M$, the Mark Price: the market's midpoint, calculated from the sealed book.
+  Its formula is introduced in [Paired Liquidity](#paired-liquidity) below,
+  and the sections after it refine how the measurement works.
 
 The market's configuration settings, fixed from window to window, though the
-regions they define all sit relative to `M`:
+regions they define all sit relative to $M$:
 
-- `B`, the Inner Band: the region `M ± B/2`, declared by the market. The base
+- $B$, the Inner Band: the region $M \pm B/2$, declared by the market. The base
   fee there is zero throughout this piece.
-- `Z`, the Maker Zone: the working radius past the band edge.
-- `k₁`, the Zone Slope: fee per bps of distance inside the zone.
-- `k₂`, the Far Slope: takes over past the zone edge and runs the fee to the
+- $Z$, the Maker Zone: the working radius past the band edge.
+- $k_1$, the Zone Slope: fee per bps of distance inside the zone.
+- $k_2$, the Far Slope: takes over past the zone edge and runs the fee to the
   cap.
-- `F`, the Fee Cap: the taker rate. No resting order ever pays more than a
+- $F$, the Fee Cap: the taker rate. No resting order ever pays more than a
   taker.
 
 And the one value belonging to the order being priced:
 
-- `d`: an order's distance, in bps, beyond the band edge. It starts counting
-  at `B/2` from `M`, and inside the band it is zero. The fee is a function of
-  `d` and nothing else.
+- $d$: an order's distance, in bps, beyond the band edge. It starts counting
+  at $B/2$ from $M$, and inside the band it is zero. The fee is a function of
+  $d$ and nothing else.
 
 Put together, the base fee for a single order is:
 
@@ -170,20 +170,20 @@ $$
 \text{base fee}(d) = \min\bigl(F,\; k_1 \cdot \min(d, Z) + k_2 \cdot \max(0,\, d - Z)\bigr)
 $$
 
-Read left to right: distance inside the zone is charged at `k₁`, distance
-beyond it at `k₂`, and the total is clipped at `F`. Inside the band, `d` is
+Read left to right: distance inside the zone is charged at $k_1$, distance
+beyond it at $k_2$, and the total is clipped at $F$. Inside the band, $d$ is
 zero, so the fee is zero.
 
 Alongside the fee, the lab below plots a second curve: the net edge, an
 order's distance from the mark minus the fee charged at that distance.
 
 An order's distance can be viewed as roughly the edge it is asking for: if it fills, it earns that many bps of price improvement
-relative to `M`. The net edge is what that improvement is worth once the
+relative to $M$. The net edge is what that improvement is worth once the
 schedule takes its share. This is an
 approximation, not a profit model; it ignores fill probability, adverse
 selection, and inventory, all of which matter more. But it is the right lens
-for seeing what the schedule rewards. With `k₁` below 1, a wider quote still
-nets more edge per fill, just less per bps. And once the fee reaches `F`,
+for seeing what the schedule rewards. With $k_1$ below 1, a wider quote still
+nets more edge per fill, just less per bps. And once the fee reaches $F$,
 the schedule stops caring about distance entirely: past that point, every
 placement is priced like a market order.
 
@@ -191,18 +191,86 @@ placement is priced like a market order.
   <BaseFeeLab client:visible />
 </div>
 
-## One Maker, Two Sides
+## Paired Liquidity
 
-<div class="stub">
+The base fee sets the rate an order can get. The rule's first line says which
+orders cannot get it: liquidity standing on one side of the book pays the
+cap. The reasoning: a bid with nothing resting behind it on the ask side
+demands the same one-way trade a market order demands, just on a slower
+clock. It is a patient taker, and the mechanism prices it like the taker it
+is.
 
-- Introduce the vocabulary here, mechanically: directional/non-directional; a one-sided resting order is a patient taker (it demands the same one-way trade a market order demands, just on a slower clock); unpaired liquidity is directional wherever it sits
-- Introduce `M`: the mark price, measured at size by walking `T` dollars into each side
-- Pairing: your own opposite side stands behind your fills
-- Worse leg per dollar; whatever has no liquidity paired against it is directional and pays `F`
-- Read a fee receipt: base fee, surcharges per pair, total, net edge
-- Scenario tour: balanced ladder, directional maker, the moving mark, spillover
+The distinction gets two names. Liquidity is directional when it stands
+alone, asking the market to move one way. It is paired when dollars on one
+side have dollars on the other standing behind them: a literal, same-instant
+commitment to trade either way, which is the job the word maker has always
+described. The mechanism never asks who placed an order or what they
+intended; it reads pairing, like distance, from the sealed book.
 
-</div>
+Pairing is judged around the mark, so the mark comes first. The obvious
+candidate is the midpoint of the best bid and best ask, but the touch is the
+cheapest thing in the book to move: a few dollars parked ahead of the real
+depth set a new best price, and the midpoint follows. A reference point that
+fees hang on cannot be draggable by dust. So the mark is measured at size
+instead. $T$, the market's typical trade, sets the probe (how $T$ itself can
+be derived from the market's own activity, rather than set by hand, comes
+later): walk $T$ dollars into the bids, best prices first, and take the
+volume-weighted average of everything the walk consumed. That is the bid-side
+impact price, the price a seller of $T$ dollars would actually receive. The
+ask side gives its mirror, and the mark is their midpoint:
+
+$$
+M = \frac{\text{impactBid}(T) + \text{impactAsk}(T)}{2}
+$$
+
+Under the walk, the dust play fails. A penny-thin quote barely carries a walk
+of $T$ dollars, so it barely moves $M$; only real size near the mid pulls the
+measurement.
+
+Two restrictions sharpen what the walk may read. It sees only paired dollars:
+one-sided liquidity has a stake in which way the price moves, and a reference
+built to be neutral cannot let interested parties vote, so pairing decides
+voice exactly as it decides fees. And it reaches only over the schedule's
+working width, $Z + B/2$ past each side's best quote: if paired depth runs
+out before $T$ dollars, the missing dollars are priced at that boundary, and
+size parked beyond it is invisible to the measurement. The next section makes
+the walk communal, measuring every account's book at once. The formula does
+not change.
+
+With $M$ in hand, pairing is mechanical. Dollars on your bid pair against
+dollars on your ask, best-priced first, until the smaller side runs out. Each
+paired dollar pays the worse of its two legs' stamps, the base fee at the
+bid's distance or at the ask's, whichever is higher: you are only as
+non-directional as your weaker leg, and a tight bid cannot borrow a better
+rate than the far ask standing behind it. Every dollar the pairing cannot
+reach is directional and pays the cap $F$, exactly what a market order pays.
+
+Every resting dollar now carries its own rate: a paired dollar pays the worse
+of its two legs' stamps, an unpaired dollar pays $F$, and either is charged
+only when that dollar actually trades. The question a maker actually asks is
+priced order by order: this liquidity, at this price, at this size, what does
+it pay? An order's dollars pair off best-first into slices against the
+opposite side, and its rate is the sum of what the slices pay:
+
+$$
+\text{order fee} = \frac{\sum_{\text{slices}} q_i \cdot \max(s,\, s_i) \;+\; u \cdot F}{q}
+$$
+
+where $q$ is the order's size, $s$ is its own base-fee stamp, $q_i$ is the
+slice of it paired against an opposite-side level with stamp $s_i$, and $u$
+is whatever is left unpaired. Nothing new enters here; it is the base fee and
+the pairing rule, summed. This is the number the lab prints on every level's
+receipt, and it answers the practical questions directly: move the order
+closer and $s$ falls; grow it past what the other side can pair and $u$
+starts paying $F$.
+
+The lab below prices a single maker's book this way and prints the receipt:
+each level's stamp, what it paired against, the rate each pairing actually
+pays, and the level's resulting total. The scenario tabs walk the story in order: a
+balanced ladder where everything pairs and only placement is charged, a
+directional book where pairing runs out on the way to the edge, a thin side
+that drags the mark itself, and spillover between levels. Drag any bar and
+the receipt re-prices.
 
 <div class="labwrap">
   <SnapshotFeesLab client:visible />
@@ -212,12 +280,12 @@ placement is priced like a market order.
 
 <div class="stub">
 
-- In a real market `M` is measured from everyone's book at once
+- In a real market $M$ is measured from everyone's book at once
 - Eligibility: only demonstrated two-sided size near the touch gets a vote
 - Your voice is your share of the measuring walk
-- Confident non-directionality toward the mid is a vote for `M`, and tighter quoting carries more weight
+- Confident non-directionality toward the mid is a vote for $M$, and tighter quoting carries more weight
 - Your fees come from your book, but judged against a yardstick you only partly control
-- Needs its own beat: what happens when there is not enough stock to compute `M`
+- Needs its own beat: what happens when there is not enough stock to compute $M$
 
 </div>
 
@@ -228,7 +296,7 @@ placement is priced like a market order.
 - You against the aggregate makers, mirrored
 - Lessons: small fish, equal voice, the makers lean and re-price your resting book
 - Try to bend it: one-sided walls have no vote; the only way to fake the metric is to do the job
-- Press play: watch `M` drift while your book stands still
+- Press play: watch $M$ drift while your book stands still
 
 </div>
 
@@ -240,7 +308,7 @@ placement is priced like a market order.
 
 <div class="stub">
 
-- The pipeline: eligibility, walk, `M`, band, stamps, pairing, worse-of
+- The pipeline: eligibility, walk, $M$, band, stamps, pairing, worse-of
 - The one-line fee: `(Σ paired × max(own, partner) + directional × F) / size`
 - Reference computation anyone can recompute from the published window
 - Placement TBD: this section may move earlier, before or beside the labs
@@ -268,15 +336,19 @@ placement is priced like a market order.
 <div class="stub">
 
 - Semi-far pairing earns a discount: paid optionality, priced by fill risk and adverse selection
-- Manipulation economics: junk pairing is worthless, bending `M` requires standing real paired size
-- Parameters and governance: `B` declared and sticky, `F` venue-wide, `Z` and the two slopes shape the curve, `T` measured from demand
-- Volume pricing composes rather than competes: volume (like staking in the spec) can lower an account's cap `F` toward a floor. A 10bps cap might fall to 2.5bps on volume alone, but the last mile to zero is quality only. The floored cap preserves day-one competition for new makers and gives high-volume takers a legible benefit
+- Manipulation economics: junk pairing is worthless, bending $M$ requires standing real paired size
+- Parameters and governance: $B$ declared and sticky, $F$ venue-wide, $Z$ and the two slopes shape the curve, $T$ measured from demand
+- Volume pricing composes rather than competes: volume (like staking in the spec) can lower an account's cap $F$ toward a floor. A 10bps cap might fall to 2.5bps on volume alone, but the last mile to zero is quality only. The floored cap preserves day-one competition for new makers and gives high-volume takers a legible benefit
 - Variations considered: partner-stamp grace interval, asymptotic stamps (rejected: softens the junk anchor), inside compensation (parked), partial fills
-- Band fee level as a parameter: add an intercept `c` to the base fee, `min(F, c + k₁·min(d, Z) + k₂·max(0, d − Z))`; the band pays exactly `c`, and the piece's design is the special case `c = 0`. Negative `c` is a rebate for the tightest quotes. It leaks smoothly past the band edge (fee crosses zero at `d = −c/k₁`), needs `c > −F` so a self-cross costs `F + c > 0` (the taker cap bounds the rebate against wash trading), and reopens the standard maker-rebate manipulation literature that `c = 0` dismisses in one sentence
-- Open: cross-window dynamics, staking-based fee caps, thin-market `M` fallbacks
+- Band fee level as a parameter: add an intercept $c$ to the base fee, $\min(F,\ c + k_1 \cdot \min(d, Z) + k_2 \cdot \max(0,\ d - Z))$; the band pays exactly $c$, and the piece's design is the special case $c = 0$. Negative $c$ is a rebate for the tightest quotes. It leaks smoothly past the band edge (fee crosses zero at $d = -c/k_1$), needs $c > -F$ so a self-cross costs $F + c > 0$ (the taker cap bounds the rebate against wash trading), and reopens the standard maker-rebate manipulation literature that $c = 0$ dismisses in one sentence
+- Open: cross-window dynamics, staking-based fee caps, thin-market $M$ fallbacks
 - Some ideas: make the cap itself volume derived but let it lower down to a floor. Still retains snapshot fees as the dominant driver as fees for makers. Example, 8bps Fee Cap. Cap can lower based on volume to 2bps. Still allows new makers to compete on pricing and inventory management.
 - Need to show the O complexity of what it costs to derive the Mark and the fee schedule per window. It's worthwhile to show how much it costs computationally.
 - Need a section to walk through/show dynamically deriving T over time.
+- The dynamically calibrated market (likely its own late section, "Calibrating the Market" / "Market Profiles", holding the dynamic-$T$ walkthrough too). The cadence ladder: every parameter changes at the slowest cadence that keeps it honest — $M$ per window (it is the measurement), $T$ daily (a statistic needs a sample; one window must never move the yardstick that prices it), $B$/$Z$/$k_1$/$k_2$ on a ~30-day lookback in discrete steps, $F$ slowest as venue policy
+- Market profiles: instead of infinite parameter permutations, 3–5 vetted coherent bundles (the parameters interact: full fee at $B/2 + Z + (F - k_1 Z)/k_2$), expected to correlate with volume and volatility. Anchor for the selector: $B$ should cover noise, not signal — e.g. a quantile of window-to-window $M$ drift; high volatility → wider band, gentler slopes (width there is insurance, not laziness); deep high-volume markets → tight band, stricter precision pricing. Shared profiles also pool statistics across the long tail instead of overfitting thin markets
+- Profiles shift like gears, not fluid drift: legibility (makers precompute economics per profile once), hysteresis (two thresholds so a boundary market never gear-hunts), and manipulation resistance (moving a parameter requires sustaining a 30-day distortion — the mark's "only way to fake it is to do the job" defense at a longer timescale). Selection can run off-chain, but its inputs and rule are published so anyone can verify the current gear; shifts announced with a notice period
+- Transition cost owed to the reader: a gear shift reprices resting books mid-flight (cheap stamps under old $B$ may stamp expensive under the new); scheduled transition windows, possibly one window of grandfathering
 - May want a section showing how an order actually fills and what fees are paid, potentially comparing FBA to DFBA.
 
 </div>

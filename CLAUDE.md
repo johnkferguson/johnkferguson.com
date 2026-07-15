@@ -33,6 +33,7 @@ When previewing changes locally, prefer `bun run dev` over `build + preview` —
 - Content Collections with `glob()` loader for posts
 - Preact with `compat: true` — components can import from `"react"` (aliased in vite and tsconfig paths); write labs as React-style TSX
 - Markdown pinned to the remark/rehype pipeline (`processor: unified()`) and `compressHTML: true` — Astro 7 changed both defaults (Sätteri, jsx whitespace); keep pinned unless output is re-verified
+- Math via remark-math + rehype-katex (build-time, no client JS; KaTeX CSS imported per page that needs it). Prose convention: formula variables are ALWAYS inline math (`$M$`, `$k_1$`, `$q_i$`, `$M \pm B/2$`), which page CSS dresses like a code span (prose-sized, code color/background); backticks are reserved for actual code; standalone formulas use `$$ ... $$` display blocks
 - `syntaxHighlight: false` in astro.config.mjs (plain code blocks, no Shiki)
 - Fonts via `@fontsource/pt-serif` and `@fontsource/fira-code` (self-hosted)
 - Tailwind `--default-font-family` overridden to PT Serif in `@theme` block
