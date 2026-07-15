@@ -754,34 +754,6 @@ export default function SnapshotFeesMultiLab() {
 
 	return (
 		<div class="sf-lab" style={{ color: C.text }}>
-			{/* header */}
-			<div
-				style={{
-					display: "flex",
-					justifyContent: "space-between",
-					alignItems: "baseline",
-					flexWrap: "wrap",
-					gap: 8,
-					marginBottom: 10,
-				}}
-			>
-				<div>
-					<div style={{ ...label, color: C.fee }}>
-						Liquidity Standard · multi-maker lab
-					</div>
-					<div
-						style={{
-							fontFamily: mono,
-							fontSize: 20,
-							fontWeight: 600,
-							marginTop: 2,
-						}}
-					>
-						The Communal Mark
-					</div>
-				</div>
-			</div>
-
 			{/* chart panel */}
 			<div
 				style={{
