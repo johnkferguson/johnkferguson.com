@@ -107,19 +107,21 @@ describe("Mark pipeline: eligibility, two passes, boundary fill", () => {
 			100,
 		);
 		// eligible bids best-first: 3k @ 99.99 + 1k @ 99.97; missing $1k at
-		// the window edge 99.99 − 20bps = 99.79 (asks mirrored at 100.21)
-		expect(m.iBid).toBeCloseTo(99.946, 10);
-		expect(m.iAsk).toBeCloseTo(100.054, 10);
+		// the window edge 99.99 − (Z + B/2) = 99.99 − 22bps = 99.77 (asks
+		// mirrored at 100.23)
+		expect(m.iBid).toBeCloseTo(99.942, 10);
+		expect(m.iAsk).toBeCloseTo(100.058, 10);
 		expect(m.M).toBeCloseTo(100.0, 10);
 		expect(m.shortBid?.missing).toBeCloseTo(1000, 6);
-		expect(m.shortBid?.price).toBeCloseTo(99.79, 10);
+		expect(m.shortBid?.price).toBeCloseTo(99.77, 10);
 		expect(m.shortAsk?.missing).toBeCloseTo(1000, 6);
-		expect(m.shortAsk?.price).toBeCloseTo(100.21, 10);
+		expect(m.shortAsk?.price).toBeCloseTo(100.23, 10);
 	});
 
 	test("symmetric shortage: M unmoved, thinness recorded in the impact spread", () => {
 		// Spec vector 3: $10k per side against T=$20k. Half of each walk is
-		// boundary fill; M stays put and the impact spread balloons to 22bps.
+		// boundary fill at anchor ± 22bps; M stays put and the impact spread
+		// balloons to 24bps.
 		const m = computeModel(
 			[
 				{ i: 0, price: 99.99, side: "bid", size: 10000 },
@@ -128,10 +130,10 @@ describe("Mark pipeline: eligibility, two passes, boundary fill", () => {
 			{ ...P, T: 20000 },
 			100,
 		);
-		expect(m.iBid).toBeCloseTo(99.89, 10);
-		expect(m.iAsk).toBeCloseTo(100.11, 10);
+		expect(m.iBid).toBeCloseTo(99.88, 10);
+		expect(m.iAsk).toBeCloseTo(100.12, 10);
 		expect(m.M).toBeCloseTo(100.0, 10);
-		expect((m.impactSpread ?? 0) / BP).toBeCloseTo(22, 8);
+		expect((m.impactSpread ?? 0) / BP).toBeCloseTo(24, 8);
 	});
 
 	test("boundary fill is an interpolator: M = c·walkedMid + (1−c)·anchorMid, Z cancels", () => {
@@ -381,14 +383,14 @@ describe("multi-maker Mark", () => {
 		expect(m.eligible.get("you")?.size ?? 0).toBe(0);
 		expect(m.shareBid.get("you")).toBe(0);
 		// the $1k eligible book walks first; the missing $19k boundary-fills
-		// at the window edge (99.995 − 8bps and 100.005 + 8bps)
-		expect(m.iBid).toBeCloseTo((1000 * 99.995 + 19000 * 99.915) / 20000, 10);
+		// at the window edge, Z + B/2 = 9bps out (99.905 and 100.095)
+		expect(m.iBid).toBeCloseTo((1000 * 99.995 + 19000 * 99.905) / 20000, 10);
 		expect(m.M).toBeCloseTo(100.0, 10);
 		// the thermometer reads the thinness that M's location does not
-		expect((m.impactSpread ?? 0) / BP).toBeCloseTo(16.2, 8);
+		expect((m.impactSpread ?? 0) / BP).toBeCloseTo(18.1, 8);
 	});
 
-	test("size beyond W of the side's anchor has no vote and burns no overlap", () => {
+	test("size beyond the reach (Z + B/2) of the side's anchor has no vote and burns no overlap", () => {
 		const m = computeMark(
 			[
 				you([

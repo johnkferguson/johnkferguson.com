@@ -32,9 +32,10 @@ export interface FeeParams {
 	/** Fee cap / taker rate, in bps. */
 	F: number;
 	/**
-	 * Maker Zone Z — absolute working radius, in bps. Governs the Mark's
-	 * eligibility range, walk truncation, boundary-fill price, and the
-	 * stamp knee. Validity: Z ≥ B.
+	 * Maker Zone Z — working radius past the band edge, in bps. The stamp
+	 * knee sits Z beyond the band edge; the Mark's eligibility range, walk
+	 * truncation, and boundary-fill price all reach Z + B/2 from the
+	 * anchors, so both layers cover the same working width (span B + 2Z).
 	 */
 	Z: number;
 	/** Stamp slope k₁ — fee bps per bp beyond the band edge, inside the zone. */
@@ -213,7 +214,7 @@ export interface MakerBook {
 export interface MarkShort {
 	/** Dollars the walk could not source from eligible size. */
 	missing: number;
-	/** Where those dollars were priced: the side's anchor ± Z. */
+	/** Where those dollars were priced: the side's anchor ± (Z + B/2). */
 	price: number;
 }
 
@@ -241,8 +242,9 @@ export interface MultiMark {
 /**
  * The Mark. Only paired (demonstrated two-sided) size votes: per account
  * and side, quotes count up to the account's overlap — min(in-range bid $,
- * in-range ask $) — allocated best-first, where in range means within Z of
- * that side's anchor.
+ * in-range ask $) — allocated best-first, where in range means within
+ * Z + B/2 of that side's anchor (the same working width the fee schedule
+ * discounts, total span B + 2Z).
  *
  * Anchoring is exactly two passes: pass 1 anchors each side at the best
  * quote among raw two-sided accounts (any paired size, no range condition);
@@ -252,7 +254,7 @@ export interface MultiMark {
  *
  * The T-walk consumes the pooled eligible ladder best-first, pro-rata across
  * accounts at equal prices; if the ladder holds less than T, the missing
- * dollars are priced at the anchor ± Z (boundary fill). Because every
+ * dollars are priced at the anchor ± (Z + B/2) (boundary fill). Because every
  * account's eligible size is equal on both sides by construction, the
  * eligible book is dollar-symmetric: shortfalls are always equal, so raw
  * size imbalance never tilts M. Boundary fill only interpolates —
@@ -265,8 +267,12 @@ export function computeMark(
 	fallbackM: number,
 ): MultiMark {
 	const { B, T, Z } = p;
-	const zD = Z * BP;
 	const half = (B / 2) * BP;
+	// The measurement reach: Z past the band's half-width, per side, so the
+	// mark reads over exactly the working width the fee schedule discounts
+	// (total span B + 2Z). Quote-anchored: measured from the anchors, never
+	// from M or the band.
+	const reachD = (Z + B / 2) * BP;
 
 	const mapBy = <V>(mk: () => V): Map<string, V> => {
 		const m = new Map<string, V>();
@@ -324,13 +330,17 @@ export function computeMark(
 			const bids = b.levels
 				.filter(
 					(l) =>
-						l.side === "bid" && l.size > 0 && anchorBid - l.price <= zD + 1e-9,
+						l.side === "bid" &&
+						l.size > 0 &&
+						anchorBid - l.price <= reachD + 1e-9,
 				)
 				.sort((a, c) => c.price - a.price);
 			const asks = b.levels
 				.filter(
 					(l) =>
-						l.side === "ask" && l.size > 0 && l.price - anchorAsk <= zD + 1e-9,
+						l.side === "ask" &&
+						l.size > 0 &&
+						l.price - anchorAsk <= reachD + 1e-9,
 				)
 				.sort((a, c) => a.price - c.price);
 			const overlap = Math.min(
@@ -367,7 +377,7 @@ export function computeMark(
 	pass = eligibilityOf(a2Bid, a2Ask);
 	if (!pass.elBids.length || !pass.elAsks.length) return held();
 
-	// —— The impact walks, with boundary fill at anchor ± W ——
+	// —— The impact walks, with boundary fill at anchor ± (Z + B/2) ——
 	const used = mapBy(() => new Map<number, number>());
 	const useTotals = {
 		bid: new Map<string, number>(),
@@ -410,8 +420,8 @@ export function computeMark(
 		return { price: cost / T, walked: T - (short?.missing ?? 0), short };
 	};
 
-	const wBid = walkSide(pass.elBids, "bid", a2Bid - zD);
-	const wAsk = walkSide(pass.elAsks, "ask", a2Ask + zD);
+	const wBid = walkSide(pass.elBids, "bid", a2Bid - reachD);
+	const wAsk = walkSide(pass.elAsks, "ask", a2Ask + reachD);
 	const M = (wBid.price + wAsk.price) / 2;
 
 	const share = (tm: Map<string, number>, tot: number) => {
