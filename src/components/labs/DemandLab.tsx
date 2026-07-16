@@ -22,7 +22,7 @@ const FLOW_STEP = 1000;
 
 // dial defaults (scenario clicks reset to these)
 const SEED_DEFAULT = 10000;
-const WINSOR_DEFAULT = 10;
+const FLOOR_DEFAULT = 5000;
 const GATE_DEFAULT = 25;
 const ALPHA_DEFAULT = 0.5;
 const CLAMP_DEFAULT = 4;
@@ -87,7 +87,7 @@ const SCENARIOS: DemandScenario[] = [
 		key: "surge",
 		title: "Surge & Decay",
 		blurb:
-			"Two days of twenty-times demand in the middle of a normal run. D steps up while the surge is paying and steps back down as soon as it stops: holding D anywhere above the market's real demand requires standing that flow again every single day, against the clamp, forever.",
+			"Two days of twenty-times demand in the middle of a normal run. D steps up while the surge lasts and back down as soon as it stops: the yardstick follows what actually trades, in both directions.",
 		days: () => daysOf([10, 10, 10, 200, 200, 10, 10, 10, 10, 10]),
 		sel: 4,
 	},
@@ -95,7 +95,7 @@ const SCENARIOS: DemandScenario[] = [
 		key: "whale",
 		title: "Whale Window",
 		blurb:
-			"A normal week, except day five contains one window 250 times the clip. Winsorizing counts that window at w × D before it enters the sums, so demand at scale registers without one second dictating the yardstick. The derivation panel shows what the uncapped sensor would have read.",
+			"A normal week, except day five contains one window 250 times the clip. The sensor spikes, and the clamp does its one job: however strange a single day, it moves D by at most c×. The derivation panel shows the raw step the clamp cut down.",
 		days: () =>
 			daysOf(Array(NDAYS).fill(10), (i) => (i === 4 ? "whale" : "normal")),
 		sel: 4,
@@ -104,7 +104,7 @@ const SCENARIOS: DemandScenario[] = [
 		key: "dust",
 		title: "Dust Storm",
 		blurb:
-			"Days four through seven each add five thousand windows of $100. The sensor barely moves, because a window's weight is its own dollars: to drag the sensor down by some share, an attacker must personally be that share of the day's traded flow, paying taker fees on all of it. The derivation compares against the per-window mean, which those same windows would have collapsed.",
+			"Days four through seven each add five thousand windows of $100. The sensor barely moves, because a window's weight in the average is its own dollars, and $100 windows carry almost none. The derivation shows the per-window mean for comparison, which those same windows would have collapsed.",
 		days: () =>
 			daysOf(Array(NDAYS).fill(10), (i) =>
 				i >= 3 && i <= 6 ? "dust" : "normal",
@@ -115,7 +115,7 @@ const SCENARIOS: DemandScenario[] = [
 		key: "quiet",
 		title: "Quiet Spell",
 		blurb:
-			"Days four through eight carry too little flow to clear the gate, g × D, so D freezes: no update and no decay (the ❄ days in the ledger). A statistic needs a sample, and a dead afternoon is not one. Only activity can move D again, which is why the freeze cannot be forced on a live market by placing orders.",
+			"Days four through eight carry too little flow to clear the gate, g × D, so D freezes: no update and no decay (the ❄ days in the ledger). A statistic needs a sample, and a dead afternoon is not one. Activity resumes, and so does the measurement.",
 		days: () =>
 			daysOf(Array(NDAYS).fill(10), (i) =>
 				i >= 3 && i <= 7 ? "quiet" : "normal",
@@ -240,7 +240,7 @@ interface DragState {
 export default function DemandLab() {
 	const [days, setDays] = useState<Day[]>(SCENARIOS[0].days());
 	const [seed, setSeed] = useState(SEED_DEFAULT);
-	const [winsor, setWinsor] = useState(WINSOR_DEFAULT);
+	const [floor, setFloor] = useState(FLOOR_DEFAULT);
 	const [gate, setGate] = useState(GATE_DEFAULT);
 	const [alpha, setAlpha] = useState(ALPHA_DEFAULT);
 	const [clampMult, setClampMult] = useState(CLAMP_DEFAULT);
@@ -248,8 +248,8 @@ export default function DemandLab() {
 	const drag = useRef<DragState | null>(null);
 
 	const params: DemandParams = useMemo(
-		() => ({ seed, winsor, gate, alpha, clampMult }),
-		[seed, winsor, gate, alpha, clampMult],
+		() => ({ seed, floor, gate, alpha, clampMult }),
+		[seed, floor, gate, alpha, clampMult],
 	);
 	const rows: EpochResult[] = useMemo(
 		() => runEpochs(days.map(windowsOf), params),
@@ -259,7 +259,7 @@ export default function DemandLab() {
 
 	const dialsDefault =
 		seed === SEED_DEFAULT &&
-		winsor === WINSOR_DEFAULT &&
+		floor === FLOOR_DEFAULT &&
 		gate === GATE_DEFAULT &&
 		alpha === ALPHA_DEFAULT &&
 		clampMult === CLAMP_DEFAULT;
@@ -271,7 +271,7 @@ export default function DemandLab() {
 		setDays(sc.days());
 		setSel(sc.sel);
 		setSeed(SEED_DEFAULT);
-		setWinsor(WINSOR_DEFAULT);
+		setFloor(FLOOR_DEFAULT);
 		setGate(GATE_DEFAULT);
 		setAlpha(ALPHA_DEFAULT);
 		setClampMult(CLAMP_DEFAULT);
@@ -354,10 +354,6 @@ export default function DemandLab() {
 
 	const r = rows[sel];
 	const day = days[sel];
-	const capNote =
-		r.winsorized && day.type === "whale"
-			? { raw: 250 * day.flow, capped: winsor * r.dOpen }
-			: null;
 
 	return (
 		<div class="sf-lab" style={{ color: C.text }}>
@@ -382,17 +378,17 @@ export default function DemandLab() {
 					max={50000}
 					stp={5000}
 					fmt={fmtK}
-					hint="Declared at launch; D never falls below it."
+					hint="The launch value; constrains nothing afterward."
 				/>
 				<Param
-					name="Winsor · w"
-					val={winsor}
-					set={setWinsor}
-					min={2}
-					max={50}
-					stp={1}
-					fmt={(v) => `${v}×D`}
-					hint="One window counts at most w × D."
+					name="Floor"
+					val={floor}
+					set={setFloor}
+					min={1000}
+					max={20000}
+					stp={1000}
+					fmt={fmtK}
+					hint="D never falls below it: keeps the walk's depth meaningful."
 				/>
 				<Param
 					name="Gate · g"
@@ -602,7 +598,7 @@ export default function DemandLab() {
 					day, click the letter beneath to change the day's composition, click a
 					bar to inspect its derivation. The staircase is D itself, rebased at
 					each close; diamonds mark each day's sensor. ❄ below the gate (D
-					frozen) · ⚠ step clamped · ⚓ floored at the seed.
+					frozen) · ⚠ step clamped · ⚓ held at the floor.
 				</p>
 			</div>
 
@@ -690,15 +686,8 @@ export default function DemandLab() {
 					</span>
 				</div>
 				<div>
-					<span style={{ color: C.dim }}>1 · accumulate</span> — S1 = Σ min(v,{" "}
-					{winsor}·D) = {fmt$(r.s1)} · S2 = Σ min(v, {winsor}·D)²
-					{capNote && (
-						<span style={{ color: C.hint }}>
-							{" "}
-							· winsorized: a {fmtK(capNote.raw)} window entered as{" "}
-							{fmtK(capNote.capped)}
-						</span>
-					)}
+					<span style={{ color: C.dim }}>1 · accumulate</span> — S1 = Σ v ={" "}
+					{fmt$(r.s1)} · S2 = Σ v²
 				</div>
 				<div>
 					<span style={{ color: C.dim }}>2 · gate</span> — S1{" "}
@@ -716,13 +705,6 @@ export default function DemandLab() {
 						<div>
 							<span style={{ color: C.dim }}>3 · sensor</span> — S2/S1 ={" "}
 							<span style={{ color: C.text }}>{fmt$(r.sensor)}</span>
-							{r.sensorRaw != null && r.sensorRaw > r.sensor * 1.5 && (
-								<span style={{ color: C.hint }}>
-									{" "}
-									· uncapped it would read {fmtK(r.sensorRaw)} — winsorizing cut
-									the distortion {(r.sensorRaw / r.sensor).toFixed(0)}×
-								</span>
-							)}
 							{day.type === "dust" && (
 								<span style={{ color: C.faint }}>
 									{" "}
@@ -754,7 +736,7 @@ export default function DemandLab() {
 								D: {fmt$(r.dOpen)} → {fmt$(r.dClose)}
 							</span>
 							{r.floored && (
-								<span style={{ color: C.bid }}> · ⚓ floored at the seed</span>
+								<span style={{ color: C.bid }}> · ⚓ held at the floor</span>
 							)}
 						</div>
 					</>
