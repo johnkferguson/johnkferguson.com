@@ -143,8 +143,8 @@ Making that shape precise takes seven values, of three kinds.
 The first value is dynamic and recomputed every window:
 
 - $M$, the Mark Price: the market's midpoint, calculated from the sealed book.
-  Its formula is introduced in [Paired Liquidity](#paired-liquidity) below,
-  and the sections after it refine how the measurement works.
+  Its formula is introduced in [Calculating the Mark](#calculating-the-mark)
+  below, and the sections after it refine how the measurement works.
 
 The market's configuration settings, fixed from window to window, though the
 regions they define all sit relative to $M$:
@@ -191,33 +191,64 @@ placement is priced like a market order.
   <BaseFeeLab client:visible />
 </div>
 
-## Paired Liquidity
+## The Order Fee
 
-The base fee sets the rate an order can get. The rule's first line says which
-orders cannot get it: liquidity standing on one side of the book pays the
-cap. The reasoning: a bid with nothing resting behind it on the ask side
-demands the same one-way trade a market order demands, just on a slower
-clock. It is a patient taker, and the mechanism prices it like the taker it
-is.
+The base fee set the floor: the lowest rate an order can pay at its distance.
+What an order actually pays comes down to one rule:
 
-The distinction gets two names. Liquidity is directional when it stands
-alone, asking the market to move one way. It is paired when dollars on one
-side have dollars on the other standing behind them: a literal, same-instant
-commitment to trade either way, which is the job the word maker has always
-described. The mechanism never asks who placed an order or what they
-intended; it reads pairing, like distance, from the sealed book.
+> Every resting dollar of notional is either paired, with a dollar on the
+> other side of the book behind it, or unpaired. A paired dollar pays the worse of its two
+> legs' base fees. An unpaired dollar pays the cap, the same rate a market
+> order pays.
 
-Pairing is judged around the mark, so the mark comes first. The obvious
-candidate is the midpoint of the best bid and best ask, but the touch is the
-cheapest thing in the book to move: a few dollars parked ahead of the real
-depth set a new best price, and the midpoint follows. A reference point that
-fees hang on cannot be draggable by dust. So the mark is measured at size
-instead. $T$, the market's typical trade, sets the probe (how $T$ itself can
-be derived from the market's own activity, rather than set by hand, comes
-later): walk $T$ dollars into the bids, best prices first, and take the
-volume-weighted average of everything the walk consumed. That is the bid-side
-impact price, the price a seller of $T$ dollars would actually receive. The
-ask side gives its mirror, and the mark is their midpoint:
+A market functions when there is something to trade against at any
+moment, in either direction.
+While directional traders may, in aggregate, meet some of these liquidity needs, that happens only by coincidence of order timing, not from any commitment to provide liquidity. In contrast, non-directional traders (market makers) provide quotes standing on both sides of the book at the same time. This non-directional liquidity is what lets a market function continuously, and it is this type of liquidity that the fee schedule discounts.
+
+Non-directional liquidity is determined from the sealed order book at auction
+close: a trader's notional dollars on the bid side pair against their dollars
+on the ask, best-priced first, until the smaller side runs out. Charging each
+paired dollar its worse leg is what keeps the rule honest: a tight bid cannot
+borrow a better rate than the far ask standing behind it. A resting order
+with nothing behind it on the other side is fundamentally directional: it
+demands the same one-way trade a market order demands, just at a limit price,
+and it is priced at the same rate.
+
+The calculated fee rate is charged only when the underlying liquidity
+actually trades. The formula for the order fee is:
+
+$$
+\text{order fee} = \frac{\sum_{\text{slices}} q_i \cdot \max(s,\, s_i) \;+\; u \cdot F}{q}
+$$
+
+where:
+
+- $q_i$, a slice: the portion of the order paired against a single
+  opposite-side level.
+- $s$: the order's own base-fee stamp.
+- $s_i$: the stamp of the level the slice paired against.
+- $u$: the notional left unpaired.
+- $q$: the order's total size.
+
+The formula is the combination of the base fee and the pairing rule. For a maker to lower its fee rate, it should place orders closer to the mark, where the
+stamp $s$ is smaller, and size them to what the other side of the book can
+pair, so nothing lands in $u$ paying the cap.
+
+Since all stamps are set by their relative distance from the mark, $M$, how the mark is actually calculated needs to be covered next.
+
+## Calculating the Mark
+
+Every fee in the mechanism is measured from the mark, so the mark has to be
+worth measuring from. The obvious candidate is the midpoint of the best bid
+and best ask, but the touch is the cheapest thing in the book to move: a few
+dollars parked ahead of the real depth set a new best price, and the midpoint
+follows. A reference point that fees hang on cannot be draggable by dust. So
+the mark is measured at size instead. $T$, the market's typical trade, sets
+the probe (how $T$ itself can be derived from the market's own activity,
+rather than set by hand, comes later): walk $T$ dollars of notional into the bids, best prices first, and
+take the volume-weighted average of everything the walk consumed. That is the bid-side impact price, the price a seller of $T$
+dollars would actually receive. The ask side gives its mirror, and the mark
+is their midpoint:
 
 $$
 M = \frac{\text{impactBid}(T) + \text{impactAsk}(T)}{2}
@@ -233,44 +264,16 @@ built to be neutral cannot let interested parties vote, so pairing decides
 voice exactly as it decides fees. And it reaches only over the schedule's
 working width, $Z + B/2$ past each side's best quote: if paired depth runs
 out before $T$ dollars, the missing dollars are priced at that boundary, and
-size parked beyond it is invisible to the measurement. The next section makes
-the walk communal, measuring every account's book at once. The formula does
-not change.
+size parked beyond it is invisible to the measurement.
 
-With $M$ in hand, pairing is mechanical. Dollars on your bid pair against
-dollars on your ask, best-priced first, until the smaller side runs out. Each
-paired dollar pays the worse of its two legs' stamps, the base fee at the
-bid's distance or at the ask's, whichever is higher: you are only as
-non-directional as your weaker leg, and a tight bid cannot borrow a better
-rate than the far ask standing behind it. Every dollar the pairing cannot
-reach is directional and pays the cap $F$, exactly what a market order pays.
-
-Every resting dollar now carries its own rate: a paired dollar pays the worse
-of its two legs' stamps, an unpaired dollar pays $F$, and either is charged
-only when that dollar actually trades. The question a maker actually asks is
-priced order by order: this liquidity, at this price, at this size, what does
-it pay? An order's dollars pair off best-first into slices against the
-opposite side, and its rate is the sum of what the slices pay:
-
-$$
-\text{order fee} = \frac{\sum_{\text{slices}} q_i \cdot \max(s,\, s_i) \;+\; u \cdot F}{q}
-$$
-
-where $q$ is the order's size, $s$ is its own base-fee stamp, $q_i$ is the
-slice of it paired against an opposite-side level with stamp $s_i$, and $u$
-is whatever is left unpaired. Nothing new enters here; it is the base fee and
-the pairing rule, summed. This is the number the lab prints on every level's
-receipt, and it answers the practical questions directly: move the order
-closer and $s$ falls; grow it past what the other side can pair and $u$
-starts paying $F$.
-
-The lab below prices a single maker's book this way and prints the receipt:
-each level's stamp, what it paired against, the rate each pairing actually
-pays, and the level's resulting total. The scenario tabs walk the story in order: a
-balanced ladder where everything pairs and only placement is charged, a
-directional book where pairing runs out on the way to the edge, a thin side
-that drags the mark itself, and spillover between levels. Drag any bar and
-the receipt re-prices.
+The lab below runs the whole mechanism so far on a single maker's book: the
+walk, the mark, and a fee receipt for every level, showing its stamp, what it
+paired against, the rate each pairing actually pays, and the level's
+resulting total. The scenario tabs walk the story in order: a balanced ladder
+where everything pairs and only placement is charged, a directional book
+where pairing runs out on the way to the edge, a thin side that drags the
+mark itself, and spillover between levels. Drag any bar and the receipt
+re-prices; the $T$ dial resizes the measuring walk itself.
 
 <div class="labwrap">
   <SnapshotFeesLab client:visible />
