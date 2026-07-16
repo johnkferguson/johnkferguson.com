@@ -11,7 +11,7 @@ import {
 
 // Reference computation from the mechanism spec (worse-of revision) — "an
 // implementation must reproduce these numbers exactly."
-// Vector settings: F=15, k=0.5, e=1, B=4 (band M ± 2bp), T=$5,000, Z=20bps (the Maker Zone, formerly W)
+// Vector settings: F=15, k=0.5, e=1, B=4 (band M ± 2bp), D=$5,000, Z=20bps (the Maker Zone, formerly W)
 // absolute (the spec's older drafts wrote this as the multiple "W=5", i.e.
 // 5×S; vectors verify arithmetic at their stated settings, which need not
 // match working defaults).
@@ -19,7 +19,7 @@ import {
 // directional dollars pay F. λ and the combine step no longer exist.
 const P: FeeParams = {
 	B: 4,
-	T: 5000,
+	D: 5000,
 	F: 15,
 	Z: 20,
 	slope: 0.5,
@@ -44,7 +44,7 @@ describe("spec reference computation (worse-of)", () => {
 	};
 
 	test("impact walks", () => {
-		// overlap = min($6k bids, $5k asks) = $5k = T: the eligible walk is
+		// overlap = min($6k bids, $5k asks) = $5k = D: the eligible walk is
 		// exactly the raw walk here.
 		// impact bid = (3,000×99.99 + 2,000×99.97)/5,000
 		expect(m.iBid).toBeCloseTo(99.982, 10);
@@ -120,7 +120,7 @@ describe("Mark pipeline: eligibility, candidates, boundary fill", () => {
 	});
 
 	test("symmetric shortage: M unmoved, thinness recorded in the impact spread", () => {
-		// Spec vector 3: $10k per side against T=$20k. Half of each walk is
+		// Spec vector 3: $10k per side against D=$20k. Half of each walk is
 		// boundary fill at anchor ± 22bps; M stays put and the impact spread
 		// balloons to 24bps.
 		const m = computeModel(
@@ -128,7 +128,7 @@ describe("Mark pipeline: eligibility, candidates, boundary fill", () => {
 				{ i: 0, price: 99.99, side: "bid", size: 10000 },
 				{ i: 1, price: 100.01, side: "ask", size: 10000 },
 			],
-			{ ...P, T: 20000 },
+			{ ...P, D: 20000 },
 			null,
 		);
 		expect(m.iBid).toBeCloseTo(99.88, 10);
@@ -143,13 +143,13 @@ describe("Mark pipeline: eligibility, candidates, boundary fill", () => {
 			{ i: 1, price: 99.99, side: "bid", size: 5000 },
 			{ i: 2, price: 100.01, side: "ask", size: 10000 },
 		];
-		const m = computeModel(thin, { ...P, T: 20000 }, null);
-		// c = eligible/T = 0.5; walked mid = (99.97 + 100.01)/2 = 99.99;
+		const m = computeModel(thin, { ...P, D: 20000 }, null);
+		// c = eligible/D = 0.5; walked mid = (99.97 + 100.01)/2 = 99.99;
 		// anchor mid = (99.99 + 100.01)/2 = 100.00
 		expect(m.M).toBeCloseTo(0.5 * 99.99 + 0.5 * 100.0, 10);
 		// the Z terms cancel in the midpoint: same M at any zone width
 		// (given the same eligible set), even as both impact prices move
-		const m10 = computeModel(thin, { ...P, T: 20000, Z: 10 }, null);
+		const m10 = computeModel(thin, { ...P, D: 20000, Z: 10 }, null);
 		expect(m10.iBid).not.toBeCloseTo(m.iBid ?? Number.NaN, 6);
 		expect(m10.M).toBeCloseTo(m.M ?? Number.NaN, 10);
 	});
@@ -177,7 +177,7 @@ describe("Mark pipeline: eligibility, candidates, boundary fill", () => {
 					],
 				},
 			],
-			{ B: 4, T: 5000, Z: 20 },
+			{ B: 4, D: 5000, Z: 20 },
 			100.123,
 		);
 		expect(m.state).toBe("fresh");
@@ -207,12 +207,12 @@ describe("Mark pipeline: eligibility, candidates, boundary fill", () => {
 				],
 			},
 		];
-		const held = computeMark(books, { B: 4, T: 5000, Z: 20 }, 100.123);
+		const held = computeMark(books, { B: 4, D: 5000, Z: 20 }, 100.123);
 		expect(held.state).toBe("held");
 		expect(held.M).toBe(100.123);
 		expect(held.impactSpread).toBeNull();
 		// at launch there is no mark to carry: the no-mark state
-		const none = computeMark(books, { B: 4, T: 5000, Z: 20 }, null);
+		const none = computeMark(books, { B: 4, D: 5000, Z: 20 }, null);
 		expect(none.state).toBe("none");
 		expect(none.M).toBeNull();
 	});
@@ -235,7 +235,7 @@ describe("Mark pipeline: eligibility, candidates, boundary fill", () => {
 					],
 				},
 			],
-			{ B: 4, T: 5000, Z: 20 },
+			{ B: 4, D: 5000, Z: 20 },
 			100,
 		);
 		expect(m.state).toBe("fresh");
@@ -268,7 +268,7 @@ describe("candidate selection: seeds, span, largest book wins", () => {
 					],
 				},
 			],
-			{ B: 4, T: 5000, Z: 20 },
+			{ B: 4, D: 5000, Z: 20 },
 			null,
 		);
 		expect(m.state).toBe("fresh");
@@ -300,7 +300,7 @@ describe("candidate selection: seeds, span, largest book wins", () => {
 					],
 				},
 			],
-			{ B: 2, T: 5000, Z: 8 },
+			{ B: 2, D: 5000, Z: 8 },
 			null,
 		);
 		expect(m.state).toBe("fresh");
@@ -338,7 +338,7 @@ describe("candidate selection: seeds, span, largest book wins", () => {
 					],
 				},
 			],
-			{ B: 2, T: 20000, Z: 8 },
+			{ B: 2, D: 20000, Z: 8 },
 			null,
 		);
 		expect(m.state).toBe("fresh");
@@ -381,7 +381,7 @@ describe("candidate selection: seeds, span, largest book wins", () => {
 					],
 				},
 			],
-			{ B: 2, T: 15000, Z: 8 },
+			{ B: 2, D: 15000, Z: 8 },
 			null,
 		);
 		expect(m.state).toBe("fresh");
@@ -572,7 +572,7 @@ describe("anchors and invariants", () => {
 });
 
 describe("multi-maker Mark", () => {
-	const MP = { B: 2, T: 20000, Z: 8 };
+	const MP = { B: 2, D: 20000, Z: 8 };
 	const you = (levels: BookLevel[]) => ({ id: "you", levels });
 	const agg = (levels: BookLevel[]) => ({ id: "agg", levels });
 
@@ -647,7 +647,7 @@ describe("multi-maker Mark", () => {
 	test("a leaning crowd moves M and re-prices an untouched book", () => {
 		const P: FeeParams = {
 			B: 2,
-			T: 20000,
+			D: 20000,
 			F: 15,
 			Z: 8,
 			slope: 0.5,
@@ -705,7 +705,7 @@ describe("piecewise stamp (the zone knee)", () => {
 	// knee, cap reached 11.6bps beyond the band edge (12.6bps from M).
 	const p: FeeParams = {
 		B: 2,
-		T: 20000,
+		D: 20000,
 		F: 10,
 		Z: 8,
 		slope: 0.8,

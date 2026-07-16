@@ -215,9 +215,9 @@ const DIAL_EFFECT: Record<string, { up: string; down: string }> = {
 		up: "Higher cap: directional fills pay more, and the cap tick rises.",
 		down: "Lower cap: even fully directional fills pay less.",
 	},
-	T: {
-		up: "Bigger measuring trade: the walk reaches deeper, so more of the book gets a vote.",
-		down: "Smaller measuring trade: only the nearest size votes on M.",
+	D: {
+		up: "Bigger typical demand: the walk reaches deeper, so more of the book gets a vote.",
+		down: "Smaller typical demand: only the nearest size votes on M.",
 	},
 	Z: {
 		up: "Wider zone: more of the book votes on M, and the gentle slope reaches further out.",
@@ -400,7 +400,7 @@ interface DragState {
 
 export default function SnapshotFeesMultiLab() {
 	const [B, setB] = useState(2); // inner band width, bps
-	const [T, setT] = useState(20000);
+	const [D, setD] = useState(20000);
 	const [F, setF] = useState(10);
 	const [Z, setZ] = useState(Z_DEFAULT);
 	const [slope, setSlope] = useState(0.8);
@@ -465,15 +465,15 @@ export default function SnapshotFeesMultiLab() {
 				{ id: "you", levels: yourBook },
 				{ id: "agg", levels: makerBook },
 			],
-			{ B, T, Z },
+			{ B, D, Z },
 			lastM.current,
 		) as MultiMark & { M: number; edgeBid: number; edgeAsk: number };
-		const p = { B, T, F, Z, slope, slope2, comp: 0 };
+		const p = { B, D, F, Z, slope, slope2, comp: 0 };
 		type Fees = AccountFees & { edgeBid: number; edgeAsk: number };
 		const fees = computeAccountFees(yourBook, p, mm.M) as Fees;
 		const makerFees = computeAccountFees(makerBook, p, mm.M) as Fees;
 		return { mm, fees, makerFees };
-	}, [yourSizes, makerSizes, B, T, F, Z, slope, slope2, yourFlips]);
+	}, [yourSizes, makerSizes, B, D, F, Z, slope, slope2, yourFlips]);
 
 	const { mm, fees, makerFees } = model;
 
@@ -682,7 +682,7 @@ export default function SnapshotFeesMultiLab() {
 		setSpread(sc.spread);
 		regenMakers(sc.depth, sc.lean, sc.spread);
 		setB(2);
-		setT(20000);
+		setD(20000);
 		setF(10);
 		setZ(Z_DEFAULT);
 		setSlope(0.8);
@@ -831,9 +831,9 @@ export default function SnapshotFeesMultiLab() {
 					}}
 				>
 					<Param
-						name="Typical trade · T"
-						val={T}
-						set={touch("T", T, setT)}
+						name="Typical demand · D"
+						val={D}
+						set={touch("D", D, setD)}
 						min={1000}
 						max={30000}
 						stp={500}

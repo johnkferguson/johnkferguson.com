@@ -82,7 +82,7 @@ const SCENARIOS: Scenario[] = [
 		key: "thin",
 		title: "Thin Side, Moving Mark",
 		blurb:
-			"Bids crowd the mid while the asks stay thin through the whole Maker Zone; the real ask depth waits at the zone's edge and beyond. The measuring walk pays up through what it can reach, so M slides toward the heavy side and the band follows, leaving every bid a touch below the new standard. The wall past the zone barely matters. Raise T and watch M lurch as the walk digs into it.",
+			"Bids crowd the mid while the asks stay thin through the whole Maker Zone; the real ask depth waits at the zone's edge and beyond. The measuring walk pays up through what it can reach, so M slides toward the heavy side and the band follows, leaving every bid a touch below the new standard. The wall past the zone barely matters. Raise D and watch M lurch as the walk digs into it.",
 		book: () => {
 			const a = Array(N).fill(0);
 			// heavy near bids, then a moderate ladder to the far edge
@@ -169,9 +169,9 @@ const DIAL_EFFECT: Record<string, { up: string; down: string }> = {
 		up: "Higher cap: directional fills pay more, and the cap line rises.",
 		down: "Lower cap: even fully directional fills pay less.",
 	},
-	T: {
-		up: "Bigger measuring trade: it takes more size near the touch to move M.",
-		down: "Smaller measuring trade: less size near the touch moves M.",
+	D: {
+		up: "Bigger typical demand: it takes more size near the touch to move M.",
+		down: "Smaller typical demand: less size near the touch moves M.",
 	},
 	Z: {
 		up: "Wider zone: more of the book votes on M, and the gentle slope reaches further out.",
@@ -305,7 +305,7 @@ interface DragState {
 export default function SnapshotFeesLab() {
 	// —— market standard ——
 	const [B, setB] = useState(2); // inner band width, bps
-	const [T, setT] = useState(20000); // typical trade size, $
+	const [D, setD] = useState(20000); // typical demand, $
 	// —— fee schedule ——
 	const [F, setF] = useState(10); // cap / taker rate, bps
 	const [Z, setZ] = useState(Z_DEFAULT); // Maker Zone, bps past the band edge
@@ -338,10 +338,10 @@ export default function SnapshotFeesLab() {
 		// no-mark state is unreachable here and M / the band edges are numbers
 		return computeModel(
 			book,
-			{ B, T, F, Z, slope, slope2, comp },
+			{ B, D, F, Z, slope, slope2, comp },
 			lastM.current,
 		) as MarketModel & { M: number; edgeBid: number; edgeAsk: number };
-	}, [sizes, B, T, F, Z, slope, slope2, comp, sideOf]);
+	}, [sizes, B, D, F, Z, slope, slope2, comp, sideOf]);
 
 	useEffect(() => {
 		if (model.state === "fresh") lastM.current = model.M;
@@ -412,7 +412,7 @@ export default function SnapshotFeesLab() {
 		setCenterSide("bid");
 		setEffect(null);
 		setB(2);
-		setT(20000);
+		setD(20000);
 		setF(10);
 		setZ(Z_DEFAULT);
 		setSlope(0.8);
@@ -538,9 +538,9 @@ export default function SnapshotFeesLab() {
 					}}
 				>
 					<Param
-						name="Typical trade · T"
-						val={T}
-						set={touch("T", T, setT)}
+						name="Typical demand · D"
+						val={D}
+						set={touch("D", D, setD)}
 						min={1000}
 						max={30000}
 						stp={500}
@@ -1438,7 +1438,7 @@ export default function SnapshotFeesLab() {
 											fontSize={13.5}
 											style={{ fill: C.bid, fontFamily: mono }}
 										>
-											sell {fmt$(T)} → bids
+											sell {fmt$(D)} → bids
 										</text>
 										<text
 											x={colR}
@@ -1446,7 +1446,7 @@ export default function SnapshotFeesLab() {
 											fontSize={13.5}
 											style={{ fill: C.ask, fontFamily: mono }}
 										>
-											buy {fmt$(T)} → asks
+											buy {fmt$(D)} → asks
 										</text>
 										{L.map((r, k) => (
 											<text

@@ -29,8 +29,8 @@ export interface BookLevel {
 export interface FeeParams {
 	/** Inner band width B, in bps — the band is drawn M ± B/2. */
 	B: number;
-	/** Typical trade — the measuring size for the Mark walk, in $. */
-	T: number;
+	/** Typical demand D — the measuring size for the Mark walk, in $. */
+	D: number;
 	/** Fee cap / taker rate, in bps. */
 	F: number;
 	/**
@@ -248,7 +248,7 @@ export interface MultiMark {
 	edgeAsk: number | null;
 	/** iAsk − iBid, the thinness thermometer. Null unless fresh. */
 	impactSpread: number | null;
-	/** Boundary fill per side, when the eligible ladder held less than T. */
+	/** Boundary fill per side, when the eligible ladder held less than D. */
 	shortBid: MarkShort | null;
 	shortAsk: MarkShort | null;
 	/** Walk consumption per account: id -> (level i -> $). */
@@ -284,21 +284,21 @@ export interface MultiMark {
  * With no winner: held (carry the last M) if a mark has ever existed, else
  * none (launch — no mark until a valid candidate forms).
  *
- * The T-walk consumes the winning ladder best-first, pro-rata across
- * accounts at equal prices; if the ladder holds less than T, the missing
+ * The D-walk consumes the winning ladder best-first, pro-rata across
+ * accounts at equal prices; if the ladder holds less than D, the missing
  * dollars are priced at the anchor ± (Z + B/2) (boundary fill). Because every
  * account's eligible size is equal on both sides by construction, the
  * eligible book is dollar-symmetric: shortfalls are always equal, so raw
  * size imbalance never tilts M. Boundary fill only interpolates —
- * M = c·(walked mid) + (1−c)·(anchor mid), c = eligible/T — and inflates
+ * M = c·(walked mid) + (1−c)·(anchor mid), c = eligible/D — and inflates
  * the exported impact spread, the health signal. Placement is the only vote.
  */
 export function computeMark(
 	books: MakerBook[],
-	p: { B: number; T: number; Z: number },
+	p: { B: number; D: number; Z: number },
 	lastM: number | null,
 ): MultiMark {
-	const { B, T, Z } = p;
+	const { B, D, Z } = p;
 	const half = (B / 2) * BP;
 	// The measurement reach: Z past the band's half-width, per side, so the
 	// mark reads over exactly the working width the fee schedule discounts
@@ -473,7 +473,7 @@ export function computeMark(
 		els.sort((a, b) =>
 			side === "bid" ? b.price - a.price : a.price - b.price,
 		);
-		let rem = T;
+		let rem = D;
 		let cost = 0;
 		let k = 0;
 		while (k < els.length && rem > 1e-9) {
@@ -502,7 +502,7 @@ export function computeMark(
 			cost += rem * boundary;
 			short = { missing: rem, price: boundary };
 		}
-		return { price: cost / T, walked: T - (short?.missing ?? 0), short };
+		return { price: cost / D, walked: D - (short?.missing ?? 0), short };
 	};
 
 	const wBid = walkSide(win.elBids, "bid", win.aBid - reachD);
@@ -544,7 +544,7 @@ export interface MarketModel {
 	edgeAsk: number | null;
 	/** iAsk − iBid, the thinness thermometer. Null unless fresh. */
 	impactSpread: number | null;
-	/** Boundary fill per side, when the eligible ladder held less than T. */
+	/** Boundary fill per side, when the eligible ladder held less than D. */
 	shortBid: MarkShort | null;
 	shortAsk: MarkShort | null;
 	bidTotal: number;
@@ -569,8 +569,8 @@ export function computeModel(
 	p: FeeParams,
 	lastM: number | null,
 ): MarketModel {
-	const { B, T, Z } = p;
-	const mm = computeMark([{ id: "solo", levels: book }], { B, T, Z }, lastM);
+	const { B, D, Z } = p;
+	const mm = computeMark([{ id: "solo", levels: book }], { B, D, Z }, lastM);
 	const af = computeAccountFees(book, p, mm.M);
 	const bidTotal = book.reduce(
 		(s, l) => s + (l.side === "bid" ? l.size : 0),

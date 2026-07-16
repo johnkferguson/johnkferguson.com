@@ -291,24 +291,24 @@ The mark, then, is not calculated from the raw book. Per trader, keep only
 the two-sided size that pairs within the area, and pool what survives by
 price level. That filtered ladder is the eligible book, and it is the only
 book the mark ever reads. Comparing prices across it requires a common size
-to evaluate them at. $T$, the market's typical trade size, is that basis (how
-$T$ itself can be derived from the market's own activity, rather than set by
-hand, comes later). Walk $T$ dollars of notional into the eligible bids, best
+to evaluate them at. $D$, the market's typical demand, is that basis (how
+$D$ itself can be derived from the market's own activity, rather than set by
+hand, comes later). Walk $D$ dollars of notional into the eligible bids, best
 prices first, and take the volume-weighted average of everything the walk
-consumed. That is the bid-side impact price, the price a seller of $T$
+consumed. That is the bid-side impact price, the price a seller of $D$
 dollars would actually receive against the eligible liquidity. The ask side
 gives its mirror, and the mark is their midpoint:
 
 $$
-M = \frac{\text{impactBid}(T) + \text{impactAsk}(T)}{2}
+M = \frac{\text{impactBid}(D) + \text{impactAsk}(D)}{2}
 $$
 
 Both impact prices are read from the eligible book alone; the rest of the
 book never enters the formula. Measuring at size is what makes the mark
 expensive to move. A tiny order
-absorbs almost none of a $T$-dollar walk, so it barely moves the average;
+absorbs almost none of a $D$-dollar walk, so it barely moves the average;
 shifting $M$ requires real size near the mid. If paired depth within the
-measured area runs out before $T$ dollars, the missing dollars are priced at
+measured area runs out before $D$ dollars, the missing dollars are priced at
 the area's boundary; the measurement never reaches for size beyond it.
 
 The lab below runs the whole mechanism so far on a single maker's book: the
@@ -318,7 +318,7 @@ resulting total. The scenario tabs step through the behavior in order: a
 balanced ladder where everything pairs and only placement is charged, a
 directional book where pairing runs out on the way to the edge, a thin side
 that drags the mark itself, and spillover between levels. Drag any bar and the receipt
-re-prices; the $T$ dial resizes the measuring walk itself.
+re-prices; the $D$ dial resizes the measuring walk itself.
 
 <div class="labwrap">
   <SnapshotFeesLab client:visible />
@@ -410,7 +410,7 @@ and its receipts re-price around it.
 - Fee uncertainty as a cost of the design: on every existing venue a maker knows their rate before quoting; here the rate is known only up to the mark, so it becomes another variable to model alongside fill probability and adverse selection, with a confidence interval rather than a number. Mitigations: the schedule and formula are fully public; the worst case is bounded at the cap $F$; and unlike order flow, the interval is under the maker's own control, since weight (size and tightness) narrows it. Expect pushback here; treat it as a real trade-off, not a non-issue
 - Semi-far pairing earns a discount: paid optionality, priced by fill risk and adverse selection
 - Manipulation economics: junk pairing is worthless, bending $M$ requires standing real paired size. Under candidate selection this is winner-take-all: moving or freezing the mark requires out-sizing the honest book's eligible size within one $B + 2Z$ span, and any size short of that buys exactly zero influence. The old dust-freeze hole (tiny far paired size grabbing an anchor and freezing $M$) is closed by the same rule
-- Parameters and governance: $B$ declared and sticky, $F$ venue-wide, $Z$ and the two slopes shape the curve, $T$ measured from demand
+- Parameters and governance: $B$ declared and sticky, $F$ venue-wide, $Z$ and the two slopes shape the curve, $D$ measured from demand
 - Volume pricing composes rather than competes: volume (like staking in the spec) can lower an account's cap $F$ toward a floor. A 10bps cap might fall to 2.5bps on volume alone, but the last mile to zero is quality only. The floored cap preserves day-one competition for new makers and gives high-volume takers a legible benefit
 - Variations considered: partner-stamp grace interval, asymptotic stamps (rejected: softens the junk anchor), inside compensation (parked), partial fills, blending $M$ between near-tied rival candidate books (rejected: partial size must buy zero influence, and a blended mark stands at a price where no liquidity does)
 - Band fee level as a parameter: add an intercept $c$ to the base fee, $\min(F,\ c + k_1 \cdot \min(d, Z) + k_2 \cdot \max(0,\ d - Z))$; the band pays exactly $c$, and the piece's design is the special case $c = 0$. Negative $c$ is a rebate for the tightest quotes. It leaks smoothly past the band edge (fee crosses zero at $d = -c/k_1$), needs $c > -F$ so a self-cross costs $F + c > 0$ (the taker cap bounds the rebate against wash trading), and reopens the standard maker-rebate manipulation literature that $c = 0$ dismisses in one sentence
@@ -420,8 +420,8 @@ and its receipts re-price around it.
 - Open: cross-window dynamics, staking-based fee caps, thin-market $M$ fallbacks
 - Some ideas: make the cap itself volume derived but let it lower down to a floor. Still retains snapshot fees as the dominant driver as fees for makers. Example, 8bps Fee Cap. Cap can lower based on volume to 2bps. Still allows new makers to compete on pricing and inventory management.
 - Need to show the O complexity of what it costs to derive the Mark and the fee schedule per window. It's worthwhile to show how much it costs computationally. Candidate discovery adds one eligibility pass per two-sided account (seeds dedupe, and in a coherent market they all converge to one candidate).
-- Need a section to walk through/show dynamically deriving T over time.
-- The dynamically calibrated market (likely its own late section, "Calibrating the Market" / "Market Profiles", holding the dynamic-$T$ walkthrough too). The cadence ladder: every parameter changes at the slowest cadence that keeps it honest — $M$ per window (it is the measurement), $T$ daily (a statistic needs a sample; one window must never move the yardstick that prices it), $B$/$Z$/$k_1$/$k_2$ on a ~30-day lookback in discrete steps, $F$ slowest as venue policy
+- Need a section to walk through/show dynamically deriving D over time.
+- The dynamically calibrated market (likely its own late section, "Calibrating the Market" / "Market Profiles", holding the dynamic-$D$ walkthrough too). The cadence ladder: every parameter changes at the slowest cadence that keeps it honest — $M$ per window (it is the measurement), $D$ daily (a statistic needs a sample; one window must never move the yardstick that prices it), $B$/$Z$/$k_1$/$k_2$ on a ~30-day lookback in discrete steps, $F$ slowest as venue policy
 - Market profiles: instead of infinite parameter permutations, 3–5 vetted coherent bundles (the parameters interact: full fee at $B/2 + Z + (F - k_1 Z)/k_2$), expected to correlate with volume and volatility. Anchor for the selector: $B$ should cover noise, not signal — e.g. a quantile of window-to-window $M$ drift; high volatility → wider band, gentler slopes (width there is insurance, not laziness); deep high-volume markets → tight band, stricter precision pricing. Shared profiles also pool statistics across the long tail instead of overfitting thin markets
 - Profiles shift like gears, not fluid drift: legibility (makers precompute economics per profile once), hysteresis (two thresholds so a boundary market never gear-hunts), and manipulation resistance (moving a parameter requires sustaining a 30-day distortion — the mark's "only way to fake it is to do the job" defense at a longer timescale). Selection can run off-chain, but its inputs and rule are published so anyone can verify the current gear; shifts announced with a notice period
 - Transition cost owed to the reader: a gear shift reprices resting books mid-flight (cheap stamps under old $B$ may stamp expensive under the new); scheduled transition windows, possibly one window of grandfathering
