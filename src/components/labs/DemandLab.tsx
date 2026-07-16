@@ -9,7 +9,7 @@ import "./snapshot-fees-lab.css";
 
 // ————————————————————————————————————————————————————————————————
 // Snapshot Fees — the Typical Demand laboratory. Ten days of taker flow;
-// D rebases at each close from two accumulators (S1, S2) and the sensor
+// D rebases at each close from two accumulators (S1, S2) and the reading
 // S2/S1. Every guardrail is a dial: the machine's shape is a parameter
 // choice, not a constant of the design.
 // Mechanism lives in src/lib/snapshot-fees/demand.ts — this file renders.
@@ -95,7 +95,7 @@ const SCENARIOS: DemandScenario[] = [
 		key: "whale",
 		title: "Whale Window",
 		blurb:
-			"A normal week, except day five contains one window 250 times the clip. The sensor spikes, and the clamp does its one job: however strange a single day, it moves D by at most c×. The derivation panel shows the raw step the clamp cut down.",
+			"A normal week, except day five contains one window 250 times the clip. The reading spikes, and the clamp does its one job: however strange a single day, it moves D by at most c×. The derivation panel shows the raw step the clamp cut down.",
 		days: () =>
 			daysOf(Array(NDAYS).fill(10), (i) => (i === 4 ? "whale" : "normal")),
 		sel: 4,
@@ -104,7 +104,7 @@ const SCENARIOS: DemandScenario[] = [
 		key: "dust",
 		title: "Dust Storm",
 		blurb:
-			"Days four through seven each add five thousand windows of $100. The sensor barely moves, because a window's weight in the average is its own dollars, and $100 windows carry almost none. The derivation shows the per-window mean for comparison, which those same windows would have collapsed.",
+			"Days four through seven each add five thousand windows of $100. The reading barely moves, because a window's weight in the average is its own dollars, and $100 windows carry almost none. The derivation shows the per-window mean for comparison, which those same windows would have collapsed.",
 		days: () =>
 			daysOf(Array(NDAYS).fill(10), (i) =>
 				i >= 3 && i <= 6 ? "dust" : "normal",
@@ -291,7 +291,7 @@ export default function DemandLab() {
 			days[i].flow,
 			r.dOpen,
 			r.dClose,
-			r.sensor ?? 0,
+			r.reading ?? 0,
 		]);
 		return Math.max(20000, ...vals) * 1.12;
 	}, [rows, days]);
@@ -408,7 +408,7 @@ export default function DemandLab() {
 					max={1}
 					stp={0.05}
 					fmt={(v) => v.toFixed(2)}
-					hint="Step = (sensor/D)^α; 0.50 closes half the doublings."
+					hint="Step = (reading/D)^α; 0.50 closes half the doublings."
 				/>
 				<Param
 					name="Clamp · c"
@@ -497,9 +497,9 @@ export default function DemandLab() {
 								stroke={sel === i ? C.text : "none"}
 								strokeWidth={sel === i ? 1.2 : 0}
 							/>
-							{rr.sensor != null && (
+							{rr.reading != null && (
 								<path
-									d={`M${xMid(i)},${y(rr.sensor) - 5} l5,5 l-5,5 l-5,-5 z`}
+									d={`M${xMid(i)},${y(rr.reading) - 5} l5,5 l-5,5 l-5,-5 z`}
 									fill={C.text}
 									opacity={0.9}
 									pointerEvents="none"
@@ -597,7 +597,7 @@ export default function DemandLab() {
 					Each bar is one day's typical per-window demand: drag it to resize the
 					day, click the letter beneath to change the day's composition, click a
 					bar to inspect its derivation. The staircase is D itself, rebased at
-					each close; diamonds mark each day's sensor. ❄ below the gate (D
+					each close; diamonds mark each day's reading. ❄ below the gate (D
 					frozen) · ⚠ step clamped · ⚓ held at the floor.
 				</p>
 			</div>
@@ -626,7 +626,7 @@ export default function DemandLab() {
 					<span>day</span>
 					<span>flow S1</span>
 					<span>gate</span>
-					<span>sensor</span>
+					<span>reading</span>
 					<span>step</span>
 					<span>D after</span>
 					{rows.map((rr, i) => (
@@ -648,7 +648,7 @@ export default function DemandLab() {
 								{rr.gate ? "✓" : "❄"}
 							</span>
 							<span style={{ color: C.text }}>
-								{rr.sensor != null ? fmtK(rr.sensor) : "—"}
+								{rr.reading != null ? fmtK(rr.reading) : "—"}
 							</span>
 							<span style={{ color: rr.clamped ? C.hint : C.text }}>
 								{rr.gate ? `×${rr.step.toFixed(2)}` : "—"}
@@ -700,11 +700,11 @@ export default function DemandLab() {
 						</span>
 					)}
 				</div>
-				{r.gate && r.sensor != null && r.rawStep != null && (
+				{r.gate && r.reading != null && r.rawStep != null && (
 					<>
 						<div>
-							<span style={{ color: C.dim }}>3 · sensor</span> — S2/S1 ={" "}
-							<span style={{ color: C.text }}>{fmt$(r.sensor)}</span>
+							<span style={{ color: C.dim }}>3 · reading</span> — S2/S1 ={" "}
+							<span style={{ color: C.text }}>{fmt$(r.reading)}</span>
 							{day.type === "dust" && (
 								<span style={{ color: C.faint }}>
 									{" "}
@@ -715,8 +715,8 @@ export default function DemandLab() {
 						</div>
 						<div>
 							<span style={{ color: C.dim }}>4 · rebase</span> — D ← D ×
-							(sensor/D)^{alpha.toFixed(2)} = {fmtK(r.dOpen)} × (
-							{fmtK(r.sensor)}/{fmtK(r.dOpen)})^{alpha.toFixed(2)} = ×
+							(reading/D)^{alpha.toFixed(2)} = {fmtK(r.dOpen)} × (
+							{fmtK(r.reading)}/{fmtK(r.dOpen)})^{alpha.toFixed(2)} = ×
 							{r.rawStep.toFixed(3)}
 							{r.clamped && (
 								<span style={{ color: C.hint }}>

@@ -9,14 +9,14 @@
  *
  * where v is the window's executed taker notional (both flows summed; in a
  * netting venue fills are the imbalance that reaches the book, so the
- * definition adapts per venue). At epoch close the sensor S2/S1 is the
+ * definition adapts per venue). At epoch close the reading S2/S1 is the
  * dollar-weighted typical window: each traded dollar reports the size of the
- * window it traded in, and the sensor is the average of those reports. No
+ * window it traded in, and the reading is the average of those reports. No
  * window count appears anywhere.
  *
  * The update is ordinary hygiene for an automated statistic, not defense:
  * if the epoch carried at least g·D of flow (minimum sample), D steps by
- * (sensor/D)^α bounded to [1/c, c] (one day, whatever it contains, moves the
+ * (reading/D)^α bounded to [1/c, c] (one day, whatever it contains, moves the
  * yardstick at most c×); otherwise D freezes for the epoch, no decay. D never
  * falls below the configured floor, which is a mark-validity bound (a walk
  * too small reads only the best quotes) and is separate from the launch
@@ -34,7 +34,7 @@ export interface DemandParams {
 	floor: number;
 	/** Gate multiple g: an epoch updates D only if S1 ≥ g × D. */
 	gate: number;
-	/** Chase exponent α: the epoch step is (sensor/D)^α. */
+	/** Chase exponent α: the epoch step is (reading/D)^α. */
 	alpha: number;
 	/** Clamp multiple c: one epoch's step is bounded to [1/c, c]. */
 	clampMult: number;
@@ -50,8 +50,8 @@ export interface EpochResult {
 	/** Did the epoch carry g·D of flow? */
 	gate: boolean;
 	/** S2/S1, the dollar-weighted typical window. Null when gated. */
-	sensor: number | null;
-	/** (sensor/D)^α before clamping. Null when gated. */
+	reading: number | null;
+	/** (reading/D)^α before clamping. Null when gated. */
 	rawStep: number | null;
 	/** The applied multiplier (1 when gated). */
 	step: number;
@@ -79,7 +79,7 @@ export function runEpoch(
 			s1,
 			s2,
 			gate,
-			sensor: null,
+			reading: null,
 			rawStep: null,
 			step: 1,
 			clamped: false,
@@ -87,8 +87,8 @@ export function runEpoch(
 			dClose: dOpen,
 		};
 	}
-	const sensor = s2 / s1;
-	const rawStep = (sensor / dOpen) ** p.alpha;
+	const reading = s2 / s1;
+	const rawStep = (reading / dOpen) ** p.alpha;
 	const step = Math.min(p.clampMult, Math.max(1 / p.clampMult, rawStep));
 	const clamped = Math.abs(step - rawStep) > 1e-12;
 	let dClose = dOpen * step;
@@ -102,7 +102,7 @@ export function runEpoch(
 		s1,
 		s2,
 		gate,
-		sensor,
+		reading,
 		rawStep,
 		step,
 		clamped,
@@ -127,7 +127,7 @@ export function runEpochs(
 /**
  * Effective window count S1²/S2: how many equal windows the epoch's money
  * behaved like. Diagnostic only; the machine itself never counts windows.
- * Identity: nEff × sensor = S1.
+ * Identity: nEff × reading = S1.
  */
 export function nEff(s1: number, s2: number): number {
 	return s2 > 0 ? (s1 * s1) / s2 : 0;

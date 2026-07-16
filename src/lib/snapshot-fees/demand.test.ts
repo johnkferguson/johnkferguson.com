@@ -23,8 +23,8 @@ describe("the hand-run day (reference computation)", () => {
 		expect(r.gate).toBe(true);
 	});
 
-	test("sensor S2/S1 = $4,000 — no window count anywhere", () => {
-		expect(r.sensor).toBe(4000);
+	test("reading S2/S1 = $4,000 — no window count anywhere", () => {
+		expect(r.reading).toBe(4000);
 	});
 
 	test("rebase: √(4000/1000) = 2 → D closes at $2,000", () => {
@@ -52,7 +52,7 @@ describe("convergence: close half the remaining doublings per day", () => {
 	});
 });
 
-describe("the sensor is the dollar-weighted typical window", () => {
+describe("the reading is the dollar-weighted typical window", () => {
 	// One $2,000 window and one $8,000 window: the per-window mean says
 	// $5,000; the dollar-weighted answer is 0.2×2000 + 0.8×8000 = $6,800.
 	const p: DemandParams = { ...P, seed: 400, floor: 400 };
@@ -66,13 +66,13 @@ describe("the sensor is the dollar-weighted typical window", () => {
 	);
 
 	test("S2/S1 = $6,800", () => {
-		expect(r.sensor).toBeCloseTo(6800, 10);
+		expect(r.reading).toBeCloseTo(6800, 10);
 	});
 
-	test("nEff = S1²/S2 ≈ 1.47, and nEff × sensor = S1 exactly", () => {
+	test("nEff = S1²/S2 ≈ 1.47, and nEff × reading = S1 exactly", () => {
 		const ne = nEff(r.s1, r.s2);
 		expect(ne).toBeCloseTo(100_000_000 / 68_000_000, 10);
-		expect(ne * (r.sensor ?? 0)).toBeCloseTo(r.s1, 8);
+		expect(ne * (r.reading ?? 0)).toBeCloseTo(r.s1, 8);
 	});
 
 	test("a 17× gap engages the clamp: step capped at c = 4", () => {
@@ -82,9 +82,9 @@ describe("the sensor is the dollar-weighted typical window", () => {
 		expect(r.dClose).toBeCloseTo(1600, 10);
 	});
 
-	test("small windows dip the sensor only by their dollar share", () => {
+	test("small windows dip the reading only by their dollar share", () => {
 		// 50 windows of $10 on the same day: $500 of $10,500 ≈ 4.8% of the
-		// money, so the sensor dips about 4.8%, not to the per-window mean.
+		// money, so the reading dips about 4.8%, not to the per-window mean.
 		const rd = runEpoch(
 			400,
 			[
@@ -94,14 +94,14 @@ describe("the sensor is the dollar-weighted typical window", () => {
 			],
 			p,
 		);
-		expect(rd.sensor).toBeCloseTo(68_005_000 / 10_500, 6);
-		expect(rd.sensor).toBeCloseTo(6476.667, 2);
+		expect(rd.reading).toBeCloseTo(68_005_000 / 10_500, 6);
+		expect(rd.reading).toBeCloseTo(6476.667, 2);
 	});
 });
 
 describe("update hygiene: gate, clamp, floor", () => {
 	test("one strange day moves D at most c×, whatever it contains", () => {
-		// Forty $4,000 windows plus one $1M window: the sensor spikes to
+		// Forty $4,000 windows plus one $1M window: the reading spikes to
 		// ~$862.6k, the raw step says ×14.7, the clamp applies ×4.
 		const r = runEpoch(
 			4000,
@@ -111,7 +111,7 @@ describe("update hygiene: gate, clamp, floor", () => {
 			],
 			P,
 		);
-		expect(r.sensor).toBeCloseTo(862_620.69, 1);
+		expect(r.reading).toBeCloseTo(862_620.69, 1);
 		expect(r.rawStep).toBeCloseTo(Math.sqrt(862_620.69 / 4000), 4);
 		expect(r.clamped).toBe(true);
 		expect(r.step).toBe(4);
@@ -122,7 +122,7 @@ describe("update hygiene: gate, clamp, floor", () => {
 		const p: DemandParams = { ...P, seed: 10000, floor: 10000 };
 		const r = runEpoch(10000, [[8, 5000]], p);
 		expect(r.gate).toBe(false);
-		expect(r.sensor).toBeNull();
+		expect(r.reading).toBeNull();
 		expect(r.step).toBe(1);
 		expect(r.dClose).toBe(10000);
 	});
@@ -137,7 +137,7 @@ describe("update hygiene: gate, clamp, floor", () => {
 		};
 		const r = runEpoch(2000, [[500, 100]], p);
 		expect(r.gate).toBe(true); // $50k clears 25 × $2,000
-		expect(r.sensor).toBeCloseTo(100, 10);
+		expect(r.reading).toBeCloseTo(100, 10);
 		// √(100/2000) ≈ 0.224 → $447, below the floor → held at $500
 		expect(r.floored).toBe(true);
 		expect(r.dClose).toBe(500);
