@@ -238,41 +238,79 @@ Since all stamps are set by their relative distance from the mark, $M$, how the 
 
 ## Calculating the Mark
 
-Every fee in the mechanism is measured from the mark, so the mark has to be
-worth measuring from. The obvious candidate is the midpoint of the best bid
-and best ask, but the touch is the cheapest thing in the book to move: a few
-dollars parked ahead of the real depth set a new best price, and the midpoint
-follows. A reference point that fees hang on cannot be draggable by dust. So
-the mark is measured at size instead. $T$, the market's typical trade, sets
-the probe (how $T$ itself can be derived from the market's own activity,
-rather than set by hand, comes later): walk $T$ dollars of notional into the bids, best prices first, and
-take the volume-weighted average of everything the walk consumed. That is the bid-side impact price, the price a seller of $T$
-dollars would actually receive. The ask side gives its mirror, and the mark
-is their midpoint:
+Every fee in the schedule is measured as a distance from a single reference
+point: the mark, $M$, recomputed each window from the sealed book.
+
+The midpoint of the best bid and best ask would be an obvious candidate to
+set the mark, but it fails due to its blindness to size. The same midpoint
+can be set just as easily by an order book with one dollar of bids at the
+touch as by one with a million dollars there, even though the true cost of
+trading against them is vastly different. This same blindness to size
+makes the number cheap to move: a few dollars parked ahead of the real depth
+set a new best price, and the midpoint follows. Every fee in the market would
+hang from a number that costs almost nothing to move.
+
+With the touch rejected, the next simplest reference would be to weigh every
+resting order in the book. But most of that book is a poor signal. A
+directional order is an opinion that the price should move: a lone bid below
+the market is waiting for the price to come down to it, not a statement of
+where trading stands. And the mark has no hold on it, since unpaired
+liquidity pays the cap wherever the mark sits. Non-directional liquidity is
+different on both counts. A trader quoting both sides is stating where they
+believe the price stands, and their fees depend on the mark through both
+legs, so their interest points at the mark landing near the center of their
+own quotes. Less biased, not unbiased: their prices still set the mark. It is
+also the consistent choice: the schedule discounts non-directional liquidity,
+so the same liquidity supplies the reference the discount is measured from.
+
+Within that liquidity, weight comes from size and placement: more notional is
+a larger claim about where the asset trades, and notional standing closer to
+the mid is a more confident one. Because everything that counts is a fillable
+resting order, influencing the mark requires standing real, paired size that
+anyone may trade against. The whole calculation can be thought of as an
+election held each auction: non-directional traders (market makers) are the voters, and size
+and proximity set the weight of each vote.
+
+The calculation also has boundaries. Quotes count only within $B/2 + Z$ of
+each side's best quote, half the Inner Band plus the Maker Zone: the same
+working width the fee schedule discounts is the width the mark reads, which
+is where the zone gets its name. The pairing must also happen inside that
+area, on both sides. A tight bid whose only ask stands beyond the zone gets
+no voice, even though the two still pair for fees; the fee's pairing accepts
+any distance and prices it, while the mark's requires both legs to stand
+within the area it measures.
+
+The mark, then, is not calculated from the raw book. Per trader, keep only
+the two-sided size that pairs within the area, and pool what survives by
+price level. That filtered ladder is the eligible book, and it is the only
+book the mark ever reads. Comparing prices across it requires a common size
+to evaluate them at. $T$, the market's typical trade size, is that basis (how
+$T$ itself can be derived from the market's own activity, rather than set by
+hand, comes later). Walk $T$ dollars of notional into the eligible bids, best
+prices first, and take the volume-weighted average of everything the walk
+consumed. That is the bid-side impact price, the price a seller of $T$
+dollars would actually receive against the eligible liquidity. The ask side
+gives its mirror, and the mark is their midpoint:
 
 $$
 M = \frac{\text{impactBid}(T) + \text{impactAsk}(T)}{2}
 $$
 
-Under the walk, the dust play fails. A penny-thin quote barely carries a walk
-of $T$ dollars, so it barely moves $M$; only real size near the mid pulls the
-measurement.
-
-Two restrictions sharpen what the walk may read. It sees only paired dollars:
-one-sided liquidity has a stake in which way the price moves, and a reference
-built to be neutral cannot let interested parties vote, so pairing decides
-voice exactly as it decides fees. And it reaches only over the schedule's
-working width, $Z + B/2$ past each side's best quote: if paired depth runs
-out before $T$ dollars, the missing dollars are priced at that boundary, and
-size parked beyond it is invisible to the measurement.
+Both impact prices are read from the eligible book alone; the rest of the
+book never enters the formula. Measuring at size is what makes the mark
+expensive to move. A tiny order
+absorbs almost none of a $T$-dollar walk, so it barely moves the average;
+shifting $M$ requires real size near the mid. If paired depth within the
+measured area runs out before $T$ dollars, the missing dollars are priced at
+the area's boundary; the measurement never reaches for size beyond it.
 
 The lab below runs the whole mechanism so far on a single maker's book: the
 walk, the mark, and a fee receipt for every level, showing its stamp, what it
 paired against, the rate each pairing actually pays, and the level's
-resulting total. The scenario tabs walk the story in order: a balanced ladder
-where everything pairs and only placement is charged, a directional book
-where pairing runs out on the way to the edge, a thin side that drags the
-mark itself, and spillover between levels. Drag any bar and the receipt
+resulting total. The scenario tabs step through the behavior in order: a
+balanced ladder where everything pairs and only placement is charged, a
+directional book where pairing runs out on the way to the edge, a thin side
+that drags the mark itself, and spillover between levels. Drag any bar and the receipt
 re-prices; the $T$ dial resizes the measuring walk itself.
 
 <div class="labwrap">
