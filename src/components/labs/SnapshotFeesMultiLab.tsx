@@ -109,6 +109,8 @@ interface Scenario {
 	depth: number;
 	lean: number;
 	spread: number;
+	/** Levels of YOUR book flipped from the positional side default. */
+	flips?: number[];
 }
 
 const SCENARIOS: Scenario[] = [
@@ -165,6 +167,36 @@ const SCENARIOS: Scenario[] = [
 				[CENTER + 2]: 5000,
 				[CENTER - 9]: 25000,
 			}),
+		depth: 1,
+		lean: 0,
+		spread: 1,
+	},
+	{
+		key: "crossed",
+		title: "Crossed Market",
+		blurb:
+			"Your bid stands 2.5bps above the makers' best ask, at size, with your own ask behind it. A crossed book is not an error: the walks run per side, the impact prices cross, and M lands inside the overlap, pulled toward the aggressive bid. The crossing bid itself stamps at zero, since aggression is never charged for contesting the price. In a dual-flow venue makers never trade each other, so a cross like this drains through taker flow instead.",
+		you: () =>
+			bookOf({
+				[CENTER + 6]: 20000,
+				[CENTER + 8]: 20000,
+			}),
+		flips: [CENTER + 6],
+		depth: 1,
+		lean: 0,
+		spread: 1,
+	},
+	{
+		key: "incoherent",
+		title: "Incoherent Market",
+		blurb:
+			"Your two-sided market stands 5.5bps above the makers', so far apart that neither book lies within the other's measuring reach. Eligibility empties on both sides: there is no region of agreement, and rather than average two markets that dispute each other, M freezes at its last value and exports held (the ❄ in the readout). It stays frozen until real two-sided size returns within reach of one market or the other.",
+		you: () =>
+			bookOf({
+				[CENTER + 11]: 20000,
+				[CENTER + 12]: 20000,
+			}),
+		flips: [CENTER + 11],
 		depth: 1,
 		lean: 0,
 		spread: 1,
@@ -384,7 +416,10 @@ export default function SnapshotFeesMultiLab() {
 	const [effect, setEffect] = useState<{ t: string; warn: boolean } | null>(
 		null,
 	);
-	const [centerSide, setCenterSide] = useState<"bid" | "ask">("bid");
+	// levels of YOUR book whose side is flipped from the positional default;
+	// flipping a right-of-center level to bid (or vice versa) builds a
+	// crossed book. The aggregate book stays positional.
+	const [yourFlips, setYourFlips] = useState<ReadonlySet<number>>(new Set());
 	const [playing, setPlaying] = useState(false);
 	const [mHover, setMHover] = useState(false);
 	const [feeHover, setFeeHover] = useState<number | null>(null);
@@ -399,23 +434,26 @@ export default function SnapshotFeesMultiLab() {
 	const playDepth = useRef(1);
 	const playShape = useRef(0.2); // book shape: +grows outward, −thick at the mid
 	const playTilt = useRef(0); // shape opposition: bids vs asks bend opposite ways
-	const centerSideRef = useRef<"bid" | "ask">("bid");
-
-	const sideOf = (i: number): Side => (i === CENTER ? centerSide : sideAt(i));
-	useEffect(() => {
-		centerSideRef.current = centerSide;
-	}, [centerSide]);
+	const yourSideOf = (i: number): Side =>
+		yourFlips.has(i) ? (sideAt(i) === "bid" ? "ask" : "bid") : sideAt(i);
+	const flipLevel = (i: number) =>
+		setYourFlips((s) => {
+			const nx = new Set(s);
+			if (nx.has(i)) nx.delete(i);
+			else nx.add(i);
+			return nx;
+		});
 	const model = useMemo(() => {
 		const yourBook: BookLevel[] = yourSizes.map((size, i) => ({
 			i,
 			price: priceAt(i),
-			side: sideOf(i),
+			side: yourSideOf(i),
 			size,
 		}));
 		const makerBook: BookLevel[] = makerSizes.map((size, i) => ({
 			i,
 			price: priceAt(i),
-			side: sideOf(i),
+			side: sideAt(i),
 			size,
 		}));
 		const mm = computeMark(
@@ -430,7 +468,7 @@ export default function SnapshotFeesMultiLab() {
 		const fees = computeAccountFees(yourBook, p, mm.M);
 		const makerFees = computeAccountFees(makerBook, p, mm.M);
 		return { mm, fees, makerFees };
-	}, [yourSizes, makerSizes, B, T, F, Z, slope, slope2, sideOf]);
+	}, [yourSizes, makerSizes, B, T, F, Z, slope, slope2, yourFlips]);
 
 	const { mm, fees, makerFees } = model;
 
@@ -501,7 +539,7 @@ export default function SnapshotFeesMultiLab() {
 			);
 			setMakerSizes((cur) =>
 				cur.map((v, i) => {
-					const side = i === CENTER ? centerSideRef.current : sideAt(i);
+					const side = sideAt(i);
 					if (side === "mid") return 0;
 					const dist = side === "bid" ? cF - i : i - cF;
 					const sideMul = side === "bid" ? 1 + lv : 1 - lv;
@@ -633,7 +671,7 @@ export default function SnapshotFeesMultiLab() {
 	};
 	const applyScenario = (sc: Scenario) => {
 		setYourSizes(sc.you());
-		setCenterSide("bid");
+		setYourFlips(new Set(sc.flips ?? []));
 		setDepth(sc.depth);
 		setLean(sc.lean);
 		setSpread(sc.spread);
@@ -926,6 +964,7 @@ export default function SnapshotFeesMultiLab() {
 								onClick={() => {
 									setMakerSizes(Array(N).fill(0));
 									setYourSizes(Array(N).fill(0));
+									setYourFlips(new Set());
 									setScenario(null);
 									setPlaying(false);
 								}}
@@ -1388,7 +1427,8 @@ export default function SnapshotFeesMultiLab() {
 						{/* mirrored books */}
 						{yourSizes.map((yv, i) => {
 							if (!inView(i)) return null;
-							const side = sideOf(i);
+							const sideYou = yourSideOf(i);
+							const sideAgg = sideAt(i);
 							const av = makerSizes[i];
 							const usedYou = mm.used.get("you")?.get(i) ?? 0;
 							const usedAgg = mm.used.get("agg")?.get(i) ?? 0;
@@ -1412,9 +1452,8 @@ export default function SnapshotFeesMultiLab() {
 										onClick={(e) => {
 											if (halfAt(e) === "you") togglePin(i);
 										}}
-										onDblClick={() => {
-											if (i === CENTER)
-												setCenterSide((cs) => (cs === "bid" ? "ask" : "bid"));
+										onDblClick={(e) => {
+											if (halfAt(e) === "you") flipLevel(i);
 										}}
 									/>
 									{/* grab handles: hug each bar's outer edge, mostly outside it */}
@@ -1463,7 +1502,7 @@ export default function SnapshotFeesMultiLab() {
 											pointerEvents="none"
 											strokeWidth={tip === i ? 1.5 : 0}
 											style={{
-												fill: side === "bid" ? C.bid : C.ask,
+												fill: sideYou === "bid" ? C.bid : C.ask,
 												stroke: tip === i ? C.text : "none",
 												...barTrans,
 											}}
@@ -1504,7 +1543,7 @@ export default function SnapshotFeesMultiLab() {
 											rx={2}
 											pointerEvents="none"
 											style={{
-												fill: side === "bid" ? C.bid : C.ask,
+												fill: sideAgg === "bid" ? C.bid : C.ask,
 												...barTrans,
 											}}
 										/>
@@ -1684,8 +1723,8 @@ export default function SnapshotFeesMultiLab() {
 											fontSize={12}
 											style={{
 												fill:
-													i === CENTER
-														? centerSide === "bid"
+													i === CENTER || yourFlips.has(i)
+														? yourSideOf(i) === "bid"
 															? C.bid
 															: C.ask
 														: C.faint,
@@ -1798,7 +1837,7 @@ export default function SnapshotFeesMultiLab() {
 							>
 								Instructions: Drag a bar's outer edge to resize it. Hover a bar
 								for its fee, <tspan style={{ fill: C.mark }}>M</tspan> for the
-								walk. Double-click 100.000 to flip its side.
+								walk. Double-click your half of a level to flip its side.
 							</text>
 						</g>
 
@@ -1862,7 +1901,7 @@ export default function SnapshotFeesMultiLab() {
 								const top = PT + 8;
 								const rows = mm.frozen
 									? [
-											{ t: "M frozen: no two-sided size to walk", c: C.text },
+											{ t: "M frozen: no eligible size to walk", c: C.text },
 											{ t: `showing last computed M ${fmtPx(mm.M)}`, c: C.dim },
 										]
 									: [
