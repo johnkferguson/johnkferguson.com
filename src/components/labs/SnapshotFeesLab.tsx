@@ -3,6 +3,7 @@ import {
 	type BookLevel,
 	BP,
 	computeModel,
+	type MarketModel,
 	type Side,
 	stampCapBps,
 } from "../../lib/snapshot-fees/engine";
@@ -333,16 +334,18 @@ export default function SnapshotFeesLab() {
 			side: sideOf(i),
 			size,
 		}));
+		// the lab always carries a prior mark (lastM starts at 100), so the
+		// no-mark state is unreachable here and M / the band edges are numbers
 		return computeModel(
 			book,
 			{ B, T, F, Z, slope, slope2, comp },
 			lastM.current,
-		);
+		) as MarketModel & { M: number; edgeBid: number; edgeAsk: number };
 	}, [sizes, B, T, F, Z, slope, slope2, comp, sideOf]);
 
 	useEffect(() => {
-		if (!model.frozen) lastM.current = model.M;
-	}, [model.M, model.frozen]);
+		if (model.state === "fresh") lastM.current = model.M;
+	}, [model.M, model.state]);
 
 	useEffect(() => {
 		const onKey = (e: KeyboardEvent) => {
@@ -1308,7 +1311,7 @@ export default function SnapshotFeesLab() {
 								style={{ fill: C.mark, fontFamily: mono }}
 							>
 								M {fmtPx(model.M)}
-								{model.frozen ? " ❄" : ""}
+								{model.state !== "fresh" ? " ❄" : ""}
 							</text>
 							{/* hover hit zone: the label box and arrow only, not the line */}
 							<rect
@@ -1331,9 +1334,9 @@ export default function SnapshotFeesLab() {
 									PR - 190,
 								);
 								const top = PT + 8;
-								if (model.frozen) {
+								if (model.state !== "fresh") {
 									const rows = [
-										{ t: "M frozen: no paired two-sided size", c: C.text },
+										{ t: "M held: no valid candidate book", c: C.text },
 										{ t: "nothing is eligible to walk;", c: C.dim },
 										{
 											t: `showing last computed M ${fmtPx(model.M)}`,

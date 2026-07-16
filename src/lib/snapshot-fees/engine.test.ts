@@ -35,7 +35,8 @@ const book: BookLevel[] = [
 ];
 
 describe("spec reference computation (worse-of)", () => {
-	const m = computeModel(book, P, 100);
+	// lastM null: a fresh M must never depend on carried state
+	const m = computeModel(book, P, null);
 	const bk = (i: number) => {
 		const b = m.levels.find((l) => l.i === i)?.bk;
 		if (!b) throw new Error(`no breakdown for level ${i}`);
@@ -55,7 +56,7 @@ describe("spec reference computation (worse-of)", () => {
 		expect(m.M).toBeCloseTo(100.0, 10);
 		expect(m.edgeBid).toBeCloseTo(99.98, 10);
 		expect(m.edgeAsk).toBeCloseTo(100.02, 10);
-		expect(m.frozen).toBe(false);
+		expect(m.state).toBe("fresh");
 	});
 
 	test("stamps", () => {
@@ -90,7 +91,7 @@ describe("spec reference computation (worse-of)", () => {
 	});
 });
 
-describe("Mark pipeline: eligibility, two passes, boundary fill", () => {
+describe("Mark pipeline: eligibility, candidates, boundary fill", () => {
 	test("dollar-symmetry lemma: raw size imbalance never tilts M (corrected spec vector 2)", () => {
 		// Asks shrunk to $3k + $1k against $6k of bids. The overlap gate makes
 		// the eligible book $4k per side, so BOTH walks are $1k short and the
@@ -104,7 +105,7 @@ describe("Mark pipeline: eligibility, two passes, boundary fill", () => {
 				{ i: 3, price: 100.03, side: "ask", size: 1000 },
 			],
 			P,
-			100,
+			null,
 		);
 		// eligible bids best-first: 3k @ 99.99 + 1k @ 99.97; missing $1k at
 		// the window edge 99.99 − (Z + B/2) = 99.99 − 22bps = 99.77 (asks
@@ -128,7 +129,7 @@ describe("Mark pipeline: eligibility, two passes, boundary fill", () => {
 				{ i: 1, price: 100.01, side: "ask", size: 10000 },
 			],
 			{ ...P, T: 20000 },
-			100,
+			null,
 		);
 		expect(m.iBid).toBeCloseTo(99.88, 10);
 		expect(m.iAsk).toBeCloseTo(100.12, 10);
@@ -142,21 +143,23 @@ describe("Mark pipeline: eligibility, two passes, boundary fill", () => {
 			{ i: 1, price: 99.99, side: "bid", size: 5000 },
 			{ i: 2, price: 100.01, side: "ask", size: 10000 },
 		];
-		const m = computeModel(thin, { ...P, T: 20000 }, 100);
+		const m = computeModel(thin, { ...P, T: 20000 }, null);
 		// c = eligible/T = 0.5; walked mid = (99.97 + 100.01)/2 = 99.99;
 		// anchor mid = (99.99 + 100.01)/2 = 100.00
 		expect(m.M).toBeCloseTo(0.5 * 99.99 + 0.5 * 100.0, 10);
 		// the Z terms cancel in the midpoint: same M at any zone width
 		// (given the same eligible set), even as both impact prices move
-		const m10 = computeModel(thin, { ...P, T: 20000, Z: 10 }, 100);
+		const m10 = computeModel(thin, { ...P, T: 20000, Z: 10 }, null);
 		expect(m10.iBid).not.toBeCloseTo(m.iBid ?? Number.NaN, 6);
-		expect(m10.M).toBeCloseTo(m.M, 10);
+		expect(m10.M).toBeCloseTo(m.M ?? Number.NaN, 10);
 	});
 
-	test("incoherent market: no mutually in-range consensus → M held", () => {
-		// Spec vector 6. P: 100.00 / 100.50; Q: 99.60 / 100.02; W = 20bps.
-		// Pass 1 anchors 100.00 / 100.02; P's ask and Q's bid are both out of
-		// range, so both overlaps are zero and the eligible set is empty.
+	test("incoherent quoter dropped: P/Q resolves to the one valid candidate (re-pinned spec vector 6)", () => {
+		// P: 100.00 / 100.50; Q: 99.60 / 100.02; reach 22bp, span 44bp.
+		// P's own quotes stand 50bp apart — wider than the span — so P's
+		// candidate is incoherent and dropped. Q's (42bp) is a valid market:
+		// the mark computes from Q alone. (Under the pre-candidate pipeline
+		// this vector emptied both sides and held; the span check re-pins it.)
 		const m = computeMark(
 			[
 				{
@@ -177,15 +180,47 @@ describe("Mark pipeline: eligibility, two passes, boundary fill", () => {
 			{ B: 4, T: 5000, Z: 20 },
 			100.123,
 		);
-		expect(m.frozen).toBe(true);
-		expect(m.M).toBe(100.123);
-		expect(m.impactSpread).toBeNull();
+		expect(m.state).toBe("fresh");
+		expect(m.M).toBeCloseTo(99.81, 10);
+		expect((m.impactSpread ?? 0) / BP).toBeCloseTo(42, 8);
+		expect(m.shareBid.get("P")).toBe(0);
+		expect(m.shareBid.get("Q")).toBeCloseTo(1, 10);
 	});
 
-	test("two-pass anchoring: a one-sided touch order cannot position the window", () => {
+	test("disjoint candidates at a strict tie: two books disputing the price → M held", () => {
+		// Both books are internally coherent (40bp and 42bp, inside the 44bp
+		// span) but stand outside each other's reach, and their eligible size
+		// ties exactly: no dominant candidate, no fresh M.
+		const books = [
+			{
+				id: "P",
+				levels: [
+					{ i: 0, price: 100.0, side: "bid" as const, size: 5000 },
+					{ i: 1, price: 100.4, side: "ask" as const, size: 5000 },
+				],
+			},
+			{
+				id: "Q",
+				levels: [
+					{ i: 0, price: 99.6, side: "bid" as const, size: 5000 },
+					{ i: 1, price: 100.02, side: "ask" as const, size: 5000 },
+				],
+			},
+		];
+		const held = computeMark(books, { B: 4, T: 5000, Z: 20 }, 100.123);
+		expect(held.state).toBe("held");
+		expect(held.M).toBe(100.123);
+		expect(held.impactSpread).toBeNull();
+		// at launch there is no mark to carry: the no-mark state
+		const none = computeMark(books, { B: 4, T: 5000, Z: 20 }, null);
+		expect(none.state).toBe("none");
+		expect(none.M).toBeNull();
+	});
+
+	test("one-sided touch order cannot position the window (no seed, no voice)", () => {
 		// A voiceless aggressive bid at 100.00 far above a real maker's book.
-		// Anchors come from two-sided accounts only, so the maker keeps its
-		// window and M computes fresh from its quotes.
+		// One-sided accounts propose no seed, so the maker's own candidate is
+		// the only one and M computes fresh from its quotes.
 		const m = computeMark(
 			[
 				{
@@ -203,10 +238,184 @@ describe("Mark pipeline: eligibility, two passes, boundary fill", () => {
 			{ B: 4, T: 5000, Z: 20 },
 			100,
 		);
-		expect(m.frozen).toBe(false);
+		expect(m.state).toBe("fresh");
 		expect(m.M).toBeCloseTo(99.76, 10);
 		expect(m.shareBid.get("silencer")).toBe(0);
 		expect(m.shareBid.get("maker")).toBeCloseTo(1, 10);
+	});
+});
+
+describe("candidate selection: seeds, span, largest book wins", () => {
+	test("dust far from the market loses the size comparison (the dust-freeze attack is dead)", () => {
+		// $2 of paired dust 100bp away. Under global best-quote anchoring this
+		// grabbed the bid anchor and emptied eligibility on both sides,
+		// freezing M. Under candidate selection the honest book ($5k/side)
+		// dwarfs the dust candidate ($2/side): M computes at 100.
+		const m = computeMark(
+			[
+				{
+					id: "honest",
+					levels: [
+						{ i: 0, price: 99.99, side: "bid", size: 5000 },
+						{ i: 1, price: 100.01, side: "ask", size: 5000 },
+					],
+				},
+				{
+					id: "dust",
+					levels: [
+						{ i: 0, price: 101.0, side: "bid", size: 2 },
+						{ i: 1, price: 101.01, side: "ask", size: 2 },
+					],
+				},
+			],
+			{ B: 4, T: 5000, Z: 20 },
+			null,
+		);
+		expect(m.state).toBe("fresh");
+		expect(m.M).toBeCloseTo(100.0, 10);
+		expect(m.shareBid.get("dust")).toBe(0);
+		expect(m.shareAsk.get("dust")).toBe(0);
+		expect(m.eligible.get("dust")?.size ?? 0).toBe(0);
+	});
+
+	test("wide-straddle seed is cleaned by pass 2: the far ask cannot vote", () => {
+		// The attacker's bid sits at the honest touch and its ask 30bp above,
+		// so its SEED window swallows everything. Pass 2 re-anchors at the
+		// best eligible quotes and the far ask falls out of reach, zeroing
+		// the attacker's overlap: the surviving candidate is honest-only.
+		const m = computeMark(
+			[
+				{
+					id: "honest",
+					levels: [
+						{ i: 0, price: 99.99, side: "bid", size: 5000 },
+						{ i: 1, price: 100.01, side: "ask", size: 5000 },
+					],
+				},
+				{
+					id: "straddle",
+					levels: [
+						{ i: 0, price: 99.995, side: "bid", size: 10000 },
+						{ i: 1, price: 100.3, side: "ask", size: 10000 },
+					],
+				},
+			],
+			{ B: 2, T: 5000, Z: 8 },
+			null,
+		);
+		expect(m.state).toBe("fresh");
+		expect(m.M).toBeCloseTo(100.0, 10);
+		expect(m.shareBid.get("straddle")).toBe(0);
+		expect(m.eligible.get("straddle")?.size ?? 0).toBe(0);
+	});
+
+	test("chain: overlapping candidates resolve to the larger, no held (the Q4 geometry)", () => {
+		// A—B—C: B is within reach of both ends, A and C are out of reach of
+		// each other. Two overlapping candidates form, {A,B} $35k and {B,C}
+		// $25k, sharing B. Overlap is ambiguity, not disagreement: the larger
+		// wins, C gets no voice, and M never holds.
+		const m = computeMark(
+			[
+				{
+					id: "A",
+					levels: [
+						{ i: 0, price: 99.9, side: "bid", size: 20000 },
+						{ i: 1, price: 99.98, side: "ask", size: 20000 },
+					],
+				},
+				{
+					id: "B",
+					levels: [
+						{ i: 0, price: 99.97, side: "bid", size: 15000 },
+						{ i: 1, price: 100.05, side: "ask", size: 15000 },
+					],
+				},
+				{
+					id: "C",
+					levels: [
+						{ i: 0, price: 100.04, side: "bid", size: 10000 },
+						{ i: 1, price: 100.12, side: "ask", size: 10000 },
+					],
+				},
+			],
+			{ B: 2, T: 20000, Z: 8 },
+			null,
+		);
+		expect(m.state).toBe("fresh");
+		// winner {A,B}: iBid = (15k×99.97 + 5k×99.90)/20k, iAsk = 99.98
+		expect(m.iBid).toBeCloseTo(99.9525, 10);
+		expect(m.iAsk).toBeCloseTo(99.98, 10);
+		expect(m.M).toBeCloseTo(99.96625, 10);
+		expect(m.shareBid.get("B")).toBeCloseTo(0.75, 10);
+		expect(m.shareBid.get("A")).toBeCloseTo(0.25, 10);
+		expect(m.shareBid.get("C")).toBe(0);
+		expect(m.eligible.get("C")?.size ?? 0).toBe(0);
+	});
+
+	test("overlapping candidates at an exact tie break deterministically, never hold", () => {
+		// Symmetric chain: {A,B} and {B,C} both hold $15k. They share B, so
+		// this is one region read twice, not two markets disputing the price:
+		// the tiebreak (tighter anchor spread, then higher bid anchor) picks
+		// {B,C} and M stays fresh.
+		const m = computeMark(
+			[
+				{
+					id: "A",
+					levels: [
+						{ i: 0, price: 99.9, side: "bid", size: 10000 },
+						{ i: 1, price: 99.98, side: "ask", size: 10000 },
+					],
+				},
+				{
+					id: "B",
+					levels: [
+						{ i: 0, price: 99.97, side: "bid", size: 5000 },
+						{ i: 1, price: 100.05, side: "ask", size: 5000 },
+					],
+				},
+				{
+					id: "C",
+					levels: [
+						{ i: 0, price: 100.04, side: "bid", size: 10000 },
+						{ i: 1, price: 100.12, side: "ask", size: 10000 },
+					],
+				},
+			],
+			{ B: 2, T: 15000, Z: 8 },
+			null,
+		);
+		expect(m.state).toBe("fresh");
+		expect(m.iBid).toBeCloseTo(100.016666667, 8);
+		expect(m.iAsk).toBeCloseTo(100.096666667, 8);
+		expect(m.M).toBeCloseTo(100.056666667, 8);
+		expect(m.eligible.get("A")?.size ?? 0).toBe(0);
+		expect((m.eligible.get("C")?.size ?? 0) > 0).toBe(true);
+	});
+
+	test("span check: a lone pair wider than B + 2Z is not a market", () => {
+		const wide: BookLevel[] = [
+			{ i: 0, price: 99.99, side: "bid", size: 5000 },
+			{ i: 1, price: 100.45, side: "ask", size: 5000 }, // 46bp > 44bp span
+		];
+		const heldM = computeModel(wide, P, 100);
+		expect(heldM.state).toBe("held");
+		expect(heldM.M).toBe(100);
+		const noneM = computeModel(wide, P, null);
+		expect(noneM.state).toBe("none");
+		expect(noneM.M).toBeNull();
+	});
+
+	test("span check: a lone pair at exactly B + 2Z is", () => {
+		const m = computeModel(
+			[
+				{ i: 0, price: 99.99, side: "bid", size: 5000 },
+				{ i: 1, price: 100.43, side: "ask", size: 5000 }, // exactly 44bp
+			],
+			P,
+			null,
+		);
+		expect(m.state).toBe("fresh");
+		expect(m.M).toBeCloseTo(100.21, 10);
 	});
 });
 
@@ -217,19 +426,39 @@ describe("anchors and invariants", () => {
 			P,
 			100,
 		);
+		expect(m.state).toBe("held");
 		const b = m.levels[0].bk;
 		expect(b?.pairing).toBe(P.F);
 		expect(b?.final).toBe(P.F);
 	});
 
-	test("one side empty → M frozen at fallback", () => {
+	test("one side empty → M held at the carried mark", () => {
 		const m = computeModel(
 			[{ i: 0, price: 99.99, side: "bid", size: 5000 }],
 			P,
 			100.005,
 		);
-		expect(m.frozen).toBe(true);
+		expect(m.state).toBe("held");
 		expect(m.M).toBe(100.005);
+	});
+
+	test("no-mark state: no mark has ever formed → M null, every dollar pays the cap", () => {
+		const m = computeModel(
+			[{ i: 0, price: 99.99, side: "bid", size: 5000 }],
+			P,
+			null,
+		);
+		expect(m.state).toBe("none");
+		expect(m.M).toBeNull();
+		expect(m.edgeBid).toBeNull();
+		expect(m.levels[0].bk?.final).toBe(P.F);
+		// paired-at-any-width dollars are equally unstampable without a mark
+		const af = computeAccountFees(book, P, null);
+		for (const lv of af.levels) {
+			if (!lv.bk) continue;
+			expect(lv.bk.own).toBe(P.F);
+			expect(lv.bk.final).toBe(P.F);
+		}
 	});
 
 	test("worse-leg identity: a symmetric paired book pays one leg, not two", () => {
@@ -241,7 +470,7 @@ describe("anchors and invariants", () => {
 				{ i: 1, price: 100.04, side: "ask", size: 5000 },
 			],
 			P,
-			100,
+			null,
 		);
 		expect(m.M).toBeCloseTo(100.0, 10);
 		expect(m.levels[0].bk?.own).toBeCloseTo(1.0, 10);
@@ -258,7 +487,7 @@ describe("anchors and invariants", () => {
 				{ i: 1, price: 100.01, side: "ask", size: 5000 },
 			],
 			P,
-			100,
+			null,
 		);
 		const b = m.levels[0].bk;
 		expect(b?.unpaired).toBe(0);
@@ -273,7 +502,7 @@ describe("anchors and invariants", () => {
 				{ i: 2, price: 100.4, side: "ask", size: 5000 },
 			],
 			P,
-			100,
+			null,
 		);
 		const without = computeModel(
 			[
@@ -281,26 +510,29 @@ describe("anchors and invariants", () => {
 				{ i: 1, price: 100.005, side: "ask", size: 100 },
 			],
 			P,
-			100,
+			null,
 		);
-		expect(withJunk.M).toBeCloseTo(without.M, 10);
+		expect(withJunk.M).toBeCloseTo(without.M ?? Number.NaN, 10);
 		expect(withJunk.stampOf(100.4, "ask")).toBe(P.F);
 		const feeWith = withJunk.levels[0].bk?.final;
 		const feeWithout = without.levels[0].bk?.final;
 		expect(feeWith).toBeCloseTo(feeWithout ?? Number.NaN, 10);
 	});
 
-	test("single-account caveat: a LONE far ask bends M toward itself", () => {
-		// The self-anchoring regime: the far ask is its own side's best, so
-		// it stays in range, feeds the walk, and cuts its own stamp below
-		// the cap (documented limitation; leave-one-out is the upgrade path).
+	test("single-account caveat: a LONE far ask within the span bends M toward itself", () => {
+		// The self-anchoring regime: the far ask is its own side's best, the
+		// pair stands 41bp apart (inside the 44bp span, so still a coherent
+		// candidate), it feeds the walk and cuts its own stamp below the cap
+		// (documented limitation; leave-one-out is the upgrade path). At
+		// working calibrations with a tighter span this shape is excluded —
+		// see the span-check tests.
 		const m = computeModel(
 			[
 				{ i: 0, price: 99.99, side: "bid", size: 5000 },
 				{ i: 1, price: 100.4, side: "ask", size: 5000 },
 			],
 			P,
-			100,
+			null,
 		);
 		expect(m.M).toBeCloseTo(100.195, 10);
 		expect(m.levels[1].bk?.own).toBeCloseTo(9.25, 6);
@@ -309,7 +541,7 @@ describe("anchors and invariants", () => {
 	test("fee ∈ [0, F] across a parameter sweep", () => {
 		for (const B of [1, 4, 10]) {
 			for (const slope of [0.25, 0.75, 1, 3]) {
-				const m = computeModel(book, { ...P, B, slope }, 100);
+				const m = computeModel(book, { ...P, B, slope }, null);
 				for (const lv of m.levels) {
 					if (!lv.bk) continue;
 					expect(lv.bk.final).toBeGreaterThanOrEqual(0);
@@ -320,7 +552,7 @@ describe("anchors and invariants", () => {
 	});
 
 	test("own-distance floor: fee ≥ own stamp", () => {
-		const m = computeModel(book, P, 100);
+		const m = computeModel(book, P, null);
 		for (const lv of m.levels) {
 			if (!lv.bk) continue;
 			expect(lv.bk.final).toBeGreaterThanOrEqual(
@@ -330,7 +562,7 @@ describe("anchors and invariants", () => {
 	});
 
 	test("allocation total is conserved: paired + directional = size", () => {
-		const m = computeModel(book, P, 100);
+		const m = computeModel(book, P, null);
 		for (const lv of m.levels) {
 			if (!lv.bk) continue;
 			const paired = lv.bk.pairs.reduce((s, pr) => s + pr.paired, 0);

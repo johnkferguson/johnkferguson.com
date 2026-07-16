@@ -1,9 +1,11 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import {
+	type AccountFees,
 	type BookLevel,
 	BP,
 	computeAccountFees,
 	computeMark,
+	type MultiMark,
 	type Side,
 } from "../../lib/snapshot-fees/engine";
 import "./snapshot-fees-lab.css";
@@ -188,9 +190,9 @@ const SCENARIOS: Scenario[] = [
 	},
 	{
 		key: "incoherent",
-		title: "Incoherent Market",
+		title: "Rival Books",
 		blurb:
-			"Your two-sided market stands 5.5bps above the makers', so far apart that neither book lies within the other's measuring reach. Eligibility empties on both sides: there is no region of agreement, and rather than average two markets that dispute each other, M freezes at its last value and exports held (the ❄ in the readout). It stays frozen until real two-sided size returns within reach of one market or the other.",
+			"Your two-sided market stands 5.5bps above the makers', too far for either book to lie within the other's measuring reach. The snapshot now holds two candidate eligible books, and M reads the larger one: the makers keep the mark, your book gets no voice, and its receipts are priced against a mark it had no hand in. Clear the makers and your book becomes the only candidate: M jumps to it. Only when two rival books stand at exactly equal eligible size is there no dominant candidate; then M holds its last value (the ❄ in the readout).",
 		you: () =>
 			bookOf({
 				[CENTER + 11]: 20000,
@@ -456,6 +458,8 @@ export default function SnapshotFeesMultiLab() {
 			side: sideAt(i),
 			size,
 		}));
+		// the lab always carries a prior mark (lastM starts at 100), so the
+		// no-mark state is unreachable here and M / the band edges are numbers
 		const mm = computeMark(
 			[
 				{ id: "you", levels: yourBook },
@@ -463,18 +467,19 @@ export default function SnapshotFeesMultiLab() {
 			],
 			{ B, T, Z },
 			lastM.current,
-		);
+		) as MultiMark & { M: number; edgeBid: number; edgeAsk: number };
 		const p = { B, T, F, Z, slope, slope2, comp: 0 };
-		const fees = computeAccountFees(yourBook, p, mm.M);
-		const makerFees = computeAccountFees(makerBook, p, mm.M);
+		type Fees = AccountFees & { edgeBid: number; edgeAsk: number };
+		const fees = computeAccountFees(yourBook, p, mm.M) as Fees;
+		const makerFees = computeAccountFees(makerBook, p, mm.M) as Fees;
 		return { mm, fees, makerFees };
 	}, [yourSizes, makerSizes, B, T, F, Z, slope, slope2, yourFlips]);
 
 	const { mm, fees, makerFees } = model;
 
 	useEffect(() => {
-		if (!mm.frozen) lastM.current = mm.M;
-	}, [mm.M, mm.frozen]);
+		if (mm.state === "fresh") lastM.current = mm.M;
+	}, [mm.M, mm.state]);
 
 	useEffect(() => {
 		setMHist((h) => {
@@ -1877,7 +1882,7 @@ export default function SnapshotFeesMultiLab() {
 								style={{ fill: C.mark, fontFamily: mono }}
 							>
 								M {fmtPx(mm.M)}
-								{mm.frozen ? " ❄" : ""}
+								{mm.state !== "fresh" ? " ❄" : ""}
 							</text>
 							<rect
 								x={-58}
@@ -1899,35 +1904,39 @@ export default function SnapshotFeesMultiLab() {
 									PR - 175,
 								);
 								const top = PT + 8;
-								const rows = mm.frozen
-									? [
-											{ t: "M frozen: no eligible size to walk", c: C.text },
-											{ t: `showing last computed M ${fmtPx(mm.M)}`, c: C.dim },
-										]
-									: [
-											{ t: "M: the communal mark", c: C.dim },
-											{
-												t: `sell walk → ${mm.iBid != null ? fmtPx(mm.iBid) : "–"} · you ${yourShareBid.toFixed(0)}%`,
-												c: C.bid,
-											},
-											{
-												t: `buy walk → ${mm.iAsk != null ? fmtPx(mm.iAsk) : "–"} · you ${yourShareAsk.toFixed(0)}%`,
-												c: C.ask,
-											},
-											{ t: `M = midpoint = ${fmtPx(mm.M)}`, c: C.mark },
-											{
-												t: `impact spread ${
-													mm.impactSpread != null
-														? (mm.impactSpread / BP).toFixed(1)
-														: "–"
-												}bps · B = ${B}bps`,
-												c: C.faint,
-											},
-											{
-												t: "only two-sided size near the touch votes",
-												c: C.faint,
-											},
-										];
+								const rows =
+									mm.state !== "fresh"
+										? [
+												{ t: "M held: no dominant candidate book", c: C.text },
+												{
+													t: `showing last computed M ${fmtPx(mm.M)}`,
+													c: C.dim,
+												},
+											]
+										: [
+												{ t: "M: the communal mark", c: C.dim },
+												{
+													t: `sell walk → ${mm.iBid != null ? fmtPx(mm.iBid) : "–"} · you ${yourShareBid.toFixed(0)}%`,
+													c: C.bid,
+												},
+												{
+													t: `buy walk → ${mm.iAsk != null ? fmtPx(mm.iAsk) : "–"} · you ${yourShareAsk.toFixed(0)}%`,
+													c: C.ask,
+												},
+												{ t: `M = midpoint = ${fmtPx(mm.M)}`, c: C.mark },
+												{
+													t: `impact spread ${
+														mm.impactSpread != null
+															? (mm.impactSpread / BP).toFixed(1)
+															: "–"
+													}bps · B = ${B}bps`,
+													c: C.faint,
+												},
+												{
+													t: "only two-sided size near the touch votes",
+													c: C.faint,
+												},
+											];
 								const h = 16 + rows.length * 19;
 								return (
 									<g pointerEvents="none">

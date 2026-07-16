@@ -5,9 +5,11 @@
  * mechanism, and so the engine can be unit-tested against the spec's
  * reference computation (see engine.test.ts).
  *
- * The Mark pipeline (computeMark) is shared by every lab: two-pass anchoring,
- * paired-only eligibility, and boundary fill at the window edge. A single
- * account is just a one-book market.
+ * The Mark pipeline (computeMark) is shared by every lab: every two-sided
+ * account seeds a candidate eligible book (two anchoring passes each), a
+ * span check drops incoherent candidates, the largest candidate wins, and
+ * the impact walks run on the winner with boundary fill at the window edge.
+ * A single account is just a one-book market.
  *
  * Conventions: prices near $100, so 1bp = $0.01. Floating-point is fine here —
  * an on-chain implementation would use fixed-point integers, but the labs only
@@ -88,20 +90,23 @@ export interface FeeLevel extends BookLevel {
 /** Fees for one account's book, judged against a given Mark. */
 export interface AccountFees {
 	levels: FeeLevel[];
-	edgeBid: number;
-	edgeAsk: number;
+	/** Band edges; null in the no-mark state. */
+	edgeBid: number | null;
+	edgeAsk: number | null;
 	stampOf: (price: number, side: "bid" | "ask") => number;
 }
 
 /**
  * Stamps, joint pairing allocation (spillover), and per-dollar worse-of fees
  * for one account's book against a given M. The Mark may be communal (multi
- * maker) or the account's own (single-maker lab).
+ * maker) or the account's own (single-maker lab). With no mark (M null — the
+ * pre-first-mark state) there is nothing to measure placement against, so
+ * every stamp is the cap and every dollar pays F.
  */
 export function computeAccountFees(
 	book: BookLevel[],
 	p: FeeParams,
-	M: number,
+	M: number | null,
 ): AccountFees {
 	const { B, F, Z, slope, slope2, comp } = p;
 	const bids = book
@@ -112,12 +117,13 @@ export function computeAccountFees(
 		.sort((a, b) => a.price - b.price);
 
 	const half = (B / 2) * BP;
-	const edgeBid = M - half;
-	const edgeAsk = M + half;
+	const edgeBid = M == null ? null : M - half;
+	const edgeAsk = M == null ? null : M + half;
 
 	// Bracketed stamp: the first Z bps of distance are priced at k₁, the
-	// excess at k₂, capped at F.
+	// excess at k₂, capped at F. No mark → no distance to measure → F.
 	const stampOf = (price: number, side: "bid" | "ask"): number => {
+		if (edgeBid == null || edgeAsk == null) return F;
 		const d = side === "ask" ? price - edgeAsk : edgeBid - price;
 		const bps = Math.max(0, d / BP);
 		const raw = slope * Math.min(bps, Z) + slope2 * Math.max(0, bps - Z);
@@ -182,8 +188,12 @@ export function computeAccountFees(
 				a.unpaired * F) /
 			q;
 		const combined = Math.min(F, pairing);
-		const distBp = Math.abs(lv.price - M) / BP;
-		const insideComp = comp > 0 ? comp * Math.max(0, 1 - distBp / (B / 2)) : 0;
+		const distBp =
+			M == null ? Number.POSITIVE_INFINITY : Math.abs(lv.price - M) / BP;
+		const insideComp =
+			comp > 0 && Number.isFinite(distBp)
+				? comp * Math.max(0, 1 - distBp / (B / 2))
+				: 0;
 		const final = combined - insideComp;
 		return {
 			own,
@@ -211,6 +221,16 @@ export interface MakerBook {
 	levels: BookLevel[];
 }
 
+/**
+ * fresh — a candidate eligible book won this window and M was measured from it.
+ * held  — a mark existed, but this window produced no winner (no valid
+ *         candidate, or a strict tie between disjoint candidates); the last
+ *         M carries with this flag.
+ * none  — no mark has ever formed (launch): nothing to measure, nothing to
+ *         carry. Fees stamp at the cap until the first candidate appears.
+ */
+export type MarkState = "fresh" | "held" | "none";
+
 export interface MarkShort {
 	/** Dollars the walk could not source from eligible size. */
 	missing: number;
@@ -219,13 +239,14 @@ export interface MarkShort {
 }
 
 export interface MultiMark {
-	M: number;
+	/** The mark; null only in the no-mark ("none") state. */
+	M: number | null;
+	state: MarkState;
 	iBid: number | null;
 	iAsk: number | null;
-	frozen: boolean;
-	edgeBid: number;
-	edgeAsk: number;
-	/** iAsk − iBid, the thinness thermometer. Null while held. */
+	edgeBid: number | null;
+	edgeAsk: number | null;
+	/** iAsk − iBid, the thinness thermometer. Null unless fresh. */
 	impactSpread: number | null;
 	/** Boundary fill per side, when the eligible ladder held less than T. */
 	shortBid: MarkShort | null;
@@ -235,7 +256,7 @@ export interface MultiMark {
 	/** Each account's share of the walked dollars, per side (0..1). */
 	shareBid: Map<string, number>;
 	shareAsk: Map<string, number>;
-	/** Mark-eligible size per account: id -> (level i -> $). */
+	/** Mark-eligible size per account (the winning candidate): id -> (level i -> $). */
 	eligible: Map<string, Map<number, number>>;
 }
 
@@ -246,13 +267,24 @@ export interface MultiMark {
  * Z + B/2 of that side's anchor (the same working width the fee schedule
  * discounts, total span B + 2Z).
  *
- * Anchoring is exactly two passes: pass 1 anchors each side at the best
- * quote among raw two-sided accounts (any paired size, no range condition);
- * pass 2 re-anchors at the best pass-1-eligible quote and recomputes
- * eligibility once — a one-sided touch order can never position the window.
- * No pass-1 eligible size on a side → M held at the fallback.
+ * Anchoring is seeded per account: every account standing both a bid and an
+ * ask proposes its own best quotes as trial anchors, and each seed runs
+ * exactly two passes (eligibility from the trial anchors, re-anchor at the
+ * best eligible quote, recompute once). Each distinct converged outcome is a
+ * candidate eligible book. A candidate whose converged anchors stand farther
+ * apart than the span B + 2Z is incoherent and dropped (crossed anchors pass
+ * trivially). The largest candidate wins; overlapping candidates at an exact
+ * tie break deterministically (tighter anchor spread, then higher bid
+ * anchor), while a strict tie between DISJOINT candidates is two books
+ * disputing the price with no dominant market — no fresh M. One-sided
+ * accounts propose no seed and carry no eligible size, so they can neither
+ * position a window nor vote; junk far from the market converges to a tiny
+ * candidate and loses to the real book's size.
  *
- * The T-walk consumes the pooled eligible ladder best-first, pro-rata across
+ * With no winner: held (carry the last M) if a mark has ever existed, else
+ * none (launch — no mark until a valid candidate forms).
+ *
+ * The T-walk consumes the winning ladder best-first, pro-rata across
  * accounts at equal prices; if the ladder holds less than T, the missing
  * dollars are priced at the anchor ± (Z + B/2) (boundary fill). Because every
  * account's eligible size is equal on both sides by construction, the
@@ -264,7 +296,7 @@ export interface MultiMark {
 export function computeMark(
 	books: MakerBook[],
 	p: { B: number; T: number; Z: number },
-	fallbackM: number,
+	lastM: number | null,
 ): MultiMark {
 	const { B, T, Z } = p;
 	const half = (B / 2) * BP;
@@ -273,19 +305,22 @@ export function computeMark(
 	// (total span B + 2Z). Quote-anchored: measured from the anchors, never
 	// from M or the band.
 	const reachD = (Z + B / 2) * BP;
+	// The coherence span: a candidate's own anchors may stand at most this
+	// far apart — the same working width, hung across the market.
+	const spanD = 2 * reachD;
 
 	const mapBy = <V>(mk: () => V): Map<string, V> => {
 		const m = new Map<string, V>();
 		for (const b of books) m.set(b.id, mk());
 		return m;
 	};
-	const held = (): MultiMark => ({
-		M: fallbackM,
+	const noMark = (): MultiMark => ({
+		M: lastM,
+		state: lastM == null ? "none" : "held",
 		iBid: null,
 		iAsk: null,
-		frozen: true,
-		edgeBid: fallbackM - half,
-		edgeAsk: fallbackM + half,
+		edgeBid: lastM == null ? null : lastM - half,
+		edgeAsk: lastM == null ? null : lastM + half,
 		impactSpread: null,
 		shortBid: null,
 		shortAsk: null,
@@ -294,25 +329,6 @@ export function computeMark(
 		shareAsk: mapBy(() => 0),
 		eligible: mapBy(() => new Map<number, number>()),
 	});
-
-	// —— Pass 1 anchors: best quote among raw two-sided accounts ——
-	let a1Bid = Number.NEGATIVE_INFINITY;
-	let a1Ask = Number.POSITIVE_INFINITY;
-	for (const b of books) {
-		let bb = Number.NEGATIVE_INFINITY;
-		let ba = Number.POSITIVE_INFINITY;
-		for (const l of b.levels) {
-			if (l.size <= 0) continue;
-			if (l.side === "bid" && l.price > bb) bb = l.price;
-			if (l.side === "ask" && l.price < ba) ba = l.price;
-		}
-		if (bb !== Number.NEGATIVE_INFINITY && ba !== Number.POSITIVE_INFINITY) {
-			if (bb > a1Bid) a1Bid = bb;
-			if (ba < a1Ask) a1Ask = ba;
-		}
-	}
-	if (a1Bid === Number.NEGATIVE_INFINITY || a1Ask === Number.POSITIVE_INFINITY)
-		return held();
 
 	interface ElQuote {
 		id: string;
@@ -367,15 +383,84 @@ export function computeMark(
 		return { eligible, elBids, elAsks };
 	};
 
-	// —— Pass 1 eligibility, then pass 2: re-anchor on eligible size ——
-	let pass = eligibilityOf(a1Bid, a1Ask);
-	if (!pass.elBids.length || !pass.elAsks.length) return held();
-	let a2Bid = Number.NEGATIVE_INFINITY;
-	let a2Ask = Number.POSITIVE_INFINITY;
-	for (const q of pass.elBids) if (q.price > a2Bid) a2Bid = q.price;
-	for (const q of pass.elAsks) if (q.price < a2Ask) a2Ask = q.price;
-	pass = eligibilityOf(a2Bid, a2Ask);
-	if (!pass.elBids.length || !pass.elAsks.length) return held();
+	// —— Seeds: each two-sided account proposes its own best quotes ——
+	const seeds = new Map<string, { bb: number; ba: number }>();
+	for (const b of books) {
+		let bb = Number.NEGATIVE_INFINITY;
+		let ba = Number.POSITIVE_INFINITY;
+		for (const l of b.levels) {
+			if (l.size <= 0) continue;
+			if (l.side === "bid" && l.price > bb) bb = l.price;
+			if (l.side === "ask" && l.price < ba) ba = l.price;
+		}
+		if (bb !== Number.NEGATIVE_INFINITY && ba !== Number.POSITIVE_INFINITY)
+			seeds.set(`${bb}|${ba}`, { bb, ba });
+	}
+	if (!seeds.size) return noMark();
+
+	// —— Converge each seed (exactly two passes), keep distinct valid candidates ——
+	interface Candidate {
+		aBid: number;
+		aAsk: number;
+		eligible: Map<string, Map<number, number>>;
+		elBids: ElQuote[];
+		elAsks: ElQuote[];
+		/** Eligible $ per side (both sides equal by construction). */
+		size: number;
+	}
+	const candidates: Candidate[] = [];
+	const seen = new Set<string>();
+	for (const { bb, ba } of seeds.values()) {
+		const e1 = eligibilityOf(bb, ba);
+		if (!e1.elBids.length || !e1.elAsks.length) continue;
+		let aBid = Number.NEGATIVE_INFINITY;
+		let aAsk = Number.POSITIVE_INFINITY;
+		for (const q of e1.elBids) if (q.price > aBid) aBid = q.price;
+		for (const q of e1.elAsks) if (q.price < aAsk) aAsk = q.price;
+		// Coherence: a candidate whose own anchors disagree by more than the
+		// working span is not a market (an incoherent book of one). Crossed
+		// anchors pass trivially.
+		if (aAsk - aBid > spanD + 1e-9) continue;
+		const key = `${aBid}|${aAsk}`;
+		if (seen.has(key)) continue;
+		seen.add(key);
+		const e2 = eligibilityOf(aBid, aAsk);
+		if (!e2.elBids.length || !e2.elAsks.length) continue;
+		const size = e2.elBids.reduce((s, q) => s + q.el, 0);
+		candidates.push({
+			aBid,
+			aAsk,
+			eligible: e2.eligible,
+			elBids: e2.elBids,
+			elAsks: e2.elAsks,
+			size,
+		});
+	}
+	if (!candidates.length) return noMark();
+
+	// —— Selection: the largest candidate eligible book wins. A strict tie
+	// between disjoint candidates is disagreement (no dominant market → no
+	// fresh M); ties between overlapping candidates are two readings of one
+	// region and break deterministically. ——
+	const sharesSize = (a: Candidate, b: Candidate): boolean => {
+		for (const [id, em] of a.eligible) {
+			const bm = b.eligible.get(id);
+			if (!bm) continue;
+			for (const [i, v] of em)
+				if (v > 1e-9 && (bm.get(i) ?? 0) > 1e-9) return true;
+		}
+		return false;
+	};
+	let maxSize = 0;
+	for (const c of candidates) if (c.size > maxSize) maxSize = c.size;
+	const top = candidates.filter((c) => Math.abs(c.size - maxSize) <= 1e-6);
+	if (top.length > 1) {
+		for (let i = 0; i < top.length; i++)
+			for (let j = i + 1; j < top.length; j++)
+				if (!sharesSize(top[i], top[j])) return noMark();
+		top.sort((x, y) => x.aAsk - x.aBid - (y.aAsk - y.aBid) || y.aBid - x.aBid);
+	}
+	const win = top[0];
 
 	// —— The impact walks, with boundary fill at anchor ± (Z + B/2) ——
 	const used = mapBy(() => new Map<number, number>());
@@ -420,8 +505,8 @@ export function computeMark(
 		return { price: cost / T, walked: T - (short?.missing ?? 0), short };
 	};
 
-	const wBid = walkSide(pass.elBids, "bid", a2Bid - reachD);
-	const wAsk = walkSide(pass.elAsks, "ask", a2Ask + reachD);
+	const wBid = walkSide(win.elBids, "bid", win.aBid - reachD);
+	const wAsk = walkSide(win.elAsks, "ask", win.aAsk + reachD);
 	const M = (wBid.price + wAsk.price) / 2;
 
 	const share = (tm: Map<string, number>, tot: number) => {
@@ -433,9 +518,9 @@ export function computeMark(
 
 	return {
 		M,
+		state: "fresh",
 		iBid: wBid.price,
 		iAsk: wAsk.price,
-		frozen: false,
 		edgeBid: M - half,
 		edgeAsk: M + half,
 		impactSpread: wAsk.price - wBid.price,
@@ -444,20 +529,20 @@ export function computeMark(
 		used,
 		shareBid: share(useTotals.bid, wBid.walked),
 		shareAsk: share(useTotals.ask, wAsk.walked),
-		eligible: pass.eligible,
+		eligible: win.eligible,
 	};
 }
 
 export interface MarketModel {
 	levels: FeeLevel[];
-	M: number;
+	/** The mark; null only in the no-mark ("none") state. */
+	M: number | null;
+	state: MarkState;
 	iBid: number | null;
 	iAsk: number | null;
-	edgeBid: number;
-	edgeAsk: number;
-	/** True when no eligible walk was possible and M fell back to `fallbackM`. */
-	frozen: boolean;
-	/** iAsk − iBid, the thinness thermometer. Null while held. */
+	edgeBid: number | null;
+	edgeAsk: number | null;
+	/** iAsk − iBid, the thinness thermometer. Null unless fresh. */
 	impactSpread: number | null;
 	/** Boundary fill per side, when the eligible ladder held less than T. */
 	shortBid: MarkShort | null;
@@ -471,8 +556,10 @@ export interface MarketModel {
 
 /**
  * Run the full window pipeline on one account's book, as a one-book market:
- * eligibility → impact walks with boundary fill → M → band → stamps →
- * joint pairing allocation (spillover) → combined fee.
+ * seed → candidate → impact walks with boundary fill → M → band → stamps →
+ * joint pairing allocation (spillover) → combined fee. `lastM` is the mark
+ * carried from prior windows (null at launch — the no-mark state, where
+ * everything pays the cap).
  *
  * Every level's breakdown answers: if the sweep reached this level and it
  * fully filled, what rate would it pay?
@@ -480,14 +567,10 @@ export interface MarketModel {
 export function computeModel(
 	book: BookLevel[],
 	p: FeeParams,
-	fallbackM: number,
+	lastM: number | null,
 ): MarketModel {
 	const { B, T, Z } = p;
-	const mm = computeMark(
-		[{ id: "solo", levels: book }],
-		{ B, T, Z },
-		fallbackM,
-	);
+	const mm = computeMark([{ id: "solo", levels: book }], { B, T, Z }, lastM);
 	const af = computeAccountFees(book, p, mm.M);
 	const bidTotal = book.reduce(
 		(s, l) => s + (l.side === "bid" ? l.size : 0),
@@ -500,11 +583,11 @@ export function computeModel(
 	return {
 		levels: af.levels,
 		M: mm.M,
+		state: mm.state,
 		iBid: mm.iBid,
 		iAsk: mm.iAsk,
 		edgeBid: af.edgeBid,
 		edgeAsk: af.edgeAsk,
-		frozen: mm.frozen,
 		impactSpread: mm.impactSpread,
 		shortBid: mm.shortBid,
 		shortAsk: mm.shortAsk,
