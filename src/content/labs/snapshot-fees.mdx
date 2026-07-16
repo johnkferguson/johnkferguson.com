@@ -317,29 +317,38 @@ re-prices; the $T$ dial resizes the measuring walk itself.
   <SnapshotFeesLab client:visible />
 </div>
 
-## The Mark Is Communal
+## Many Makers, One Mark
 
-<div class="stub">
+Everything so far ran on a single maker's book. In a real market the eligible
+book pools every trader's paired, in-area size at once: the same filter and
+the same walk, producing one mark for the whole market.
 
-- In a real market $M$ is measured from everyone's book at once
-- Eligibility: only demonstrated two-sided size near the touch gets a vote
-- Your voice is your share of the measuring walk
-- Confident non-directionality toward the mid is a vote for $M$, and tighter quoting carries more weight
-- Your fees come from your book, but judged against a yardstick you only partly control
-- Needs its own beat: what happens when there is not enough stock to compute $M$
+Within the pooled walk, a trader's voice is their share of the dollars it
+consumed. Better-priced quotes are consumed first, and quotes at the same
+price share pro-rata. A dollar is a dollar whoever stands it: a small maker's
+size counts exactly in proportion, with no seniority and no minimum.
 
-</div>
+This produces a property worth stating plainly, because no existing fee
+schedule has it: a maker does not set their fee. They set their book. The
+formula is identical for everyone, but the mark inside it is calculated from
+every maker's quotes at once, so the rate a given book pays depends on where
+the rest of the market stands. The dependence shrinks with weight, and weight
+comes from the same actions the schedule already rewards: quoting larger and
+tighter pulls the mark toward the center of your own quotes, which is where
+your rate is most predictable. The same behavior that earns the discount also
+buys certainty about it.
 
-## Many Makers
+If a side of the eligible book is empty, no new mark can be measured; the
+market holds the last one until real two-sided size returns.
 
-<div class="stub">
-
-- You against the aggregate makers, mirrored
-- Lessons: small fish, equal voice, the makers lean and re-price your resting book
-- Try to bend it: one-sided walls have no vote; the only way to fake the metric is to do the job
-- Press play: watch $M$ drift while your book stands still
-
-</div>
+The lab below is that market: your book on top, the aggregate of every other
+maker mirrored beneath it, both feeding one walk. The scenario tabs step
+through the consequences: what changes when you are no longer alone, how a
+small book keeps its proportional voice, and what happens to your resting
+fees when the other makers lean away from you. Try to bend the mark with a
+one-sided wall and watch it count for nothing. Then press play and watch $M$
+drift as the makers reprice, while your book stands still and its receipts
+re-price around it.
 
 <div class="labwrap">
   <SnapshotFeesMultiLab client:visible />
@@ -376,12 +385,15 @@ re-prices; the $T$ dial resizes the measuring walk itself.
 
 <div class="stub">
 
+- Fee uncertainty as a cost of the design: on every existing venue a maker knows their rate before quoting; here the rate is known only up to the mark, so it becomes another variable to model alongside fill probability and adverse selection, with a confidence interval rather than a number. Mitigations: the schedule and formula are fully public; the worst case is bounded at the cap $F$; and unlike order flow, the interval is under the maker's own control, since weight (size and tightness) narrows it. Expect pushback here; treat it as a real trade-off, not a non-issue
 - Semi-far pairing earns a discount: paid optionality, priced by fill risk and adverse selection
 - Manipulation economics: junk pairing is worthless, bending $M$ requires standing real paired size
 - Parameters and governance: $B$ declared and sticky, $F$ venue-wide, $Z$ and the two slopes shape the curve, $T$ measured from demand
 - Volume pricing composes rather than competes: volume (like staking in the spec) can lower an account's cap $F$ toward a floor. A 10bps cap might fall to 2.5bps on volume alone, but the last mile to zero is quality only. The floored cap preserves day-one competition for new makers and gives high-volume takers a legible benefit
 - Variations considered: partner-stamp grace interval, asymptotic stamps (rejected: softens the junk anchor), inside compensation (parked), partial fills
 - Band fee level as a parameter: add an intercept $c$ to the base fee, $\min(F,\ c + k_1 \cdot \min(d, Z) + k_2 \cdot \max(0,\ d - Z))$; the band pays exactly $c$, and the piece's design is the special case $c = 0$. Negative $c$ is a rebate for the tightest quotes. It leaks smoothly past the band edge (fee crosses zero at $d = -c/k_1$), needs $c > -F$ so a self-cross costs $F + c > 0$ (the taker cap bounds the rebate against wash trading), and reopens the standard maker-rebate manipulation literature that $c = 0$ dismisses in one sentence
+- Crossed books, by size of cross (needs its own beat, possibly with Which Auction Design): a cross smaller than the eligibility reach ($Z + B/2$) computes normally; impact prices cross, the spread exports negative, $M$ sits mid-cross, and aggressive quotes stamp at zero (aggression is never punished). A cross larger than the reach collapses eligibility on both sides and the mark holds: two books asserting prices with no region of agreement is an incoherent market, and the mechanism freezes rather than average it. In a DFBA makers never trade each other, so crossed maker books persist and drain via taker flow; note the no-arbitrage band: crosses narrower than roughly 2F are not arbitrageable (two taker caps exceed the edge), just better prices for natural flow
+- The no-mark states (needs its own beat): window 1 uses a declared launch mark M0; an empty eligible side or incoherent cross holds the last mark with a held flag; fresh vs held vs healthy (impact spread against B) are three different gates and consumers choose which to require
 - Open: cross-window dynamics, staking-based fee caps, thin-market $M$ fallbacks
 - Some ideas: make the cap itself volume derived but let it lower down to a floor. Still retains snapshot fees as the dominant driver as fees for makers. Example, 8bps Fee Cap. Cap can lower based on volume to 2bps. Still allows new makers to compete on pricing and inventory management.
 - Need to show the O complexity of what it costs to derive the Mark and the fee schedule per window. It's worthwhile to show how much it costs computationally.
