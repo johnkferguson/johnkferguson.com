@@ -280,6 +280,13 @@ no voice, even though the two still pair for fees; the fee's pairing accepts
 any distance and prices it, while the mark's requires both legs to stand
 within the area it measures.
 
+The same width bounds the market itself. The best bid and best ask being
+measured must stand within $B + 2Z$ of each other, the full working span.
+Two quotes farther apart than that are not a market with a wide spread;
+they are two claims about the price with no working region between them,
+and the mark does not average them. A book that wide produces no
+measurement at all.
+
 The mark, then, is not calculated from the raw book. Per trader, keep only
 the two-sided size that pairs within the area, and pool what survives by
 price level. That filtered ladder is the eligible book, and it is the only
@@ -338,17 +345,32 @@ tighter pulls the mark toward the center of your own quotes, which is where
 your rate is most predictable. The same behavior that earns the discount also
 buys certainty about it.
 
-If a side of the eligible book is empty, no new mark can be measured; the
-market holds the last one until real two-sided size returns.
+Pooling has one more consequence. Makers usually cluster, everyone's quotes
+within reach of everyone else's, and the filter produces a single eligible
+book. But books can also stand so far apart that neither lies within the
+other's measuring reach. Each region then forms its own candidate eligible
+book, and the mark reads the largest one. The smaller candidate gets no
+voice: its quotes are priced against a mark it had no hand in. Moving the
+mark away from the market therefore has a single price: standing more
+paired, fillable size than everyone else combined, within one working span.
+
+Two situations produce no new mark. If no valid candidate stands anywhere,
+or two candidates that share nothing stand at exactly equal size, the market
+holds the last mark, flagged as held, until a dominant book returns. And a
+market that has never had a mark holds nothing: from launch until the first
+candidate forms there is no mark, and every fill pays the cap. The first
+account to stand a real two-sided book within the span creates the mark, and
+with it the first access to a discount.
 
 The lab below is that market: your book on top, the aggregate of every other
 maker mirrored beneath it, both feeding one walk. The scenario tabs step
 through the consequences: what changes when you are no longer alone, how a
 small book keeps its proportional voice, and what happens to your resting
 fees when the other makers lean away from you. Try to bend the mark with a
-one-sided wall and watch it count for nothing. Then press play and watch $M$
-drift as the makers reprice, while your book stands still and its receipts
-re-price around it.
+one-sided wall and watch it count for nothing, or stand a whole rival book
+away from the market and watch the larger book keep the mark. Then press
+play and watch $M$ drift as the makers reprice, while your book stands still
+and its receipts re-price around it.
 
 <div class="labwrap">
   <SnapshotFeesMultiLab client:visible />
@@ -358,7 +380,7 @@ re-price around it.
 
 <div class="stub">
 
-- The pipeline: eligibility, walk, $M$, band, stamps, pairing, worse-of
+- The pipeline: seeds (one per two-sided account), candidate eligible books (two anchoring passes each), span check ($B + 2Z$), largest candidate wins, walk, $M$, band, stamps, pairing, worse-of
 - The one-line fee: `(Σ paired × max(own, partner) + directional × F) / size`
 - Reference computation anyone can recompute from the published window
 - Placement TBD: this section may move earlier, before or beside the labs
@@ -387,16 +409,17 @@ re-price around it.
 
 - Fee uncertainty as a cost of the design: on every existing venue a maker knows their rate before quoting; here the rate is known only up to the mark, so it becomes another variable to model alongside fill probability and adverse selection, with a confidence interval rather than a number. Mitigations: the schedule and formula are fully public; the worst case is bounded at the cap $F$; and unlike order flow, the interval is under the maker's own control, since weight (size and tightness) narrows it. Expect pushback here; treat it as a real trade-off, not a non-issue
 - Semi-far pairing earns a discount: paid optionality, priced by fill risk and adverse selection
-- Manipulation economics: junk pairing is worthless, bending $M$ requires standing real paired size
+- Manipulation economics: junk pairing is worthless, bending $M$ requires standing real paired size. Under candidate selection this is winner-take-all: moving or freezing the mark requires out-sizing the honest book's eligible size within one $B + 2Z$ span, and any size short of that buys exactly zero influence. The old dust-freeze hole (tiny far paired size grabbing an anchor and freezing $M$) is closed by the same rule
 - Parameters and governance: $B$ declared and sticky, $F$ venue-wide, $Z$ and the two slopes shape the curve, $T$ measured from demand
 - Volume pricing composes rather than competes: volume (like staking in the spec) can lower an account's cap $F$ toward a floor. A 10bps cap might fall to 2.5bps on volume alone, but the last mile to zero is quality only. The floored cap preserves day-one competition for new makers and gives high-volume takers a legible benefit
-- Variations considered: partner-stamp grace interval, asymptotic stamps (rejected: softens the junk anchor), inside compensation (parked), partial fills
+- Variations considered: partner-stamp grace interval, asymptotic stamps (rejected: softens the junk anchor), inside compensation (parked), partial fills, blending $M$ between near-tied rival candidate books (rejected: partial size must buy zero influence, and a blended mark stands at a price where no liquidity does)
 - Band fee level as a parameter: add an intercept $c$ to the base fee, $\min(F,\ c + k_1 \cdot \min(d, Z) + k_2 \cdot \max(0,\ d - Z))$; the band pays exactly $c$, and the piece's design is the special case $c = 0$. Negative $c$ is a rebate for the tightest quotes. It leaks smoothly past the band edge (fee crosses zero at $d = -c/k_1$), needs $c > -F$ so a self-cross costs $F + c > 0$ (the taker cap bounds the rebate against wash trading), and reopens the standard maker-rebate manipulation literature that $c = 0$ dismisses in one sentence
-- Crossed books, by size of cross (needs its own beat, possibly with Which Auction Design): a cross smaller than the eligibility reach ($Z + B/2$) computes normally; impact prices cross, the spread exports negative, $M$ sits mid-cross, and aggressive quotes stamp at zero (aggression is never punished). A cross larger than the reach collapses eligibility on both sides and the mark holds: two books asserting prices with no region of agreement is an incoherent market, and the mechanism freezes rather than average it. In a DFBA makers never trade each other, so crossed maker books persist and drain via taker flow; note the no-arbitrage band: crosses narrower than roughly 2F are not arbitrageable (two taker caps exceed the edge), just better prices for natural flow
-- The no-mark states (needs its own beat): window 1 uses a declared launch mark M0; an empty eligible side or incoherent cross holds the last mark with a held flag; fresh vs held vs healthy (impact spread against B) are three different gates and consumers choose which to require
+- Crossed books, by size of cross (needs its own beat, possibly with Which Auction Design): a cross smaller than the eligibility reach ($Z + B/2$) computes normally; impact prices cross, the spread exports negative, $M$ sits mid-cross, and aggressive quotes stamp at zero (aggression is never punished). A cross or gap larger than the reach splits the snapshot into rival candidate eligible books and the mark reads the largest; the smaller book keeps pairing for fees but has no voice. Overlapping candidates (the chain case: A within reach of B, B within reach of C, A and C not) are two readings of one region and resolve to the larger with a deterministic tiebreak, never held. In a DFBA makers never trade each other, so crossed maker books persist and drain via taker flow; note the no-arbitrage band: crosses narrower than roughly 2F are not arbitrageable (two taker caps exceed the edge), just better prices for natural flow
+- The no-mark states (needs its own beat): three states, none / fresh / held, and no declared launch mark. From launch until the first valid candidate book forms there is no mark and every fill pays the cap $F$. A free launch window was considered and rejected: two sybil accounts, one bidding and one asking, would wash-trade fee-free until a mark formed; charging the cap instead makes standing the first real two-sided book the way to unlock discounts. held only bridges windows after a mark has existed (no valid candidate, or a strict tie between disjoint candidates) and is unreachable at launch by construction. fresh vs held vs healthy (impact spread against $B$) are three different gates and consumers choose which to require. Open: whether held should expire at some age or carry indefinitely with consumers gating on staleness
+- Liquidations as a future mark consumer (out of scope here, but it constrains the design now): a liquidation reference would be an EMA or TWAP of recent fresh-and-healthy marks with a staleness bound, never the raw per-window $M$, so sustaining a manipulation across the lookback means being the market for its whole length. Mark availability becomes a design metric: the fraction of windows fresh and healthy, especially under stress, since the span check can empty the mark exactly when volatility widens every book; profiles must size $B + 2Z$ against stressed spreads, not calm ones. Natural listing rule: leverage enables only after the mark has some window count of fresh, healthy history
 - Open: cross-window dynamics, staking-based fee caps, thin-market $M$ fallbacks
 - Some ideas: make the cap itself volume derived but let it lower down to a floor. Still retains snapshot fees as the dominant driver as fees for makers. Example, 8bps Fee Cap. Cap can lower based on volume to 2bps. Still allows new makers to compete on pricing and inventory management.
-- Need to show the O complexity of what it costs to derive the Mark and the fee schedule per window. It's worthwhile to show how much it costs computationally.
+- Need to show the O complexity of what it costs to derive the Mark and the fee schedule per window. It's worthwhile to show how much it costs computationally. Candidate discovery adds one eligibility pass per two-sided account (seeds dedupe, and in a coherent market they all converge to one candidate).
 - Need a section to walk through/show dynamically deriving T over time.
 - The dynamically calibrated market (likely its own late section, "Calibrating the Market" / "Market Profiles", holding the dynamic-$T$ walkthrough too). The cadence ladder: every parameter changes at the slowest cadence that keeps it honest — $M$ per window (it is the measurement), $T$ daily (a statistic needs a sample; one window must never move the yardstick that prices it), $B$/$Z$/$k_1$/$k_2$ on a ~30-day lookback in discrete steps, $F$ slowest as venue policy
 - Market profiles: instead of infinite parameter permutations, 3–5 vetted coherent bundles (the parameters interact: full fee at $B/2 + Z + (F - k_1 Z)/k_2$), expected to correlate with volume and volatility. Anchor for the selector: $B$ should cover noise, not signal — e.g. a quantile of window-to-window $M$ drift; high volatility → wider band, gentler slopes (width there is insurance, not laziness); deep high-volume markets → tight band, stricter precision pricing. Shared profiles also pool statistics across the long tail instead of overfitting thin markets
