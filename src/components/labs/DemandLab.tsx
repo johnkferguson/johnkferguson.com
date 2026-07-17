@@ -459,7 +459,8 @@ export default function DemandLab() {
 									const bx =
 										xMid(i) + 12 + bw > PR ? xMid(i) - 12 - bw : xMid(i) + 12;
 									const by = PT + 4;
-									const cols = [12, 52, 112, 196];
+									// column centers; headers and cells share them, centered
+									const cols = [30, 80, 152, 220];
 									return (
 										<g pointerEvents="none">
 											<rect
@@ -484,6 +485,7 @@ export default function DemandLab() {
 													key={h}
 													x={bx + cols[k]}
 													y={by + 40}
+													textAnchor="middle"
 													fontSize={10.5}
 													style={{ fill: C.faint, fontFamily: mono }}
 												>
@@ -502,6 +504,7 @@ export default function DemandLab() {
 															key={`${ch.name}c${c}`}
 															x={bx + cols[c]}
 															y={by + 60 + k * 19}
+															textAnchor="middle"
 															fontSize={12.5}
 															style={{ fill: ch.color, fontFamily: mono }}
 														>
