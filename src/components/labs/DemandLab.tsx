@@ -24,10 +24,14 @@ const FLOW_STEP = 10_000;
 const YMAX = 1_000_000; // fixed dollar scale — the chart never rescales
 
 // dial defaults (scenario clicks reset to these)
-const M_DEFAULT = 25;
 const L_DEFAULT = 4;
 const SEED_DEFAULT = 100_000;
 const FLOOR_DEFAULT = 50_000;
+// the minimum sample is fixed here: its teaching is the Quiet Spell shelf,
+// and its units (multiples of D of daily flow) have no visible referent on
+// this chart. At m = 25 and 50 windows/day, a day moves a line only if its
+// bar stands at least half that line's height.
+const M_FIXED = 25;
 
 // Theme roles — resolved per light/dark mode in snapshot-fees-lab.css
 const C = {
@@ -116,7 +120,7 @@ const SCENARIOS: DemandScenario[] = [
 		key: "quiet",
 		title: "Quiet Spell",
 		blurb:
-			"The middle of the run carries too little flow to clear the minimum sample, m × D, so every line holds flat: no update, and no decay. A statistic needs a sample, and these days are not one. Raise m and more days freeze; lower it far enough and the quiet days start moving D again.",
+			"The middle of the run carries too little flow to clear the minimum sample, so every line holds flat: no update, and no decay. A statistic needs a sample, and these days are not one. When real flow returns, so does the measurement.",
 		flows: () => [100, 100, 100, 30, 30, 30, 30, 30, 100, 100],
 		sel: 4,
 	},
@@ -137,7 +141,6 @@ interface DragState {
 
 export default function DemandLab() {
 	const [flows, setFlows] = useState<number[]>(SCENARIOS[0].flows());
-	const [m, setM] = useState(M_DEFAULT);
 	const [L, setL] = useState(L_DEFAULT);
 	const [seed, setSeed] = useState(SEED_DEFAULT);
 	const [floor, setFloor] = useState(FLOOR_DEFAULT);
@@ -155,21 +158,18 @@ export default function DemandLab() {
 				const p: DemandParams = {
 					seed,
 					floor,
-					minSample: m,
+					minSample: M_FIXED,
 					alpha: ch.alpha,
 					limit: L,
 				};
 				return runEpochs(days, p);
 			}),
-		[days, seed, floor, m, L],
+		[days, seed, floor, L],
 	);
 
 	// active scenario is derived, never stored
 	const dialsDefault =
-		m === M_DEFAULT &&
-		L === L_DEFAULT &&
-		seed === SEED_DEFAULT &&
-		floor === FLOOR_DEFAULT;
+		L === L_DEFAULT && seed === SEED_DEFAULT && floor === FLOOR_DEFAULT;
 	const activeScenario = dialsDefault
 		? SCENARIOS.find(
 				(sc) => JSON.stringify(sc.flows()) === JSON.stringify(flows),
@@ -177,7 +177,6 @@ export default function DemandLab() {
 		: undefined;
 	const applyScenario = (sc: DemandScenario) => {
 		setFlows(sc.flows());
-		setM(M_DEFAULT);
 		setL(L_DEFAULT);
 		setSeed(SEED_DEFAULT);
 		setFloor(FLOOR_DEFAULT);
@@ -316,16 +315,6 @@ export default function DemandLab() {
 							}}
 						>
 							<Param
-								name="Min Sample · m"
-								val={m}
-								set={setM}
-								min={5}
-								max={100}
-								stp={5}
-								suffix="×D"
-								hint="A day below m × D of flow freezes D."
-							/>
-							<Param
 								name="Daily Limit · L"
 								val={L}
 								set={setL}
@@ -355,41 +344,6 @@ export default function DemandLab() {
 								fmt={fmtK}
 								hint="D never falls below it, whatever demand does."
 							/>
-							<div
-								style={{
-									gridColumn: "span 2",
-									display: "flex",
-									flexDirection: "column",
-									gap: 3,
-									background: C.inset,
-									border: `1px solid ${C.line}`,
-									borderRadius: 6,
-									padding: "6px 10px",
-									alignSelf: "start",
-									minWidth: 0,
-								}}
-							>
-								<span
-									style={{ ...label, fontSize: 9.5, letterSpacing: "0.1em" }}
-								>
-									The Three Chases · D at Close
-								</span>
-								<div style={{ display: "flex", gap: 14, flexWrap: "wrap" }}>
-									{CHASES.map((ch, k) => (
-										<span
-											key={ch.name}
-											style={{
-												fontFamily: mono,
-												fontSize: 11.5,
-												color: ch.color,
-												whiteSpace: "nowrap",
-											}}
-										>
-											{ch.name} · {fmtK(runs[k][NDAYS - 1].dClose)}
-										</span>
-									))}
-								</div>
-							</div>
 						</div>
 
 						<svg

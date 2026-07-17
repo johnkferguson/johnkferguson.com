@@ -497,12 +497,14 @@ size-blind midpoint the mark was designed to avoid in the first place.
 
 #### The Lab
 
-The lab below runs the machine on ten days of demand. Drag a day's bar to
-resize its flow and watch the staircase of $D$ chase it; the ledger records
-each day's sums, reading, and step. Every value in the machine is a dial.
-None of the starting values is settled design: they are calibration choices
-a venue would fit to its own market, and the defaults here are only a
-starting point to adjust.
+The lab below runs three copies of the machine over the same ten days of
+demand, one line per chase speed, with the table beside the chart recording
+each line's close. What it shows is how $D$ recalculates under different
+demand regimes: steady growth, a surge that passes, days too quiet to
+measure, one day loud enough to hit the daily limit. Drag a day's bar to
+reshape the regime. The limit, the seed, and the floor are dials, and none
+of their values is settled design: they are calibration choices a venue
+would fit to its own market.
 
 <div class="labwrap">
   <DemandLab client:visible />
