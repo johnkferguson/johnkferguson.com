@@ -122,8 +122,8 @@ const SCENARIOS: DemandScenario[] = [
 		key: "surge",
 		title: "Surge & Decay",
 		blurb:
-			"Two days of eightfold demand in the middle of a normal run. Every line climbs while the surge lasts and comes back down when it ends; the faster the chase, the further it follows the spike and the more it has to give back. Nothing needs to declare the surge over: the fills stop reporting it.",
-		flows: () => [100, 100, 100, 800, 800, 100, 100, 100, 100, 100],
+			"A choppy baseline, a spike on day four, then a tail that drains back down. Every line climbs while the surge lasts and gives it back as it fades; the faster the chase, the higher it follows the spike and the more it has to return. Nothing needs to declare the surge over: the fills stop reporting it.",
+		flows: () => [130, 90, 140, 840, 650, 210, 140, 160, 100, 80],
 		sel: 4,
 	},
 	{
