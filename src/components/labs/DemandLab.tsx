@@ -1,4 +1,4 @@
-import { Fragment, useMemo, useRef, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import {
 	type DemandParams,
 	type EpochResult,
@@ -8,121 +8,26 @@ import {
 import "./snapshot-fees-lab.css";
 
 // ————————————————————————————————————————————————————————————————
-// Snapshot Fees — the Typical Demand laboratory. Ten days of taker flow;
-// D rebases at each close from two accumulators (S1, S2) and the reading
-// S2/S1. Every guardrail is a dial: the machine's shape is a parameter
-// choice, not a constant of the design.
+// Snapshot Fees — the Typical Demand laboratory. Ten days of demand and
+// three D staircases chasing them at α = 1/2, 2/3, 3/4. Layout and
+// interaction grammar follow BaseFeeLab: dials above the chart, a live
+// table on the right, one hover state driving crosshair, popup, and row.
 // Mechanism lives in src/lib/snapshot-fees/demand.ts — this file renders.
 // ————————————————————————————————————————————————————————————————
 
 const NDAYS = 10;
-const FLOW_MIN = 1000;
-const FLOW_MAX = 200000;
-const FLOW_STEP = 1000;
+// each day is modeled as this many equal windows at the dragged demand
+const WINDOWS_PER_DAY = 50;
+const FLOW_MIN = 10_000;
+const FLOW_MAX = 1_000_000;
+const FLOW_STEP = 10_000;
+const YMAX = 1_000_000; // fixed dollar scale — the chart never rescales
 
 // dial defaults (scenario clicks reset to these)
-const SEED_DEFAULT = 10000;
-const FLOOR_DEFAULT = 5000;
-const MIN_SAMPLE_DEFAULT = 25;
-const ALPHA_DEFAULT = 0.5;
-const LIMIT_DEFAULT = 4;
-
-type DayType = "normal" | "whale" | "dust" | "quiet";
-interface Day {
-	flow: number;
-	type: DayType;
-}
-
-const TYPE_ORDER: DayType[] = ["normal", "whale", "dust", "quiet"];
-const TYPE_META: Record<DayType, { glyph: string; hint: string }> = {
-	normal: { glyph: "N", hint: "500 windows at the dragged clip size" },
-	whale: {
-		glyph: "W",
-		hint: "a normal day plus one giant window, 250× the clip",
-	},
-	dust: {
-		glyph: "D",
-		hint: "a normal day plus 5,000 windows of $100",
-	},
-	quiet: { glyph: "Q", hint: "8 windows at half the clip" },
-};
-
-/** A day's windows: [count, $ per window] groups fed to the machine. */
-const windowsOf = (d: Day): WindowGroup[] => {
-	if (d.type === "quiet") return [[8, d.flow * 0.5]];
-	const base: WindowGroup[] = [[500, d.flow]];
-	if (d.type === "whale") base.push([1, 250 * d.flow]);
-	if (d.type === "dust") base.push([5000, 100]);
-	return base;
-};
-
-const windowCountOf = (d: Day): number => {
-	if (d.type === "quiet") return 8;
-	if (d.type === "whale") return 501;
-	if (d.type === "dust") return 5500;
-	return 500;
-};
-
-interface DemandScenario {
-	key: string;
-	title: string;
-	blurb: string;
-	days: () => Day[];
-	sel: number;
-}
-
-const daysOf = (flows: number[], type?: (i: number) => DayType): Day[] =>
-	flows.map((k, i) => ({ flow: k * 1000, type: type ? type(i) : "normal" }));
-
-const SCENARIOS: DemandScenario[] = [
-	{
-		key: "growth",
-		title: "Growth",
-		blurb:
-			"Demand grows tenfold across the run. D chases at half the remaining log-gap per day, so the early doublings close fast and the last few percent barely move it. Nobody declares the regime change; the fills report it, and the ledger shows each day's step shrinking as D catches up.",
-		days: () => daysOf([10, 13, 17, 22, 28, 36, 46, 60, 78, 100]),
-		sel: 3,
-	},
-	{
-		key: "surge",
-		title: "Surge & Decay",
-		blurb:
-			"Two days of twenty-times demand in the middle of a normal run. D steps up while the surge lasts and back down as soon as it stops: the yardstick follows what actually trades, in both directions.",
-		days: () => daysOf([10, 10, 10, 200, 200, 10, 10, 10, 10, 10]),
-		sel: 4,
-	},
-	{
-		key: "whale",
-		title: "Whale Window",
-		blurb:
-			"A normal week, except day five contains one window 250 times the clip. The reading spikes, and the daily limit does its one job: however strange a single day, it moves D by at most L×. The derivation panel shows the raw step the limit cut down.",
-		days: () =>
-			daysOf(Array(NDAYS).fill(10), (i) => (i === 4 ? "whale" : "normal")),
-		sel: 4,
-	},
-	{
-		key: "dust",
-		title: "Dust Storm",
-		blurb:
-			"Days four through seven each add five thousand windows of $100. The reading barely moves, because a window's weight in the average is its own dollars, and $100 windows carry almost none. The derivation shows the per-window mean for comparison, which those same windows would have collapsed.",
-		days: () =>
-			daysOf(Array(NDAYS).fill(10), (i) =>
-				i >= 3 && i <= 6 ? "dust" : "normal",
-			),
-		sel: 4,
-	},
-	{
-		key: "quiet",
-		title: "Quiet Spell",
-		blurb:
-			"Days four through eight carry too little flow to clear the minimum sample, m × D, so D freezes: no update and no decay (the ❄ days in the ledger). A statistic needs a sample, and a dead afternoon is not one. Activity resumes, and so does the measurement.",
-		days: () =>
-			daysOf(Array(NDAYS).fill(10), (i) =>
-				i >= 3 && i <= 7 ? "quiet" : "normal",
-			),
-		sel: 5,
-	},
-];
+const M_DEFAULT = 25;
+const L_DEFAULT = 4;
+const SEED_DEFAULT = 100_000;
+const FLOOR_DEFAULT = 50_000;
 
 // Theme roles — resolved per light/dark mode in snapshot-fees-lab.css
 const C = {
@@ -134,13 +39,21 @@ const C = {
 	dim: "var(--lab-dim)",
 	faint: "var(--lab-faint)",
 	bid: "var(--lab-bid)",
+	ask: "var(--lab-ask)",
 	mark: "var(--lab-mark)",
 	zone: "var(--lab-zone)",
+	inset: "var(--lab-inset)",
 	danger: "var(--lab-danger)",
-	hint: "var(--lab-hint)",
 };
 
 const mono = "var(--lab-mono)";
+
+// the three chases, slowest to fastest
+const CHASES = [
+	{ alpha: 1 / 2, name: "α = 1/2", color: C.bid },
+	{ alpha: 2 / 3, name: "α = 2/3", color: C.zone },
+	{ alpha: 3 / 4, name: "α = 3/4", color: C.mark },
+];
 
 const label = {
 	fontFamily: mono,
@@ -162,278 +75,206 @@ const btn = (active: boolean) => ({
 });
 
 const fmtK = (v: number) => {
-	if (v >= 1e6) return `$${(v / 1e6).toFixed(v >= 1e7 ? 1 : 2)}M`;
-	if (v >= 1000) return `$${(v / 1000).toFixed(v >= 99500 ? 0 : 1)}k`;
+	if (v >= 1e6) {
+		const m = v / 1e6;
+		return `$${Number.isInteger(m) ? m : m.toFixed(2)}M`;
+	}
+	if (v >= 1000) {
+		const k = v / 1000;
+		return `$${k >= 100 ? Math.round(k) : k.toFixed(1).replace(/\.0$/, "")}k`;
+	}
 	return `$${Math.round(v)}`;
 };
-const fmt$ = (v: number) => `$${Math.round(v).toLocaleString()}`;
 
-interface ParamProps {
-	name: string;
-	val: number;
-	set: (v: number) => void;
-	min: number;
-	max: number;
-	stp: number;
-	fmt?: (v: number) => string;
-	hint?: string;
+interface DemandScenario {
+	key: string;
+	title: string;
+	blurb: string;
+	flows: () => number[];
+	sel: number;
 }
 
-function Param({ name, val, set, min, max, stp, fmt, hint }: ParamProps) {
-	return (
-		<div
-			style={{
-				display: "flex",
-				flexDirection: "column",
-				gap: 3,
-				minWidth: 0,
-				overflow: "hidden",
-			}}
-		>
-			<span style={{ ...label, fontSize: 9.5, letterSpacing: "0.1em" }}>
-				{name}
-			</span>
-			<div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-				<input
-					type="range"
-					min={min}
-					max={max}
-					step={stp}
-					value={val}
-					onChange={(e) => set(+(e.currentTarget as HTMLInputElement).value)}
-					style={{
-						flex: "1 1 auto",
-						minWidth: 0,
-						accentColor: "var(--lab-slider)",
-					}}
-				/>
-				<span
-					style={{
-						fontFamily: mono,
-						fontSize: 11.5,
-						color: C.text,
-						whiteSpace: "nowrap",
-						width: "6ch",
-						textAlign: "right",
-						flexShrink: 0,
-					}}
-				>
-					{fmt ? fmt(val) : val}
-				</span>
-			</div>
-			{hint && (
-				<span style={{ fontSize: 10.5, color: C.faint, lineHeight: 1.35 }}>
-					{hint}
-				</span>
-			)}
-		</div>
-	);
-}
+const K = 1000;
+const SCENARIOS: DemandScenario[] = [
+	{
+		key: "growth",
+		title: "Growth",
+		blurb:
+			"Demand climbs tenfold across the run. The three chases follow at their own speeds: α = 3/4 closes the gap in the fewest days, α = 1/2 trails furthest behind but moves the least on any one reading. The spread between the lines is the whole trade-off the exponent controls.",
+		flows: () => [100, 130, 170, 220, 280, 360, 460, 600, 780, 1000],
+		sel: 4,
+	},
+	{
+		key: "surge",
+		title: "Surge & Decay",
+		blurb:
+			"Two days of eightfold demand in the middle of a normal run. Every line climbs while the surge lasts and comes back down when it ends; the faster the chase, the further it follows the spike and the more it has to give back. Nothing needs to declare the surge over: the fills stop reporting it.",
+		flows: () => [100, 100, 100, 800, 800, 100, 100, 100, 100, 100],
+		sel: 4,
+	},
+	{
+		key: "quiet",
+		title: "Quiet Spell",
+		blurb:
+			"The middle of the run carries too little flow to clear the minimum sample, m × D, so every line holds flat: no update, and no decay. A statistic needs a sample, and these days are not one. Raise m and more days freeze; lower it far enough and the quiet days start moving D again.",
+		flows: () => [100, 100, 100, 30, 30, 30, 30, 30, 100, 100],
+		sel: 4,
+	},
+	{
+		key: "loud",
+		title: "One Loud Day",
+		blurb:
+			"A single day of demand ten times the rest. The raw steps for the two faster chases exceed the daily limit and are held to L×, while the slowest stays inside it, which is why the [[One Loud Day|blue and purple lines]] land on the same value. Lower L and all three flatten toward the same bounded step; the days after walk everything back down.",
+		flows: () => [100, 100, 100, 100, 1000, 100, 100, 100, 100, 100],
+		sel: 4,
+	},
+];
 
 interface DragState {
 	i: number;
-	y0: number;
-	v0: number;
 	moved: boolean;
 }
 
 export default function DemandLab() {
-	const [days, setDays] = useState<Day[]>(SCENARIOS[0].days());
+	const [flows, setFlows] = useState<number[]>(SCENARIOS[0].flows());
+	const [m, setM] = useState(M_DEFAULT);
+	const [L, setL] = useState(L_DEFAULT);
 	const [seed, setSeed] = useState(SEED_DEFAULT);
 	const [floor, setFloor] = useState(FLOOR_DEFAULT);
-	const [minSample, setMinSample] = useState(MIN_SAMPLE_DEFAULT);
-	const [alpha, setAlpha] = useState(ALPHA_DEFAULT);
-	const [limit, setLimit] = useState(LIMIT_DEFAULT);
-	const [sel, setSel] = useState(SCENARIOS[0].sel);
+	const [hover, setHover] = useState<number | null>(null);
+	const svgRef = useRef<SVGSVGElement | null>(null);
 	const drag = useRef<DragState | null>(null);
 
-	const params: DemandParams = useMemo(
-		() => ({ seed, floor, minSample, alpha, limit }),
-		[seed, floor, minSample, alpha, limit],
+	const days: WindowGroup[][] = useMemo(
+		() => flows.map((f) => [[WINDOWS_PER_DAY, f * K] as WindowGroup]),
+		[flows],
 	);
-	const rows: EpochResult[] = useMemo(
-		() => runEpochs(days.map(windowsOf), params),
-		[days, params],
+	const runs: EpochResult[][] = useMemo(
+		() =>
+			CHASES.map((ch) => {
+				const p: DemandParams = {
+					seed,
+					floor,
+					minSample: m,
+					alpha: ch.alpha,
+					limit: L,
+				};
+				return runEpochs(days, p);
+			}),
+		[days, seed, floor, m, L],
 	);
-	const dFinal = rows[NDAYS - 1].dClose;
 
+	// active scenario is derived, never stored
 	const dialsDefault =
+		m === M_DEFAULT &&
+		L === L_DEFAULT &&
 		seed === SEED_DEFAULT &&
-		floor === FLOOR_DEFAULT &&
-		minSample === MIN_SAMPLE_DEFAULT &&
-		alpha === ALPHA_DEFAULT &&
-		limit === LIMIT_DEFAULT;
+		floor === FLOOR_DEFAULT;
 	const activeScenario = dialsDefault
-		? SCENARIOS.find((sc) => JSON.stringify(sc.days()) === JSON.stringify(days))
+		? SCENARIOS.find(
+				(sc) => JSON.stringify(sc.flows()) === JSON.stringify(flows),
+			)
 		: undefined;
-
 	const applyScenario = (sc: DemandScenario) => {
-		setDays(sc.days());
-		setSel(sc.sel);
+		setFlows(sc.flows());
+		setM(M_DEFAULT);
+		setL(L_DEFAULT);
 		setSeed(SEED_DEFAULT);
 		setFloor(FLOOR_DEFAULT);
-		setMinSample(MIN_SAMPLE_DEFAULT);
-		setAlpha(ALPHA_DEFAULT);
-		setLimit(LIMIT_DEFAULT);
+		setHover(sc.sel);
 	};
 
-	// ——— chart geometry ———
-	const VBW = 680;
-	const VBH = 356;
-	const PL = 56;
-	const PR = 664;
-	const PT = 16;
-	const PB = 274;
+	// blurb markup: [[Title]] or [[Title|shown text]] selects that scenario
+	const renderBlurb = (text: string) => {
+		const parts = text.split(/\[\[([^\]]+)\]\]/g);
+		return parts.map((part, i) => {
+			if (i % 2 === 0) return part;
+			const [ref, shown] = part.split("|");
+			const target = SCENARIOS.find((sc) => sc.title === ref.trim());
+			const labelText = (shown ?? ref).trim();
+			if (!target) return labelText;
+			return (
+				<button
+					key={i}
+					type="button"
+					onClick={() => applyScenario(target)}
+					style={{
+						background: "none",
+						border: "none",
+						padding: 0,
+						font: "inherit",
+						color: C.text,
+						textDecoration: "underline",
+						textDecorationStyle: "dotted",
+						textUnderlineOffset: 3,
+						cursor: "pointer",
+					}}
+				>
+					{labelText}
+				</button>
+			);
+		});
+	};
+
+	// geometry — viewBox sized for the two-thirds slot, like the base fee lab
+	const VBW = 580;
+	const VBH = 380;
+	const PL = 78;
+	const PR = 550;
+	const PT = 30;
+	const PB = 308;
 	const slot = (PR - PL) / NDAYS;
 	const xMid = (i: number) => PL + slot * (i + 0.5);
-	const yMax = useMemo(() => {
-		const vals = rows.flatMap((r, i) => [
-			days[i].flow,
-			r.dOpen,
-			r.dClose,
-			r.reading ?? 0,
-		]);
-		return Math.max(20000, ...vals) * 1.12;
-	}, [rows, days]);
-	const y = (v: number) => PB - (v / yMax) * (PB - PT);
+	const y = (v: number) => PB - (v / YMAX) * (PB - PT);
 
-	const stair = () => {
-		let dstr = "";
-		rows.forEach((r, i) => {
-			const x0 = PL + slot * i;
-			const x1 = x0 + slot;
-			dstr += `${i ? "L" : "M"}${x0},${y(r.dOpen)} L${x1},${y(r.dOpen)} L${x1},${y(r.dClose)} `;
+	const stairOf = (rr: EpochResult[]) => {
+		let d = `M${PL},${y(rr[0].dOpen)} `;
+		rr.forEach((r, i) => {
+			const x1 = PL + slot * (i + 1);
+			d += `L${x1},${y(r.dOpen)} L${x1},${y(r.dClose)} `;
 		});
-		return dstr;
+		return d;
 	};
 
-	// ——— bar drag ———
-	const onDown = (e: PointerEvent, i: number) => {
-		(e.currentTarget as SVGRectElement).setPointerCapture(e.pointerId);
-		drag.current = { i, y0: e.clientY, v0: days[i].flow, moved: false };
-	};
-	const onMove = (e: PointerEvent) => {
-		const d = drag.current;
-		if (!d) return;
-		const dy = d.y0 - e.clientY;
-		if (Math.abs(dy) > 4) d.moved = true;
-		if (!d.moved) return;
-		const perPx = yMax / (PB - PT);
-		const v = Math.max(
+	// ——— bar drag: pointer y maps straight onto the fixed dollar scale ———
+	const flowFromClientY = (clientY: number) => {
+		const r = svgRef.current?.getBoundingClientRect();
+		if (!r) return FLOW_MIN;
+		const sy = ((clientY - r.top) / r.height) * VBH;
+		const v = ((PB - sy) / (PB - PT)) * YMAX;
+		return Math.max(
 			FLOW_MIN,
-			Math.min(
-				FLOW_MAX,
-				Math.round((d.v0 + dy * perPx) / FLOW_STEP) * FLOW_STEP,
-			),
-		);
-		setDays((ds) =>
-			ds[d.i].flow === v
-				? ds
-				: ds.map((x, k) => (k === d.i ? { ...x, flow: v } : x)),
+			Math.min(FLOW_MAX, Math.round(v / FLOW_STEP) * FLOW_STEP),
 		);
 	};
-	const onUp = (i: number) => {
+	const onBarDown = (e: PointerEvent, i: number) => {
+		(e.currentTarget as SVGRectElement).setPointerCapture(e.pointerId);
+		drag.current = { i, moved: false };
+		setHover(i);
+	};
+	const onBarMove = (e: PointerEvent, i: number) => {
+		setHover(i);
 		const d = drag.current;
-		drag.current = null;
-		setSel(d?.moved ? d.i : i);
+		if (!d || d.i !== i) return;
+		d.moved = true;
+		const v = flowFromClientY(e.clientY) / K;
+		setFlows((fs) => (fs[i] === v ? fs : fs.map((x, k) => (k === i ? v : x))));
 	};
-	const cycleType = (i: number) =>
-		setDays((ds) =>
-			ds.map((x, k) =>
-				k === i
-					? {
-							...x,
-							type: TYPE_ORDER[(TYPE_ORDER.indexOf(x.type) + 1) % 4],
-						}
-					: x,
-			),
-		);
+	const onBarUp = () => {
+		drag.current = null;
+	};
 
-	const typeColor = (t: DayType) =>
-		t === "whale" ? C.hint : t === "dust" ? C.faint : C.zone;
-
-	const r = rows[sel];
-	const day = days[sel];
+	const noteOf = (r: EpochResult) =>
+		!r.sampled
+			? " · held"
+			: r.limited
+				? " · limit"
+				: r.floored
+					? " · floor"
+					: "";
 
 	return (
 		<div class="sf-lab" style={{ color: C.text }}>
-			{/* dials — every guardrail is a parameter */}
-			<div
-				style={{
-					background: C.panel,
-					border: `1px solid ${C.line}`,
-					borderRadius: 8,
-					padding: "10px 14px",
-					display: "grid",
-					gridTemplateColumns: "repeat(auto-fit, minmax(150px, 1fr))",
-					gap: "10px 18px",
-					marginBottom: 10,
-				}}
-			>
-				<Param
-					name="Seed D₀"
-					val={seed}
-					set={setSeed}
-					min={5000}
-					max={50000}
-					stp={5000}
-					fmt={fmtK}
-					hint="The launch value; constrains nothing afterward."
-				/>
-				<Param
-					name="Floor"
-					val={floor}
-					set={setFloor}
-					min={1000}
-					max={20000}
-					stp={1000}
-					fmt={fmtK}
-					hint="D never falls below it: keeps the walk's depth meaningful."
-				/>
-				<Param
-					name="Min Sample · m"
-					val={minSample}
-					set={setMinSample}
-					min={5}
-					max={100}
-					stp={5}
-					fmt={(v) => `${v}×D`}
-					hint="A day below m × D of flow freezes D."
-				/>
-				<Param
-					name="Chase · α"
-					val={alpha}
-					set={setAlpha}
-					min={0.1}
-					max={1}
-					stp={0.05}
-					fmt={(v) => v.toFixed(2)}
-					hint="Step = (reading/D)^α; 0.50 closes half the doublings."
-				/>
-				<Param
-					name="Daily Limit · L"
-					val={limit}
-					set={setLimit}
-					min={1.5}
-					max={10}
-					stp={0.5}
-					fmt={(v) => `${v}×`}
-					hint="One day moves D at most L× either way."
-				/>
-				<div style={{ display: "flex", flexDirection: "column", gap: 3 }}>
-					<span style={{ ...label, fontSize: 9.5, letterSpacing: "0.1em" }}>
-						Downstream
-					</span>
-					<span style={{ fontFamily: mono, fontSize: 12.5, color: C.mark }}>
-						walk depth = D = {fmtK(dFinal)}
-					</span>
-					<span style={{ fontSize: 10.5, color: C.faint, lineHeight: 1.35 }}>
-						The mark measures each side at the run's closing D.
-					</span>
-				</div>
-			</div>
-
-			{/* chart */}
 			<div
 				style={{
 					background: C.panel,
@@ -442,306 +283,416 @@ export default function DemandLab() {
 					padding: "6px 4px 2px",
 				}}
 			>
-				<svg
-					viewBox={`0 0 ${VBW} ${VBH}`}
-					style={{ width: "100%", display: "block", touchAction: "none" }}
-					role="img"
-					aria-label="Ten days of taker flow and the Typical Demand staircase"
+				<div
+					style={{
+						textAlign: "center",
+						fontFamily: mono,
+						fontSize: 13.5,
+						letterSpacing: "0.08em",
+						color: C.text,
+						padding: "10px 0 4px",
+					}}
 				>
-					{[0.25, 0.5, 0.75, 1].map((f) => (
-						<g key={f}>
+					TYPICAL DEMAND: THE DAILY REBASE
+				</div>
+				<div
+					style={{
+						display: "flex",
+						flexWrap: "wrap",
+						gap: "4px 16px",
+						alignItems: "stretch",
+						margin: "0 10px",
+						borderTop: `1px solid ${C.line}`,
+					}}
+				>
+					{/* —— left two-thirds: dials above, the chart below —— */}
+					<div style={{ flex: "2 1 400px", minWidth: 300 }}>
+						<div
+							style={{
+								display: "grid",
+								gridTemplateColumns: "repeat(3, minmax(0, 1fr))",
+								gap: "10px 16px",
+								padding: "10px 12px 8px 4px",
+							}}
+						>
+							<Param
+								name="Min Sample · m"
+								val={m}
+								set={setM}
+								min={5}
+								max={100}
+								stp={5}
+								suffix="×D"
+								hint="A day below m × D of flow freezes D."
+							/>
+							<Param
+								name="Daily Limit · L"
+								val={L}
+								set={setL}
+								min={1.5}
+								max={10}
+								stp={0.5}
+								suffix="×"
+								hint="One day moves D at most L× either way."
+							/>
+							<Param
+								name="Seed · D₀"
+								val={seed}
+								set={setSeed}
+								min={50_000}
+								max={500_000}
+								stp={50_000}
+								fmt={fmtK}
+								hint="Where every line starts on day one."
+							/>
+							<Param
+								name="Floor · D_min"
+								val={floor}
+								set={setFloor}
+								min={25_000}
+								max={250_000}
+								stp={25_000}
+								fmt={fmtK}
+								hint="D never falls below it, whatever demand does."
+							/>
+							<div
+								style={{
+									gridColumn: "span 2",
+									display: "flex",
+									flexDirection: "column",
+									gap: 3,
+									background: C.inset,
+									border: `1px solid ${C.line}`,
+									borderRadius: 6,
+									padding: "6px 10px",
+									alignSelf: "start",
+									minWidth: 0,
+								}}
+							>
+								<span
+									style={{ ...label, fontSize: 9.5, letterSpacing: "0.1em" }}
+								>
+									The Three Chases · D at Close
+								</span>
+								<div style={{ display: "flex", gap: 14, flexWrap: "wrap" }}>
+									{CHASES.map((ch, k) => (
+										<span
+											key={ch.name}
+											style={{
+												fontFamily: mono,
+												fontSize: 11.5,
+												color: ch.color,
+												whiteSpace: "nowrap",
+											}}
+										>
+											{ch.name} · {fmtK(runs[k][NDAYS - 1].dClose)}
+										</span>
+									))}
+								</div>
+							</div>
+						</div>
+
+						<svg
+							ref={svgRef}
+							viewBox={`0 0 ${VBW} ${VBH}`}
+							style={{ width: "100%", display: "block", touchAction: "none" }}
+							role="img"
+							aria-label="Ten days of demand as draggable bars, with three D staircases chasing them at different speeds"
+						>
+							{/* fixed dollar gridlines */}
+							{[250_000, 500_000, 750_000, 1_000_000].map((v) => (
+								<g key={v}>
+									<line
+										x1={PL}
+										x2={PR}
+										y1={y(v)}
+										y2={y(v)}
+										strokeWidth={1}
+										style={{ stroke: C.grid }}
+									/>
+									<text
+										x={PL - 8}
+										y={y(v) + 4.5}
+										textAnchor="end"
+										fontSize={12}
+										style={{ fill: C.faint, fontFamily: mono }}
+									>
+										{fmtK(v)}
+									</text>
+								</g>
+							))}
+							<text
+								x={PL - 8}
+								y={y(0) + 4.5}
+								textAnchor="end"
+								fontSize={12}
+								style={{ fill: C.faint, fontFamily: mono }}
+							>
+								0
+							</text>
+							<text
+								x={13}
+								y={(PT + PB) / 2}
+								fontSize={11}
+								transform={`rotate(-90 13 ${(PT + PB) / 2})`}
+								textAnchor="middle"
+								letterSpacing="0.12em"
+								style={{ fill: C.dim, fontFamily: mono }}
+							>
+								DEMAND · $
+							</text>
+
+							{/* the day bars */}
+							{flows.map((f, i) => (
+								<g key={`b${i * 7}`}>
+									<rect
+										x={xMid(i) - slot * 0.3}
+										y={y(f * K)}
+										width={slot * 0.6}
+										height={PB - y(f * K)}
+										rx={2}
+										fill={C.faint}
+										opacity={hover === i ? 0.55 : 0.35}
+										pointerEvents="none"
+									/>
+									{hover === i && (
+										<line
+											x1={xMid(i)}
+											x2={xMid(i)}
+											y1={PT}
+											y2={PB}
+											strokeWidth={1}
+											strokeDasharray="2 4"
+											opacity={0.7}
+											style={{ stroke: C.text }}
+											pointerEvents="none"
+										/>
+									)}
+								</g>
+							))}
+
+							{/* the three chases */}
+							{CHASES.map((ch, k) => (
+								<path
+									key={ch.name}
+									d={stairOf(runs[k])}
+									fill="none"
+									strokeWidth={2}
+									pointerEvents="none"
+									style={{ stroke: ch.color, transition: "all 120ms" }}
+								/>
+							))}
+
+							{/* hover popup */}
+							{hover != null &&
+								(() => {
+									const i = hover;
+									const rows = CHASES.map((ch, k) => ({
+										ch,
+										r: runs[k][i],
+									}));
+									const bw = 168;
+									const bh = 78;
+									const bx =
+										xMid(i) + 12 + bw > PR ? xMid(i) - 12 - bw : xMid(i) + 12;
+									const by = PT + 4;
+									return (
+										<g pointerEvents="none">
+											<rect
+												x={bx}
+												y={by}
+												width={bw}
+												height={bh}
+												rx={5}
+												strokeWidth={0.75}
+												style={{ fill: C.panel2, stroke: C.line }}
+											/>
+											<text
+												x={bx + 10}
+												y={by + 16}
+												fontSize={11}
+												style={{ fill: C.dim, fontFamily: mono }}
+											>
+												Day {i + 1} · demand {fmtK(flows[i] * K)}
+											</text>
+											{rows.map(({ ch, r }, k) => (
+												<text
+													key={ch.name}
+													x={bx + 10}
+													y={by + 34 + k * 15}
+													fontSize={11.5}
+													style={{ fill: ch.color, fontFamily: mono }}
+												>
+													{ch.name} → {fmtK(r.dClose)}
+													{noteOf(r)}
+												</text>
+											))}
+										</g>
+									);
+								})()}
+
+							{/* per-day drag strips */}
+							{flows.map((_, i) => (
+								<rect
+									key={`s${i * 3}`}
+									x={PL + slot * i}
+									y={PT}
+									width={slot}
+									height={PB - PT}
+									fill="transparent"
+									style={{ cursor: "ns-resize" }}
+									onPointerDown={(e) =>
+										onBarDown(e as unknown as PointerEvent, i)
+									}
+									onPointerMove={(e) =>
+										onBarMove(e as unknown as PointerEvent, i)
+									}
+									onPointerUp={onBarUp}
+									onPointerCancel={onBarUp}
+									onPointerLeave={() =>
+										setHover((h) => (h === i && !drag.current ? null : h))
+									}
+								/>
+							))}
+
+							{/* day axis */}
 							<line
 								x1={PL}
 								x2={PR}
-								y1={y((yMax * f) / 1.12)}
-								y2={y((yMax * f) / 1.12)}
-								stroke={C.grid}
+								y1={PB}
+								y2={PB}
+								style={{ stroke: C.line }}
 							/>
-							<text
-								x={PL - 6}
-								y={y((yMax * f) / 1.12) + 3.5}
-								textAnchor="end"
-								fontFamily={mono}
-								fontSize={9.5}
-								fill={C.faint}
-							>
-								{fmtK((yMax * f) / 1.12)}
-							</text>
-						</g>
-					))}
-					{rows.map((rr, i) => (
-						<g key={days[i].flow * 7 + i}>
-							<rect
-								x={PL + slot * i}
-								y={PT}
-								width={slot}
-								height={PB - PT}
-								fill="transparent"
-								style={{ cursor: "ns-resize" }}
-								onPointerDown={(e) => onDown(e as unknown as PointerEvent, i)}
-								onPointerMove={(e) => onMove(e as unknown as PointerEvent)}
-								onPointerUp={() => onUp(i)}
-								onPointerCancel={() => {
-									drag.current = null;
-								}}
-							/>
-							<rect
-								x={xMid(i) - slot * 0.28}
-								y={y(days[i].flow)}
-								width={slot * 0.56}
-								height={PB - y(days[i].flow)}
-								fill={typeColor(days[i].type)}
-								opacity={days[i].type === "quiet" ? 0.3 : 0.55}
-								rx={2}
-								pointerEvents="none"
-								stroke={sel === i ? C.text : "none"}
-								strokeWidth={sel === i ? 1.2 : 0}
-							/>
-							{rr.reading != null && (
-								<path
-									d={`M${xMid(i)},${y(rr.reading) - 5} l5,5 l-5,5 l-5,-5 z`}
-									fill={C.text}
-									opacity={0.9}
-									pointerEvents="none"
-								/>
-							)}
-							{(!rr.sampled || rr.limited || rr.floored) && (
+							{flows.map((_, i) => (
 								<text
+									key={`d${i * 5}`}
 									x={xMid(i)}
-									y={Math.max(
-										PT + 10,
-										Math.min(y(Math.max(days[i].flow, rr.dOpen)), PB - 8) - 10,
-									)}
+									y={PB + 18}
 									textAnchor="middle"
 									fontSize={11}
-									pointerEvents="none"
-									fill={!rr.sampled ? C.dim : rr.floored ? C.bid : C.hint}
+									style={{ fill: C.faint, fontFamily: mono }}
 								>
-									{!rr.sampled ? "❄" : rr.floored ? "⚓" : "⚠"}
+									d{i + 1}
 								</text>
-							)}
-						</g>
-					))}
-					<path
-						d={stair()}
-						fill="none"
-						stroke={C.mark}
-						strokeWidth={2.2}
-						pointerEvents="none"
-					/>
-					<text
-						x={PR - 4}
-						y={y(dFinal) - 7}
-						fontFamily={mono}
-						fontSize={10}
-						fill={C.mark}
-						textAnchor="end"
-					>
-						D {fmtK(dFinal)}
-					</text>
-					<line x1={PL} x2={PR} y1={PB} y2={PB} stroke={C.line} />
-					{rows.map((_, i) => (
-						// biome-ignore lint/a11y/useSemanticElements: SVG hit area, a real <button> cannot exist inside <svg>
-						<g
-							key={`g${days[i].type}${i}`}
-							role="button"
-							tabIndex={0}
-							aria-label={`Day ${i + 1}: ${days[i].type}. Change the day's composition`}
-							style={{ cursor: "pointer" }}
-							onClick={() => cycleType(i)}
-							onKeyDown={(e) => {
-								if (e.key === "Enter" || e.key === " ") cycleType(i);
+							))}
+							<text
+								x={(PL + PR) / 2}
+								y={PB + 40}
+								textAnchor="middle"
+								fontSize={11}
+								letterSpacing="0.12em"
+								style={{ fill: C.dim, fontFamily: mono }}
+							>
+								TEN DAYS OF TRADING
+							</text>
+						</svg>
+						<div
+							style={{
+								fontSize: 12,
+								fontStyle: "italic",
+								color: C.faint,
+								textAlign: "center",
+								padding: "4px 8px 8px",
+								lineHeight: 1.5,
 							}}
 						>
-							<text
-								x={xMid(i)}
-								y={PB + 15}
-								textAnchor="middle"
-								fontFamily={mono}
-								fontSize={10}
-								fill={C.dim}
-							>
-								d{i + 1}
-							</text>
-							<rect
-								x={xMid(i) - 9}
-								y={PB + 22}
-								width={18}
-								height={16}
-								rx={3}
-								fill={C.panel2}
-								stroke={typeColor(days[i].type)}
-								strokeWidth={0.8}
-							/>
-							<text
-								x={xMid(i)}
-								y={PB + 34}
-								textAnchor="middle"
-								fontFamily={mono}
-								fontSize={10}
-								fill={typeColor(days[i].type)}
-							>
-								{TYPE_META[days[i].type].glyph}
-							</text>
-						</g>
-					))}
-				</svg>
-				<p
-					style={{
-						margin: "6px 10px 8px",
-						fontSize: 11.5,
-						lineHeight: 1.55,
-						color: C.faint,
-					}}
-				>
-					Each bar is one day's typical per-window demand: drag it to resize the
-					day, click the letter beneath to change the day's composition, click a
-					bar to inspect its derivation. The staircase is D itself, rebased at
-					each close; diamonds mark each day's reading. ❄ below the minimum
-					sample (D frozen) · ⚠ step limited · ⚓ held at the floor.
-				</p>
-			</div>
+							Instructions: Drag a day's bar to set its demand. Hover a day, or
+							a table row, to read all three chases. Dials apply to every line.
+						</div>
+					</div>
 
-			{/* rebase ledger */}
-			<div
-				style={{
-					background: C.panel,
-					border: `1px solid ${C.line}`,
-					borderRadius: 8,
-					padding: "10px 12px",
-					marginTop: 10,
-					fontFamily: mono,
-					fontSize: 11.5,
-				}}
-			>
-				<div style={{ ...label, marginBottom: 6 }}>Rebase Ledger</div>
-				<div
-					style={{
-						display: "grid",
-						gridTemplateColumns: "30px 1fr 34px 1fr 56px 1fr",
-						gap: "3px 8px",
-						color: C.dim,
-					}}
-				>
-					<span>day</span>
-					<span>flow S1</span>
-					<span>sample</span>
-					<span>reading</span>
-					<span>step</span>
-					<span>D after</span>
-					{rows.map((rr, i) => (
-						<Fragment key={`l${i * 2}`}>
-							<button
-								type="button"
-								onClick={() => setSel(i)}
+					{/* —— right third: the run, live —— */}
+					<div
+						style={{
+							flex: "1 1 210px",
+							minWidth: 200,
+							padding: "8px 0 8px",
+							display: "flex",
+							flexDirection: "column",
+						}}
+					>
+						<div
+							style={{
+								border: `1px solid ${C.line}`,
+								borderRadius: 6,
+								overflow: "hidden",
+							}}
+						>
+							<div
 								style={{
-									all: "unset",
-									color: sel === i ? C.mark : C.text,
-									cursor: "pointer",
-									fontFamily: mono,
+									display: "grid",
+									gridTemplateColumns: "30px 1fr 1fr 1fr 1fr",
+									background: C.inset,
+									padding: "8px 6px 6px",
+									borderBottom: `1px solid ${C.line}`,
 								}}
 							>
-								d{i + 1}
-							</button>
-							<span style={{ color: C.faint }}>{fmtK(rr.s1)}</span>
-							<span style={{ color: rr.sampled ? C.bid : C.dim }}>
-								{rr.sampled ? "✓" : "❄"}
-							</span>
-							<span style={{ color: C.text }}>
-								{rr.reading != null ? fmtK(rr.reading) : "—"}
-							</span>
-							<span style={{ color: rr.limited ? C.hint : C.text }}>
-								{rr.sampled ? `×${rr.step.toFixed(2)}` : "—"}
-							</span>
-							<span style={{ color: C.mark }}>
-								{fmtK(rr.dClose)}
-								{rr.floored ? " ⚓" : ""}
-								{rr.limited ? " ⚠" : ""}
-							</span>
-						</Fragment>
-					))}
-				</div>
-			</div>
-
-			{/* selected-day derivation */}
-			<div
-				style={{
-					background: C.panel,
-					border: `1px solid ${C.line}`,
-					borderRadius: 8,
-					padding: "12px 14px",
-					marginTop: 10,
-					fontFamily: mono,
-					fontSize: 12,
-					lineHeight: 1.7,
-				}}
-			>
-				<div style={{ ...label, marginBottom: 6 }}>
-					Day {sel + 1} Derivation ·{" "}
-					<span style={{ color: typeColor(day.type), textTransform: "none" }}>
-						{day.type}
-					</span>{" "}
-					<span style={{ textTransform: "none" }}>
-						· {TYPE_META[day.type].hint}
-					</span>
-				</div>
-				<div>
-					<span style={{ color: C.dim }}>1 · accumulate</span> — S1 = Σ v ={" "}
-					{fmt$(r.s1)} · S2 = Σ v²
-				</div>
-				<div>
-					<span style={{ color: C.dim }}>2 · minimum sample</span> — S1{" "}
-					{r.sampled ? "≥" : "<"} {minSample} × D = {fmt$(minSample * r.dOpen)}{" "}
-					→{" "}
-					{r.sampled ? (
-						<span style={{ color: C.bid }}>update</span>
-					) : (
-						<span style={{ color: C.dim }}>
-							frozen — D holds at {fmt$(r.dOpen)}, no decay
-						</span>
-					)}
-				</div>
-				{r.sampled && r.reading != null && r.rawStep != null && (
-					<>
-						<div>
-							<span style={{ color: C.dim }}>3 · reading</span> — S2/S1 ={" "}
-							<span style={{ color: C.text }}>{fmt$(r.reading)}</span>
-							{day.type === "dust" && (
-								<span style={{ color: C.faint }}>
-									{" "}
-									· 5,000 dust windows barely move it — a per-window mean would
-									read {fmtK(r.s1 / windowCountOf(day))}
+								<span style={{ ...label, fontSize: 9 }}>Day</span>
+								<span style={{ ...label, fontSize: 9, textAlign: "right" }}>
+									Demand
 								</span>
-							)}
-						</div>
-						<div>
-							<span style={{ color: C.dim }}>4 · rebase</span> — D ← D ×
-							(reading/D)^{alpha.toFixed(2)} = {fmtK(r.dOpen)} × (
-							{fmtK(r.reading)}/{fmtK(r.dOpen)})^{alpha.toFixed(2)} = ×
-							{r.rawStep.toFixed(3)}
-							{r.limited && (
-								<span style={{ color: C.hint }}>
-									{" "}
-									→ limited to ×{r.step.toFixed(2)}
-								</span>
-							)}
+								{CHASES.map((ch) => (
+									<span
+										key={ch.name}
+										style={{
+											...label,
+											fontSize: 9,
+											textAlign: "right",
+											color: ch.color,
+										}}
+									>
+										{ch.name.replace("α = ", "")}
+									</span>
+								))}
+							</div>
+							{flows.map((f, i) => {
+								const isHover = hover === i;
+								return (
+									<div
+										key={`r${i * 11}`}
+										onPointerEnter={() => setHover(i)}
+										onPointerLeave={() => setHover(null)}
+										style={{
+											display: "grid",
+											gridTemplateColumns: "30px 1fr 1fr 1fr 1fr",
+											padding: "3px 6px",
+											cursor: "crosshair",
+											borderLeft: `2px solid ${isHover ? C.text : "transparent"}`,
+											background: isHover ? "var(--lab-band)" : "transparent",
+											fontFamily: mono,
+											fontSize: 11,
+											lineHeight: 1.6,
+										}}
+									>
+										<span style={{ color: C.dim }}>d{i + 1}</span>
+										<span style={{ textAlign: "right", color: C.text }}>
+											{fmtK(f * K)}
+										</span>
+										{CHASES.map((ch, k) => (
+											<span
+												key={ch.name}
+												style={{ textAlign: "right", color: ch.color }}
+											>
+												{fmtK(runs[k][i].dClose)}
+											</span>
+										))}
+									</div>
+								);
+							})}
 						</div>
 						<div
 							style={{
-								borderTop: `1px solid ${C.line}`,
-								marginTop: 5,
-								paddingTop: 5,
+								fontSize: 11,
+								color: C.faint,
+								padding: "6px 2px 0",
+								lineHeight: 1.45,
 							}}
 						>
-							<span style={{ color: C.mark, fontWeight: 700 }}>
-								D: {fmt$(r.dOpen)} → {fmt$(r.dClose)}
-							</span>
-							{r.floored && (
-								<span style={{ color: C.bid }}> · ⚓ held at the floor</span>
-							)}
+							D at each day's close, per chase speed. A day below the minimum
+							sample leaves every line unchanged.
 						</div>
-					</>
-				)}
+					</div>
+				</div>
 			</div>
 
 			{/* scenarios */}
@@ -783,9 +734,82 @@ export default function DemandLab() {
 				}}
 			>
 				{activeScenario
-					? activeScenario.blurb
+					? renderBlurb(activeScenario.blurb)
 					: "Custom demand history, yours to shape. Drag the bars and dials freely; pick a scenario to return to a defined state."}
 			</div>
+		</div>
+	);
+}
+
+interface ParamProps {
+	name: string;
+	val: number;
+	set: (v: number) => void;
+	min: number;
+	max: number;
+	stp: number;
+	suffix?: string;
+	fmt?: (v: number) => string;
+	hint?: string;
+}
+
+function Param({
+	name,
+	val,
+	set,
+	min,
+	max,
+	stp,
+	suffix,
+	fmt,
+	hint,
+}: ParamProps) {
+	return (
+		<div
+			style={{
+				display: "flex",
+				flexDirection: "column",
+				gap: 3,
+				minWidth: 0,
+				overflow: "hidden",
+			}}
+		>
+			<span style={{ ...label, fontSize: 9.5, letterSpacing: "0.1em" }}>
+				{name}
+			</span>
+			<div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+				<input
+					type="range"
+					min={min}
+					max={max}
+					step={stp}
+					value={val}
+					onChange={(e) => set(+(e.currentTarget as HTMLInputElement).value)}
+					style={{
+						flex: "1 1 auto",
+						minWidth: 0,
+						accentColor: "var(--lab-slider)",
+					}}
+				/>
+				<span
+					style={{
+						fontFamily: mono,
+						fontSize: 11.5,
+						color: C.text,
+						whiteSpace: "nowrap",
+						width: "6ch",
+						textAlign: "right",
+						flexShrink: 0,
+					}}
+				>
+					{fmt ? fmt(val) : `${val}${suffix ?? ""}`}
+				</span>
+			</div>
+			{hint && (
+				<span style={{ fontSize: 10.5, color: C.faint, lineHeight: 1.35 }}>
+					{hint}
+				</span>
+			)}
 		</div>
 	);
 }
