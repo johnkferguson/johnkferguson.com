@@ -48,15 +48,17 @@ const C = {
 	zone: "var(--lab-zone)",
 	inset: "var(--lab-inset)",
 	danger: "var(--lab-danger)",
+	fee: "var(--lab-fee)",
+	hint: "var(--lab-hint)",
 };
 
 const mono = "var(--lab-mono)";
 
-// the three chases, slowest to fastest — green / orange / blue for contrast
+// the three chases, slowest to fastest — red / yellow / green for contrast
 const CHASES = [
-	{ alpha: 1 / 2, name: "α = 1/2", color: C.bid },
-	{ alpha: 2 / 3, name: "α = 2/3", color: C.ask },
-	{ alpha: 3 / 4, name: "α = 3/4", color: C.zone },
+	{ alpha: 1 / 2, name: "α = 1/2", color: C.fee },
+	{ alpha: 2 / 3, name: "α = 2/3", color: C.hint },
+	{ alpha: 3 / 4, name: "α = 3/4", color: C.bid },
 ];
 
 const label = {
@@ -128,7 +130,7 @@ const SCENARIOS: DemandScenario[] = [
 		key: "loud",
 		title: "One Loud Day",
 		blurb:
-			"A single day of demand ten times the rest. The raw steps for the two faster chases exceed the daily limit and are held to L×, while the slowest stays inside it, which is why the orange and blue lines land on the same value. Lower L and all three flatten toward the same bounded step; the days after walk everything back down.",
+			"A single day of demand ten times the rest. The raw steps for the two faster chases exceed the daily limit and are held to L×, while the slowest stays inside it, which is why the yellow and green lines land on the same value. Lower L and all three flatten toward the same bounded step; the days after walk everything back down.",
 		flows: () => [100, 100, 100, 100, 1000, 100, 100, 100, 100, 100],
 		sel: 4,
 	},
@@ -474,7 +476,7 @@ export default function DemandLab() {
 												fontSize={13}
 												style={{ fill: C.text, fontFamily: mono }}
 											>
-												Day {i + 1} · {fmtK(flows[i] * K)} demand
+												Day {i + 1} · {fmtK(flows[i] * K)} Demand
 											</text>
 											{["α", "D", "Δ", "Δ%"].map((h, k) => (
 												<text
@@ -607,8 +609,24 @@ export default function DemandLab() {
 									borderBottom: `1px solid ${C.line}`,
 								}}
 							>
-								<span style={{ ...label, fontSize: 9 }}>Day</span>
-								<span style={{ ...label, fontSize: 9, textAlign: "right" }}>
+								<span
+									style={{
+										...label,
+										fontSize: 9,
+										letterSpacing: "0.06em",
+										textAlign: "center",
+									}}
+								>
+									Day
+								</span>
+								<span
+									style={{
+										...label,
+										fontSize: 9,
+										letterSpacing: "0.06em",
+										textAlign: "center",
+									}}
+								>
 									Demand
 								</span>
 								{CHASES.map((ch) => (
@@ -617,7 +635,8 @@ export default function DemandLab() {
 										style={{
 											...label,
 											fontSize: 9,
-											textAlign: "right",
+											letterSpacing: "0.06em",
+											textAlign: "center",
 											color: ch.color,
 										}}
 									>
@@ -644,8 +663,10 @@ export default function DemandLab() {
 											lineHeight: 1.6,
 										}}
 									>
-										<span style={{ color: C.dim }}>d{i + 1}</span>
-										<span style={{ textAlign: "right", color: C.text }}>
+										<span style={{ textAlign: "center", color: C.dim }}>
+											d{i + 1}
+										</span>
+										<span style={{ textAlign: "center", color: C.text }}>
 											{fmtK(f * K)}
 										</span>
 										{CHASES.map((ch, k) => (
