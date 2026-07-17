@@ -119,6 +119,14 @@ const SCENARIOS: DemandScenario[] = [
 		sel: 3,
 	},
 	{
+		key: "range",
+		title: "Range Bound",
+		blurb:
+			"Most days trade between $200k and $300k, with a few outliers on either side. After the opening climb from the seed, the lines settle near the middle of the range and hold there: each day's wobble moves D by only a fraction of itself, and the outliers barely register. The ranking from [[Step Change]] flips here: the slow chase makes the steadier yardstick, while α = 3/4 inherits the most day-to-day noise.",
+		flows: () => [230, 280, 210, 340, 250, 190, 300, 260, 220, 270],
+		sel: 3,
+	},
+	{
 		key: "surge",
 		title: "Surge & Decay",
 		blurb:
