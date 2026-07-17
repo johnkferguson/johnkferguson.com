@@ -11,6 +11,7 @@
 
 import TableOfContents from "../../components/TableOfContents.astro";
 import BaseFeeLab from "../../components/labs/BaseFeeLab";
+import DemandLab from "../../components/labs/DemandLab";
 import SnapshotFeesLab from "../../components/labs/SnapshotFeesLab";
 import SnapshotFeesMultiLab from "../../components/labs/SnapshotFeesMultiLab";
 
@@ -374,6 +375,143 @@ and its receipts re-price around it.
 
 <div class="labwrap">
   <SnapshotFeesMultiLab client:visible />
+</div>
+
+## Measuring Typical Demand
+
+To calculate the mark, the eligible book must be walked on both sides up to size $D$, the typical demand for that market. What remains is how that typical demand is determined.
+
+Within any market, demand continuously changes. Therefore, $D$ should not be based upon some generic constant. Instead, it needs to reflect the market's conditions as they actually are.
+
+Doing that well means satisfying two criteria:
+
+1. $D$ should track the market's demand as it changes: responsive enough to
+   follow a real shift within days, steady enough that the measurement
+   itself does not become a source of noise.
+2. $D$ should be trustless: computed from published data by a fixed rule,
+   predictable and verifiable, as every other number in the design already
+   is.
+
+What follows is one mechanism that satisfies both. Unlike the fee rule and
+the mark, it is not settled design: it is a demonstration of one possible solution. If preferred, other mechanisms could serve in its place.
+
+### A Proposed Mechanism for Measuring Demand
+
+The mechanism runs on two clocks:
+
+1. **Every window**: the market's fills add to
+   two running sums.
+2. **Every day**: the sums are used to compute the typical demand for that day and $D$ then takes one bounded step toward it.
+
+When the day is done, the sums reset to zero and start accumulating for the new day.
+
+In full, the mechanism takes eight values, of three kinds.
+
+The value measured every window:
+
+- $v$: a window's volume, corresponding to the actual notional dollar volume that executed against the
+  standing book in that window, both directions summed. Because $v$ is read
+  from fills, it adapts to the venue's design: in a dual-flow auction every
+  taker dollar trades against the book, while in a single-cross auction
+  buys and sells net against each other first and only the imbalance
+  reaches the book, which is then genuinely what the book absorbed. $D$ is
+  the typical window's demand, not the typical order's size.
+
+The two sums carried through the day:
+
+- $S_1$: the sum of every window's $v$, the day's total flow.
+- $S_2$: the sum of every window's $v^2$. Together the two sums give the
+  day's reading of typical demand, $S_2/S_1$.
+
+And the market's configuration, fixed from day to day:
+
+- $\alpha$: the chase speed, how much of the gap between $D$ and the day's
+  reading a single day may close.
+- $m$: the minimum sample. A day carrying less than $m \cdot D$ of flow
+  does not update.
+- $L$: the daily limit. One day moves $D$ by at most a factor of $L$,
+  in either direction.
+- $D_{\min}$: the floor, the smallest value $D$ may take.
+- $D_0$: the seed, $D$'s value at launch. It initializes and constrains
+  nothing afterward.
+
+Put together, the daily update is:
+
+$$
+\begin{aligned}
+\text{step} &= \min\!\left(L,\; \max\!\left(\tfrac{1}{L},\; \left(\tfrac{S_2/S_1}{D}\right)^{\alpha}\right)\right) \\[8pt]
+D &\leftarrow
+\begin{cases}
+\max\left(D_{\min},\; D \cdot \text{step}\right) & \text{if } S_1 \geq m \cdot D \\
+D & \text{otherwise}
+\end{cases}
+\end{aligned}
+$$
+
+The step line reads from the inside out: $S_2/S_1$ is where the day says
+demand stands, its ratio against $D$ is the gap, $\alpha$ sets how much of
+that gap one day may close, and the $\min$ and $\max$ hold the result to
+$[1/L,\ L]$. The second line applies it: a day that carried the minimum
+sample moves $D$ by the step, never below the floor, and a day that did
+not leaves $D$ unchanged.
+
+#### The Reasoning
+
+**The dollar-weighted average.** Consider a fictitious day with two windows
+of trading, one clearing \$2,000 and one clearing \$8,000. There are two
+ways to average them. Averaged over windows, the typical window carried
+\$5,000. Averaged over dollars, the answer is different: of the \$10,000
+that traded, four of every five dollars traded in the larger window, so the
+typical traded dollar sat in a window of
+$0.2 \times 2000 + 0.8 \times 8000 = 6800$ dollars. $S_2/S_1$ computes the
+second average
+($S_1 = 2000 + 8000 = 10000$ and $S_2 = 2000^2 + 8000^2 = 68 \times 10^6$),
+and it is the one the walk needs, because the walk's question is what it
+costs to trade where the trading actually is. It is also inexpensive to
+maintain: computing it requires no count of windows, an empty window adds
+nothing to either sum, and a window that traded costs only two additions to
+record.
+
+**The fractional chase.** The exponent controls how quickly $D$ chases the
+day's reading. At $\alpha = 1$ the update would jump the whole way in a
+single day, and $D$ would inherit each day's noise along with its signal.
+Below one, the update closes only part of the gap and leaves the rest for
+the days that follow. At $\alpha = 1/2$, a reading at four times $D$ steps
+it up by $\sqrt{4} = 2$, and the gap that remains falls to its square root
+each day after; at $\alpha = 3/4$ the same reading steps it by
+$4^{3/4} \approx 2.8$ and converges in fewer days. Where in that range a
+market should sit is a calibration choice, and the design does not fix it.
+
+**The minimum sample and the daily limit.** These two conditions protect
+the tracking from days that would mislead it. The minimum sample keeps a
+dead day from re-measuring anything: a day with only a handful of fills
+says very little about typical demand, so $D$ holds unchanged rather than
+update from it, and nothing decays while it waits. The daily limit caps how
+far any single day can move $D$, however strange that day's trading was, a
+single enormous window included.
+
+**The floor.** The floor exists for the mark's sake rather than for the
+tracking. $D$ sets the depth the mark's walk measures at, and a walk that
+has shrunk too far reads only the quotes at the touch, which is the
+size-blind midpoint the mark was designed to avoid in the first place.
+
+#### The Lab
+
+The lab below runs the machine on ten days of demand. Drag a day's bar to
+resize its flow and watch the staircase of $D$ chase it; the ledger records
+each day's sums, reading, and step. Every value in the machine is a dial.
+None of the starting values is settled design: they are calibration choices
+a venue would fit to its own market, and the defaults here are only a
+starting point to adjust.
+
+<div class="stub">
+
+- Lab rebuild planned: smaller chart, ledger to its right, overlay of multiple parameter settings as simultaneous staircases (α presets at 1/2, 2/3, 3/4 to demonstrate the chase comparison); drop the day-composition types and status glyphs (current lab below is the interim version)
+
+</div>
+
+<div class="labwrap">
+  <DemandLab client:visible />
 </div>
 
 ## The Math, Precisely
