@@ -23,9 +23,9 @@ const FLOW_STEP = 1000;
 // dial defaults (scenario clicks reset to these)
 const SEED_DEFAULT = 10000;
 const FLOOR_DEFAULT = 5000;
-const GATE_DEFAULT = 25;
+const MIN_SAMPLE_DEFAULT = 25;
 const ALPHA_DEFAULT = 0.5;
-const CLAMP_DEFAULT = 4;
+const LIMIT_DEFAULT = 4;
 
 type DayType = "normal" | "whale" | "dust" | "quiet";
 interface Day {
@@ -95,7 +95,7 @@ const SCENARIOS: DemandScenario[] = [
 		key: "whale",
 		title: "Whale Window",
 		blurb:
-			"A normal week, except day five contains one window 250 times the clip. The reading spikes, and the clamp does its one job: however strange a single day, it moves D by at most c×. The derivation panel shows the raw step the clamp cut down.",
+			"A normal week, except day five contains one window 250 times the clip. The reading spikes, and the daily limit does its one job: however strange a single day, it moves D by at most L×. The derivation panel shows the raw step the limit cut down.",
 		days: () =>
 			daysOf(Array(NDAYS).fill(10), (i) => (i === 4 ? "whale" : "normal")),
 		sel: 4,
@@ -115,7 +115,7 @@ const SCENARIOS: DemandScenario[] = [
 		key: "quiet",
 		title: "Quiet Spell",
 		blurb:
-			"Days four through eight carry too little flow to clear the gate, g × D, so D freezes: no update and no decay (the ❄ days in the ledger). A statistic needs a sample, and a dead afternoon is not one. Activity resumes, and so does the measurement.",
+			"Days four through eight carry too little flow to clear the minimum sample, m × D, so D freezes: no update and no decay (the ❄ days in the ledger). A statistic needs a sample, and a dead afternoon is not one. Activity resumes, and so does the measurement.",
 		days: () =>
 			daysOf(Array(NDAYS).fill(10), (i) =>
 				i >= 3 && i <= 7 ? "quiet" : "normal",
@@ -241,15 +241,15 @@ export default function DemandLab() {
 	const [days, setDays] = useState<Day[]>(SCENARIOS[0].days());
 	const [seed, setSeed] = useState(SEED_DEFAULT);
 	const [floor, setFloor] = useState(FLOOR_DEFAULT);
-	const [gate, setGate] = useState(GATE_DEFAULT);
+	const [minSample, setMinSample] = useState(MIN_SAMPLE_DEFAULT);
 	const [alpha, setAlpha] = useState(ALPHA_DEFAULT);
-	const [clampMult, setClampMult] = useState(CLAMP_DEFAULT);
+	const [limit, setLimit] = useState(LIMIT_DEFAULT);
 	const [sel, setSel] = useState(SCENARIOS[0].sel);
 	const drag = useRef<DragState | null>(null);
 
 	const params: DemandParams = useMemo(
-		() => ({ seed, floor, gate, alpha, clampMult }),
-		[seed, floor, gate, alpha, clampMult],
+		() => ({ seed, floor, minSample, alpha, limit }),
+		[seed, floor, minSample, alpha, limit],
 	);
 	const rows: EpochResult[] = useMemo(
 		() => runEpochs(days.map(windowsOf), params),
@@ -260,9 +260,9 @@ export default function DemandLab() {
 	const dialsDefault =
 		seed === SEED_DEFAULT &&
 		floor === FLOOR_DEFAULT &&
-		gate === GATE_DEFAULT &&
+		minSample === MIN_SAMPLE_DEFAULT &&
 		alpha === ALPHA_DEFAULT &&
-		clampMult === CLAMP_DEFAULT;
+		limit === LIMIT_DEFAULT;
 	const activeScenario = dialsDefault
 		? SCENARIOS.find((sc) => JSON.stringify(sc.days()) === JSON.stringify(days))
 		: undefined;
@@ -272,9 +272,9 @@ export default function DemandLab() {
 		setSel(sc.sel);
 		setSeed(SEED_DEFAULT);
 		setFloor(FLOOR_DEFAULT);
-		setGate(GATE_DEFAULT);
+		setMinSample(MIN_SAMPLE_DEFAULT);
 		setAlpha(ALPHA_DEFAULT);
-		setClampMult(CLAMP_DEFAULT);
+		setLimit(LIMIT_DEFAULT);
 	};
 
 	// ——— chart geometry ———
@@ -391,14 +391,14 @@ export default function DemandLab() {
 					hint="D never falls below it: keeps the walk's depth meaningful."
 				/>
 				<Param
-					name="Gate · g"
-					val={gate}
-					set={setGate}
+					name="Min Sample · m"
+					val={minSample}
+					set={setMinSample}
 					min={5}
 					max={100}
 					stp={5}
 					fmt={(v) => `${v}×D`}
-					hint="A day below g × D of flow freezes D."
+					hint="A day below m × D of flow freezes D."
 				/>
 				<Param
 					name="Chase · α"
@@ -411,14 +411,14 @@ export default function DemandLab() {
 					hint="Step = (reading/D)^α; 0.50 closes half the doublings."
 				/>
 				<Param
-					name="Clamp · c"
-					val={clampMult}
-					set={setClampMult}
+					name="Daily Limit · L"
+					val={limit}
+					set={setLimit}
 					min={1.5}
 					max={10}
 					stp={0.5}
 					fmt={(v) => `${v}×`}
-					hint="One day moves D at most c× either way."
+					hint="One day moves D at most L× either way."
 				/>
 				<div style={{ display: "flex", flexDirection: "column", gap: 3 }}>
 					<span style={{ ...label, fontSize: 9.5, letterSpacing: "0.1em" }}>
@@ -505,7 +505,7 @@ export default function DemandLab() {
 									pointerEvents="none"
 								/>
 							)}
-							{(!rr.gate || rr.clamped || rr.floored) && (
+							{(!rr.sampled || rr.limited || rr.floored) && (
 								<text
 									x={xMid(i)}
 									y={Math.max(
@@ -515,9 +515,9 @@ export default function DemandLab() {
 									textAnchor="middle"
 									fontSize={11}
 									pointerEvents="none"
-									fill={!rr.gate ? C.dim : rr.floored ? C.bid : C.hint}
+									fill={!rr.sampled ? C.dim : rr.floored ? C.bid : C.hint}
 								>
-									{!rr.gate ? "❄" : rr.floored ? "⚓" : "⚠"}
+									{!rr.sampled ? "❄" : rr.floored ? "⚓" : "⚠"}
 								</text>
 							)}
 						</g>
@@ -597,8 +597,8 @@ export default function DemandLab() {
 					Each bar is one day's typical per-window demand: drag it to resize the
 					day, click the letter beneath to change the day's composition, click a
 					bar to inspect its derivation. The staircase is D itself, rebased at
-					each close; diamonds mark each day's reading. ❄ below the gate (D
-					frozen) · ⚠ step clamped · ⚓ held at the floor.
+					each close; diamonds mark each day's reading. ❄ below the minimum
+					sample (D frozen) · ⚠ step limited · ⚓ held at the floor.
 				</p>
 			</div>
 
@@ -625,7 +625,7 @@ export default function DemandLab() {
 				>
 					<span>day</span>
 					<span>flow S1</span>
-					<span>gate</span>
+					<span>sample</span>
 					<span>reading</span>
 					<span>step</span>
 					<span>D after</span>
@@ -644,19 +644,19 @@ export default function DemandLab() {
 								d{i + 1}
 							</button>
 							<span style={{ color: C.faint }}>{fmtK(rr.s1)}</span>
-							<span style={{ color: rr.gate ? C.bid : C.dim }}>
-								{rr.gate ? "✓" : "❄"}
+							<span style={{ color: rr.sampled ? C.bid : C.dim }}>
+								{rr.sampled ? "✓" : "❄"}
 							</span>
 							<span style={{ color: C.text }}>
 								{rr.reading != null ? fmtK(rr.reading) : "—"}
 							</span>
-							<span style={{ color: rr.clamped ? C.hint : C.text }}>
-								{rr.gate ? `×${rr.step.toFixed(2)}` : "—"}
+							<span style={{ color: rr.limited ? C.hint : C.text }}>
+								{rr.sampled ? `×${rr.step.toFixed(2)}` : "—"}
 							</span>
 							<span style={{ color: C.mark }}>
 								{fmtK(rr.dClose)}
 								{rr.floored ? " ⚓" : ""}
-								{rr.clamped ? " ⚠" : ""}
+								{rr.limited ? " ⚠" : ""}
 							</span>
 						</Fragment>
 					))}
@@ -690,9 +690,10 @@ export default function DemandLab() {
 					{fmt$(r.s1)} · S2 = Σ v²
 				</div>
 				<div>
-					<span style={{ color: C.dim }}>2 · gate</span> — S1{" "}
-					{r.gate ? "≥" : "<"} {gate} × D = {fmt$(gate * r.dOpen)} →{" "}
-					{r.gate ? (
+					<span style={{ color: C.dim }}>2 · minimum sample</span> — S1{" "}
+					{r.sampled ? "≥" : "<"} {minSample} × D = {fmt$(minSample * r.dOpen)}{" "}
+					→{" "}
+					{r.sampled ? (
 						<span style={{ color: C.bid }}>update</span>
 					) : (
 						<span style={{ color: C.dim }}>
@@ -700,7 +701,7 @@ export default function DemandLab() {
 						</span>
 					)}
 				</div>
-				{r.gate && r.reading != null && r.rawStep != null && (
+				{r.sampled && r.reading != null && r.rawStep != null && (
 					<>
 						<div>
 							<span style={{ color: C.dim }}>3 · reading</span> — S2/S1 ={" "}
@@ -718,10 +719,10 @@ export default function DemandLab() {
 							(reading/D)^{alpha.toFixed(2)} = {fmtK(r.dOpen)} × (
 							{fmtK(r.reading)}/{fmtK(r.dOpen)})^{alpha.toFixed(2)} = ×
 							{r.rawStep.toFixed(3)}
-							{r.clamped && (
+							{r.limited && (
 								<span style={{ color: C.hint }}>
 									{" "}
-									→ clamped to ×{r.step.toFixed(2)}
+									→ limited to ×{r.step.toFixed(2)}
 								</span>
 							)}
 						</div>

@@ -15,12 +15,12 @@
  * window count appears anywhere.
  *
  * The update is ordinary hygiene for an automated statistic, not defense:
- * if the epoch carried at least g·D of flow (minimum sample), D steps by
- * (reading/D)^α bounded to [1/c, c] (one day, whatever it contains, moves the
- * yardstick at most c×); otherwise D freezes for the epoch, no decay. D never
- * falls below the configured floor, which is a mark-validity bound (a walk
- * too small reads only the best quotes) and is separate from the launch
- * seed, which initializes D and constrains nothing afterward.
+ * if the epoch carried at least m·D of flow (the minimum sample), D steps by
+ * (reading/D)^α bounded to [1/L, L] (one day, whatever it contains, moves
+ * the yardstick at most L×); otherwise D freezes for the epoch, no decay.
+ * D never falls below the configured floor D_min, which is a mark-validity
+ * bound (a walk too small reads only the best quotes) and is separate from
+ * the launch seed D₀, which initializes D and constrains nothing afterward.
  *
  * This is one possible instantiation of a demand measure. The forms are
  * argued from what each part must do; the values are fit per venue, like the
@@ -28,16 +28,16 @@
  */
 
 export interface DemandParams {
-	/** Launch value, $. Initializes D; constrains nothing afterward. */
+	/** The seed D₀, $. Initializes D at launch; constrains nothing afterward. */
 	seed: number;
-	/** Validity floor D_min, $: protects the walk's depth, not demand. */
+	/** The floor D_min, $: protects the walk's depth, not demand. */
 	floor: number;
-	/** Gate multiple g: an epoch updates D only if S1 ≥ g × D. */
-	gate: number;
+	/** The minimum sample m: an epoch updates D only if S1 ≥ m × D. */
+	minSample: number;
 	/** Chase exponent α: the epoch step is (reading/D)^α. */
 	alpha: number;
-	/** Clamp multiple c: one epoch's step is bounded to [1/c, c]. */
-	clampMult: number;
+	/** The daily limit L: one epoch's step is bounded to [1/L, L]. */
+	limit: number;
 }
 
 /** A group of same-sized windows: [how many windows, $ traded in each]. */
@@ -47,15 +47,15 @@ export interface EpochResult {
 	dOpen: number;
 	s1: number;
 	s2: number;
-	/** Did the epoch carry g·D of flow? */
-	gate: boolean;
-	/** S2/S1, the dollar-weighted typical window. Null when gated. */
+	/** Did the epoch carry the minimum sample, m·D of flow? */
+	sampled: boolean;
+	/** S2/S1, the dollar-weighted typical window. Null when unsampled. */
 	reading: number | null;
-	/** (reading/D)^α before clamping. Null when gated. */
+	/** (reading/D)^α before the daily limit. Null when unsampled. */
 	rawStep: number | null;
-	/** The applied multiplier (1 when gated). */
+	/** The applied multiplier (1 when unsampled). */
 	step: number;
-	clamped: boolean;
+	limited: boolean;
 	floored: boolean;
 	dClose: number;
 }
@@ -72,25 +72,25 @@ export function runEpoch(
 		s1 += n * v;
 		s2 += n * v * v;
 	}
-	const gate = s1 >= p.gate * dOpen - 1e-9;
-	if (!gate) {
+	const sampled = s1 >= p.minSample * dOpen - 1e-9;
+	if (!sampled) {
 		return {
 			dOpen,
 			s1,
 			s2,
-			gate,
+			sampled,
 			reading: null,
 			rawStep: null,
 			step: 1,
-			clamped: false,
+			limited: false,
 			floored: false,
 			dClose: dOpen,
 		};
 	}
 	const reading = s2 / s1;
 	const rawStep = (reading / dOpen) ** p.alpha;
-	const step = Math.min(p.clampMult, Math.max(1 / p.clampMult, rawStep));
-	const clamped = Math.abs(step - rawStep) > 1e-12;
+	const step = Math.min(p.limit, Math.max(1 / p.limit, rawStep));
+	const limited = Math.abs(step - rawStep) > 1e-12;
 	let dClose = dOpen * step;
 	let floored = false;
 	if (dClose < p.floor) {
@@ -101,11 +101,11 @@ export function runEpoch(
 		dOpen,
 		s1,
 		s2,
-		gate,
+		sampled,
 		reading,
 		rawStep,
 		step,
-		clamped,
+		limited,
 		floored,
 		dClose,
 	};
