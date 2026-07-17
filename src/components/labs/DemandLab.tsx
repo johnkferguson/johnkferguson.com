@@ -114,7 +114,7 @@ const SCENARIOS: DemandScenario[] = [
 		key: "step",
 		title: "Step Change",
 		blurb:
-			"Demand jumps fivefold on day two and holds at the new level. How long D takes to settle there is what the chase speed means in days: within one percent of the new level, α = 3/4 arrives by day five, α = 2/3 by day six, and α = 1/2 not until day nine. Each day closes the same fraction of the remaining gap, so the first days do most of the work and the last percent takes the longest.",
+			"Demand jumps fivefold on day two and holds at the new level. How long D takes to settle there is what the chase speed means in days: within one percent of the new level, α = 3/4 is in force by day six, α = 2/3 by day seven, and α = 1/2 not until day ten. Each day closes the same fraction of the remaining gap, so the first days do most of the work and the last percent takes the longest.",
 		flows: () => [100, 500, 500, 500, 500, 500, 500, 500, 500, 500],
 		sel: 3,
 	},
@@ -130,7 +130,7 @@ const SCENARIOS: DemandScenario[] = [
 		key: "loud",
 		title: "One Loud Day",
 		blurb:
-			"A single day of demand ten times the rest. The raw steps for the two faster chases exceed the daily limit and are held to L×, while the slowest stays inside it, which is why the yellow and green lines land on the same value. Lower L and all three flatten toward the same bounded step; the days after walk everything back down.",
+			"A single day of demand ten times the rest. The raw steps for the two faster chases exceed the daily limit and are held to L×, while the slowest stays inside it, which is why the yellow and green lines enter the next day at the same value. Lower L and all three flatten toward the same bounded step; the days after walk everything back down.",
 		flows: () => [100, 100, 100, 100, 1000, 100, 100, 100, 100, 100],
 		sel: 4,
 	},
@@ -447,18 +447,19 @@ export default function DemandLab() {
 										ch,
 										r: runs[k][i],
 									}));
+									const demand = flows[i] * K;
 									const fmtD = (v: number) =>
 										`${v >= 0 ? "+" : "−"}${fmtK(Math.abs(v)).slice(1)}`;
-									const fmtP = (r: EpochResult) => {
-										const p = (r.dClose / r.dOpen - 1) * 100;
+									const fmtP = (v: number) => {
+										const p = (v / demand) * 100;
 										return `${p >= 0 ? "+" : "−"}${Math.abs(p) >= 100 ? Math.round(Math.abs(p)) : Math.abs(p).toFixed(1)}%`;
 									};
-									const bw = 236;
+									const bw = 252;
 									const bh = 118;
 									const bx =
 										xMid(i) + 12 + bw > PR ? xMid(i) - 12 - bw : xMid(i) + 12;
 									const by = PT + 4;
-									const cols = [12, 62, 122, 182];
+									const cols = [12, 52, 112, 196];
 									return (
 										<g pointerEvents="none">
 											<rect
@@ -478,7 +479,7 @@ export default function DemandLab() {
 											>
 												Day {i + 1} · {fmtK(flows[i] * K)} Demand
 											</text>
-											{["α", "D", "Δ", "Δ%"].map((h, k) => (
+											{["α", "D", "vs Demand", "%"].map((h, k) => (
 												<text
 													key={h}
 													x={bx + cols[k]}
@@ -493,9 +494,9 @@ export default function DemandLab() {
 												<g key={ch.name}>
 													{[
 														ch.name.replace("α = ", ""),
-														fmtK(r.dClose),
-														fmtD(r.dClose - r.dOpen),
-														fmtP(r),
+														fmtK(r.dOpen),
+														fmtD(r.dOpen - demand),
+														fmtP(r.dOpen - demand),
 													].map((cell, c) => (
 														<text
 															key={`${ch.name}c${c}`}
@@ -674,12 +675,35 @@ export default function DemandLab() {
 												key={ch.name}
 												style={{ textAlign: "center", color: ch.color }}
 											>
-												{fmtK(runs[k][i].dClose)}
+												{fmtK(runs[k][i].dOpen)}
 											</span>
 										))}
 									</div>
 								);
 							})}
+							{/* where each line finishes after the last day's close */}
+							<div
+								style={{
+									display: "grid",
+									gridTemplateColumns: "30px 1fr 1fr 1fr 1fr",
+									padding: "3px 6px",
+									borderTop: `1px solid ${C.line}`,
+									fontFamily: mono,
+									fontSize: 11,
+									lineHeight: 1.6,
+								}}
+							>
+								<span style={{ textAlign: "center", color: C.faint }}>end</span>
+								<span style={{ textAlign: "center", color: C.faint }}>—</span>
+								{CHASES.map((ch, k) => (
+									<span
+										key={ch.name}
+										style={{ textAlign: "center", color: ch.color }}
+									>
+										{fmtK(runs[k][NDAYS - 1].dClose)}
+									</span>
+								))}
+							</div>
 						</div>
 						<div
 							style={{
@@ -689,8 +713,9 @@ export default function DemandLab() {
 								lineHeight: 1.45,
 							}}
 						>
-							D at each day's close, per chase speed. Hover a row to read the
-							day's move in the chart.
+							D in force on each day, set at the prior day's close; the end row
+							is where the run finishes. Hover a row to read each line's gap to
+							that day's demand.
 						</div>
 					</div>
 				</div>
