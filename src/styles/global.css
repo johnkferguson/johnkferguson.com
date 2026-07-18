@@ -168,6 +168,47 @@ blockquote {
 	color: var(--link-hover);
 }
 
+/*
+ * Post page shell: full-width grid with a sticky TOC rail on the left
+ * and the content column on the right. Prose is capped at a readable
+ * measure; embeds marked .labwrap may break out to the wide width.
+ */
+:root {
+	--prose-measure: 36rem;
+	--prose-wide: 52rem;
+	--shell-max: 1520px;
+	--shell-pad: clamp(1rem, 3vw, 3rem);
+}
+
+.post-shell {
+	max-width: var(--shell-max);
+	margin-inline: auto;
+	padding: 2.2rem var(--shell-pad) 3rem;
+}
+
+.post-rail {
+	display: none;
+}
+
+@media (min-width: 1181px) {
+	.post-shell {
+		display: grid;
+		grid-template-columns: minmax(200px, 260px) minmax(0, 1fr);
+		column-gap: clamp(2.5rem, 5vw, 5rem);
+	}
+	.post-rail {
+		display: block;
+	}
+}
+
+article[data-toc-root] > * {
+	max-width: var(--prose-measure);
+}
+
+article[data-toc-root] > .labwrap {
+	max-width: var(--prose-wide);
+}
+
 /* For Articles */
 article a {
 	@apply border-b transition-colors duration-200;

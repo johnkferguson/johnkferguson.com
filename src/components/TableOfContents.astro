@@ -25,6 +25,9 @@ const { inline = false } = Astro.props;
 	const navs = [...document.querySelectorAll<HTMLElement>("nav[data-toc]")];
 	if (root && navs.length) {
 		const headings = [...root.querySelectorAll<HTMLElement>("h2[id]")];
+		if (headings.length === 0) {
+			for (const nav of navs) nav.style.display = "none";
+		}
 		const railLinks: HTMLAnchorElement[] = [];
 		for (const nav of navs) {
 			const ul = nav.querySelector("ul");
@@ -117,14 +120,14 @@ const { inline = false } = Astro.props;
 		border-left-color: var(--article-link-hover-border);
 	}
 
-	/* —— fixed left rail —— */
+	/* —— sticky left rail (lives in the post-shell grid column) —— */
 	.toc-rail {
-		position: fixed;
-		top: 140px;
-		left: calc(50vw - 360px - 232px);
-		width: 196px;
-		font-size: 0.62rem;
-		line-height: 1.45;
+		position: sticky;
+		top: 5.5rem;
+		max-height: calc(100vh - 7rem);
+		overflow-y: auto;
+		font-size: 0.68rem;
+		line-height: 1.5;
 	}
 
 	@media (max-width: 1180px) {
