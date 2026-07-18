@@ -43,6 +43,12 @@
   #theme-toggle svg:not(.hidden) {
     display: block;
   }
+
+  /* optical correction: flex-centering aligns boxes, but the About
+   * text's visual mass sits above its baseline; lift to match */
+  #theme-toggle {
+    transform: translateY(-2px);
+  }
 </style>
 
 <script is:inline>
