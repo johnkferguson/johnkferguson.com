@@ -5,19 +5,7 @@
 ---
 
 <button data-back-to-top aria-label="Back to top">
-	<svg
-		width="14"
-		height="14"
-		viewBox="0 0 16 16"
-		fill="none"
-		stroke="currentColor"
-		stroke-width="1.8"
-		stroke-linecap="round"
-		stroke-linejoin="round"
-		aria-hidden="true"
-	>
-		<path d="M8 13V3M3.5 7.5 8 3l4.5 4.5"></path>
-	</svg>
+	<span class="btt-arrow" aria-hidden="true">&#8593;</span>
 	<span class="btt-label">Back to top</span>
 </button>
 
@@ -77,6 +65,12 @@
 			transform 0.2s ease,
 			color 0.15s ease,
 			border-color 0.15s ease;
+	}
+
+	.btt-arrow {
+		font-family: var(--font-mono);
+		font-size: 0.7rem;
+		line-height: 1;
 	}
 
 	.btt-label {
