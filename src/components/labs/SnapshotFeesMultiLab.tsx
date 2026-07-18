@@ -177,7 +177,7 @@ const SCENARIOS: Scenario[] = [
 		key: "crossed",
 		title: "Crossed Market",
 		blurb:
-			"Your bid stands 2.5bps above the makers' best ask, at size, with your own ask behind it. A crossed book is not an error: the walks run per side, the impact prices cross, and M lands inside the overlap, pulled toward the aggressive bid. The crossing bid itself stamps at zero, since aggression is never charged for contesting the price. In a dual-flow venue makers never trade each other, so a cross like this drains through taker flow instead.",
+			"Your bid stands 2.5bps above the makers' best ask, at size, with your own ask behind it. A crossed book is not an error: the walks run per side, the impact prices cross, and M lands inside the overlap, pulled toward the aggressive bid. The crossing bid itself stamps at zero, since aggression is never charged for contesting the price. In a dual-flow venue makers never trade each other, so a cross like this drains through taker flow instead. A cross narrower than about two taker caps is not even an arbitrage, since a round trip pays the cap twice; a small cross is simply a better price for natural flow.",
 		you: () =>
 			bookOf({
 				[CENTER + 6]: 20000,

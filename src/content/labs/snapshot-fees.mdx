@@ -617,54 +617,109 @@ and lets any participant re-run a window's arithmetic as fast as the venue
 does. One implementation note: the demand sums accumulate squared volumes,
 so fixed-point integers must be sized for $S_2$.
 
-## Which Auction Design Fits Best
+## Design Notes
+
+The mechanism is now on the table. These notes cover how it composes with
+existing practice, what it leaves flexible, what it costs, and what the
+mark could serve beyond fees.
+
+### Volume-Based Discounts Compose
+
+Nothing in this design requires abandoning volume tiers, and the two work better together than either does alone. The
+composition works under one rule:
+
+> Volume lowers an account's cap $F$ toward a floor, and changes nothing else.
+
+A market with a 10bps cap might let it fall to a 2.5bps floor on volume alone, while the last mile to zero stays reachable only by standing paired liquidity near the mark. Because the cap prices only unpaired overflow and far placement, a newcomer quoting tight and well-paired pays almost exactly what a high-volume incumbent pays where the two actually compete; the incumbent's advantage lives at the edges of the book, not at its center. Day-one competition survives, and high-volume takers, whose trading is one-sided by nature and can never earn the paired discount, still see their costs fall. The blended view of value this produces is the honest one: two-sided liquidity first, volume second.
+
+Composing the two also closes a loop that opens under a high cap. A
+directional trader could rest an ask far enough out that it rarely
+fills, but near enough to stamp below the cap, and pair their bids against
+it for the discount: under a 15bps cap, a bid paired to an ask stamped at 10bps trades
+at 10bps. Volume tiers remove the incentive. The traders with enough flow
+to run this systematically already hold caps below anything a parked ask
+could deliver, so the honest path is also the cheaper one, and the book
+stays free of asks that exist only to lower fees.
+
+### Fee Formulas Are Open to Modification
+
+The schedule this piece uses, a free band,
+two slopes, a cap, is one calibration of the idea, not the idea. What the
+mechanism requires is only that fees derive from the sealed snapshot and
+price directionality; the curve those fees follow is the market's to
+shape. The band could carry a fee of its own, or a negative one: a small
+rebate for the tightest paired quotes, funded by an in-window transfer
+from taker fees and bounded so that a self-cross still costs money rather
+than earning it. Steeper or flatter slopes, a different knee, a priced
+band: all of these are the same mechanism wearing different calibrations,
+and the properties the essay argues for, day-one competition, per-market
+competition, the mark's defenses, survive any of them.
+
+### Market Fee Profiles
+
+Every parameter here is configurable in principle: the band, the zone, the slopes, the cap, the demand machine's dials. In practice the likely end state is not a bespoke calibration per market but a small family of vetted market fee profiles, perhaps two to five, correlating with volume and volatility: deep markets running tight bands and strict precision pricing, volatile ones running wider bands and gentler slopes.
+
+Extending this idea further, one possibility is that markets could shift their fee profile over time as their market conditions change. This could be done via governance or via some sort of automated process. For the latter case, since the mark and typical demand both recompute under their own timescales: per-window and per-day, it follows that the band, zone and other parameters could plausibly be derived on a much slower cadence as well, based upon metrics related to the market's own volume and volatility.
+
+### Maker Fee Uncertainty
+
+On every venue running today, a maker knows their rate before they quote. Here the rate is known only up to the mark: the schedule is fixed, but where a quote falls on it depends on where $M$ lands, so the fee is an interval rather than a number until the window seals. That is a real cost, one more variable to model alongside fill probability and adverse selection, and it deserves to be named rather than argued away. Its bounds are also real: the schedule and formula are fully public, the worst case is the cap $F$, and the width of the interval is under the maker's own control, since the same size and tightness the schedule rewards also pull the mark toward the center of their quotes.
+
+### Consuming the Mark
+
+The mechanism's byproduct is a reference price. Each window exports $M$
+with its state and the impact spread, all recomputable from published
+data, and a mark that is measured at size and expensive to move is a
+candidate input for services beyond fees: settlement prints, indexes, and
+eventually riskier consumers.
+
+As an example, on the riskier end of the consumer spectrum, a liquidation engine should never consume a single window's mark
+directly; it would want machinery built around the mark, smoothing across
+windows, staleness bounds, health gating, so that moving the reference
+would mean sustaining a distortion across the whole lookback rather than
+winning one window. All of these are extensions around the mark, not changes to it; the per-window measurement stays exactly as described.
+
+### The Dual-Flow Fit
+
+The mechanism runs on any batch auction, but a dual-flow venue fits it
+best, for three reasons.
+
+1. **Declared flows.** Maker and taker are declarations rather than
+   accidents of timing: each window runs two auctions at once, maker bids
+   against taker sells and maker asks against taker buys, and makers never
+   trade against each other. The standing book is an explicit, labeled
+   object, and the mark reads only it: takers never enter the computation,
+   which simplifies the measurement and shrinks its cost.
+
+2. **Pro-rata, without seniority.** Fills at a shared price split by size
+   alone, and no priority carries over from earlier windows, where a plain
+   frequent batch auction, as proposed, ranks longer-resting orders first.
+   That matches how this mechanism already works: the walk shares
+   pro-rata, fees judge every window fresh, and nothing anywhere
+   accumulates seniority.
+
+3. **Price improvement that pays the book.** Any uniform-price cross lets
+   both sides beat their limits, but in a single shared cross part of that
+   improvement comes from taker buys and sells netting against each other,
+   with the standing book paid only on the imbalance. Dual flow separates
+   the auctions, so improvement happens on each side while every taker
+   dollar still fills a standing quote. Gross flow walks the maker book,
+   which is the flow the stamp slopes are calibrated for.
+
+Taken together, these push makers toward tighter quotes before any fee
+enters: a quote priced inside the clearing still fills at the clearing
+price, so tightening gives up nothing at execution, and every taker dollar
+reaches the book to be competed for. The venue rewards the same behavior
+the fee schedule discounts, and the two reinforce each other.
+
+None of this is required: a plain frequent batch auction ports the formula
+verbatim, and only the calibration needs refitting.
+
+## Conclusion
 
 <div class="stub">
 
-- Placement TBD (likely here). The intro gives DFBA only a cameo; this section carries the full description and the argument
-- The netting weakness of a single shared cross, told here: in a CLOB a buy and a sell each pay the spread; in one batch cross they net at the clearing price and the standing book is paid only on the imbalance. Thins the reason to be the standing book, which is what the market leans on when flow turns one-sided; effect grows with window length
-- DFBA mechanics in full (moved from the setting section): declared flows (intent, not urgency; orders on either flow can rest across windows), two simultaneous auctions per window (100ms to 1s), uniform price crossing the most volume, pro-rata at ties, makers never trade with makers; 250ms human reaction time makes the cadence feel instantaneous
-- DFBA keeps the sealed window and removes the netting: every taker fill pays a standing quote, in either direction, at any window length
-- Because taker buys and sells never net, gross urgency walks the maker book. That is the venue type the gentle stamp slope is calibrated for; in netting venues deep excursions collapse and the calibration must be refit
-- The maker flow is an explicit standing book: exactly the object the snapshot reads
-- Pro-rata at equal prices in DFBA matching rhymes with the attribution-free, pro-rata mark walk: a shared fairness grammar
-- Declared roles vs measured behavior: DFBA makes maker/taker an explicit declaration; snapshot fees reads directionality from the book. It can price within the declared maker flow, or dissolve the declaration entirely
-- Plain FBA: the formula ports verbatim (roles never appear in it); the calibration does not, and should be fit to the venue's sweep-depth distribution
-
-</div>
-
-## Concerns, Variations, Open Questions
-
-<div class="stub">
-
-- Fee uncertainty as a cost of the design: on every existing venue a maker knows their rate before quoting; here the rate is known only up to the mark, so it becomes another variable to model alongside fill probability and adverse selection, with a confidence interval rather than a number. Mitigations: the schedule and formula are fully public; the worst case is bounded at the cap $F$; and unlike order flow, the interval is under the maker's own control, since weight (size and tightness) narrows it. Expect pushback here; treat it as a real trade-off, not a non-issue
-- Semi-far pairing earns a discount: paid optionality, priced by fill risk and adverse selection
-- Manipulation economics: junk pairing is worthless, bending $M$ requires standing real paired size. Under candidate selection this is winner-take-all: moving or freezing the mark requires out-sizing the honest book's eligible size within one $B + 2Z$ span, and any size short of that buys exactly zero influence. The old dust-freeze hole (tiny far paired size grabbing an anchor and freezing $M$) is closed by the same rule
-- Parameters and governance: $B$ declared and sticky, $F$ venue-wide, $Z$ and the two slopes shape the curve, $D$ measured from demand
-- Volume pricing composes rather than competes: volume (like staking in the spec) can lower an account's cap $F$ toward a floor. A 10bps cap might fall to 2.5bps on volume alone, but the last mile to zero is quality only. The floored cap preserves day-one competition for new makers and gives high-volume takers a legible benefit
-- Variations considered: partner-stamp grace interval, asymptotic stamps (rejected: softens the junk anchor), inside compensation (parked), partial fills, blending $M$ between near-tied rival candidate books (rejected: partial size must buy zero influence, and a blended mark stands at a price where no liquidity does)
-- Band fee level as a parameter: add an intercept $c$ to the base fee, $\min(F,\ c + k_1 \cdot \min(d, Z) + k_2 \cdot \max(0,\ d - Z))$; the band pays exactly $c$, and the piece's design is the special case $c = 0$. Negative $c$ is a rebate for the tightest quotes. It leaks smoothly past the band edge (fee crosses zero at $d = -c/k_1$), needs $c > -F$ so a self-cross costs $F + c > 0$ (the taker cap bounds the rebate against wash trading), and reopens the standard maker-rebate manipulation literature that $c = 0$ dismisses in one sentence. Settlement thinking if adopted (forward plan, small rebates like a quarter bps for in-band makers): rebates settle as an in-window transfer from takers' fees to makers, or fold into the settlement prices; fees themselves always deduct from the trade directly, never from reserved balances
-- Crossed books, by size of cross (needs its own beat, possibly with Which Auction Design): a cross smaller than the eligibility reach ($Z + B/2$) computes normally; impact prices cross, the spread exports negative, $M$ sits mid-cross, and aggressive quotes stamp at zero (aggression is never punished). A cross or gap larger than the reach splits the snapshot into rival candidate eligible books and the mark reads the largest; the smaller book keeps pairing for fees but has no voice. Overlapping candidates (the chain case: A within reach of B, B within reach of C, A and C not) are two readings of one region and resolve to the larger with a deterministic tiebreak, never held. In a DFBA makers never trade each other, so crossed maker books persist and drain via taker flow; note the no-arbitrage band: crosses narrower than roughly 2F are not arbitrageable (two taker caps exceed the edge), just better prices for natural flow
-- The no-mark states (needs its own beat): three states, none / fresh / held, and no declared launch mark. From launch until the first valid candidate book forms there is no mark and every fill pays the cap $F$. A free launch window was considered and rejected: two sybil accounts, one bidding and one asking, would wash-trade fee-free until a mark formed; charging the cap instead makes standing the first real two-sided book the way to unlock discounts. held only bridges windows after a mark has existed (no valid candidate, or a strict tie between disjoint candidates) and is unreachable at launch by construction. fresh vs held vs healthy (impact spread against $B$) are three different gates and consumers choose which to require. Open: whether held should expire at some age or carry indefinitely with consumers gating on staleness
-- Liquidations as a future mark consumer (out of scope here, but it constrains the design now): a liquidation reference would be an EMA or TWAP of recent fresh-and-healthy marks with a staleness bound, never the raw per-window $M$, so sustaining a manipulation across the lookback means being the market for its whole length. Mark availability becomes a design metric: the fraction of windows fresh and healthy, especially under stress, since the span check can empty the mark exactly when volatility widens every book; profiles must size $B + 2Z$ against stressed spreads, not calm ones. Natural listing rule: leverage enables only after the mark has some window count of fresh, healthy history
-- Open: cross-window dynamics, staking-based fee caps, thin-market $M$ fallbacks
-- Some ideas: make the cap itself volume derived but let it lower down to a floor. Still retains snapshot fees as the dominant driver as fees for makers. Example, 8bps Fee Cap. Cap can lower based on volume to 2bps. Still allows new makers to compete on pricing and inventory management.
-- Need to show the O complexity of what it costs to derive the Mark and the fee schedule per window. It's worthwhile to show how much it costs computationally. Candidate discovery adds one eligibility pass per two-sided account (seeds dedupe, and in a coherent market they all converge to one candidate).
-- Need a section to walk through/show dynamically deriving D over time.
-- The dynamically calibrated market (likely its own late section, "Calibrating the Market" / "Market Profiles", holding the dynamic-$D$ walkthrough too). The cadence ladder: every parameter changes at the slowest cadence that keeps it honest — $M$ per window (it is the measurement), $D$ daily (a statistic needs a sample; one window must never move the yardstick that prices it), $B$/$Z$/$k_1$/$k_2$ on a ~30-day lookback in discrete steps, $F$ slowest as venue policy
-- Market profiles: instead of infinite parameter permutations, 3–5 vetted coherent bundles (the parameters interact: full fee at $B/2 + Z + (F - k_1 Z)/k_2$), expected to correlate with volume and volatility. Anchor for the selector: $B$ should cover noise, not signal — e.g. a quantile of window-to-window $M$ drift; high volatility → wider band, gentler slopes (width there is insurance, not laziness); deep high-volume markets → tight band, stricter precision pricing. Shared profiles also pool statistics across the long tail instead of overfitting thin markets
-- Profiles shift like gears, not fluid drift: legibility (makers precompute economics per profile once), hysteresis (two thresholds so a boundary market never gear-hunts), and manipulation resistance (moving a parameter requires sustaining a 30-day distortion — the mark's "only way to fake it is to do the job" defense at a longer timescale). Selection can run off-chain, but its inputs and rule are published so anyone can verify the current gear; shifts announced with a notice period
-- Transition cost owed to the reader: a gear shift reprices resting books mid-flight (cheap stamps under old $B$ may stamp expensive under the new); scheduled transition windows, possibly one window of grandfathering
-- May want a section showing how an order actually fills and what fees are paid, potentially comparing FBA to DFBA.
-
-</div>
-
-## Closing
-
-<div class="stub">
-
-- Recap: one snapshot, one standard, one question per fill: how directional were you really
-- What evidence would validate or break this design
-- Invitation: the labs are the argument; go bend them
+- The balance-sheet beat (center of the closing): what the design offers (lower costs for two-sided liquidity, day-one and per-market competition, on top of the batch substrate's neutralized latency race) against what it charges (a rate that is an interval rather than a number, more machinery to model, slightly more computation, the unfamiliarity of an uncommon mechanism: switching costs the formula cannot argue away). The question the mechanism cannot answer: on balance, would this be attractive to the traders it is built for? Keep the adverse-selection credit with the batch auction, not the fee mechanism
+- What evidence would validate or break this design: adoption, spreads, depth
 
 </div>
