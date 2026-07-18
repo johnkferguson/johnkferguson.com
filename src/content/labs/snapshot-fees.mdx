@@ -717,9 +717,35 @@ verbatim, and only the calibration needs refitting.
 
 ## Conclusion
 
-<div class="stub">
+Snapshot fees price each auction's liquidity from the auction itself: one
+snapshot, one schedule, and a rate that reflects how directional each fill
+actually was. The mechanics have now been argued in full; what no argument
+settles is whether anyone would run them. Adoption would have to answer
+three audiences in turn.
 
-- The balance-sheet beat (center of the closing): what the design offers (lower costs for two-sided liquidity, day-one and per-market competition, on top of the batch substrate's neutralized latency race) against what it charges (a rate that is an interval rather than a number, more machinery to model, slightly more computation, the unfamiliarity of an uncommon mechanism: switching costs the formula cannot argue away). The question the mechanism cannot answer: on balance, would this be attractive to the traders it is built for? Keep the adverse-selection credit with the batch auction, not the fee mechanism
-- What evidence would validate or break this design: adoption, spreads, depth
+A venue comes first: this would most likely be built into a new venue rather than
+retrofitted, and while the added machinery is computationally light, it
+is still machinery, and whether it earns its place is a judgment no
+formula settles. Regular traders come next, and for them the question is
+mostly one of perception: nearly all of the mechanism's complexity exists
+for market makers, while a normal trader simply pays at or below the cap,
+with volume discounts intact. Whether that simplicity reads as simple is
+not guaranteed.
 
-</div>
+The key question belongs to makers, and it is a genuine balance. On one
+side, a batch venue removes latency-driven adverse selection, and this
+schedule removes the volume gate at the bottom of the fee ladder, so a
+new maker can compete on quoting alone from the first window. On the
+other, the fee machinery is novel, and modeling a rate that is an
+interval rather than a number is a real switching cost. On balance, would
+this be attractive to makers? The mechanism cannot answer that for
+itself.
+
+The piece opened with two questions: whether the snapshot could price
+orders directly, and whether doing so would improve the market. The
+former has been answered through the design and specification of the
+mechanism itself. The latter can only be answered empirically: a market
+where the schedule runs, and the comparison that follows. If the
+mechanism does what it argues, the evidence would show in the book
+itself: tighter spreads, greater depth at the touch, and new makers
+appearing in markets that previously had none.
