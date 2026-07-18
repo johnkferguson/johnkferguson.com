@@ -67,12 +67,59 @@ const { inline = false } = Astro.props;
 				manualOpen.has(i) || (i === current && !manualClosed.has(i));
 
 			interface RailRefs {
+				scroll: HTMLElement | null;
+				items: HTMLElement[];
 				rowLinks: HTMLAnchorElement[];
 				carets: (HTMLButtonElement | undefined)[];
 				subWraps: (HTMLElement | undefined)[];
 				subLinks: HTMLAnchorElement[][];
 			}
 			const rails: RailRefs[] = [];
+
+			// Keep the active entry visible inside the rail's scroll box,
+			// scrolling only the box (never the page) with minimal motion.
+			// On expansion, prefer revealing the whole sub-list when it fits.
+			// Delayed past the 250ms expand animation so we measure final
+			// layout; skipped while the pointer is over the rail.
+			let revealTimer: number | undefined;
+			const scheduleReveal = () => {
+				clearTimeout(revealTimer);
+				revealTimer = window.setTimeout(() => {
+					for (const r of rails) {
+						const c = r.scroll;
+						if (!c || c.scrollHeight <= c.clientHeight) continue;
+						if (c.matches(":hover")) continue;
+						const active =
+							currentSub >= 0
+								? r.subLinks[current]?.[currentSub]
+								: r.rowLinks[current];
+						if (!active) continue;
+						const cRect = c.getBoundingClientRect();
+						const rel = (el: HTMLElement) =>
+							el.getBoundingClientRect().top - cRect.top + c.scrollTop;
+						const ch = c.clientHeight;
+						let st = c.scrollTop;
+						const group = expandedAt(current) ? r.items[current] : undefined;
+						if (group && group.offsetHeight <= ch) {
+							const gTop = rel(group);
+							const gBottom = gTop + group.offsetHeight;
+							if (gBottom > st + ch) st = gBottom - ch;
+							if (gTop < st) st = gTop;
+						}
+						const aTop = rel(active);
+						const aBottom = aTop + active.offsetHeight;
+						const pad = 6;
+						if (aTop < st + pad) st = aTop - pad;
+						else if (aBottom > st + ch - pad) st = aBottom - ch + pad;
+						if (Math.abs(st - c.scrollTop) > 1) {
+							c.scrollTo({
+								top: st,
+								behavior: reduceMotion ? "auto" : "smooth",
+							});
+						}
+					}
+				}, 300);
+			};
 
 			const apply = () => {
 				for (const r of rails) {
@@ -98,6 +145,7 @@ const { inline = false } = Astro.props;
 					manualClosed.delete(i);
 				}
 				apply();
+				scheduleReveal();
 			};
 
 			const caretSvg =
@@ -121,6 +169,8 @@ const { inline = false } = Astro.props;
 				}
 
 				const refs: RailRefs = {
+					scroll: nav.querySelector(".toc-scroll"),
+					items: [],
 					rowLinks: [],
 					carets: [],
 					subWraps: [],
@@ -172,6 +222,7 @@ const { inline = false } = Astro.props;
 						refs.subWraps[i] = wrap;
 					}
 					refs.subLinks.push(subLinksHere);
+					refs.items.push(li);
 					ul.append(li);
 				});
 				rails.push(refs);
@@ -203,6 +254,7 @@ const { inline = false } = Astro.props;
 				sections[cur].h3s.forEach((h, j) => {
 					if (h.getBoundingClientRect().top < THRESH) sub = j;
 				});
+				const changed = cur !== current || sub !== currentSub;
 				if (cur !== current) {
 					manualOpen.delete(current);
 					manualClosed.delete(current);
@@ -210,6 +262,7 @@ const { inline = false } = Astro.props;
 				}
 				currentSub = sub;
 				apply();
+				if (changed) scheduleReveal();
 				// appear in step with the post title merging into the header
 				const showTop = postH1
 					? postH1.getBoundingClientRect().bottom < 60
