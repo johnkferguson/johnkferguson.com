@@ -23,19 +23,7 @@ const { inline = false } = Astro.props;
 	{
 		!inline && (
 			<button class="toc-top" data-toc-top type="button">
-				<svg
-					width="8"
-					height="8"
-					viewBox="3 3 10 10"
-					fill="none"
-					stroke="currentColor"
-					stroke-width="1.6"
-					stroke-linecap="round"
-					stroke-linejoin="round"
-					aria-hidden="true"
-				>
-					<path d="M8 13V3M3.5 7.5 8 3l4.5 4.5" />
-				</svg>
+				<span class="toc-top-arrow" aria-hidden="true">&#8593;</span>
 				<span>Back to top</span>
 			</button>
 		)
@@ -312,6 +300,8 @@ const { inline = false } = Astro.props;
 		overflow-y: auto;
 		min-height: 0;
 		margin-bottom: 1rem;
+		scrollbar-width: thin;
+		scrollbar-color: var(--border-color) transparent;
 	}
 
 	.toc-rail :global(.toc-row) {
@@ -404,6 +394,11 @@ const { inline = false } = Astro.props;
 			opacity 0.2s ease,
 			color 0.15s ease,
 			border-color 0.15s ease;
+	}
+
+	.toc-top-arrow {
+		font-size: 0.55rem;
+		line-height: 1;
 	}
 
 	.toc-top.visible {
