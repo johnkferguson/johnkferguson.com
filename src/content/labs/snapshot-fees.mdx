@@ -18,14 +18,16 @@ import SnapshotFeesMultiLab from "../../components/labs/SnapshotFeesMultiLab";
 
 # Snapshot Fees
 
+Batch auctions collect orders for a short window, seal it, and clear every
+crossing trade at one price. The sealing produces something continuous
+markets never have: a complete snapshot of the market's standing
+liquidity, every order in it committed and fillable at that instant. This
+piece proposes Snapshot Fees, a fee mechanism that prices every fill from
+that snapshot, recomputed each auction, by how directional the filled
+liquidity actually was. The mechanism is built up one layer at a time, and
+each layer comes with an interactive lab for trying it directly.
+
 <TableOfContents inline />
-
-<div class="stub">
-
-- Lede: framing TBD. Working hook: batch auctions changed how trades match; this piece asks whether they should change how trades are priced
-- Promise of the piece: the mechanism is playable, not just described
-
-</div>
 
 ## Understanding Batch Auctions
 
