@@ -16,8 +16,10 @@ const { inline = false } = Astro.props;
 	data-toc
 	aria-label="Sections"
 >
-	<span class="toc-title">Contents</span>
-	<ul></ul>
+	<div class="toc-scroll">
+		<span class="toc-title">Contents</span>
+		<ul></ul>
+	</div>
 	{
 		!inline && (
 			<button class="toc-top" data-toc-top type="button">
@@ -281,19 +283,30 @@ const { inline = false } = Astro.props;
 		background: var(--code-background);
 	}
 
+	/* metric-stable active state: color and background only, never a
+	 * weight change (bolding reflows and can rewrap long entries) */
 	.toc :global(a.active) {
 		color: var(--heading-color);
-		font-weight: 500;
+		background: var(--code-background);
 	}
 
-	/* —— sticky left rail (lives in the post-shell grid column) —— */
+	/* —— sticky left rail (lives in the post-shell grid column) ——
+	 * Fixed height with the heading list scrolling inside it, so the
+	 * Top control pins to the bottom regardless of list length. */
 	.toc-rail {
 		position: sticky;
 		top: 4rem;
-		max-height: calc(100vh - 5.5rem);
-		overflow-y: auto;
+		height: calc(100vh - 4rem - 1.25rem);
+		display: flex;
+		flex-direction: column;
 		font-size: 0.68rem;
 		line-height: 1.5;
+	}
+
+	.toc-rail .toc-scroll {
+		overflow-y: auto;
+		min-height: 0;
+		margin-bottom: 1rem;
 	}
 
 	.toc-rail :global(.toc-row) {
@@ -361,10 +374,12 @@ const { inline = false } = Astro.props;
 	}
 
 	.toc-top {
+		flex: none;
+		align-self: flex-start;
 		display: flex;
 		align-items: center;
 		gap: 0.4rem;
-		margin-top: 1rem;
+		margin-top: auto;
 		padding: 0.32rem 0.55rem;
 		border: 1px solid var(--border-color);
 		border-radius: 6px;
@@ -381,6 +396,11 @@ const { inline = false } = Astro.props;
 			opacity 0.2s ease,
 			color 0.15s ease,
 			border-color 0.15s ease;
+	}
+
+	.toc-top svg {
+		display: block;
+		transform: translateY(-0.5px);
 	}
 
 	.toc-top.visible {

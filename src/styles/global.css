@@ -55,6 +55,14 @@
 	--icon-hover-email: #ffffff;
 }
 
+/* While flipping theme, kill all transitions so every element changes
+ * color in the same frame instead of fading at mismatched cadences. */
+.theme-snap *,
+.theme-snap *::before,
+.theme-snap *::after {
+	transition: none !important;
+}
+
 /*
  * Base Settings
  */
@@ -183,7 +191,7 @@ blockquote {
 
 .post-shell {
 	margin-inline: auto;
-	padding: 2.2rem var(--shell-pad) 3rem;
+	padding: 1.5rem var(--shell-pad) 3rem;
 	/* single-column mode: shrink the shell to the prose measure so the
 	 * page reads centered, like a plain essay */
 	max-width: calc(var(--prose-measure) + 2 * var(--shell-pad));
@@ -199,7 +207,7 @@ blockquote {
 		display: grid;
 		grid-template-columns: minmax(170px, 220px) minmax(0, var(--prose-wide));
 		justify-content: center;
-		column-gap: clamp(1.5rem, 3vw, 3.5rem);
+		column-gap: clamp(2.5rem, 4.5vw, 5rem);
 	}
 	.post-rail {
 		display: block;

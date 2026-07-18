@@ -37,6 +37,14 @@
   </svg>
 </button>
 
+<style>
+  /* inline svg carries baseline descender space that makes the icon sit
+   * low next to text; block display centers it geometrically */
+  #theme-toggle svg:not(.hidden) {
+    display: block;
+  }
+</style>
+
 <script is:inline>
   (function() {
     var toggle = document.getElementById('theme-toggle');
@@ -52,9 +60,18 @@
     updateIcons();
 
     toggle.addEventListener('click', function() {
-      var isDark = document.documentElement.classList.toggle('dark');
+      // suppress every transition for the flip so the whole page
+      // changes theme in a single frame
+      var root = document.documentElement;
+      root.classList.add('theme-snap');
+      var isDark = root.classList.toggle('dark');
       localStorage.setItem('theme', isDark ? 'dark' : 'light');
       updateIcons();
+      requestAnimationFrame(function() {
+        requestAnimationFrame(function() {
+          root.classList.remove('theme-snap');
+        });
+      });
     });
   })();
 </script>

@@ -16,10 +16,16 @@ const { postTitle, postDate } = Astro.props;
   <div class="site-header-inner">
     <a href="/" class="site-name">{SITE_NAME}</a>
     {postTitle && (
-      <div class="post-context" data-post-context>
+      <button
+        class="post-context"
+        data-post-context
+        type="button"
+        aria-label="Back to top"
+        title="Back to top"
+      >
         <span class="pc-title">{postTitle}</span>
         {postDate && <span class="pc-date">{postDate}</span>}
-      </div>
+      </button>
     )}
     <nav class="site-nav">
       <a href="/about" class="link-underline">About</a>
@@ -51,6 +57,15 @@ const { postTitle, postDate } = Astro.props;
 		const ctx = header.querySelector<HTMLElement>("[data-post-context]");
 		const h1 = document.querySelector<HTMLElement>(".post-header h1");
 		if (ctx && h1) {
+			const reduceMotion = window.matchMedia(
+				"(prefers-reduced-motion: reduce)",
+			).matches;
+			ctx.addEventListener("click", () => {
+				window.scrollTo({
+					top: 0,
+					behavior: reduceMotion ? "auto" : "smooth",
+				});
+			});
 			const io = new IntersectionObserver(
 				([entry]) => {
 					const passed =
@@ -115,6 +130,11 @@ const { postTitle, postDate } = Astro.props;
     align-items: baseline;
     justify-content: center;
     gap: 0.7rem;
+    border: 0;
+    background: transparent;
+    font: inherit;
+    text-align: center;
+    cursor: pointer;
     opacity: 0;
     transform: translateY(4px);
     pointer-events: none;
