@@ -108,6 +108,11 @@ const { postTitle, postDate } = Astro.props;
     display: flex;
     align-items: center;
     gap: 1.2rem;
+    transition: height 0.2s ease;
+  }
+
+  .site-header.scrolled .site-header-inner {
+    height: 2.1rem;
   }
 
   .site-name {
@@ -178,6 +183,20 @@ const { postTitle, postDate } = Astro.props;
     font-size: 1rem;
     line-height: 1.2;
     color: var(--heading-color);
+    transition: font-size 0.2s ease;
+  }
+
+  /* nav shrinks at the same ratio as the name (1.05/1.35) */
+  .site-header.scrolled .site-nav a {
+    font-size: 0.78rem;
+  }
+
+  .site-header :global(#theme-toggle) {
+    transition: transform 0.2s ease;
+  }
+
+  .site-header.scrolled :global(#theme-toggle) {
+    transform: translateY(-2px) scale(0.78);
   }
 
   @media (prefers-reduced-motion: reduce) {
