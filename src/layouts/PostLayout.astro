@@ -44,6 +44,42 @@ const formattedDate = pubDate.toLocaleDateString("en-US", {
   </div>
 </BaseLayout>
 
+<script>
+	// hover anchor: a copy-link button appended to every id'd heading
+	const root = document.querySelector("[data-toc-root]");
+	if (root) {
+		const linkSvg =
+			'<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>';
+		const checkSvg =
+			'<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg>';
+		const headings = root.querySelectorAll<HTMLElement>(
+			":is(h2, h3, h4, h5, h6)[id]",
+		);
+		for (const h of headings) {
+			const btn = document.createElement("button");
+			btn.className = "anchor-link";
+			btn.type = "button";
+			btn.setAttribute("aria-label", "Copy link to this section");
+			btn.innerHTML = linkSvg;
+			btn.addEventListener("click", async () => {
+				const url = `${location.origin}${location.pathname}#${h.id}`;
+				try {
+					await navigator.clipboard.writeText(url);
+				} catch {
+					/* clipboard unavailable; nothing sensible to do */
+				}
+				btn.innerHTML = checkSvg;
+				btn.classList.add("copied");
+				setTimeout(() => {
+					btn.innerHTML = linkSvg;
+					btn.classList.remove("copied");
+				}, 1200);
+			});
+			h.append(btn);
+		}
+	}
+</script>
+
 <style>
   .post-header {
     max-width: var(--prose-measure);

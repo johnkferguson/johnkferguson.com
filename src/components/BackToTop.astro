@@ -30,10 +30,14 @@
 		btn.addEventListener("click", () => {
 			window.scrollTo({ top: 0, behavior: reduceMotion ? "auto" : "smooth" });
 		});
+		const postH1 = document.querySelector<HTMLElement>(".post-header h1");
 		let ticking = false;
 		const update = () => {
 			ticking = false;
-			btn.classList.toggle("visible", window.scrollY > window.innerHeight);
+			const show = postH1
+				? postH1.getBoundingClientRect().bottom < 60
+				: window.scrollY > window.innerHeight;
+			btn.classList.toggle("visible", show);
 		};
 		update();
 		window.addEventListener(

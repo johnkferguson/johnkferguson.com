@@ -24,12 +24,12 @@ const { inline = false } = Astro.props;
 		!inline && (
 			<button class="toc-top" data-toc-top type="button">
 				<svg
-					width="11"
-					height="11"
-					viewBox="0 0 16 16"
+					width="8"
+					height="8"
+					viewBox="3 3 10 10"
 					fill="none"
 					stroke="currentColor"
-					stroke-width="2"
+					stroke-width="1.6"
 					stroke-linecap="round"
 					stroke-linejoin="round"
 					aria-hidden="true"
@@ -203,6 +203,7 @@ const { inline = false } = Astro.props;
 			}
 
 			const THRESH = 130;
+			const postH1 = document.querySelector<HTMLElement>(".post-header h1");
 			let ticking = false;
 			const update = () => {
 				ticking = false;
@@ -221,8 +222,12 @@ const { inline = false } = Astro.props;
 				}
 				currentSub = sub;
 				apply();
+				// appear in step with the post title merging into the header
+				const showTop = postH1
+					? postH1.getBoundingClientRect().bottom < 60
+					: window.scrollY > window.innerHeight;
 				for (const t of tops) {
-					t.classList.toggle("visible", window.scrollY > window.innerHeight);
+					t.classList.toggle("visible", showTop);
 				}
 			};
 			update();
@@ -377,10 +382,13 @@ const { inline = false } = Astro.props;
 		flex: none;
 		align-self: flex-start;
 		display: flex;
-		align-items: center;
+		/* svg baseline = its bottom edge, so the cropped arrow sits
+		 * exactly on the text baseline */
+		align-items: baseline;
 		gap: 0.4rem;
 		margin-top: auto;
-		padding: 0.32rem 0.55rem;
+		padding: 0.34rem 0.55rem 0.26rem;
+		line-height: 1;
 		border: 1px solid var(--border-color);
 		border-radius: 6px;
 		background: transparent;
@@ -396,11 +404,6 @@ const { inline = false } = Astro.props;
 			opacity 0.2s ease,
 			color 0.15s ease,
 			border-color 0.15s ease;
-	}
-
-	.toc-top svg {
-		display: block;
-		transform: translateY(-0.5px);
 	}
 
 	.toc-top.visible {
