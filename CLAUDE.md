@@ -39,6 +39,7 @@ When previewing changes locally, prefer `bun run dev` over `build + preview` —
 - Tailwind `--default-font-family` overridden to Newsreader Variable in `@theme` block; base size 17px mobile / 20px desktop (Newsreader runs small for its px size)
 - LLM-friendly: llms.txt, llms-full.txt, per-post .md endpoints, AI-friendly robots.txt
 - URL structure: posts at `/{slug}` (root level, not /posts/ or /blog/)
+- Heading hierarchy in posts is enforced by test (`src/lib/heading-structure.test.ts`): levels step down one at a time, never h2 -> h4. The TOC rail nests h2/h3/h4 on this assumption
 - Netlify deployment: static output to `dist/`
 
 ## Visual Verification

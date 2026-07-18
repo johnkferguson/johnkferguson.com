@@ -1,0 +1,55 @@
+---
+// TOC stress-test playground: many nested h2/h3/h4 headings with filler
+// prose, for exercising the rail's accordion, three-level scrollspy, and
+// auto-scroll behavior. Unpublished (/lab/ = noindex, out of sitemap).
+import PostLayout from "../../layouts/PostLayout.astro";
+
+const slug = (s: string) => s.toLowerCase().replace(/[^a-z0-9]+/g, "-");
+
+const sections = Array.from({ length: 8 }, (_, i) => ({
+	title: `Section ${i + 1}: ${["Mechanism", "Measurement", "Matching", "Settlement", "Incentives", "Adversaries", "Calibration", "Adoption"][i]}`,
+	subs: Array.from({ length: (i % 3) + 2 }, (_, j) => ({
+		title: `Topic ${i + 1}.${j + 1}`,
+		leaves:
+			j % 2 === 0
+				? Array.from(
+						{ length: (j % 2) + 2 },
+						(_, k) => `Detail ${i + 1}.${j + 1}.${k + 1}`,
+					)
+				: [],
+	})),
+}));
+
+const para =
+	"Batch auctions collect orders for a short window, seal it, and clear every crossing trade at one price. The sealed book is a complete record of standing liquidity, every order committed and fillable at that instant. This filler paragraph exists so each heading has enough body below it to scroll through while watching the rail track position.";
+---
+
+<PostLayout
+	title="TOC Stress Test"
+	description="Nested heading playground for the TOC rail"
+	pubDate={new Date("2026-07-18")}
+	noindex
+>
+	{
+		sections.map((s) => (
+			<>
+				<h2 id={slug(s.title)}>{s.title}</h2>
+				<p>{para}</p>
+				<p>{para}</p>
+				{s.subs.map((sub) => (
+					<>
+						<h3 id={slug(`${s.title} ${sub.title}`)}>{sub.title}</h3>
+						<p>{para}</p>
+						<p>{para}</p>
+						{sub.leaves.map((leaf) => (
+							<>
+								<h4 id={slug(`${s.title} ${leaf}`)}>{leaf}</h4>
+								<p>{para}</p>
+							</>
+						))}
+					</>
+				))}
+			</>
+		))
+	}
+</PostLayout>

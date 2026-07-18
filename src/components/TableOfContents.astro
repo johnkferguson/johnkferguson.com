@@ -34,11 +34,19 @@ const { inline = false } = Astro.props;
 	const root = document.querySelector("[data-toc-root]");
 	const navs = [...document.querySelectorAll<HTMLElement>("nav[data-toc]")];
 	if (root && navs.length) {
-		const heads = [...root.querySelectorAll<HTMLElement>("h2[id], h3[id]")];
-		const sections: { h2: HTMLElement; h3s: HTMLElement[] }[] = [];
+		const heads = [
+			...root.querySelectorAll<HTMLElement>("h2[id], h3[id], h4[id]"),
+		];
+		interface SubEntry {
+			h3: HTMLElement;
+			h4s: HTMLElement[];
+		}
+		const sections: { h2: HTMLElement; subs: SubEntry[] }[] = [];
 		for (const h of heads) {
-			if (h.tagName === "H2") sections.push({ h2: h, h3s: [] });
-			else sections.at(-1)?.h3s.push(h);
+			if (h.tagName === "H2") sections.push({ h2: h, subs: [] });
+			else if (h.tagName === "H3")
+				sections.at(-1)?.subs.push({ h3: h, h4s: [] });
+			else sections.at(-1)?.subs.at(-1)?.h4s.push(h);
 		}
 
 		if (sections.length === 0) {
@@ -56,23 +64,45 @@ const { inline = false } = Astro.props;
 				history.pushState(null, "", `#${h.id}`);
 			};
 
-			// —— accordion state ——
-			// The current section auto-expands; others collapse. Manual caret
-			// toggles override that until the reader moves to another section.
+			// —— accordion state, two nesting levels ——
+			// The current section (and, within it, the current subsection)
+			// auto-expands; others collapse. Manual caret toggles override
+			// that until the reader moves on.
 			let current = 0;
 			let currentSub = -1;
-			const manualOpen = new Set<number>();
-			const manualClosed = new Set<number>();
+			let currentLeaf = -1;
+			const m1Open = new Set<number>();
+			const m1Closed = new Set<number>();
+			const m2Open = new Set<string>();
+			const m2Closed = new Set<string>();
 			const expandedAt = (i: number) =>
-				manualOpen.has(i) || (i === current && !manualClosed.has(i));
+				m1Open.has(i) || (i === current && !m1Closed.has(i));
+			const expanded2At = (i: number, j: number) =>
+				m2Open.has(`${i}:${j}`) ||
+				(i === current && j === currentSub && !m2Closed.has(`${i}:${j}`));
+			const clearM2For = (i: number, j?: number) => {
+				for (const set of [m2Open, m2Closed]) {
+					for (const key of [...set]) {
+						if (j === undefined ? key.startsWith(`${i}:`) : key === `${i}:${j}`)
+							set.delete(key);
+					}
+				}
+			};
 
+			interface SubRefs {
+				li: HTMLElement;
+				link: HTMLAnchorElement;
+				caret?: HTMLButtonElement;
+				wrap?: HTMLElement;
+				leafLinks: HTMLAnchorElement[];
+			}
 			interface RailRefs {
 				scroll: HTMLElement | null;
 				items: HTMLElement[];
 				rowLinks: HTMLAnchorElement[];
 				carets: (HTMLButtonElement | undefined)[];
 				subWraps: (HTMLElement | undefined)[];
-				subLinks: HTMLAnchorElement[][];
+				subs: SubRefs[][];
 			}
 			const rails: RailRefs[] = [];
 
@@ -89,17 +119,25 @@ const { inline = false } = Astro.props;
 						const c = r.scroll;
 						if (!c || c.scrollHeight <= c.clientHeight) continue;
 						if (c.matches(":hover")) continue;
+						const subRef =
+							currentSub >= 0 ? r.subs[current]?.[currentSub] : undefined;
 						const active =
-							currentSub >= 0
-								? r.subLinks[current]?.[currentSub]
-								: r.rowLinks[current];
+							currentLeaf >= 0
+								? subRef?.leafLinks[currentLeaf]
+								: (subRef?.link ?? r.rowLinks[current]);
 						if (!active) continue;
 						const cRect = c.getBoundingClientRect();
 						const rel = (el: HTMLElement) =>
 							el.getBoundingClientRect().top - cRect.top + c.scrollTop;
 						const ch = c.clientHeight;
 						let st = c.scrollTop;
-						const group = expandedAt(current) ? r.items[current] : undefined;
+						// innermost expanded group wins for the fit-into-view pass
+						const group =
+							subRef && expanded2At(current, currentSub)
+								? subRef.li
+								: expandedAt(current)
+									? r.items[current]
+									: undefined;
 						if (group && group.offsetHeight <= ch) {
 							const gTop = rel(group);
 							const gBottom = gTop + group.offsetHeight;
@@ -129,20 +167,41 @@ const { inline = false } = Astro.props;
 						r.subWraps[i]?.classList.toggle("open", open);
 						r.carets[i]?.classList.toggle("open", open);
 						r.carets[i]?.setAttribute("aria-expanded", String(open));
-						r.subLinks[i]?.forEach((sa, j) =>
-							sa.classList.toggle("active", i === current && j === currentSub),
-						);
+						r.subs[i]?.forEach((sr, j) => {
+							const subActive = i === current && j === currentSub;
+							sr.link.classList.toggle("active", subActive);
+							const open2 = expanded2At(i, j);
+							sr.wrap?.classList.toggle("open", open2);
+							sr.caret?.classList.toggle("open", open2);
+							sr.caret?.setAttribute("aria-expanded", String(open2));
+							sr.leafLinks.forEach((la, k) =>
+								la.classList.toggle("active", subActive && k === currentLeaf),
+							);
+						});
 					});
 				}
 			};
 
 			const toggle = (i: number) => {
 				if (expandedAt(i)) {
-					if (manualOpen.has(i)) manualOpen.delete(i);
-					else manualClosed.add(i);
+					if (m1Open.has(i)) m1Open.delete(i);
+					else m1Closed.add(i);
 				} else {
-					manualOpen.add(i);
-					manualClosed.delete(i);
+					m1Open.add(i);
+					m1Closed.delete(i);
+				}
+				apply();
+				scheduleReveal();
+			};
+
+			const toggle2 = (i: number, j: number) => {
+				const key = `${i}:${j}`;
+				if (expanded2At(i, j)) {
+					if (m2Open.has(key)) m2Open.delete(key);
+					else m2Closed.add(key);
+				} else {
+					m2Open.add(key);
+					m2Closed.delete(key);
 				}
 				apply();
 				scheduleReveal();
@@ -168,60 +227,103 @@ const { inline = false } = Astro.props;
 					continue;
 				}
 
+				const makeRow = (
+					h: HTMLElement,
+					onToggle?: () => void,
+				): {
+					row: HTMLElement;
+					link: HTMLAnchorElement;
+					caret?: HTMLButtonElement;
+				} => {
+					const row = document.createElement("div");
+					row.className = "toc-row";
+					const link = document.createElement("a");
+					link.href = `#${h.id}`;
+					link.textContent = h.textContent ?? "";
+					link.addEventListener("click", goTo(h));
+					row.append(link);
+					let caret: HTMLButtonElement | undefined;
+					if (onToggle) {
+						caret = document.createElement("button");
+						caret.className = "toc-caret";
+						caret.type = "button";
+						caret.setAttribute(
+							"aria-label",
+							`Toggle ${h.textContent} subsections`,
+						);
+						caret.innerHTML = caretSvg;
+						caret.addEventListener("click", onToggle);
+						row.append(caret);
+					}
+					return { row, link, caret };
+				};
+
 				const refs: RailRefs = {
 					scroll: nav.querySelector(".toc-scroll"),
 					items: [],
 					rowLinks: [],
 					carets: [],
 					subWraps: [],
-					subLinks: [],
+					subs: [],
 				};
 				sections.forEach((s, i) => {
 					const li = document.createElement("li");
 					li.className = "toc-section";
-					const row = document.createElement("div");
-					row.className = "toc-row";
-					const a = document.createElement("a");
-					a.href = `#${s.h2.id}`;
-					a.textContent = s.h2.textContent ?? "";
-					a.addEventListener("click", goTo(s.h2));
-					row.append(a);
-					refs.rowLinks.push(a);
+					const { row, link, caret } = makeRow(
+						s.h2,
+						s.subs.length ? () => toggle(i) : undefined,
+					);
+					refs.rowLinks.push(link);
+					if (caret) refs.carets[i] = caret;
 					li.append(row);
 
-					const subLinksHere: HTMLAnchorElement[] = [];
-					if (s.h3s.length) {
-						const caret = document.createElement("button");
-						caret.className = "toc-caret";
-						caret.type = "button";
-						caret.setAttribute(
-							"aria-label",
-							`Toggle ${s.h2.textContent} subsections`,
-						);
-						caret.innerHTML = caretSvg;
-						caret.addEventListener("click", () => toggle(i));
-						row.append(caret);
-						refs.carets[i] = caret;
-
+					const subRefsHere: SubRefs[] = [];
+					if (s.subs.length) {
 						const wrap = document.createElement("div");
 						wrap.className = "toc-subwrap";
 						const sub = document.createElement("ul");
 						sub.className = "toc-sub";
-						for (const h3 of s.h3s) {
+						s.subs.forEach((se, j) => {
 							const sli = document.createElement("li");
-							const sa = document.createElement("a");
-							sa.href = `#${h3.id}`;
-							sa.textContent = h3.textContent ?? "";
-							sa.addEventListener("click", goTo(h3));
-							sli.append(sa);
+							const subRow = makeRow(
+								se.h3,
+								se.h4s.length ? () => toggle2(i, j) : undefined,
+							);
+							sli.append(subRow.row);
+							const leafLinks: HTMLAnchorElement[] = [];
+							let wrap2: HTMLElement | undefined;
+							if (se.h4s.length) {
+								wrap2 = document.createElement("div");
+								wrap2.className = "toc-subwrap";
+								const sub2 = document.createElement("ul");
+								sub2.className = "toc-sub toc-sub2";
+								for (const h4 of se.h4s) {
+									const lli = document.createElement("li");
+									const la = document.createElement("a");
+									la.href = `#${h4.id}`;
+									la.textContent = h4.textContent ?? "";
+									la.addEventListener("click", goTo(h4));
+									lli.append(la);
+									sub2.append(lli);
+									leafLinks.push(la);
+								}
+								wrap2.append(sub2);
+								sli.append(wrap2);
+							}
 							sub.append(sli);
-							subLinksHere.push(sa);
-						}
+							subRefsHere.push({
+								li: sli,
+								link: subRow.link,
+								caret: subRow.caret,
+								wrap: wrap2,
+								leafLinks,
+							});
+						});
 						wrap.append(sub);
 						li.append(wrap);
 						refs.subWraps[i] = wrap;
 					}
-					refs.subLinks.push(subLinksHere);
+					refs.subs.push(subRefsHere);
 					refs.items.push(li);
 					ul.append(li);
 				});
@@ -251,16 +353,27 @@ const { inline = false } = Astro.props;
 					if (s.h2.getBoundingClientRect().top < THRESH) cur = i;
 				});
 				let sub = -1;
-				sections[cur].h3s.forEach((h, j) => {
-					if (h.getBoundingClientRect().top < THRESH) sub = j;
+				sections[cur].subs.forEach((se, j) => {
+					if (se.h3.getBoundingClientRect().top < THRESH) sub = j;
 				});
-				const changed = cur !== current || sub !== currentSub;
+				let leaf = -1;
+				if (sub >= 0) {
+					sections[cur].subs[sub].h4s.forEach((h, k) => {
+						if (h.getBoundingClientRect().top < THRESH) leaf = k;
+					});
+				}
+				const changed =
+					cur !== current || sub !== currentSub || leaf !== currentLeaf;
 				if (cur !== current) {
-					manualOpen.delete(current);
-					manualClosed.delete(current);
+					m1Open.delete(current);
+					m1Closed.delete(current);
+					clearM2For(current);
 					current = cur;
+				} else if (sub !== currentSub && currentSub >= 0) {
+					clearM2For(current, currentSub);
 				}
 				currentSub = sub;
+				currentLeaf = leaf;
 				apply();
 				if (changed) scheduleReveal();
 				// appear in step with the post title merging into the header
@@ -287,7 +400,7 @@ const { inline = false } = Astro.props;
 </script>
 
 <style is:global>
-	[data-toc-root] :is(h2, h3)[id] {
+	[data-toc-root] :is(h2, h3, h4)[id] {
 		scroll-margin-top: 80px;
 	}
 </style>
@@ -419,6 +532,17 @@ const { inline = false } = Astro.props;
 	.toc-rail :global(.toc-sub a) {
 		padding-left: 1.4rem;
 		font-size: 0.94em;
+	}
+
+	/* nested rows sit inside the sub-list's spine; no second border */
+	.toc-rail :global(.toc-sub .toc-row),
+	.toc-rail :global(.toc-sub .toc-sub) {
+		border-left: none;
+	}
+
+	.toc-rail :global(.toc-sub2 a) {
+		padding-left: 2.2rem;
+		font-size: 0.9em;
 	}
 
 	.toc-top {

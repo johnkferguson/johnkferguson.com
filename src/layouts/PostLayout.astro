@@ -7,9 +7,10 @@ interface Props {
 	description: string;
 	pubDate: Date;
 	author?: string;
+	noindex?: boolean;
 }
 
-const { title, description, pubDate, author } = Astro.props;
+const { title, description, pubDate, author, noindex } = Astro.props;
 
 const formattedDate = pubDate.toLocaleDateString("en-US", {
 	month: "long",
@@ -27,6 +28,7 @@ const formattedDate = pubDate.toLocaleDateString("en-US", {
 	author={author}
 	headerContextTitle={title}
 	headerContextDate={formattedDate}
+	noindex={noindex}
 >
   <div class="post-shell">
     <aside class="post-rail">
