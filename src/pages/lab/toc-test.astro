@@ -8,7 +8,8 @@ const slug = (s: string) => s.toLowerCase().replace(/[^a-z0-9]+/g, "-");
 
 const sections = Array.from({ length: 8 }, (_, i) => ({
 	title: `Section ${i + 1}: ${["Mechanism", "Measurement", "Matching", "Settlement", "Incentives", "Adversaries", "Calibration", "Adoption"][i]}`,
-	subs: Array.from({ length: (i % 3) + 2 }, (_, j) => ({
+	// Section 5 gets a huge sub-list to exercise rail overflow
+	subs: Array.from({ length: i === 4 ? 18 : (i % 3) + 2 }, (_, j) => ({
 		title: `Topic ${i + 1}.${j + 1}`,
 		leaves:
 			j % 2 === 0
