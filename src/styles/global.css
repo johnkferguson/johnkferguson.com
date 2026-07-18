@@ -60,6 +60,7 @@
 .theme-snap *,
 .theme-snap *::before,
 .theme-snap *::after {
+	/* biome-ignore lint/complexity/noImportantStyles: must beat every per-element transition for the single-frame theme flip */
 	transition: none !important;
 }
 
