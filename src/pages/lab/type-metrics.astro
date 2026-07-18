@@ -1,0 +1,138 @@
+---
+// Type-metrics comparison harness: the real snapshot-fees page in an
+// iframe with one toggle per proposed change, applied live as CSS
+// overrides. Unpublished playground (/lab/), for design review only.
+---
+
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="robots" content="noindex, nofollow" />
+    <title>Type Metrics Lab</title>
+    <style>
+      * {
+        box-sizing: border-box;
+      }
+      body {
+        margin: 0;
+        height: 100vh;
+        display: flex;
+        flex-direction: column;
+        font-family: "Fira Code", monospace;
+        background: #16130f;
+        color: #c4bdb6;
+      }
+      .panel {
+        flex: none;
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: 0.9rem;
+        padding: 0.5rem 0.9rem;
+        font-size: 12px;
+        border-bottom: 1px solid #3a3533;
+      }
+      .panel label {
+        display: flex;
+        align-items: center;
+        gap: 0.3rem;
+        cursor: pointer;
+        white-space: nowrap;
+      }
+      .panel .group {
+        display: flex;
+        align-items: center;
+        gap: 0.55rem;
+        padding: 0.15rem 0.55rem;
+        border: 1px solid #3a3533;
+        border-radius: 6px;
+      }
+      .panel .group-label {
+        color: #8a8480;
+        font-size: 10px;
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
+      }
+      iframe {
+        flex: 1;
+        border: 0;
+        width: 100%;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="panel" data-panel>
+      <span class="group-label">type metrics</span>
+      <label><input type="checkbox" value="tracking" /> heading tracking 0 (now -0.033rem)</label>
+      <div class="group">
+        <span class="group-label">heading weight</span>
+        <label><input type="radio" name="weight" value="weight700" checked /> 700 (now)</label>
+        <label><input type="radio" name="weight" value="weight650" /> 650</label>
+        <label><input type="radio" name="weight" value="weight600" /> 600</label>
+      </div>
+      <label><input type="checkbox" value="para" /> paragraph gap 1.2rem (now 1rem)</label>
+      <label><input type="checkbox" value="air" /> section air h2 3rem / h3 2.2rem</label>
+      <label><input type="checkbox" value="leading" /> line-height 1.65 (now 1.6)</label>
+      <label><input type="checkbox" value="measure" /> measure 640px (now 680px)</label>
+    </div>
+    <iframe src="/snapshot-fees" title="snapshot fees preview"></iframe>
+
+    <script>
+      const RULES: Record<string, string> = {
+        tracking:
+          "h1,h2,h3,h4,h5,h6{letter-spacing:0 !important}",
+        weight650:
+          "h1,h2,h3,h4,h5,h6,.post-header h1{font-weight:650 !important}",
+        weight600:
+          "h1,h2,h3,h4,h5,h6,.post-header h1{font-weight:600 !important}",
+        para: "article p{margin-bottom:1.2rem !important}",
+        air: "article h2{margin-top:3rem !important} article h3{margin-top:2.2rem !important}",
+        leading: "body{line-height:1.65 !important}",
+        measure: ":root{--prose-measure:32rem}",
+      };
+      const STORE = "type-metrics-toggles";
+      const frame = document.querySelector("iframe");
+      const panel = document.querySelector("[data-panel]");
+      if (frame && panel) {
+        const inputs = [...panel.querySelectorAll<HTMLInputElement>("input")];
+        const apply = () => {
+          const doc = frame.contentDocument;
+          if (!doc?.head) return;
+          let el = doc.getElementById("metrics-overrides");
+          if (!el) {
+            el = doc.createElement("style");
+            el.id = "metrics-overrides";
+            doc.head.append(el);
+          }
+          const active = inputs
+            .filter((i) => i.checked && RULES[i.value])
+            .map((i) => RULES[i.value]);
+          el.textContent = active.join("\n");
+          localStorage.setItem(
+            STORE,
+            JSON.stringify(
+              inputs.filter((i) => i.checked).map((i) => i.value),
+            ),
+          );
+        };
+        const saved: string[] = JSON.parse(
+          localStorage.getItem(STORE) ?? "[]",
+        );
+        if (saved.length) {
+          for (const i of inputs) {
+            if (i.type === "checkbox") i.checked = saved.includes(i.value);
+            else i.checked = saved.includes(i.value);
+          }
+          if (!saved.some((v) => v.startsWith("weight"))) {
+            const def = inputs.find((i) => i.value === "weight700");
+            if (def) def.checked = true;
+          }
+        }
+        panel.addEventListener("change", apply);
+        frame.addEventListener("load", apply);
+      }
+    </script>
+  </body>
+</html>
