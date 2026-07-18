@@ -9,15 +9,11 @@ import "./snapshot-fees-lab.css";
 
 <div class="sf-lab pipeline-chart">
 	<svg
-		viewBox="0 0 640 318"
+		viewBox="0 0 640 540"
 		role="img"
-		aria-label="Flowchart of one auction: seal the auction, then calculate the mark and match in parallel, then price the fills, then close the window"
+		aria-label="Flowchart of one auction: seal the auction, then calculate the mark and match in parallel, then price the fills, then finalize the window"
 	>
 		<defs>
-			<linearGradient id="pc-blend" x1="0" y1="0" x2="1" y2="0">
-				<stop offset="0" style="stop-color: var(--lab-faint)"></stop>
-				<stop offset="1" style="stop-color: var(--lab-mark)"></stop>
-			</linearGradient>
 			<marker
 				id="pc-arrow"
 				viewBox="0 0 8 8"
@@ -33,51 +29,52 @@ import "./snapshot-fees-lab.css";
 
 		<!-- edges -->
 		<g style="stroke: var(--lab-dim)" stroke-width="1.25" fill="none">
-			<path d="M300,64 L206,98" marker-end="url(#pc-arrow)"></path>
-			<path d="M340,64 L434,98" marker-end="url(#pc-arrow)"></path>
-			<path d="M190,148 L296,190" marker-end="url(#pc-arrow)"></path>
-			<path d="M450,148 L344,190" marker-end="url(#pc-arrow)"></path>
-			<path d="M320,240 L320,258" marker-end="url(#pc-arrow)"></path>
+			<path d="M279.1,98.2 L215.3,157.7" marker-end="url(#pc-arrow)"></path>
+			<path d="M360.9,98.2 L424.7,157.7" marker-end="url(#pc-arrow)"></path>
+			<path d="M210.9,238.2 L274.7,297.7" marker-end="url(#pc-arrow)"></path>
+			<path d="M429.1,238.2 L365.3,297.7" marker-end="url(#pc-arrow)"></path>
+			<path d="M320,396 L320,420" marker-end="url(#pc-arrow)"></path>
 		</g>
 
 		<!-- Seal the Auction: the venue's existing work -->
 		<a href="#seal-the-auction">
-			<rect x="225" y="20" width="190" height="44" rx="7" class="pc-node pc-venue"
-			></rect>
-			<text x="320" y="47">Seal the Auction</text>
+			<circle cx="320" cy="60" r="52" class="pc-node pc-venue"></circle>
+			<text x="320" y="56">Seal the</text>
+			<text x="320" y="74">Auction</text>
 		</a>
 
 		<!-- Calculate the Mark: unique to the mechanism -->
 		<a href="#calculate-the-mark">
-			<rect x="60" y="104" width="220" height="44" rx="7" class="pc-node pc-ours"
-			></rect>
-			<text x="170" y="131">Calculate the Mark</text>
+			<circle cx="170" cy="200" r="52" class="pc-node pc-ours"></circle>
+			<text x="170" y="196">Calculate</text>
+			<text x="170" y="214">the Mark</text>
 		</a>
 
 		<!-- Match: the venue's existing work -->
 		<a href="#match">
-			<rect x="380" y="104" width="160" height="44" rx="7" class="pc-node pc-venue"
-			></rect>
-			<text x="460" y="131">Match</text>
+			<circle cx="470" cy="200" r="52" class="pc-node pc-venue"></circle>
+			<text x="470" y="205">Match</text>
 		</a>
 
-		<!-- Price the Fills: a blend -->
+		<!-- Price the Fills: a blend, drawn as an evenly striped ring -->
 		<a href="#price-the-fills">
-			<rect x="225" y="196" width="190" height="44" rx="7" class="pc-node pc-blend"
-			></rect>
-			<text x="320" y="223">Price the Fills</text>
+			<circle cx="320" cy="340" r="52" class="pc-node pc-blend-base"></circle>
+			<circle cx="320" cy="340" r="52" class="pc-blend-dash"></circle>
+			<text x="320" y="336">Price</text>
+			<text x="320" y="354">the Fills</text>
 		</a>
 
-		<!-- Close the Window: a blend -->
-		<a href="#close-the-window">
-			<rect x="225" y="262" width="190" height="44" rx="7" class="pc-node pc-blend"
-			></rect>
-			<text x="320" y="289">Close the Window</text>
+		<!-- Finalize the Window: a blend, drawn as an evenly striped ring -->
+		<a href="#finalize-the-window">
+			<circle cx="320" cy="476" r="52" class="pc-node pc-blend-base"></circle>
+			<circle cx="320" cy="476" r="52" class="pc-blend-dash"></circle>
+			<text x="320" y="472">Finalize</text>
+			<text x="320" y="490">the Window</text>
 		</a>
 	</svg>
 	<div class="pc-legend">
-		<span><i class="pc-sw pc-sw-venue"></i> The venue's existing work</span>
-		<span><i class="pc-sw pc-sw-ours"></i> Unique to the mechanism</span>
+		<span><i class="pc-sw pc-sw-venue"></i> Venue's Existing Work</span>
+		<span><i class="pc-sw pc-sw-ours"></i> Unique to the Mechanism</span>
 		<span><i class="pc-sw pc-sw-blend"></i> Both</span>
 	</div>
 </div>
@@ -88,8 +85,9 @@ import "./snapshot-fees-lab.css";
 	}
 
 	.pipeline-chart svg {
-		width: 100%;
+		width: min(100%, 560px);
 		display: block;
+		margin: 0 auto;
 	}
 
 	.pipeline-chart text {
@@ -101,7 +99,7 @@ import "./snapshot-fees-lab.css";
 
 	.pc-node {
 		fill: var(--lab-panel);
-		stroke-width: 1.75;
+		stroke-width: 3;
 	}
 
 	.pc-venue {
@@ -112,16 +110,28 @@ import "./snapshot-fees-lab.css";
 		stroke: var(--lab-mark);
 	}
 
-	.pc-blend {
-		stroke: url(#pc-blend);
+	/* the blend ring: purple base circle under an evenly dashed gray circle;
+	   dash length divides the circumference (2π·52 / 40) so the stripes tile
+	   the ring exactly, with no tangent-aligned solid arcs */
+	.pc-blend-base {
+		stroke: var(--lab-mark);
+		stroke-width: 3;
+	}
+
+	.pc-blend-dash {
+		fill: none;
+		stroke: var(--lab-faint);
+		stroke-width: 3;
+		stroke-dasharray: 8.168 8.168;
 	}
 
 	.pipeline-chart a {
 		cursor: pointer;
 	}
 
-	.pipeline-chart a:hover .pc-node {
-		stroke-width: 2.75;
+	.pipeline-chart a:hover .pc-node,
+	.pipeline-chart a:hover .pc-blend-dash {
+		stroke-width: 4;
 	}
 
 	.pc-legend {
@@ -132,14 +142,14 @@ import "./snapshot-fees-lab.css";
 		font-family: var(--lab-mono);
 		font-size: 11px;
 		color: var(--lab-dim);
-		margin-top: 2px;
+		margin-top: 6px;
 	}
 
 	.pc-sw {
 		display: inline-block;
 		width: 20px;
 		height: 9px;
-		border-radius: 3px;
+		border-radius: 5px;
 		vertical-align: baseline;
 	}
 
@@ -155,6 +165,11 @@ import "./snapshot-fees-lab.css";
 		border: 1.5px solid transparent;
 		background:
 			linear-gradient(var(--lab-panel), var(--lab-panel)) padding-box,
-			linear-gradient(90deg, var(--lab-faint), var(--lab-mark)) border-box;
+			repeating-linear-gradient(
+					45deg,
+					var(--lab-faint) 0 4px,
+					var(--lab-mark) 4px 8px
+				)
+				border-box;
 	}
 </style>
