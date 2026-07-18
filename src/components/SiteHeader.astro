@@ -97,12 +97,14 @@ const { postTitle, postDate } = Astro.props;
     box-shadow: var(--header-shadow);
   }
 
-  /* constant height: the header never resizes on scroll, so page
-   * content starts at its final position and nothing shifts */
+  /* constant height: the bar never resizes on scroll, so page content
+   * starts at its final position and nothing shifts. The name shrinks
+   * inside the fixed box, purely cosmetic. */
   .site-header-inner {
     max-width: var(--shell-max);
     margin-inline: auto;
-    padding: 0.3rem var(--shell-pad);
+    height: 2.3rem;
+    padding: 0 var(--shell-pad);
     display: flex;
     align-items: center;
     gap: 1.2rem;
@@ -115,6 +117,11 @@ const { postTitle, postDate } = Astro.props;
     letter-spacing: -0.02em;
     color: var(--heading-color);
     border-bottom: 1px solid var(--heading-color);
+    transition: font-size 0.2s ease;
+  }
+
+  .site-header.scrolled .site-name {
+    font-size: 1.05rem;
   }
 
   .post-context {
