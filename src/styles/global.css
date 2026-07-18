@@ -174,27 +174,32 @@ blockquote {
  * measure; embeds marked .labwrap may break out to the wide width.
  */
 :root {
-	--prose-measure: 36rem;
-	--prose-wide: 52rem;
+	--prose-measure: 34rem;
+	--prose-wide: 44rem;
 	--shell-max: 1520px;
 	--shell-pad: clamp(1rem, 3vw, 3rem);
+	--rail-breakpoint: 1020px;
 }
 
 .post-shell {
-	max-width: var(--shell-max);
 	margin-inline: auto;
 	padding: 2.2rem var(--shell-pad) 3rem;
+	/* single-column mode: shrink the shell to the prose measure so the
+	 * page reads centered, like a plain essay */
+	max-width: calc(var(--prose-measure) + 2 * var(--shell-pad));
 }
 
 .post-rail {
 	display: none;
 }
 
-@media (min-width: 1181px) {
+@media (min-width: 1020px) {
 	.post-shell {
+		max-width: var(--shell-max);
 		display: grid;
-		grid-template-columns: minmax(200px, 260px) minmax(0, 1fr);
-		column-gap: clamp(2.5rem, 5vw, 5rem);
+		grid-template-columns: minmax(170px, 220px) minmax(0, var(--prose-wide));
+		justify-content: center;
+		column-gap: clamp(1.5rem, 3vw, 3.5rem);
 	}
 	.post-rail {
 		display: block;
