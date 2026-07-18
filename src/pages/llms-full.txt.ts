@@ -1,6 +1,7 @@
 import { getCollection } from "astro:content";
 import type { APIRoute } from "astro";
 import { SITE_DESCRIPTION, SITE_NAME } from "../consts";
+import { mdxBodyToMarkdown } from "../lib/mdx-plain";
 
 export const GET: APIRoute = async () => {
 	const posts = await getCollection("posts");
@@ -23,7 +24,7 @@ export const GET: APIRoute = async () => {
 			"",
 			`**Published:** ${post.data.date.toISOString().split("T")[0]}`,
 			"",
-			post.body ?? "",
+			mdxBodyToMarkdown(post.body ?? ""),
 			"",
 			"---",
 			"",

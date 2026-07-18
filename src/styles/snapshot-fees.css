@@ -1,0 +1,50 @@
+/*
+ * Snapshot Fees article styling: KaTeX dressing, lab spacing, heading
+ * rhythm. Imported by the post's MDX, so it loads only on that page.
+ *
+ * Inline math ($x_i$) is dressed like a code span: prose-sized, code
+ * color/background. Display blocks get a bordered panel and undo the
+ * inline dressing.
+ */
+
+article .labwrap {
+	margin: 1.25rem 0 2rem;
+}
+
+article h2 {
+	margin-top: 2.4rem;
+}
+
+article h3 {
+	margin-top: 1.8rem;
+}
+
+article h4 {
+	margin-top: 1.5rem;
+}
+
+article .katex {
+	font-size: 1em;
+	color: var(--code-color);
+	background-color: var(--code-background);
+	padding: 0 0.25rem;
+	border-radius: 4px;
+}
+
+article .katex-display {
+	margin: 1.5rem 0;
+	padding: 0.9rem 1rem;
+	background: var(--code-background);
+	border: 1px solid var(--border-color);
+	border-radius: 6px;
+	overflow-x: auto;
+}
+
+/* KaTeX default is 1.21em; nudge up slightly at body size. */
+article .katex-display .katex {
+	font-size: 1.25em;
+	color: inherit;
+	background-color: transparent;
+	padding: 0;
+	border-radius: 0;
+}

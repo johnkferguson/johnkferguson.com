@@ -25,7 +25,7 @@ const formattedDate = pubDate.toLocaleDateString("en-US", {
         <h1 class="text-2xl font-bold leading-tight mb-2">{title}</h1>
         <p class="text-sm mt-1 text-[var(--date-color)]">{formattedDate}</p>
       </header>
-      <article class="max-w-none">
+      <article class="max-w-none" data-toc-root>
         <slot />
       </article>
     </div>

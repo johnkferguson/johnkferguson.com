@@ -1,14 +1,12 @@
 ---
-# Snapshot Fees, the article body. Edit prose, headings, and lab placement
-# here like a normal markdown file. The page shell (layout, width, the fixed
-# TOC rail, styles) lives in src/pages/lab/snapshot-fees.astro.
-#
-# - "##" headings get ids automatically and feed the table of contents.
-# - Interactive labs are imported below and dropped in with client:visible.
-# - <div class="stub"> marks outline bullets; delete the wrapper as each
-#   section becomes prose.
+title: "Snapshot Fees: Pricing Each Batch Auction's Liquidity"
+date: 2026-07-18
+description: "A fee mechanism for batch auctions: every fill priced from the sealed snapshot by how directional its liquidity was, built layer by layer with interactive labs."
 ---
 
+import "katex/dist/katex.min.css";
+import "../../styles/snapshot-fees.css";
+import BackToTop from "../../components/BackToTop.astro";
 import TableOfContents from "../../components/TableOfContents.astro";
 import BaseFeeLab from "../../components/labs/BaseFeeLab";
 import DemandLab from "../../components/labs/DemandLab";
@@ -16,7 +14,8 @@ import PipelineChart from "../../components/labs/PipelineChart.astro";
 import SnapshotFeesLab from "../../components/labs/SnapshotFeesLab";
 import SnapshotFeesMultiLab from "../../components/labs/SnapshotFeesMultiLab";
 
-# Snapshot Fees
+<TableOfContents />
+<BackToTop />
 
 Batch auctions collect orders for a short window, seal it, and clear every
 crossing trade at one price. The sealing produces something continuous
@@ -632,7 +631,7 @@ composition works under one rule:
 
 > Volume lowers an account's cap $F$ toward a floor, and changes nothing else.
 
-A market with a 10bps cap might let it fall to a 2.5bps floor on volume alone, while the last mile to zero stays reachable only by standing paired liquidity near the mark. Because the cap prices only unpaired overflow and far placement, a newcomer quoting tight and well-paired pays almost exactly what a high-volume incumbent pays where the two actually compete; the incumbent's advantage lives at the edges of the book, not at its center. Day-one competition survives, and high-volume takers, whose trading is one-sided by nature and can never earn the paired discount, still see their costs fall. The blended view of value this produces is the honest one: two-sided liquidity first, volume second.
+A market with a 10bps cap might let it fall to a 2.5bps floor on volume alone, while the last mile to zero stays reachable only by standing paired liquidity near the mark. Because the cap prices only unpaired overflow and far placement, a newcomer quoting tight and well-paired pays almost exactly what a high-volume incumbent pays where the two actually compete; the incumbent's advantage lives at the edges of the book, not at its center. Day-one competition survives, and high-volume takers, whose trading is one-sided by nature and can never earn the paired discount, still see their costs fall. One recalibration comes with the venue rather than the mechanism: a batch auction prints less volume for the same natural flow, since the latency-race volume is gone, so volume thresholds would be set against a smaller total. The blended view of value this produces is the honest one: two-sided liquidity first, volume second.
 
 Composing the two also closes a loop that opens under a high cap. A
 directional trader could rest an ask far enough out that it rarely
