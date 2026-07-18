@@ -41,6 +41,12 @@ When previewing changes locally, prefer `bun run dev` over `build + preview` —
 - URL structure: posts at `/{slug}` (root level, not /posts/ or /blog/)
 - Netlify deployment: static output to `dist/`
 
+## Visual Verification
+
+- The `chrome-devtools` MCP server (project `.mcp.json`, drives its own Chrome instance) is the way to verify design and layout work: navigate to the dev server, `take_screenshot` (or `take_snapshot` for structure), and Read the image before calling a visual change done. "The HTML looks right" is not verification.
+- Test at realistic CSS viewport widths with `resize_page`. John's 1920px monitor presents as roughly 1000-1100 CSS px due to zoom/display scaling, so always check ~1000-1100 as well as 390 (mobile) and 1400+. The post TOC rail appears at >= 1020 CSS px.
+- Before publishing changes, `lighthouse_audit` on the affected pages.
+
 ## Git Conventions
 
 - Commit on a feature branch, not main
