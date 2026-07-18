@@ -97,18 +97,15 @@ const { postTitle, postDate } = Astro.props;
     box-shadow: var(--header-shadow);
   }
 
+  /* constant height: the header never resizes on scroll, so page
+   * content starts at its final position and nothing shifts */
   .site-header-inner {
     max-width: var(--shell-max);
     margin-inline: auto;
-    padding: 0.85rem var(--shell-pad);
+    padding: 0.3rem var(--shell-pad);
     display: flex;
     align-items: center;
     gap: 1.2rem;
-    transition: padding 0.2s ease;
-  }
-
-  .site-header.scrolled .site-header-inner {
-    padding-block: 0.4rem;
   }
 
   .site-name {
@@ -118,11 +115,6 @@ const { postTitle, postDate } = Astro.props;
     letter-spacing: -0.02em;
     color: var(--heading-color);
     border-bottom: 1px solid var(--heading-color);
-    transition: font-size 0.2s ease;
-  }
-
-  .site-header.scrolled .site-name {
-    font-size: 1.05rem;
   }
 
   .post-context {
