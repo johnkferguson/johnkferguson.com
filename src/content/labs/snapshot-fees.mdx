@@ -12,6 +12,7 @@
 import TableOfContents from "../../components/TableOfContents.astro";
 import BaseFeeLab from "../../components/labs/BaseFeeLab";
 import DemandLab from "../../components/labs/DemandLab";
+import PipelineChart from "../../components/labs/PipelineChart.astro";
 import SnapshotFeesLab from "../../components/labs/SnapshotFeesLab";
 import SnapshotFeesMultiLab from "../../components/labs/SnapshotFeesMultiLab";
 
@@ -242,8 +243,8 @@ Since all stamps are set by their relative distance from the mark, $M$, how the 
 Every fee in the schedule is measured as a distance from a single reference
 point: the mark, $M$, recomputed each window from the sealed book.
 
-The midpoint of the best bid and best ask would be an obvious candidate to
-set the mark, but it fails due to its blindness to size. The same midpoint
+While the midpoint of the best bid and best ask would be an obvious candidate to
+set the mark, it fails due to its blindness to size. The same midpoint
 can be set just as easily by an order book with one dollar of bids at the
 touch as by one with a million dollars there, even though the true cost of
 trading against them is vastly different. This same blindness to size
@@ -510,16 +511,111 @@ would fit to its own market.
   <DemandLab client:visible />
 </div>
 
-## The Math, Precisely
+## One Auction, Start to Finish
 
-<div class="stub">
+Every part of the mechanism has now been introduced in its own section.
+This section runs a single auction from start to finish. The work has a
+shape rather than a strict sequence: once the window seals, calculating
+the mark and matching the orders are independent of each other, both
+reading only the sealed snapshot; pricing the fills needs them both, and
+finalizing the window books the results. The chart's shape is about what
+depends on what, not about scheduling: a venue can run the two branches in
+parallel or simply perform everything top to bottom.
 
-- The pipeline: seeds (one per two-sided account), candidate eligible books (two anchoring passes each), span check ($B + 2Z$), largest candidate wins, walk, $M$, band, stamps, pairing, worse-of
-- The one-line fee: `(Σ paired × max(own, partner) + directional × F) / size`
-- Reference computation anyone can recompute from the published window
-- Placement TBD: this section may move earlier, before or beside the labs
+<PipelineChart />
 
-</div>
+Each step below carries its computational cost. Three counts cover them:
+$n$ resting orders in the sealed book, $a$ accounts standing both a bid
+and an ask, and $\ell$ eligible levels in the winning candidate. $a$ is at
+most the number of accounts and $\ell$ is at most $n$, so every bound is
+against the book itself; most steps touch only a subset of it, and the
+bounds given are worst cases. The gray nodes are work a batch-auction
+venue performs whether or not this fee mechanism exists; only the rest is
+the mechanism's marginal cost.
+
+### Seal the Auction
+
+The auction closes with every resting order committed and fillable.
+Everything after is computed from this snapshot and published history;
+nothing else enters. Cost: $O(1)$, the snapshot is the book the venue
+already holds, kept price-sorted as the orders arrived.
+
+### Calculate the Mark
+
+This branch turns the sealed book into the window's reference price. It is
+also the branch a venue can omit: a window with no fills and no consumer
+asking for $M$ has nothing to price, and the mark keeps no state that
+needs maintaining, since it is recomputed from each window's own book. A
+venue with downstream consumers of $M$, health series or reference prices,
+will compute it every window regardless.
+
+1. **Find the candidate eligible books.** Per account, keep only the
+   paired size standing within reach, and pool what survives by price
+   level. Books near one another share a single candidate eligible book,
+   books too far apart form separate ones, and a candidate whose best
+   quotes stand more than $B + 2Z$ apart is dropped as incoherent. Cost:
+   each candidate is found in a bounded number of passes over the quotes
+   within its reach; $O(a \cdot n)$ in the worst case, $O(n)$ in the
+   common one, where every account's view converges to the same candidate.
+2. **Select the market.** The largest candidate by eligible size wins, and
+   the mark reads only it. If no valid candidate exists, or two candidates
+   that share nothing tie exactly, no fresh mark is possible this window.
+   Cost: comparing at most $a$ candidate sizes, plus one $O(n)$
+   disjointness check in the exact-tie case.
+3. **Walk both sides.** Consume $D$ dollars of the winning book on each
+   side, best prices first, pro-rata at equal prices; depth the book does
+   not hold is priced at the edge of the measured area. The two
+   volume-weighted prices are the impact prices. Cost: $O(\ell)$, only the
+   winning book's levels.
+4. **Set the mark and the band.** $M$ is the midpoint of the two impact
+   prices, and the band is $M \pm B/2$. The venue also records the impact
+   spread, the health reading that downstream consumers gate on. Cost:
+   $O(1)$.
+
+### Match
+
+The venue's own cross computes the fills at the uniform price. Fees never
+enter price priority, so nothing the mechanism computes affects the
+matching. Cost: with the book already price-sorted, the cross walks only
+the orders that trade, and it is the venue's existing work either way, not
+the mechanism's.
+
+### Price the Fills
+
+Fees are charged only on fills, and a filled order's rate depends on its
+account's whole sealed book (its pairing can spill across levels), so
+stamping and pairing run per account with fills, never for the market at
+large. Each level takes its stamp from its distance beyond the band edge;
+each account's bid dollars pair against its ask dollars, best-priced
+first; every paired dollar then pays the worse of its two legs' stamps,
+every unpaired dollar pays $F$, and the fee applies to the notional that
+traded. The fee never changes how much traded: the matched quantity is
+fixed by the cross, and the fee is deducted from what the fill delivers at
+settlement, so no separate balance or reservation is involved. Cost:
+linear in the books of the accounts that filled, bounded by $O(n)$, and
+untouched by the books of everyone who did not trade.
+
+### Finalize the Window
+
+The window's executed volume adds to the demand sums $S_1$ and $S_2$, at
+$O(1)$. This is later used at the daily close when $D$ takes its one bounded step toward what they read.
+The mark's state carries across windows: fresh when a candidate won, held
+at its last value when none did, and absent entirely before a market's
+first candidate forms, where every fill pays the cap. The venue publishes
+the sealed book, the fills, $M$ with its state, and the impact spread, and
+the window settles as one unit: the fills, their fees, and the day's sums
+land together. From what is published, any participant can reproduce every
+stamp, every pairing, and every fee to the last digit; no step depends on
+operator judgment or on data the venue holds privately.
+
+Summed, the mechanism's marginal cost is the mark branch and the pricing
+of fills: $O(a \cdot n)$ in the worst case, $O(n)$ in the common one, and
+nothing at all in a window where nothing traded and nothing asked. There
+are no convergence loops anywhere; every step touches each order a bounded
+number of times, which is what lets the schedule price at auction cadence
+and lets any participant re-run a window's arithmetic as fast as the venue
+does. One implementation note: the demand sums accumulate squared volumes,
+so fixed-point integers must be sized for $S_2$.
 
 ## Which Auction Design Fits Best
 
@@ -547,7 +643,7 @@ would fit to its own market.
 - Parameters and governance: $B$ declared and sticky, $F$ venue-wide, $Z$ and the two slopes shape the curve, $D$ measured from demand
 - Volume pricing composes rather than competes: volume (like staking in the spec) can lower an account's cap $F$ toward a floor. A 10bps cap might fall to 2.5bps on volume alone, but the last mile to zero is quality only. The floored cap preserves day-one competition for new makers and gives high-volume takers a legible benefit
 - Variations considered: partner-stamp grace interval, asymptotic stamps (rejected: softens the junk anchor), inside compensation (parked), partial fills, blending $M$ between near-tied rival candidate books (rejected: partial size must buy zero influence, and a blended mark stands at a price where no liquidity does)
-- Band fee level as a parameter: add an intercept $c$ to the base fee, $\min(F,\ c + k_1 \cdot \min(d, Z) + k_2 \cdot \max(0,\ d - Z))$; the band pays exactly $c$, and the piece's design is the special case $c = 0$. Negative $c$ is a rebate for the tightest quotes. It leaks smoothly past the band edge (fee crosses zero at $d = -c/k_1$), needs $c > -F$ so a self-cross costs $F + c > 0$ (the taker cap bounds the rebate against wash trading), and reopens the standard maker-rebate manipulation literature that $c = 0$ dismisses in one sentence
+- Band fee level as a parameter: add an intercept $c$ to the base fee, $\min(F,\ c + k_1 \cdot \min(d, Z) + k_2 \cdot \max(0,\ d - Z))$; the band pays exactly $c$, and the piece's design is the special case $c = 0$. Negative $c$ is a rebate for the tightest quotes. It leaks smoothly past the band edge (fee crosses zero at $d = -c/k_1$), needs $c > -F$ so a self-cross costs $F + c > 0$ (the taker cap bounds the rebate against wash trading), and reopens the standard maker-rebate manipulation literature that $c = 0$ dismisses in one sentence. Settlement thinking if adopted (forward plan, small rebates like a quarter bps for in-band makers): rebates settle as an in-window transfer from takers' fees to makers, or fold into the settlement prices; fees themselves always deduct from the trade directly, never from reserved balances
 - Crossed books, by size of cross (needs its own beat, possibly with Which Auction Design): a cross smaller than the eligibility reach ($Z + B/2$) computes normally; impact prices cross, the spread exports negative, $M$ sits mid-cross, and aggressive quotes stamp at zero (aggression is never punished). A cross or gap larger than the reach splits the snapshot into rival candidate eligible books and the mark reads the largest; the smaller book keeps pairing for fees but has no voice. Overlapping candidates (the chain case: A within reach of B, B within reach of C, A and C not) are two readings of one region and resolve to the larger with a deterministic tiebreak, never held. In a DFBA makers never trade each other, so crossed maker books persist and drain via taker flow; note the no-arbitrage band: crosses narrower than roughly 2F are not arbitrageable (two taker caps exceed the edge), just better prices for natural flow
 - The no-mark states (needs its own beat): three states, none / fresh / held, and no declared launch mark. From launch until the first valid candidate book forms there is no mark and every fill pays the cap $F$. A free launch window was considered and rejected: two sybil accounts, one bidding and one asking, would wash-trade fee-free until a mark formed; charging the cap instead makes standing the first real two-sided book the way to unlock discounts. held only bridges windows after a mark has existed (no valid candidate, or a strict tie between disjoint candidates) and is unreachable at launch by construction. fresh vs held vs healthy (impact spread against $B$) are three different gates and consumers choose which to require. Open: whether held should expire at some age or carry indefinitely with consumers gating on staleness
 - Liquidations as a future mark consumer (out of scope here, but it constrains the design now): a liquidation reference would be an EMA or TWAP of recent fresh-and-healthy marks with a staleness bound, never the raw per-window $M$, so sustaining a manipulation across the lookback means being the market for its whole length. Mark availability becomes a design metric: the fraction of windows fresh and healthy, especially under stress, since the span check can empty the mark exactly when volatility widens every book; profiles must size $B + 2Z$ against stressed spreads, not calm ones. Natural listing rule: leverage enables only after the mark has some window count of fresh, healthy history
