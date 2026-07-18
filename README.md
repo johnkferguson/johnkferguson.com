@@ -6,7 +6,7 @@ Personal blog of John K. Ferguson, built with [Astro](https://astro.build/) and 
 
 - **Framework**: Astro 6
 - **Styling**: Tailwind CSS v4
-- **Fonts**: PT Serif (body), Fira Code (code) via @fontsource
+- **Fonts**: Newsreader (body), Fira Code (code) via @fontsource
 - **Linting**: Biome
 - **Package Manager**: Bun
 - **Deployment**: Netlify (static)

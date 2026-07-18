@@ -4,9 +4,9 @@
 @custom-variant dark (&:where(.dark, .dark *));
 
 @theme {
-	--font-serif: "PT Serif", serif;
+	--font-serif: "Newsreader Variable", serif;
 	--font-mono: "Fira Code", monospace;
-	--default-font-family: "PT Serif", serif;
+	--default-font-family: "Newsreader Variable", serif;
 	--default-mono-font-family: "Fira Code", monospace;
 }
 
@@ -16,8 +16,8 @@
 :root {
 	--bg: #ffffff;
 	--bg-footer: #fdfdfd;
-	--text-color: #555555;
-	--heading-color: #333333;
+	--text-color: #3a3a3a;
+	--heading-color: #1f1f1f;
 	--link-color: #222222;
 	--link-hover: #000000;
 	--border-color: #e8e8e8;
@@ -61,12 +61,17 @@
 
 html {
 	font-family: var(--font-serif);
-	font-size: 16px;
+	/* Newsreader is a variable font with an optical-size axis; let text
+	 * sizes pick the sturdier text cut and headings the display cut. */
+	font-optical-sizing: auto;
+	/* Newsreader runs small for its px size; 17/20 here reads like the
+	 * old PT Serif 16/21. */
+	font-size: 17px;
 }
 
 @media (min-width: 44em) {
 	html {
-		font-size: 21px;
+		font-size: 20px;
 	}
 }
 

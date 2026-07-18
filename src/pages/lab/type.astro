@@ -1,0 +1,229 @@
+---
+// Type specimen playground: real post content rendered in candidate body
+// faces, switchable live. Unpublished (/lab/ = noindex, out of sitemap).
+// Candidates load from Google Fonts here for comparison only; the chosen
+// face gets self-hosted via fontsource like the current ones.
+import BaseLayout from "../../layouts/BaseLayout.astro";
+---
+
+<BaseLayout title="Type Specimen" description="Body face candidates on real content" noindex>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link
+    rel="stylesheet"
+    href="https://fonts.googleapis.com/css2?family=PT+Serif:ital,wght@0,400;0,700;1,400&family=Source+Serif+4:ital,wght@0,400;0,700;1,400&family=Literata:ital,wght@0,400;0,700;1,400&family=Spectral:ital,wght@0,400;0,700;1,400&family=Lora:ital,wght@0,400;0,700;1,400&family=Inter:ital,wght@0,400;0,700;1,400&display=swap"
+  />
+
+  <div class="controls" data-controls>
+    <div class="row">
+      <span class="row-label">Face</span>
+      <button data-font="'PT Serif', serif">PT Serif (old)</button>
+      <button data-font="'Source Serif 4', serif">Source Serif 4</button>
+      <button data-font="'Literata', serif">Literata</button>
+      <button data-font="'Newsreader Variable', serif" class="active">Newsreader (chosen)</button>
+      <button data-font="'Spectral', serif">Spectral</button>
+      <button data-font="'Lora', serif">Lora</button>
+      <button data-font="'Inter', sans-serif">Inter</button>
+    </div>
+    <div class="row">
+      <span class="row-label">Size</span>
+      <button data-size="17">17px</button>
+      <button data-size="18">18px</button>
+      <button data-size="19">19px</button>
+      <button data-size="20" class="active">20px (chosen)</button>
+      <button data-size="21">21px (old)</button>
+      <span class="hint">press F to flip Newsreader / Spectral</span>
+    </div>
+  </div>
+
+  <div class="specimen" data-specimen>
+    <header>
+      <h1>Snapshot Fees: Pricing Each Batch Auction's Liquidity</h1>
+      <p class="date">July 18, 2026</p>
+    </header>
+    <article>
+      <p>
+        Batch auctions collect orders for a short window, seal it, and clear
+        every crossing trade at one price. The sealing produces something
+        continuous markets never have: a complete snapshot of the market's
+        standing liquidity, every order in it committed and fillable at that
+        instant. This piece proposes Snapshot Fees, a fee mechanism that prices
+        every fill from that snapshot, recomputed each auction, by how
+        directional the filled liquidity actually was. While the
+        <em>Snapshot Fees</em> mechanism could work for any batch auction
+        implementation, it is likely a more natural fit for a dual-flow batch
+        auction.
+      </p>
+      <h2>Understanding Batch Auctions</h2>
+      <p>
+        Most electronic markets, crypto exchanges included, run on a continuous
+        limit order book (CLOB). Orders rest in a book sorted by price, and when
+        a new order crosses the spread it trades immediately against the best
+        resting quote. Ties at the same price go to whoever arrived first. In a
+        continuous limit order book, every fill, quote, and cancel is processed
+        one at a time, in arrival order.
+      </p>
+      <p>
+        <a href="#">Aquilina, Budish, and O'Neill</a> measured the race
+        directly, using exchange message data that records the losers as well as
+        the winners. In FTSE 100 stocks they found races running about once per
+        minute per symbol, typically decided in five to ten microseconds,
+        accounting for roughly 20% of trading volume, with the top six firms on
+        one side or the other of more than 80% of them.
+      </p>
+      <h3>The Base Fee</h3>
+      <p>
+        The band <span class="chip"><i>B</i></span> is centered on the mark
+        <span class="chip"><i>M</i></span>, so liquidity resting inside
+        <span class="chip"><i>M</i> &pm; <i>B</i>/2</span> pays nothing. Beyond
+        the band, the fee climbs at slope
+        <span class="chip"><i>k</i><sub>1</sub></span> through the zone, then at
+        <span class="chip"><i>k</i><sub>2</sub></span> until it reaches the cap.
+        Three properties fall out of this shape:
+      </p>
+      <ul>
+        <li>Tight, two-sided quoting rides free inside the band.</li>
+        <li>Distance from the mark is priced, not punished, until the cap.</li>
+        <li>The cap bounds what any single fill can ever be charged.</li>
+      </ul>
+      <blockquote>
+        Eliminating latency arbitrage, they estimate, would cut the market's
+        cost of liquidity by 17%, about $5 billion a year in global equities.
+      </blockquote>
+      <p>
+        The engine walks the eligible book at size <span class="chip"><i>D</i></span>
+        per side and averages the two stopping prices. In code the walk is a
+        single pass, so <code>computeMark(book, D)</code> stays
+        <code>O(n)</code> in the number of price levels.
+      </p>
+      <pre><code>const step = clamp((reading / dOpen) ** alpha, 1 / L, L);
+const dClose = Math.max(floor, dOpen * step);</code></pre>
+      <p>
+        Whether a venue adopts this depends on three audiences seeing their own
+        stake in it: the venue that must run the machinery, the takers who
+        mostly never notice it, and the makers whose economics it rewrites.
+      </p>
+    </article>
+  </div>
+</BaseLayout>
+
+<style>
+  .controls {
+    position: sticky;
+    top: 0;
+    z-index: 10;
+    background: var(--bg);
+    border-bottom: 1px solid var(--border-color);
+    padding: 0.5rem 1rem;
+    font-family: var(--font-mono);
+    font-size: 13px;
+  }
+  .row {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.35rem;
+    max-width: 900px;
+    margin: 0 auto;
+    padding: 0.15rem 0;
+  }
+  .row-label {
+    width: 3rem;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    font-size: 10px;
+    color: var(--date-color);
+  }
+  .hint {
+    margin-left: auto;
+    font-size: 10px;
+    color: var(--date-color);
+  }
+  .controls button {
+    font-family: var(--font-mono);
+    font-size: 12px;
+    padding: 0.2rem 0.55rem;
+    border: 1px solid var(--border-color);
+    border-radius: 999px;
+    background: transparent;
+    color: var(--text-color);
+    cursor: pointer;
+  }
+  .controls button.active {
+    border-color: var(--article-link-hover-border);
+    color: var(--heading-color);
+  }
+
+  .specimen {
+    max-width: 720px;
+    margin: 2.5rem auto 5rem;
+    padding: 0 1rem;
+    font-size: 19px;
+    line-height: 1.6;
+  }
+  .specimen h1 {
+    font-size: 1.7em;
+    line-height: 1.15;
+    margin: 0 0 0.4rem;
+  }
+  .specimen .date {
+    font-size: 0.72em;
+    color: var(--date-color);
+    margin-bottom: 2rem;
+  }
+  .specimen h2 {
+    font-size: 1.35em;
+    margin-top: 2.2rem;
+  }
+  .specimen h3 {
+    font-size: 1.15em;
+    margin-top: 1.7rem;
+  }
+  .specimen .chip {
+    background: var(--code-background);
+    color: var(--code-color);
+    padding: 0 0.25rem;
+    border-radius: 4px;
+    white-space: nowrap;
+  }
+  .specimen code {
+    font-size: 0.75em;
+  }
+  .specimen pre {
+    line-height: 1.5;
+  }
+</style>
+
+<script>
+  const specimen = document.querySelector<HTMLElement>("[data-specimen]");
+  const controls = document.querySelector<HTMLElement>("[data-controls]");
+  if (specimen && controls) {
+    controls.addEventListener("click", (e) => {
+      const btn = (e.target as HTMLElement).closest("button");
+      if (!btn) return;
+      const row = btn.parentElement;
+      if (!row) return;
+      for (const b of row.querySelectorAll("button")) {
+        b.classList.toggle("active", b === btn);
+      }
+      if (btn.dataset.font) specimen.style.fontFamily = btn.dataset.font;
+      if (btn.dataset.size) {
+        const px = Number(btn.dataset.size);
+        specimen.style.fontSize = `${px}px`;
+        specimen.style.lineHeight = px >= 21 ? "1.5" : "1.6";
+      }
+    });
+    // flicker test between the two finalists
+    document.addEventListener("keydown", (e) => {
+      if (e.key !== "f" && e.key !== "F") return;
+      const current = specimen.style.fontFamily;
+      const next = current.includes("Spectral")
+        ? "'Newsreader Variable', serif"
+        : "'Spectral', serif";
+      specimen.style.fontFamily = next;
+      for (const b of controls.querySelectorAll<HTMLButtonElement>("[data-font]")) {
+        b.classList.toggle("active", b.dataset.font === next);
+      }
+    });
+  }
+</script>
