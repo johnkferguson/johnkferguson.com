@@ -170,8 +170,8 @@ blockquote {
 
 /*
  * Post page shell: full-width grid with a sticky TOC rail on the left
- * and the content column on the right. Prose is capped at a readable
- * measure; embeds marked .labwrap may break out to the wide width.
+ * and the content column on the right. All article content, labs
+ * included, sits at the prose measure.
  */
 :root {
 	--prose-measure: 34rem;
@@ -208,10 +208,6 @@ blockquote {
 
 article[data-toc-root] > * {
 	max-width: var(--prose-measure);
-}
-
-article[data-toc-root] > .labwrap {
-	max-width: var(--prose-wide);
 }
 
 /* For Articles */

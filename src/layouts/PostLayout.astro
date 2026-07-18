@@ -19,7 +19,15 @@ const formattedDate = pubDate.toLocaleDateString("en-US", {
 });
 ---
 
-<BaseLayout title={title} description={description} type="article" pubDate={pubDate} author={author}>
+<BaseLayout
+	title={title}
+	description={description}
+	type="article"
+	pubDate={pubDate}
+	author={author}
+	headerContextTitle={title}
+	headerContextDate={formattedDate}
+>
   <div class="post-shell">
     <aside class="post-rail">
       <TableOfContents />

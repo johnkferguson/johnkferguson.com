@@ -4,10 +4,10 @@
 // the user prefers reduced motion.
 ---
 
-<button data-back-to-top aria-label="Back to top" title="Back to top">
+<button data-back-to-top aria-label="Back to top">
 	<svg
-		width="16"
-		height="16"
+		width="14"
+		height="14"
 		viewBox="0 0 16 16"
 		fill="none"
 		stroke="currentColor"
@@ -18,6 +18,7 @@
 	>
 		<path d="M8 13V3M3.5 7.5 8 3l4.5 4.5"></path>
 	</svg>
+	<span class="btt-label">Back to top</span>
 </button>
 
 <script>
@@ -55,11 +56,11 @@
 		bottom: 1.1rem;
 		z-index: 40;
 		display: flex;
+		flex-direction: column;
 		align-items: center;
-		justify-content: center;
-		width: 2.4rem;
-		height: 2.4rem;
-		border-radius: 50%;
+		gap: 0.22rem;
+		padding: 0.5rem 0.7rem 0.42rem;
+		border-radius: 8px;
 		border: 1px solid var(--border-color);
 		background: var(--bg);
 		color: var(--date-color);
@@ -72,6 +73,14 @@
 			transform 0.2s ease,
 			color 0.15s ease,
 			border-color 0.15s ease;
+	}
+
+	.btt-label {
+		font-family: var(--font-mono);
+		font-size: 0.42rem;
+		letter-spacing: 0.12em;
+		text-transform: uppercase;
+		opacity: 0.75;
 	}
 
 	button.visible {
@@ -89,6 +98,13 @@
 		button {
 			transition: opacity 0.2s ease;
 			transform: none;
+		}
+	}
+
+	/* the TOC rail carries its own Top link at wide viewports */
+	@media (min-width: 1020px) {
+		button {
+			display: none;
 		}
 	}
 </style>

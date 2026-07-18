@@ -1,26 +1,170 @@
 ---
+// Pinned site header. Compresses to a slim bar on scroll; on post pages
+// the post title and date fade into the center once the h1 scrolls off.
 import { SITE_NAME } from "../consts";
 import ThemeToggle from "./ThemeToggle.astro";
+
+interface Props {
+	postTitle?: string;
+	postDate?: string;
+}
+
+const { postTitle, postDate } = Astro.props;
 ---
 
-<header class="border-t pt-2 min-h-[2.4rem] leading-[2.1rem]" style="border-color: var(--heading-color);">
-  <div class="max-w-[var(--shell-max)] mx-auto px-[var(--shell-pad)] flex items-center justify-between">
-    <a
-      href="/"
-      class="block text-[1.5rem] tracking-[-1px] relative border-b z-[1] font-normal"
-      style="color: var(--heading-color); border-color: var(--heading-color);"
-    >
-      {SITE_NAME}
-    </a>
-    <nav class="flex items-center gap-4">
-      <a
-        href="/about"
-        class="text-[1rem] link-underline transition-colors"
-        style="color: var(--heading-color);"
-      >
-        About
-      </a>
+<header class="site-header" data-site-header>
+  <div class="site-header-inner">
+    <a href="/" class="site-name">{SITE_NAME}</a>
+    {postTitle && (
+      <div class="post-context" data-post-context>
+        <span class="pc-title">{postTitle}</span>
+        {postDate && <span class="pc-date">{postDate}</span>}
+      </div>
+    )}
+    <nav class="site-nav">
+      <a href="/about" class="link-underline">About</a>
       <ThemeToggle />
     </nav>
   </div>
 </header>
+
+<script>
+	const header = document.querySelector<HTMLElement>("[data-site-header]");
+	if (header) {
+		let ticking = false;
+		const update = () => {
+			ticking = false;
+			header.classList.toggle("scrolled", window.scrollY > 24);
+		};
+		update();
+		window.addEventListener(
+			"scroll",
+			() => {
+				if (!ticking) {
+					ticking = true;
+					requestAnimationFrame(update);
+				}
+			},
+			{ passive: true },
+		);
+
+		const ctx = header.querySelector<HTMLElement>("[data-post-context]");
+		const h1 = document.querySelector<HTMLElement>(".post-header h1");
+		if (ctx && h1) {
+			const io = new IntersectionObserver(
+				([entry]) => {
+					const passed =
+						!entry.isIntersecting && entry.boundingClientRect.top < 0;
+					ctx.classList.toggle("show", passed);
+				},
+				{ threshold: 0 },
+			);
+			io.observe(h1);
+		}
+	}
+</script>
+
+<style>
+  .site-header {
+    position: sticky;
+    top: 0;
+    z-index: 30;
+    background: var(--bg);
+    border-bottom: 1px solid transparent;
+    transition:
+      border-color 0.2s ease,
+      background-color 0.2s ease;
+  }
+
+  .site-header.scrolled {
+    border-bottom-color: var(--border-color);
+  }
+
+  .site-header-inner {
+    max-width: var(--shell-max);
+    margin-inline: auto;
+    padding: 0.85rem var(--shell-pad);
+    display: flex;
+    align-items: center;
+    gap: 1.2rem;
+    transition: padding 0.2s ease;
+  }
+
+  .site-header.scrolled .site-header-inner {
+    padding-block: 0.4rem;
+  }
+
+  .site-name {
+    flex: none;
+    font-size: 1.35rem;
+    line-height: 1.2;
+    letter-spacing: -0.02em;
+    color: var(--heading-color);
+    border-bottom: 1px solid var(--heading-color);
+    transition: font-size 0.2s ease;
+  }
+
+  .site-header.scrolled .site-name {
+    font-size: 1.05rem;
+  }
+
+  .post-context {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    align-items: baseline;
+    justify-content: center;
+    gap: 0.7rem;
+    opacity: 0;
+    transform: translateY(4px);
+    pointer-events: none;
+    transition:
+      opacity 0.25s ease,
+      transform 0.25s ease;
+  }
+
+  .post-context.show {
+    opacity: 1;
+    transform: translateY(0);
+    pointer-events: auto;
+  }
+
+  .pc-title {
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+    font-size: 0.8rem;
+    color: var(--heading-color);
+  }
+
+  .pc-date {
+    flex: none;
+    font-family: var(--font-mono);
+    font-size: 0.55rem;
+    letter-spacing: 0.06em;
+    color: var(--date-color);
+  }
+
+  .site-nav {
+    flex: none;
+    margin-left: auto;
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+  }
+
+  .site-nav a {
+    font-size: 0.85rem;
+    line-height: 1.2;
+    color: var(--heading-color);
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .site-header,
+    .site-header-inner,
+    .site-name,
+    .post-context {
+      transition: none;
+    }
+  }
+</style>

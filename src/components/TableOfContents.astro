@@ -1,10 +1,10 @@
 ---
-// Section navigation. Auto-discovers h2[id] headings inside the element
-// marked data-toc-root. Two variants:
-//   <TableOfContents />        fixed left rail, shown on wide viewports
-//   <TableOfContents inline /> in-flow Contents block, shown when the
-//                              rail does not fit
-// The shared script populates every instance; the rail also scrollspies.
+// Section navigation. Auto-discovers h2[id]/h3[id] headings inside the
+// element marked data-toc-root. Two variants:
+//   <TableOfContents />        sticky left rail: nested accordion with
+//                              carets, two-level scrollspy, Top link
+//   <TableOfContents inline /> in-flow Contents block (flat h2 list),
+//                              shown when the rail does not fit
 interface Props {
 	inline?: boolean;
 }
@@ -18,45 +18,210 @@ const { inline = false } = Astro.props;
 >
 	<span class="toc-title">Contents</span>
 	<ul></ul>
+	{
+		!inline && (
+			<button class="toc-top" data-toc-top type="button">
+				<svg
+					width="11"
+					height="11"
+					viewBox="0 0 16 16"
+					fill="none"
+					stroke="currentColor"
+					stroke-width="2"
+					stroke-linecap="round"
+					stroke-linejoin="round"
+					aria-hidden="true"
+				>
+					<path d="M8 13V3M3.5 7.5 8 3l4.5 4.5" />
+				</svg>
+				<span>Back to top</span>
+			</button>
+		)
+	}
 </nav>
 
 <script>
 	const root = document.querySelector("[data-toc-root]");
 	const navs = [...document.querySelectorAll<HTMLElement>("nav[data-toc]")];
 	if (root && navs.length) {
-		const headings = [...root.querySelectorAll<HTMLElement>("h2[id]")];
-		if (headings.length === 0) {
+		const heads = [...root.querySelectorAll<HTMLElement>("h2[id], h3[id]")];
+		const sections: { h2: HTMLElement; h3s: HTMLElement[] }[] = [];
+		for (const h of heads) {
+			if (h.tagName === "H2") sections.push({ h2: h, h3s: [] });
+			else sections.at(-1)?.h3s.push(h);
+		}
+
+		if (sections.length === 0) {
 			for (const nav of navs) nav.style.display = "none";
-		}
-		const railLinks: HTMLAnchorElement[] = [];
-		for (const nav of navs) {
-			const ul = nav.querySelector("ul");
-			for (const h of headings) {
-				const li = document.createElement("li");
-				const a = document.createElement("a");
-				a.href = `#${h.id}`;
-				a.textContent = h.textContent ?? "";
-				a.addEventListener("click", (e) => {
-					e.preventDefault();
-					h.scrollIntoView({ behavior: "smooth", block: "start" });
-					history.pushState(null, "", `#${h.id}`);
+		} else {
+			const reduceMotion = window.matchMedia(
+				"(prefers-reduced-motion: reduce)",
+			).matches;
+			const goTo = (h: HTMLElement) => (e: Event) => {
+				e.preventDefault();
+				h.scrollIntoView({
+					behavior: reduceMotion ? "auto" : "smooth",
+					block: "start",
 				});
-				li.append(a);
-				ul?.append(li);
-				if (nav.classList.contains("toc-rail")) railLinks.push(a);
+				history.pushState(null, "", `#${h.id}`);
+			};
+
+			// —— accordion state ——
+			// The current section auto-expands; others collapse. Manual caret
+			// toggles override that until the reader moves to another section.
+			let current = 0;
+			let currentSub = -1;
+			const manualOpen = new Set<number>();
+			const manualClosed = new Set<number>();
+			const expandedAt = (i: number) =>
+				manualOpen.has(i) || (i === current && !manualClosed.has(i));
+
+			interface RailRefs {
+				rowLinks: HTMLAnchorElement[];
+				carets: (HTMLButtonElement | undefined)[];
+				subWraps: (HTMLElement | undefined)[];
+				subLinks: HTMLAnchorElement[][];
 			}
-		}
-		if (railLinks.length) {
+			const rails: RailRefs[] = [];
+
+			const apply = () => {
+				for (const r of rails) {
+					sections.forEach((_, i) => {
+						r.rowLinks[i]?.classList.toggle("active", i === current);
+						const open = expandedAt(i);
+						r.subWraps[i]?.classList.toggle("open", open);
+						r.carets[i]?.classList.toggle("open", open);
+						r.carets[i]?.setAttribute("aria-expanded", String(open));
+						r.subLinks[i]?.forEach((sa, j) =>
+							sa.classList.toggle("active", i === current && j === currentSub),
+						);
+					});
+				}
+			};
+
+			const toggle = (i: number) => {
+				if (expandedAt(i)) {
+					if (manualOpen.has(i)) manualOpen.delete(i);
+					else manualClosed.add(i);
+				} else {
+					manualOpen.add(i);
+					manualClosed.delete(i);
+				}
+				apply();
+			};
+
+			const caretSvg =
+				'<svg width="10" height="10" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 3.5 10.5 8 6 12.5"/></svg>';
+
+			for (const nav of navs) {
+				const ul = nav.querySelector("ul");
+				if (!ul) continue;
+
+				if (nav.classList.contains("toc-inline")) {
+					for (const s of sections) {
+						const li = document.createElement("li");
+						const a = document.createElement("a");
+						a.href = `#${s.h2.id}`;
+						a.textContent = s.h2.textContent ?? "";
+						a.addEventListener("click", goTo(s.h2));
+						li.append(a);
+						ul.append(li);
+					}
+					continue;
+				}
+
+				const refs: RailRefs = {
+					rowLinks: [],
+					carets: [],
+					subWraps: [],
+					subLinks: [],
+				};
+				sections.forEach((s, i) => {
+					const li = document.createElement("li");
+					li.className = "toc-section";
+					const row = document.createElement("div");
+					row.className = "toc-row";
+					const a = document.createElement("a");
+					a.href = `#${s.h2.id}`;
+					a.textContent = s.h2.textContent ?? "";
+					a.addEventListener("click", goTo(s.h2));
+					row.append(a);
+					refs.rowLinks.push(a);
+					li.append(row);
+
+					const subLinksHere: HTMLAnchorElement[] = [];
+					if (s.h3s.length) {
+						const caret = document.createElement("button");
+						caret.className = "toc-caret";
+						caret.type = "button";
+						caret.setAttribute(
+							"aria-label",
+							`Toggle ${s.h2.textContent} subsections`,
+						);
+						caret.innerHTML = caretSvg;
+						caret.addEventListener("click", () => toggle(i));
+						row.append(caret);
+						refs.carets[i] = caret;
+
+						const wrap = document.createElement("div");
+						wrap.className = "toc-subwrap";
+						const sub = document.createElement("ul");
+						sub.className = "toc-sub";
+						for (const h3 of s.h3s) {
+							const sli = document.createElement("li");
+							const sa = document.createElement("a");
+							sa.href = `#${h3.id}`;
+							sa.textContent = h3.textContent ?? "";
+							sa.addEventListener("click", goTo(h3));
+							sli.append(sa);
+							sub.append(sli);
+							subLinksHere.push(sa);
+						}
+						wrap.append(sub);
+						li.append(wrap);
+						refs.subWraps[i] = wrap;
+					}
+					refs.subLinks.push(subLinksHere);
+					ul.append(li);
+				});
+				rails.push(refs);
+			}
+
+			// —— scrollspy + Top link visibility ——
+			const tops = [
+				...document.querySelectorAll<HTMLElement>("[data-toc-top]"),
+			];
+			for (const t of tops) {
+				t.addEventListener("click", () => {
+					window.scrollTo({
+						top: 0,
+						behavior: reduceMotion ? "auto" : "smooth",
+					});
+				});
+			}
+
+			const THRESH = 130;
 			let ticking = false;
 			const update = () => {
 				ticking = false;
-				let current = 0;
-				headings.forEach((h, i) => {
-					if (h.getBoundingClientRect().top < 150) current = i;
+				let cur = 0;
+				sections.forEach((s, i) => {
+					if (s.h2.getBoundingClientRect().top < THRESH) cur = i;
 				});
-				railLinks.forEach((a, i) => {
-					a.classList.toggle("active", i === current);
+				let sub = -1;
+				sections[cur].h3s.forEach((h, j) => {
+					if (h.getBoundingClientRect().top < THRESH) sub = j;
 				});
+				if (cur !== current) {
+					manualOpen.delete(current);
+					manualClosed.delete(current);
+					current = cur;
+				}
+				currentSub = sub;
+				apply();
+				for (const t of tops) {
+					t.classList.toggle("visible", window.scrollY > window.innerHeight);
+				}
 			};
 			update();
 			window.addEventListener(
@@ -74,8 +239,8 @@ const { inline = false } = Astro.props;
 </script>
 
 <style is:global>
-	[data-toc-root] h2[id] {
-		scroll-margin-top: 90px;
+	[data-toc-root] :is(h2, h3)[id] {
+		scroll-margin-top: 80px;
 	}
 </style>
 
@@ -90,44 +255,142 @@ const { inline = false } = Astro.props;
 		margin-bottom: 0.5rem;
 	}
 
-	.toc ul {
+	.toc :global(ul) {
 		list-style: none;
 		margin: 0;
 		padding: 0;
 	}
 
-	.toc li {
+	.toc :global(li) {
 		margin: 0;
 	}
 
-	.toc a {
+	.toc :global(a) {
 		display: block;
-		padding: 0.18rem 0 0.18rem 0.6rem;
-		border-left: 2px solid var(--border-color);
+		padding: 0.2rem 0.5rem 0.2rem 0.6rem;
 		color: var(--date-color);
 		text-decoration: none;
+		border-radius: 0 4px 4px 0;
 		transition:
 			color 0.15s ease,
-			border-color 0.15s ease;
+			background-color 0.15s ease;
 	}
 
-	.toc a:hover {
+	.toc :global(a:hover) {
 		color: var(--heading-color);
+		background: var(--code-background);
 	}
 
-	.toc a.active {
+	.toc :global(a.active) {
 		color: var(--heading-color);
-		border-left-color: var(--article-link-hover-border);
+		font-weight: 500;
 	}
 
 	/* —— sticky left rail (lives in the post-shell grid column) —— */
 	.toc-rail {
 		position: sticky;
-		top: 5.5rem;
-		max-height: calc(100vh - 7rem);
+		top: 4rem;
+		max-height: calc(100vh - 5.5rem);
 		overflow-y: auto;
 		font-size: 0.68rem;
 		line-height: 1.5;
+	}
+
+	.toc-rail :global(.toc-row) {
+		display: flex;
+		align-items: center;
+		border-left: 2px solid var(--border-color);
+	}
+
+	.toc-rail :global(.toc-row > a) {
+		flex: 1;
+		min-width: 0;
+	}
+
+	.toc-rail :global(.toc-row:has(> a.active)) {
+		border-left-color: var(--article-link-hover-border);
+	}
+
+	.toc-rail :global(.toc-caret) {
+		flex: none;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		width: 1.25rem;
+		height: 1.25rem;
+		margin-right: 0.1rem;
+		border: 0;
+		border-radius: 4px;
+		background: transparent;
+		color: var(--date-color);
+		cursor: pointer;
+	}
+
+	.toc-rail :global(.toc-caret:hover) {
+		color: var(--heading-color);
+		background: var(--code-background);
+	}
+
+	.toc-rail :global(.toc-caret svg) {
+		transition: transform 0.2s ease;
+	}
+
+	.toc-rail :global(.toc-caret.open svg) {
+		transform: rotate(90deg);
+	}
+
+	.toc-rail :global(.toc-subwrap) {
+		display: grid;
+		grid-template-rows: 0fr;
+		transition: grid-template-rows 0.25s ease;
+	}
+
+	.toc-rail :global(.toc-subwrap.open) {
+		grid-template-rows: 1fr;
+	}
+
+	.toc-rail :global(.toc-sub) {
+		overflow: hidden;
+		min-height: 0;
+		border-left: 2px solid var(--border-color);
+	}
+
+	.toc-rail :global(.toc-sub a) {
+		padding-left: 1.4rem;
+		font-size: 0.94em;
+	}
+
+	.toc-top {
+		display: flex;
+		align-items: center;
+		gap: 0.4rem;
+		margin-top: 1rem;
+		padding: 0.32rem 0.55rem;
+		border: 1px solid var(--border-color);
+		border-radius: 6px;
+		background: transparent;
+		color: var(--date-color);
+		font-family: var(--font-mono);
+		font-size: 0.5rem;
+		letter-spacing: 0.1em;
+		text-transform: uppercase;
+		cursor: pointer;
+		opacity: 0;
+		pointer-events: none;
+		transition:
+			opacity 0.2s ease,
+			color 0.15s ease,
+			border-color 0.15s ease;
+	}
+
+	.toc-top.visible {
+		opacity: 1;
+		pointer-events: auto;
+	}
+
+	.toc-top:hover {
+		color: var(--heading-color);
+		border-color: var(--article-link-hover-border);
 	}
 
 	@media (max-width: 1019px) {
@@ -146,9 +409,21 @@ const { inline = false } = Astro.props;
 		line-height: 1.5;
 	}
 
+	.toc-inline :global(a) {
+		border-left: 2px solid var(--border-color);
+		border-radius: 0 4px 4px 0;
+	}
+
 	@media (min-width: 1020px) {
 		.toc-inline {
 			display: none;
+		}
+	}
+
+	@media (prefers-reduced-motion: reduce) {
+		.toc-rail :global(.toc-subwrap),
+		.toc-rail :global(.toc-caret svg) {
+			transition: none;
 		}
 	}
 </style>

@@ -17,6 +17,9 @@ interface Props {
 	pubDate?: Date;
 	author?: string;
 	noindex?: boolean;
+	/* shown in the pinned header bar once the page's h1 scrolls off */
+	headerContextTitle?: string;
+	headerContextDate?: string;
 }
 
 const {
@@ -27,6 +30,8 @@ const {
 	pubDate,
 	author,
 	noindex,
+	headerContextTitle,
+	headerContextDate,
 } = Astro.props;
 ---
 
@@ -45,7 +50,7 @@ const {
     </script>
   </head>
   <body class="font-normal leading-[1.6] transition-colors duration-200" style="background-color: var(--bg); color: var(--text-color);">
-    <SiteHeader />
+    <SiteHeader postTitle={headerContextTitle} postDate={headerContextDate} />
     <slot />
     <SiteFooter />
   </body>
