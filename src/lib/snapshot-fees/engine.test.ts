@@ -217,17 +217,136 @@ describe("Mark pipeline: eligibility, candidates, boundary fill", () => {
 		expect(none.M).toBeNull();
 	});
 
-	// KNOWN ISSUE (found 2026-07-19, decision pending): a $20 straddle
-	// (tiny paired books in two far-apart markets) currently HIJACKS
-	// anchoring: the one-sided reach filters admit its far-side quotes
-	// into every seed's eligibility pass, all seeds converge to one
-	// widely-crossed anchor pair (which the span check exempts), and a
-	// $5 candidate mints a fresh mark BETWEEN the two real markets.
-	// Candidate fix: two-sided reach bound + coherence on |aAsk - aBid|.
-	// Repro preserved in the PR discussion; pin once semantics decided.
-	test.todo(
-		"straddler cannot merge two markets: same account in both tied disjoint candidates stays held",
-	);
+	test("straddler cannot merge two markets: self-crossed account is gated, disjoint tie holds", () => {
+		// Two separate two-sided markets, 300bp apart, eligible sizes tied
+		// exactly. Account X straddles both with tiny paired books — which
+		// makes X self-crossed (own bid 102.995 above own ask 100.005).
+		// The coherence gate drops X from mark participation entirely, the
+		// real markets tie as disjoint candidates, and the tie resolves to
+		// held. (Pre-gate, X hijacked anchoring and minted M = 101.5.)
+		const books = [
+			{
+				id: "P1",
+				levels: [
+					{ i: 0, price: 99.99, side: "bid" as const, size: 50000 },
+					{ i: 1, price: 100.01, side: "ask" as const, size: 50000 },
+				],
+			},
+			{
+				id: "P2",
+				levels: [
+					{ i: 0, price: 102.99, side: "bid" as const, size: 50000 },
+					{ i: 1, price: 103.01, side: "ask" as const, size: 50000 },
+				],
+			},
+			{
+				id: "X",
+				levels: [
+					{ i: 0, price: 99.995, side: "bid" as const, size: 5 },
+					{ i: 1, price: 100.005, side: "ask" as const, size: 5 },
+					{ i: 2, price: 102.995, side: "bid" as const, size: 5 },
+					{ i: 3, price: 103.005, side: "ask" as const, size: 5 },
+				],
+			},
+		];
+		const held = computeMark(books, { B: 4, D: 5000, Z: 20 }, 100.5);
+		expect(held.state).toBe("held");
+		expect(held.M).toBe(100.5);
+		expect(held.shareBid.get("X")).toBe(0);
+		const none = computeMark(books, { B: 4, D: 5000, Z: 20 }, null);
+		expect(none.state).toBe("none");
+	});
+
+	test("self-crossed account alone cannot form a mark", () => {
+		const books = [
+			{
+				id: "X",
+				levels: [
+					{ i: 0, price: 100.05, side: "bid" as const, size: 5000 },
+					{ i: 1, price: 99.95, side: "ask" as const, size: 5000 },
+				],
+			},
+		];
+		expect(computeMark(books, { B: 4, D: 5000, Z: 20 }, null).state).toBe(
+			"none",
+		);
+		expect(computeMark(books, { B: 4, D: 5000, Z: 20 }, 100).state).toBe(
+			"held",
+		);
+	});
+
+	test("locked own book (bid == ask) is gated like crossed", () => {
+		const books = [
+			{
+				id: "X",
+				levels: [
+					{ i: 0, price: 100.0, side: "bid" as const, size: 5000 },
+					{ i: 1, price: 100.0, side: "ask" as const, size: 5000 },
+				],
+			},
+		];
+		expect(computeMark(books, { B: 4, D: 5000, Z: 20 }, null).state).toBe(
+			"none",
+		);
+	});
+
+	test("gated account changes nothing for the healthy market around it", () => {
+		const healthy = [
+			{
+				id: "P",
+				levels: [
+					{ i: 0, price: 99.99, side: "bid" as const, size: 5000 },
+					{ i: 1, price: 100.01, side: "ask" as const, size: 5000 },
+				],
+			},
+		];
+		const withCrossed = [
+			...healthy,
+			{
+				id: "X",
+				levels: [
+					{ i: 0, price: 100.2, side: "bid" as const, size: 9000 },
+					{ i: 1, price: 99.8, side: "ask" as const, size: 9000 },
+				],
+			},
+		];
+		const a = computeMark(healthy, { B: 4, D: 5000, Z: 20 }, null);
+		const b = computeMark(withCrossed, { B: 4, D: 5000, Z: 20 }, null);
+		expect(b.state).toBe("fresh");
+		expect(b.M).toBeCloseTo(a.M ?? Number.NaN, 12);
+		expect(b.iBid).toBeCloseTo(a.iBid ?? Number.NaN, 12);
+		expect(b.iAsk).toBeCloseTo(a.iAsk ?? Number.NaN, 12);
+		expect(b.shareBid.get("X")).toBe(0);
+		expect(b.shareBid.get("P")).toBeCloseTo(1, 10);
+	});
+
+	test("crossing BETWEEN accounts is normal and unaffected by the gate", () => {
+		// A's bid stands above B's ask (batch crossing) but each account is
+		// internally coherent — both participate, a mark forms.
+		const books = [
+			{
+				id: "A",
+				levels: [
+					{ i: 0, price: 100.02, side: "bid" as const, size: 5000 },
+					{ i: 1, price: 100.1, side: "ask" as const, size: 5000 },
+				],
+			},
+			{
+				id: "B",
+				levels: [
+					{ i: 0, price: 99.9, side: "bid" as const, size: 5000 },
+					{ i: 1, price: 100.0, side: "ask" as const, size: 5000 },
+				],
+			},
+		];
+		const m = computeMark(books, { B: 4, D: 5000, Z: 20 }, null);
+		expect(m.state).toBe("fresh");
+		expect(m.M).not.toBeNull();
+		expect((m.shareBid.get("A") ?? 0) + (m.shareBid.get("B") ?? 0)).toBeCloseTo(
+			1,
+			10,
+		);
+	});
 
 	test("non-positive D cannot mint a mark (guards the 0/0 walk)", () => {
 		const books = [
@@ -759,5 +878,55 @@ describe("piecewise stamp (the zone knee)", () => {
 		expect(stampCapBps(p)).toBeCloseTo(11.6, 10);
 		// a cap below the knee never reaches k2: F/k1 alone
 		expect(stampCapBps({ ...p, F: 5 })).toBeCloseTo(6.25, 10);
+	});
+});
+
+describe("invariant fuzz (deterministic seeds)", () => {
+	function fuzzRng(seed: number) {
+		let a = seed >>> 0;
+		return () => {
+			a += 0x6d2b79f5;
+			let t = a;
+			t = Math.imul(t ^ (t >>> 15), t | 1);
+			t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
+			return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+		};
+	}
+
+	test("2000 random markets: no NaN marks, sane states, shares in range", () => {
+		for (let iter = 0; iter < 2000; iter++) {
+			const r = fuzzRng(iter + 1);
+			const books = Array.from({ length: 1 + Math.floor(r() * 4) }, (_, b) => {
+				const center = 99 + r() * 2;
+				const spread = r() < 0.2 ? 3 * r() : 0.3 * r();
+				return {
+					id: `A${b}`,
+					levels: Array.from({ length: 1 + Math.floor(r() * 6) }, (_, i) => ({
+						i,
+						price: +(center + (r() - 0.5) * 2 * spread).toFixed(3),
+						side: (r() < 0.5 ? "bid" : "ask") as "bid" | "ask",
+						size: r() < 0.1 ? 0 : Math.floor(r() * 60000),
+					})),
+				};
+			});
+			const lastM = r() < 0.3 ? null : 99 + r() * 2;
+			const D = r() < 0.05 ? 0 : Math.floor(r() * 30000);
+			const m = computeMark(books, { B: 4, D, Z: 20 }, lastM);
+			if (m.state === "fresh") {
+				expect(Number.isFinite(m.M as number)).toBe(true);
+				expect(Number.isFinite(m.iBid as number)).toBe(true);
+				expect(Number.isFinite(m.iAsk as number)).toBe(true);
+				expect(m.edgeBid as number).toBeLessThanOrEqual(m.edgeAsk as number);
+			}
+			if (m.state === "held") expect(m.M).toBe(lastM as number);
+			if (m.state === "none") expect(m.M).toBeNull();
+			for (const map of [m.shareBid, m.shareAsk]) {
+				for (const [, v] of map) {
+					expect(Number.isFinite(v)).toBe(true);
+					expect(v).toBeGreaterThanOrEqual(-1e-9);
+					expect(v).toBeLessThanOrEqual(1 + 1e-9);
+				}
+			}
+		}
 	});
 });

@@ -333,6 +333,29 @@ export function computeMark(
 	// while the state still claims "fresh".
 	if (!(D > 0)) return noMark();
 
+	// —— Coherence gate: a self-crossed account (own best bid at or above
+	// its own best ask) would trade with itself — wash-trading posture,
+	// not a view of the market. It gets no voice in the mark this window:
+	// no seed, no eligibility contribution. (Its orders still match and
+	// pay fees; only mark participation is withheld.) Without this gate a
+	// $20 self-crossed straddle across two far-apart markets hijacks
+	// anchor convergence and mints a mark between them — the one-sided
+	// reach filters admit its far quote via its near pair, and every
+	// seed converges to a widely-crossed anchor key. Crossing BETWEEN
+	// accounts remains normal batch behavior and is unaffected. ——
+	const marketBooks = books.filter((b) => {
+		let bb = Number.NEGATIVE_INFINITY;
+		let ba = Number.POSITIVE_INFINITY;
+		for (const l of b.levels) {
+			if (l.size <= 0) continue;
+			if (l.side === "bid" && l.price > bb) bb = l.price;
+			if (l.side === "ask" && l.price < ba) ba = l.price;
+		}
+		// one-sided or empty books pass through: harmless to eligibility
+		// (the paired cap zeroes them) and they never seed anyway
+		return bb < ba;
+	});
+
 	interface ElQuote {
 		id: string;
 		i: number;
@@ -343,7 +366,7 @@ export function computeMark(
 		const eligible = mapBy(() => new Map<number, number>());
 		const elBids: ElQuote[] = [];
 		const elAsks: ElQuote[] = [];
-		for (const b of books) {
+		for (const b of marketBooks) {
 			const em = eligible.get(b.id);
 			if (!em) continue;
 			const bids = b.levels
@@ -388,7 +411,7 @@ export function computeMark(
 
 	// —— Seeds: each two-sided account proposes its own best quotes ——
 	const seeds = new Map<string, { bb: number; ba: number }>();
-	for (const b of books) {
+	for (const b of marketBooks) {
 		let bb = Number.NEGATIVE_INFINITY;
 		let ba = Number.POSITIVE_INFINITY;
 		for (const l of b.levels) {
