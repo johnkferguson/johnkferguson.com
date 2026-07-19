@@ -77,7 +77,12 @@
         <label><input type="radio" name="warmth" value="warmlight" /> warm</label>
       </div>
       <label><input type="checkbox" value="mutedbump" /> muted gray contrast bump</label>
-      <label><input type="checkbox" value="bqsolid" /> solid blockquotes</label>
+      <div class="group">
+        <span class="group-label">blockquotes</span>
+        <label><input type="radio" name="bq" value="bq0" checked /> current</label>
+        <label><input type="radio" name="bq" value="bqitalic" /> full size+ink, italic</label>
+        <label><input type="radio" name="bq" value="bqroman" /> full size+ink, roman</label>
+      </div>
       <label><input type="checkbox" value="accent" /> terracotta accents</label>
     </div>
     <iframe src="/snapshot-fees" title="post preview"></iframe>
@@ -102,8 +107,10 @@
         ].join(""),
         mutedbump:
           ":root:not(.dark){--date-color:#6e6961}.dark{--date-color:#98928b}",
-        bqsolid:
-          "article blockquote{opacity:1 !important;color:var(--date-color) !important}",
+        bqitalic:
+          "article blockquote{opacity:1 !important;color:var(--text-color) !important;font-size:1rem !important}",
+        bqroman:
+          "article blockquote{opacity:1 !important;color:var(--text-color) !important;font-size:1rem !important;font-style:normal !important}",
         accent: [
           ".toc-rail .toc-row:has(> a.active){border-left-color:var(--code-color) !important}",
           "article a:hover{color:var(--code-color) !important;border-color:var(--code-color) !important}",
