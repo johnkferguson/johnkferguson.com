@@ -74,6 +74,48 @@ const year = new Date().getFullYear();
     </div>
 
     <div class="variant">
+      <span class="tag">C2 — serif (Newsreader)</span>
+      <div class="fake-content"></div>
+      <footer class="f fc serif">
+        <span>© {year}</span>
+        <span class="sep">·</span>
+        <a href="#">GitHub</a>
+        <span class="sep">·</span>
+        <a href="#">X</a>
+        <span class="sep">·</span>
+        <a href="#">RSS</a>
+      </footer>
+    </div>
+
+    <div class="variant">
+      <span class="tag">C3 — serif italic</span>
+      <div class="fake-content"></div>
+      <footer class="f fc serif italic">
+        <span>© {year}</span>
+        <span class="sep">·</span>
+        <a href="#">GitHub</a>
+        <span class="sep">·</span>
+        <a href="#">X</a>
+        <span class="sep">·</span>
+        <a href="#">RSS</a>
+      </footer>
+    </div>
+
+    <div class="variant">
+      <span class="tag">C4 — serif small caps</span>
+      <div class="fake-content"></div>
+      <footer class="f fc serif smallcaps">
+        <span>© {year}</span>
+        <span class="sep">·</span>
+        <a href="#">github</a>
+        <span class="sep">·</span>
+        <a href="#">x</a>
+        <span class="sep">·</span>
+        <a href="#">rss</a>
+      </footer>
+    </div>
+
+    <div class="variant">
       <span class="tag">E — centered with name</span>
       <div class="fake-content"></div>
       <footer class="f fc">
@@ -175,5 +217,23 @@ const year = new Date().getFullYear();
 
   .fc .sep {
     opacity: 0.5;
+  }
+
+  /* C font variants: serif needs a larger px size to match mono's
+   * apparent size */
+  .f.serif {
+    font-family: var(--font-serif);
+    font-size: 0.72rem;
+    letter-spacing: 0.02em;
+  }
+
+  .f.serif.italic {
+    font-style: italic;
+  }
+
+  .f.serif.smallcaps {
+    font-variant-caps: all-small-caps;
+    letter-spacing: 0.06em;
+    font-size: 0.78rem;
   }
 </style>
