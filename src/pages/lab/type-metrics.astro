@@ -84,7 +84,13 @@
         <label><input type="radio" name="bq" value="bqroman" /> full size+ink, roman</label>
       </div>
       <label><input type="checkbox" value="accent" /> accent: TOC spine + copied</label>
-      <label><input type="checkbox" value="deepred" /> deeper code red (light)</label>
+      <div class="group">
+        <span class="group-label">code red (light)</span>
+        <label><input type="radio" name="red" value="red0" checked /> current</label>
+        <label><input type="radio" name="red" value="redhalf" /> halfway</label>
+        <label><input type="radio" name="red" value="reddeep" /> deep</label>
+      </div>
+      <label><input type="checkbox" value="chipweight" /> chip/code weight bump</label>
     </div>
     <iframe src="/snapshot-fees" title="post preview"></iframe>
 
@@ -116,7 +122,10 @@
           ".toc-rail .toc-row:has(> a.active){border-left-color:var(--code-color) !important}",
           ".anchor-link.copied{color:var(--code-color) !important}",
         ].join("\n"),
-        deepred: ":root:not(.dark){--code-color:#a3454f}",
+        redhalf: ":root:not(.dark){--code-color:#b1525b}",
+        reddeep: ":root:not(.dark){--code-color:#a3454f}",
+        chipweight:
+          "article code{font-weight:500 !important} article .katex{font-weight:600 !important}",
       };
       const STORE = "type-metrics-toggles";
       const frame = document.querySelector("iframe");
