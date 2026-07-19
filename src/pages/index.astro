@@ -59,24 +59,35 @@ const identityArt = artSvg({
         {
           sortedPosts.map((post) => (
             <li>
-              <a href={`/${post.id}`} class="post-title-link">
-                {post.data.title}
+              <a href={`/${post.id}`} class="post-card">
+                <span class="card-title">{post.data.title}</span>
+                <span class="row">
+                  <span class="thumb" aria-hidden="true" set:html={thumbSvg(post)} />
+                  <span class="meta">
+                    <span class="date">
+                      {formatDate(post.data.date)}
+                      <span class="rt">
+                        <svg
+                          width="10"
+                          height="10"
+                          viewBox="0 0 16 16"
+                          fill="none"
+                          stroke="currentColor"
+                          stroke-width="1.6"
+                          aria-hidden="true"
+                        >
+                          <circle cx="8" cy="8" r="6.2" />
+                          <path d="M8 4.8V8l2.2 1.6" stroke-linecap="round" />
+                        </svg>
+                        12 min read
+                      </span>
+                    </span>
+                    <span class="desc">
+                      {post.data.description || createExcerpt(post.body ?? "")}
+                    </span>
+                  </span>
+                </span>
               </a>
-              <div class="row">
-                <a
-                  class="thumb"
-                  href={`/${post.id}`}
-                  tabindex="-1"
-                  aria-hidden="true"
-                  set:html={thumbSvg(post)}
-                />
-                <div class="meta">
-                  <span class="date">{formatDate(post.data.date)}</span>
-                  <p class="desc">
-                    {post.data.description || createExcerpt(post.body ?? "")}
-                  </p>
-                </div>
-              </div>
             </li>
           ))
         }
@@ -179,28 +190,53 @@ const identityArt = artSvg({
   }
 
   .post-list li {
-    margin-bottom: 2.2rem;
+    margin-bottom: 1.2rem;
+  }
+
+  /* whole item is one link; hover lifts it on a soft surface */
+  .post-card {
+    display: block;
+    padding: 0.8rem 0.9rem;
+    margin: 0 -0.9rem;
+    border-radius: 10px;
+    border-bottom: none;
+    transition: background-color 0.18s ease;
+  }
+
+  .post-card:hover {
+    background: color-mix(in srgb, var(--code-background) 55%, transparent);
+  }
+
+  .card-title {
+    display: block;
+    font-size: 1.05rem;
+    line-height: 1.3;
+    color: var(--heading-color);
   }
 
   .row {
     display: flex;
     gap: 1.1rem;
     align-items: flex-start;
-    margin-top: 0.55rem;
+    margin-top: 0.3rem;
   }
 
+  /* diffuse thumbnail: no border or box; the art dissolves into the
+   * page via a radial mask */
   .thumb {
     flex: none;
-    width: 7.2rem;
-    height: 5rem;
-    border-radius: 8px;
-    overflow: hidden;
-    border: 1px solid var(--border-color);
-    transition: border-color 0.15s ease;
-  }
-
-  .thumb:hover {
-    border-color: var(--date-color);
+    width: 7.6rem;
+    height: 5.2rem;
+    -webkit-mask-image: radial-gradient(
+      ellipse 92% 88% at 50% 50%,
+      #000 45%,
+      transparent 98%
+    );
+    mask-image: radial-gradient(
+      ellipse 92% 88% at 50% 50%,
+      #000 45%,
+      transparent 98%
+    );
   }
 
   .thumb :global(svg) {
@@ -210,35 +246,31 @@ const identityArt = artSvg({
   }
 
   .meta {
+    display: block;
     min-width: 0;
   }
 
-  .meta .post-title-link {
-    display: inline-block;
-    font-size: 1.05rem;
-    line-height: 1.3;
-    color: var(--heading-color);
-    border-bottom: 1px solid var(--article-link-border);
-    transition: border-color 0.2s ease;
-  }
-
-  .meta .post-title-link:hover {
-    border-color: var(--article-link-hover-border);
-  }
-
   .date {
-    display: block;
+    display: flex;
+    align-items: center;
+    gap: 0.55rem;
     font-family: var(--font-mono);
     font-size: 0.52rem;
     letter-spacing: 0.08em;
     color: var(--date-color);
-    margin: 0.1rem 0 0.4rem;
+    margin: 0.15rem 0 0.4rem;
+  }
+
+  .rt {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.25rem;
   }
 
   .desc {
+    display: block;
     font-size: 0.8rem;
     line-height: 1.5;
     color: var(--text-color);
-    margin: 0;
   }
 </style>
