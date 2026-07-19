@@ -30,7 +30,7 @@ article .katex {
 	padding: 0 0.25rem;
 	border-radius: 4px;
 	/* KaTeX has no medium cut; a hairline stroke thickens inline chips */
-	-webkit-text-stroke: 0.15px currentColor;
+	-webkit-text-stroke: 0.1px currentColor;
 }
 
 article .katex-display {

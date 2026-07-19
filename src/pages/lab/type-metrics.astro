@@ -70,19 +70,12 @@
         <label><input type="radio" name="page" value="/refactoring-with-love" /> refactoring</label>
         <label><input type="radio" name="page" value="/lab/toc-test" /> toc-test</label>
       </div>
-      <div class="group">
-        <span class="group-label">chip stroke</span>
-        <label><input type="radio" name="chip" value="chip15" checked /> 0.15px (now)</label>
-        <label><input type="radio" name="chip" value="chip10" /> 0.10px</label>
-      </div>
+      <span class="group-label">no active experiments</span>
     </div>
     <iframe src="/snapshot-fees" title="post preview"></iframe>
 
     <script>
-      const RULES: Record<string, string> = {
-        chip10:
-          "article .katex{-webkit-text-stroke:0.1px currentColor} article .katex-display .katex{-webkit-text-stroke:0}",
-      };
+      const RULES: Record<string, string> = {};
       const STORE = "type-metrics-toggles";
       const frame = document.querySelector("iframe");
       const panel = document.querySelector("[data-panel]");
