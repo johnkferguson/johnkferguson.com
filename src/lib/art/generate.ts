@@ -49,11 +49,14 @@ export interface ArtOptions {
 	height?: number;
 	/** region the art thins out to leave room for overlaid text */
 	quiet?: QuietZone;
+	/** opacity multiplier inside the quiet zone, 0..1 (default 0.16) */
+	quietStrength?: number;
 }
 
 /** attenuation factor for an element centered at (cx, cy) in px */
 function quietAt(
 	q: QuietZone | undefined,
+	strength: number,
 	w: number,
 	h: number,
 	cx: number,
@@ -62,7 +65,7 @@ function quietAt(
 	if (!q) return 1;
 	const inX = cx >= q.x * w && cx <= (q.x + q.w) * w;
 	const inY = cy >= q.y * h && cy <= (q.y + q.h) * h;
-	return inX && inY ? 0.16 : 1;
+	return inX && inY ? strength : 1;
 }
 
 export function artSvg(opts: ArtOptions): string {
@@ -71,7 +74,8 @@ export function artSvg(opts: ArtOptions): string {
 	const seed = hashSeed(opts.seedKey);
 	const family = opts.family ?? FAMILIES[seed % FAMILIES.length];
 	const r = rng(seed);
-	const quiet = (cx: number, cy: number) => quietAt(opts.quiet, w, h, cx, cy);
+	const quiet = (cx: number, cy: number) =>
+		quietAt(opts.quiet, opts.quietStrength ?? 0.16, w, h, cx, cy);
 	const body =
 		family === "strata"
 			? strata(r, w, h, quiet)
