@@ -64,33 +64,35 @@
   </head>
   <body>
     <div class="panel" data-panel>
-      <span class="group-label">type metrics</span>
-      <label><input type="checkbox" value="tracking" /> heading tracking 0 (now -0.033rem)</label>
       <div class="group">
-        <span class="group-label">heading weight</span>
-        <label><input type="radio" name="weight" value="weight700" checked /> 700 (now)</label>
-        <label><input type="radio" name="weight" value="weight650" /> 650</label>
-        <label><input type="radio" name="weight" value="weight600" /> 600</label>
+        <span class="group-label">page</span>
+        <label><input type="radio" name="page" value="/snapshot-fees" checked /> snapshot-fees</label>
+        <label><input type="radio" name="page" value="/refactoring-with-love" /> refactoring</label>
+        <label><input type="radio" name="page" value="/lab/toc-test" /> toc-test</label>
       </div>
-      <label><input type="checkbox" value="para" /> paragraph gap 1.2rem (now 1rem)</label>
-      <label><input type="checkbox" value="air" /> section air h2 3rem / h3 2.2rem</label>
-      <label><input type="checkbox" value="leading" /> line-height 1.65 (now 1.6)</label>
-      <label><input type="checkbox" value="measure" /> measure 640px (now 680px)</label>
+      <div class="group">
+        <span class="group-label">paragraph gap</span>
+        <label><input type="radio" name="para" value="para100" checked /> 1rem (now)</label>
+        <label><input type="radio" name="para" value="para090" /> 0.9rem</label>
+        <label><input type="radio" name="para" value="para085" /> 0.85rem</label>
+      </div>
+      <div class="group">
+        <span class="group-label">gap under headings</span>
+        <label><input type="radio" name="hgap" value="hgap050" checked /> 0.5rem (now)</label>
+        <label><input type="radio" name="hgap" value="hgap065" /> 0.65rem</label>
+        <label><input type="radio" name="hgap" value="hgap080" /> 0.8rem</label>
+      </div>
     </div>
-    <iframe src="/snapshot-fees" title="snapshot fees preview"></iframe>
+    <iframe src="/snapshot-fees" title="post preview"></iframe>
 
     <script>
       const RULES: Record<string, string> = {
-        tracking:
-          "h1,h2,h3,h4,h5,h6{letter-spacing:0 !important}",
-        weight650:
-          "h1,h2,h3,h4,h5,h6,.post-header h1{font-weight:650 !important}",
-        weight600:
-          "h1,h2,h3,h4,h5,h6,.post-header h1{font-weight:600 !important}",
-        para: "article p{margin-bottom:1.2rem !important}",
-        air: "article h2{margin-top:3rem !important} article h3{margin-top:2.2rem !important}",
-        leading: "body{line-height:1.65 !important}",
-        measure: ":root{--prose-measure:32rem}",
+        para090: "article p{margin-bottom:0.9rem !important}",
+        para085: "article p{margin-bottom:0.85rem !important}",
+        hgap065:
+          "article :is(h2,h3,h4){margin-bottom:0.65rem !important}",
+        hgap080:
+          "article :is(h2,h3,h4){margin-bottom:0.8rem !important}",
       };
       const STORE = "type-metrics-toggles";
       const frame = document.querySelector("iframe");
@@ -130,7 +132,14 @@
             if (def) def.checked = true;
           }
         }
-        panel.addEventListener("change", apply);
+        panel.addEventListener("change", (e) => {
+          const t = e.target as HTMLInputElement;
+          if (t.name === "page") {
+            frame.src = t.value;
+            return; // overrides reapply on the load event
+          }
+          apply();
+        });
         frame.addEventListener("load", apply);
       }
     </script>

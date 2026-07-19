@@ -102,6 +102,8 @@ p {
 	margin: 0 0 1rem;
 }
 
+/* Newsreader's optical axis handles display tightening; no manual
+ * tracking. 600 weight: the 700 display cut is too dark for headings. */
 h1,
 h2,
 h3,
@@ -109,10 +111,9 @@ h4,
 h5,
 h6 {
 	margin-bottom: 0.5rem;
-	font-weight: bold;
+	font-weight: 600;
 	line-height: 1.1;
 	color: var(--heading-color);
-	letter-spacing: -0.033rem;
 }
 
 h1,
