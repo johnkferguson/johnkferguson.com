@@ -217,6 +217,26 @@ describe("Mark pipeline: eligibility, candidates, boundary fill", () => {
 		expect(none.M).toBeNull();
 	});
 
+	test("non-positive D cannot mint a mark (guards the 0/0 walk)", () => {
+		const books = [
+			{
+				id: "P",
+				levels: [
+					{ i: 0, price: 99.99, side: "bid" as const, size: 5000 },
+					{ i: 1, price: 100.01, side: "ask" as const, size: 5000 },
+				],
+			},
+		];
+		const zero = computeMark(books, { B: 4, D: 0, Z: 20 }, null);
+		expect(zero.state).toBe("none");
+		expect(zero.M).toBeNull();
+		const zeroHeld = computeMark(books, { B: 4, D: 0, Z: 20 }, 100.05);
+		expect(zeroHeld.state).toBe("held");
+		expect(zeroHeld.M).toBe(100.05);
+		const negative = computeMark(books, { B: 4, D: -100, Z: 20 }, null);
+		expect(negative.state).toBe("none");
+	});
+
 	test("one-sided touch order cannot position the window (no seed, no voice)", () => {
 		// A voiceless aggressive bid at 100.00 far above a real maker's book.
 		// One-sided accounts propose no seed, so the maker's own candidate is

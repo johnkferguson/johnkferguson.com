@@ -7,7 +7,7 @@ const twitterUsername = "johnkferguson";
 ---
 
 <footer class="site-footer">
-  <span>© {year}</span>
+  <span data-year>© {year}</span>
   <span class="sep">·</span>
   <a href={`https://github.com/${githubUsername}`} rel="me">GitHub</a>
   <span class="sep">·</span>
@@ -15,6 +15,16 @@ const twitterUsername = "johnkferguson";
   <span class="sep">·</span>
   <a href="/rss.xml">RSS</a>
 </footer>
+
+<script>
+	// year is baked at build; correct it client-side if a deploy hasn't
+	// crossed the year boundary yet
+	const el = document.querySelector<HTMLElement>("[data-year]");
+	if (el) {
+		const now = `© ${new Date().getFullYear()}`;
+		if (el.textContent !== now) el.textContent = now;
+	}
+</script>
 
 <style>
   .site-footer {

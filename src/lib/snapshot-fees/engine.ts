@@ -330,6 +330,11 @@ export function computeMark(
 		eligible: mapBy(() => new Map<number, number>()),
 	});
 
+	// A non-positive walk size cannot measure anything: without this guard
+	// the walk's cost / D divides by zero and every downstream fee is NaN
+	// while the state still claims "fresh".
+	if (!(D > 0)) return noMark();
+
 	interface ElQuote {
 		id: string;
 		i: number;

@@ -2,7 +2,11 @@
  * meta fallbacks when frontmatter has no description. */
 export function createExcerpt(content: string, maxLength = 160): string {
 	if (!content) return "";
-	const plain = content.replace(/(\*\*|\*|_|`|>|#|\[|\]|\(|\))/g, "");
+	const plain = content
+		/* links keep their text, never their URLs */
+		.replace(/!\[[^\]]*\]\([^)]*\)/g, "")
+		.replace(/\[([^\]]*)\]\([^)]*\)/g, "$1")
+		.replace(/(\*\*|\*|_|`|>|#|\[|\]|\(|\))/g, "");
 	if (plain.length <= maxLength) return plain;
 	let truncated = plain.substring(0, maxLength);
 	const lastSpace = truncated.lastIndexOf(" ");
