@@ -1,6 +1,8 @@
 ---
 import "@fontsource-variable/newsreader/opsz.css";
 import "@fontsource-variable/newsreader/opsz-italic.css";
+import firaCodeWoff2 from "@fontsource/fira-code/files/fira-code-latin-400-normal.woff2?url";
+import newsreaderWoff2 from "@fontsource-variable/newsreader/files/newsreader-latin-opsz-normal.woff2?url";
 import "@fontsource/fira-code/400.css";
 import "@fontsource/fira-code/500.css";
 import "@fontsource/fira-code/700.css";
@@ -39,6 +41,8 @@ const {
 <!doctype html>
 <html lang="en">
   <head>
+    <link rel="preload" href={newsreaderWoff2} as="font" type="font/woff2" crossorigin />
+    <link rel="preload" href={firaCodeWoff2} as="font" type="font/woff2" crossorigin />
     <Head title={title} description={description} image={image} type={type} pubDate={pubDate} noindex={noindex} />
     <JsonLd type={type} title={title} description={description} image={image} pubDate={pubDate} author={author} />
     <script is:inline>
