@@ -1,424 +1,452 @@
 ---
-// Section navigation. Auto-discovers h2[id]/h3[id] headings inside the
-// element marked data-toc-root. Two variants:
-//   <TableOfContents />        sticky left rail: nested accordion with
-//                              carets, two-level scrollspy, Top link
-//   <TableOfContents inline /> in-flow Contents block (flat h2 list),
-//                              shown when the rail does not fit
+// Section navigation, rendered at build time from the page's headings
+// (depths 2-4, stepwise nesting guaranteed by the heading-structure
+// test). Two variants:
+//   <TableOfContents headings={...} />  sticky left rail: nested
+//       accordion with carets, three-level scrollspy, Top link
+//   <TableOfContents inline />          in-flow Contents block (flat h2
+//       list, populated client-side from the article), shown when the
+//       rail does not fit
+//
+// The client script attaches behavior only (scrollspy, accordion,
+// auto-scroll, Top); the full list exists without JS, and a noscript
+// style expands every sub-list for JS-less readers.
+import type { MarkdownHeading } from "astro";
+
 interface Props {
 	inline?: boolean;
+	headings?: MarkdownHeading[];
 }
-const { inline = false } = Astro.props;
+const { inline = false, headings = [] } = Astro.props;
+
+interface SubEntry {
+	slug: string;
+	text: string;
+	leaves: { slug: string; text: string }[];
+}
+interface Section {
+	slug: string;
+	text: string;
+	subs: SubEntry[];
+}
+const sections: Section[] = [];
+for (const h of headings) {
+	if (h.depth === 2) sections.push({ slug: h.slug, text: h.text, subs: [] });
+	else if (h.depth === 3)
+		sections.at(-1)?.subs.push({ slug: h.slug, text: h.text, leaves: [] });
+	else if (h.depth === 4)
+		sections.at(-1)?.subs.at(-1)?.leaves.push({ slug: h.slug, text: h.text });
+}
+
+const caretSvg =
+	'<svg width="10" height="10" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 3.5 10.5 8 6 12.5"/></svg>';
 ---
 
-<nav
-	class={inline ? "toc toc-inline" : "toc toc-rail"}
-	data-toc
-	aria-label="Sections"
->
-	<div class="toc-panel">
-		<div class="toc-scroll">
-			<span class="toc-title micro-label">Contents</span>
-			<ul></ul>
-		</div>
-	</div>
-	{
-		!inline && (
-			<button class="toc-top micro-label" data-toc-top type="button">
-				<span class="toc-top-arrow" aria-hidden="true">&#8593;</span>
-				<span>Back to top</span>
-			</button>
-		)
-	}
-</nav>
+{
+	(inline || sections.length > 0) && (
+		<nav
+			class={inline ? "toc toc-inline" : "toc toc-rail"}
+			data-toc
+			aria-label="Sections"
+		>
+			<div class="toc-panel">
+				<div class="toc-scroll">
+					<span class="toc-title micro-label">Contents</span>
+					<ul>
+						{!inline &&
+							sections.map((s) => (
+								<li class="toc-section">
+									<div class="toc-row">
+										<a href={`#${s.slug}`}>{s.text}</a>
+										{s.subs.length > 0 && (
+											<button
+												class="toc-caret"
+												type="button"
+												aria-label={`Toggle ${s.text} subsections`}
+												aria-expanded="false"
+												set:html={caretSvg}
+											/>
+										)}
+									</div>
+									{s.subs.length > 0 && (
+										<div class="toc-subwrap">
+											<ul class="toc-sub">
+												{s.subs.map((sub) => (
+													<li>
+														<div class="toc-row">
+															<a href={`#${sub.slug}`}>{sub.text}</a>
+															{sub.leaves.length > 0 && (
+																<button
+																	class="toc-caret"
+																	type="button"
+																	aria-label={`Toggle ${sub.text} subsections`}
+																	aria-expanded="false"
+																	set:html={caretSvg}
+																/>
+															)}
+														</div>
+														{sub.leaves.length > 0 && (
+															<div class="toc-subwrap">
+																<ul class="toc-sub toc-sub2">
+																	{sub.leaves.map((leaf) => (
+																		<li>
+																			<a href={`#${leaf.slug}`}>{leaf.text}</a>
+																		</li>
+																	))}
+																</ul>
+															</div>
+														)}
+													</li>
+												))}
+											</ul>
+										</div>
+									)}
+								</li>
+							))}
+					</ul>
+				</div>
+			</div>
+			{!inline && (
+				<button class="toc-top micro-label" data-toc-top type="button">
+					<span class="toc-top-arrow" aria-hidden="true">
+						&#8593;
+					</span>
+					<span>Back to top</span>
+				</button>
+			)}
+		</nav>
+	)
+}
+
+<noscript>
+	<style is:global>
+		/* without JS the accordion cannot open; show everything */
+		.toc-rail .toc-subwrap {
+			grid-template-rows: 1fr;
+		}
+	</style>
+</noscript>
 
 <script>
+	const rail = document.querySelector<HTMLElement>("nav.toc-rail");
+	const inlineNav = document.querySelector<HTMLElement>("nav.toc-inline");
 	const root = document.querySelector("[data-toc-root]");
-	const navs = [...document.querySelectorAll<HTMLElement>("nav[data-toc]")];
-	if (root && navs.length) {
-		const heads = [
-			...root.querySelectorAll<HTMLElement>("h2[id], h3[id], h4[id]"),
-		];
-		interface SubEntry {
-			h3: HTMLElement;
+
+	const reduceMotion = window.matchMedia(
+		"(prefers-reduced-motion: reduce)",
+	).matches;
+	const goTo = (el: HTMLElement) => (e: Event) => {
+		e.preventDefault();
+		el.scrollIntoView({
+			behavior: reduceMotion ? "auto" : "smooth",
+			block: "start",
+		});
+		history.pushState(null, "", `#${el.id}`);
+	};
+
+	// —— inline variant: flat h2 list, populated from the article ——
+	if (inlineNav && root) {
+		const ul = inlineNav.querySelector("ul");
+		const h2s = [...root.querySelectorAll<HTMLElement>("h2[id]")];
+		if (ul && h2s.length) {
+			for (const h of h2s) {
+				const li = document.createElement("li");
+				const a = document.createElement("a");
+				a.href = `#${h.id}`;
+				a.textContent = h.textContent ?? "";
+				a.addEventListener("click", goTo(h));
+				li.append(a);
+				ul.append(li);
+			}
+		} else {
+			inlineNav.style.display = "none";
+		}
+	}
+
+	// —— rail variant: attach behavior to the server-rendered tree ——
+	if (rail && root) {
+		interface SubRef {
+			li: HTMLElement;
+			link: HTMLAnchorElement;
+			caret: HTMLButtonElement | null;
+			wrap: HTMLElement | null;
+			leafLinks: HTMLAnchorElement[];
+			h3: HTMLElement | null;
 			h4s: HTMLElement[];
 		}
-		const sections: { h2: HTMLElement; subs: SubEntry[] }[] = [];
-		for (const h of heads) {
-			if (h.tagName === "H2") sections.push({ h2: h, subs: [] });
-			else if (h.tagName === "H3")
-				sections.at(-1)?.subs.push({ h3: h, h4s: [] });
-			else sections.at(-1)?.subs.at(-1)?.h4s.push(h);
+		interface SectionRef {
+			li: HTMLElement;
+			link: HTMLAnchorElement;
+			caret: HTMLButtonElement | null;
+			wrap: HTMLElement | null;
+			subs: SubRef[];
+			h2: HTMLElement | null;
 		}
 
-		if (sections.length === 0) {
-			for (const nav of navs) nav.style.display = "none";
-		} else {
-			const reduceMotion = window.matchMedia(
-				"(prefers-reduced-motion: reduce)",
-			).matches;
-			const goTo = (h: HTMLElement) => (e: Event) => {
-				e.preventDefault();
-				h.scrollIntoView({
-					behavior: reduceMotion ? "auto" : "smooth",
-					block: "start",
+		const byHash = (a: HTMLAnchorElement) =>
+			document.getElementById(decodeURIComponent(a.hash.slice(1)));
+
+		const scroll = rail.querySelector<HTMLElement>(".toc-scroll");
+		const sections: SectionRef[] = [
+			...rail.querySelectorAll<HTMLElement>(".toc-scroll > ul > li"),
+		].map((li) => {
+			const link = li.querySelector<HTMLAnchorElement>(
+				":scope > .toc-row > a",
+			) as HTMLAnchorElement;
+			const subs: SubRef[] = [
+				...li.querySelectorAll<HTMLElement>(":scope > .toc-subwrap > ul > li"),
+			].map((sli) => {
+				const sLink = sli.querySelector<HTMLAnchorElement>(
+					":scope > .toc-row > a",
+				) as HTMLAnchorElement;
+				const leafLinks = [
+					...sli.querySelectorAll<HTMLAnchorElement>(
+						":scope > .toc-subwrap a",
+					),
+				];
+				return {
+					li: sli,
+					link: sLink,
+					caret: sli.querySelector<HTMLButtonElement>(
+						":scope > .toc-row > .toc-caret",
+					),
+					wrap: sli.querySelector<HTMLElement>(":scope > .toc-subwrap"),
+					leafLinks,
+					h3: byHash(sLink),
+					h4s: leafLinks
+						.map(byHash)
+						.filter((el): el is HTMLElement => el != null),
+				};
+			});
+			return {
+				li,
+				link,
+				caret: li.querySelector<HTMLButtonElement>(
+					":scope > .toc-row > .toc-caret",
+				),
+				wrap: li.querySelector<HTMLElement>(":scope > .toc-subwrap"),
+				subs,
+				h2: byHash(link),
+			};
+		});
+
+		// navigation clicks (smooth scroll instead of native jump)
+		for (const s of sections) {
+			if (s.h2) s.link.addEventListener("click", goTo(s.h2));
+			for (const sub of s.subs) {
+				if (sub.h3) sub.link.addEventListener("click", goTo(sub.h3));
+				sub.leafLinks.forEach((la, k) => {
+					const h4 = sub.h4s[k];
+					if (h4) la.addEventListener("click", goTo(h4));
 				});
-				history.pushState(null, "", `#${h.id}`);
-			};
-
-			// —— accordion state, two nesting levels ——
-			// The current section (and, within it, the current subsection)
-			// auto-expands; others collapse. Manual caret toggles override
-			// that until the reader moves on.
-			let current = 0;
-			let currentSub = -1;
-			let currentLeaf = -1;
-			const m1Open = new Set<number>();
-			const m1Closed = new Set<number>();
-			const m2Open = new Set<string>();
-			const m2Closed = new Set<string>();
-			const expandedAt = (i: number) =>
-				m1Open.has(i) || (i === current && !m1Closed.has(i));
-			const expanded2At = (i: number, j: number) =>
-				m2Open.has(`${i}:${j}`) ||
-				(i === current && j === currentSub && !m2Closed.has(`${i}:${j}`));
-			const clearM2For = (i: number, j?: number) => {
-				for (const set of [m2Open, m2Closed]) {
-					for (const key of [...set]) {
-						if (j === undefined ? key.startsWith(`${i}:`) : key === `${i}:${j}`)
-							set.delete(key);
-					}
-				}
-			};
-
-			interface SubRefs {
-				li: HTMLElement;
-				link: HTMLAnchorElement;
-				caret?: HTMLButtonElement;
-				wrap?: HTMLElement;
-				leafLinks: HTMLAnchorElement[];
 			}
-			interface RailRefs {
-				scroll: HTMLElement | null;
-				items: HTMLElement[];
-				rowLinks: HTMLAnchorElement[];
-				carets: (HTMLButtonElement | undefined)[];
-				subWraps: (HTMLElement | undefined)[];
-				subs: SubRefs[][];
+		}
+
+		// —— accordion state, two nesting levels ——
+		// The current section (and, within it, the current subsection)
+		// auto-expands; others collapse. Manual caret toggles override
+		// that until the reader moves on.
+		let current = -1;
+		let currentSub = -1;
+		let currentLeaf = -1;
+		const m1Open = new Set<number>();
+		const m1Closed = new Set<number>();
+		const m2Open = new Set<string>();
+		const m2Closed = new Set<string>();
+		const expandedAt = (i: number) =>
+			m1Open.has(i) || (i === current && !m1Closed.has(i));
+		const expanded2At = (i: number, j: number) =>
+			m2Open.has(`${i}:${j}`) ||
+			(i === current && j === currentSub && !m2Closed.has(`${i}:${j}`));
+		const clearM2For = (i: number, j?: number) => {
+			for (const set of [m2Open, m2Closed]) {
+				for (const key of [...set]) {
+					if (j === undefined ? key.startsWith(`${i}:`) : key === `${i}:${j}`)
+						set.delete(key);
+				}
 			}
-			const rails: RailRefs[] = [];
+		};
 
-			// Keep the active entry visible inside the rail's scroll box,
-			// scrolling only the box (never the page) with minimal motion.
-			// On expansion, prefer revealing the whole sub-list when it fits.
-			// Delayed past the 250ms expand animation so we measure final
-			// layout; skipped while the pointer is over the rail.
-			let revealTimer: number | undefined;
-			const scheduleReveal = () => {
-				clearTimeout(revealTimer);
-				revealTimer = window.setTimeout(() => {
-					for (const r of rails) {
-						const c = r.scroll;
-						if (!c || c.scrollHeight <= c.clientHeight) continue;
-						if (c.matches(":hover")) continue;
-						const subRef =
-							currentSub >= 0 ? r.subs[current]?.[currentSub] : undefined;
-						const active =
-							currentLeaf >= 0
-								? subRef?.leafLinks[currentLeaf]
-								: (subRef?.link ?? r.rowLinks[current]);
-						if (!active) continue;
-						const cRect = c.getBoundingClientRect();
-						const rel = (el: HTMLElement) =>
-							el.getBoundingClientRect().top - cRect.top + c.scrollTop;
-						const ch = c.clientHeight;
-						let st = c.scrollTop;
-						// innermost expanded group wins for the fit-into-view pass
-						const group =
-							subRef && expanded2At(current, currentSub)
-								? subRef.li
-								: expandedAt(current)
-									? r.items[current]
-									: undefined;
-						if (group && group.offsetHeight <= ch) {
-							const gTop = rel(group);
-							const gBottom = gTop + group.offsetHeight;
-							if (gBottom > st + ch) st = gBottom - ch;
-							if (gTop < st) st = gTop;
-						}
-						const aTop = rel(active);
-						const aBottom = aTop + active.offsetHeight;
-						const pad = 6;
-						if (aTop < st + pad) st = aTop - pad;
-						else if (aBottom > st + ch - pad) st = aBottom - ch + pad;
-						if (Math.abs(st - c.scrollTop) > 1) {
-							c.scrollTo({
-								top: st,
-								behavior: reduceMotion ? "auto" : "smooth",
-							});
-						}
-					}
-				}, 300);
-			};
-
-			const mark = (el: HTMLElement, on: boolean) => {
-				el.classList.toggle("active", on);
-				if (on) el.setAttribute("aria-current", "true");
-				else el.removeAttribute("aria-current");
-			};
-			const apply = () => {
-				for (const r of rails) {
-					sections.forEach((_, i) => {
-						if (r.rowLinks[i]) mark(r.rowLinks[i], i === current);
-						const open = expandedAt(i);
-						r.subWraps[i]?.classList.toggle("open", open);
-						r.carets[i]?.classList.toggle("open", open);
-						r.carets[i]?.setAttribute("aria-expanded", String(open));
-						r.subs[i]?.forEach((sr, j) => {
-							const subActive = i === current && j === currentSub;
-							mark(sr.link, subActive);
-							const open2 = expanded2At(i, j);
-							sr.wrap?.classList.toggle("open", open2);
-							sr.caret?.classList.toggle("open", open2);
-							sr.caret?.setAttribute("aria-expanded", String(open2));
-							sr.leafLinks.forEach((la, k) =>
-								mark(la, subActive && k === currentLeaf),
-							);
-						});
-					});
-				}
-			};
-
-			const toggle = (i: number) => {
-				if (expandedAt(i)) {
-					if (m1Open.has(i)) m1Open.delete(i);
-					else m1Closed.add(i);
-				} else {
-					m1Open.add(i);
-					m1Closed.delete(i);
-				}
-				apply();
-				scheduleReveal();
-			};
-
-			const toggle2 = (i: number, j: number) => {
-				const key = `${i}:${j}`;
-				if (expanded2At(i, j)) {
-					if (m2Open.has(key)) m2Open.delete(key);
-					else m2Closed.add(key);
-				} else {
-					m2Open.add(key);
-					m2Closed.delete(key);
-				}
-				apply();
-				scheduleReveal();
-			};
-
-			const caretSvg =
-				'<svg width="10" height="10" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 3.5 10.5 8 6 12.5"/></svg>';
-
-			for (const nav of navs) {
-				const ul = nav.querySelector("ul");
-				if (!ul) continue;
-
-				if (nav.classList.contains("toc-inline")) {
-					for (const s of sections) {
-						const li = document.createElement("li");
-						const a = document.createElement("a");
-						a.href = `#${s.h2.id}`;
-						a.textContent = s.h2.textContent ?? "";
-						a.addEventListener("click", goTo(s.h2));
-						li.append(a);
-						ul.append(li);
-					}
-					continue;
-				}
-
-				const makeRow = (
-					h: HTMLElement,
-					onToggle?: () => void,
-				): {
-					row: HTMLElement;
-					link: HTMLAnchorElement;
-					caret?: HTMLButtonElement;
-				} => {
-					const row = document.createElement("div");
-					row.className = "toc-row";
-					const link = document.createElement("a");
-					link.href = `#${h.id}`;
-					link.textContent = h.textContent ?? "";
-					link.addEventListener("click", goTo(h));
-					row.append(link);
-					let caret: HTMLButtonElement | undefined;
-					if (onToggle) {
-						caret = document.createElement("button");
-						caret.className = "toc-caret";
-						caret.type = "button";
-						caret.setAttribute(
-							"aria-label",
-							`Toggle ${h.textContent} subsections`,
-						);
-						caret.innerHTML = caretSvg;
-						caret.addEventListener("click", onToggle);
-						row.append(caret);
-					}
-					return { row, link, caret };
-				};
-
-				const refs: RailRefs = {
-					scroll: nav.querySelector(".toc-scroll"),
-					items: [],
-					rowLinks: [],
-					carets: [],
-					subWraps: [],
-					subs: [],
-				};
-				sections.forEach((s, i) => {
-					const li = document.createElement("li");
-					li.className = "toc-section";
-					const { row, link, caret } = makeRow(
-						s.h2,
-						s.subs.length ? () => toggle(i) : undefined,
+		const mark = (el: HTMLElement, on: boolean) => {
+			el.classList.toggle("active", on);
+			if (on) el.setAttribute("aria-current", "true");
+			else el.removeAttribute("aria-current");
+		};
+		const apply = () => {
+			sections.forEach((s, i) => {
+				mark(s.link, i === current);
+				const open = expandedAt(i);
+				s.wrap?.classList.toggle("open", open);
+				s.caret?.classList.toggle("open", open);
+				s.caret?.setAttribute("aria-expanded", String(open));
+				s.subs.forEach((sub, j) => {
+					const subActive = i === current && j === currentSub;
+					mark(sub.link, subActive);
+					const open2 = expanded2At(i, j);
+					sub.wrap?.classList.toggle("open", open2);
+					sub.caret?.classList.toggle("open", open2);
+					sub.caret?.setAttribute("aria-expanded", String(open2));
+					sub.leafLinks.forEach((la, k) =>
+						mark(la, subActive && k === currentLeaf),
 					);
-					refs.rowLinks.push(link);
-					if (caret) refs.carets[i] = caret;
-					li.append(row);
-
-					const subRefsHere: SubRefs[] = [];
-					if (s.subs.length) {
-						const wrap = document.createElement("div");
-						wrap.className = "toc-subwrap";
-						const sub = document.createElement("ul");
-						sub.className = "toc-sub";
-						s.subs.forEach((se, j) => {
-							const sli = document.createElement("li");
-							const subRow = makeRow(
-								se.h3,
-								se.h4s.length ? () => toggle2(i, j) : undefined,
-							);
-							sli.append(subRow.row);
-							const leafLinks: HTMLAnchorElement[] = [];
-							let wrap2: HTMLElement | undefined;
-							if (se.h4s.length) {
-								wrap2 = document.createElement("div");
-								wrap2.className = "toc-subwrap";
-								const sub2 = document.createElement("ul");
-								sub2.className = "toc-sub toc-sub2";
-								for (const h4 of se.h4s) {
-									const lli = document.createElement("li");
-									const la = document.createElement("a");
-									la.href = `#${h4.id}`;
-									la.textContent = h4.textContent ?? "";
-									la.addEventListener("click", goTo(h4));
-									lli.append(la);
-									sub2.append(lli);
-									leafLinks.push(la);
-								}
-								wrap2.append(sub2);
-								sli.append(wrap2);
-							}
-							sub.append(sli);
-							subRefsHere.push({
-								li: sli,
-								link: subRow.link,
-								caret: subRow.caret,
-								wrap: wrap2,
-								leafLinks,
-							});
-						});
-						wrap.append(sub);
-						li.append(wrap);
-						refs.subWraps[i] = wrap;
-					}
-					refs.subs.push(subRefsHere);
-					refs.items.push(li);
-					ul.append(li);
 				});
-				rails.push(refs);
+			});
+		};
+
+		// Keep the active entry visible inside the rail's scroll box,
+		// scrolling only the box (never the page) with minimal motion.
+		// On expansion, prefer revealing the whole sub-list when it fits.
+		// Delayed past the 250ms expand animation so we measure final
+		// layout; skipped while the pointer is over the rail.
+		let revealTimer: number | undefined;
+		const scheduleReveal = () => {
+			clearTimeout(revealTimer);
+			revealTimer = window.setTimeout(() => {
+				const c = scroll;
+				if (!c || c.scrollHeight <= c.clientHeight) return;
+				if (c.matches(":hover")) return;
+				if (current < 0) return;
+				const subRef = currentSub >= 0 ? sections[current]?.subs[currentSub] : undefined;
+				const active =
+					currentLeaf >= 0
+						? subRef?.leafLinks[currentLeaf]
+						: (subRef?.link ?? sections[current]?.link);
+				if (!active) return;
+				const cRect = c.getBoundingClientRect();
+				const rel = (el: HTMLElement) =>
+					el.getBoundingClientRect().top - cRect.top + c.scrollTop;
+				const ch = c.clientHeight;
+				let st = c.scrollTop;
+				// innermost expanded group wins for the fit-into-view pass
+				const group =
+					subRef && expanded2At(current, currentSub)
+						? subRef.li
+						: expandedAt(current)
+							? sections[current]?.li
+							: undefined;
+				if (group && group.offsetHeight <= ch) {
+					const gTop = rel(group);
+					const gBottom = gTop + group.offsetHeight;
+					if (gBottom > st + ch) st = gBottom - ch;
+					if (gTop < st) st = gTop;
+				}
+				const aTop = rel(active);
+				const aBottom = aTop + active.offsetHeight;
+				const pad = 6;
+				if (aTop < st + pad) st = aTop - pad;
+				else if (aBottom > st + ch - pad) st = aBottom - ch + pad;
+				if (Math.abs(st - c.scrollTop) > 1) {
+					c.scrollTo({ top: st, behavior: reduceMotion ? "auto" : "smooth" });
+				}
+			}, 300);
+		};
+
+		const toggle = (i: number) => {
+			if (expandedAt(i)) {
+				if (m1Open.has(i)) m1Open.delete(i);
+				else m1Closed.add(i);
+			} else {
+				m1Open.add(i);
+				m1Closed.delete(i);
 			}
-
-			// —— scrollspy + Top link visibility ——
-			const tops = [
-				...document.querySelectorAll<HTMLElement>("[data-toc-top]"),
-			];
-			for (const t of tops) {
-				t.addEventListener("click", () => {
-					window.scrollTo({
-						top: 0,
-						behavior: reduceMotion ? "auto" : "smooth",
-					});
-				});
+			apply();
+			scheduleReveal();
+		};
+		const toggle2 = (i: number, j: number) => {
+			const key = `${i}:${j}`;
+			if (expanded2At(i, j)) {
+				if (m2Open.has(key)) m2Open.delete(key);
+				else m2Closed.add(key);
+			} else {
+				m2Open.add(key);
+				m2Closed.delete(key);
 			}
+			apply();
+			scheduleReveal();
+		};
+		sections.forEach((s, i) => {
+			s.caret?.addEventListener("click", () => toggle(i));
+			s.subs.forEach((sub, j) => {
+				sub.caret?.addEventListener("click", () => toggle2(i, j));
+			});
+		});
 
-			const THRESH = 130;
-			const postH1 = document.querySelector<HTMLElement>(".post-header h1");
-			let ticking = false;
-			const update = () => {
-				ticking = false;
-				/* before the first h2 is reached (reading the lede), nothing
-				 * is current and nothing highlights */
-				let cur = -1;
-				sections.forEach((s, i) => {
-					if (s.h2.getBoundingClientRect().top < THRESH) cur = i;
-				});
-				let sub = -1;
-				let leaf = -1;
-				/* a final section shorter than the viewport can never cross the
-				 * threshold; at the page bottom, snap to the very end */
-				const atBottom =
-					window.innerHeight + window.scrollY >=
-					document.documentElement.scrollHeight - 2;
-				if (atBottom && sections.length) {
-					cur = sections.length - 1;
-					sub = sections[cur].subs.length - 1;
-					leaf = sub >= 0 ? sections[cur].subs[sub].h4s.length - 1 : -1;
-				} else if (cur >= 0) {
-					sections[cur].subs.forEach((se, j) => {
-						if (se.h3.getBoundingClientRect().top < THRESH) sub = j;
-					});
-					if (sub >= 0) {
-						sections[cur].subs[sub].h4s.forEach((h, k) => {
-							if (h.getBoundingClientRect().top < THRESH) leaf = k;
-						});
-					}
-				}
-				const changed =
-					cur !== current || sub !== currentSub || leaf !== currentLeaf;
-				if (cur !== current) {
-					m1Open.delete(current);
-					m1Closed.delete(current);
-					clearM2For(current);
-					current = cur;
-				} else if (sub !== currentSub && currentSub >= 0) {
-					clearM2For(current, currentSub);
-				}
-				currentSub = sub;
-				currentLeaf = leaf;
-				/* class churn only when the position actually moved */
-				if (changed) {
-					apply();
-					scheduleReveal();
-				}
-				// appear in step with the post title merging into the header
-				const showTop = postH1
-					? postH1.getBoundingClientRect().bottom < 60
-					: window.scrollY > window.innerHeight;
-				for (const t of tops) {
-					t.classList.toggle("visible", showTop);
-				}
-			};
-			update();
-			window.addEventListener(
-				"scroll",
-				() => {
-					if (!ticking) {
-						ticking = true;
-						requestAnimationFrame(update);
-					}
-				},
-				{ passive: true },
-			);
+		// —— scrollspy + Top link visibility ——
+		const tops = [...document.querySelectorAll<HTMLElement>("[data-toc-top]")];
+		for (const t of tops) {
+			t.addEventListener("click", () => {
+				window.scrollTo({ top: 0, behavior: reduceMotion ? "auto" : "smooth" });
+			});
 		}
+
+		const THRESH = 130;
+		const postH1 = document.querySelector<HTMLElement>(".post-header h1");
+		let ticking = false;
+		const update = () => {
+			ticking = false;
+			/* before the first h2 is reached (reading the lede), nothing
+			 * is current and nothing highlights */
+			let cur = -1;
+			sections.forEach((s, i) => {
+				if (s.h2 && s.h2.getBoundingClientRect().top < THRESH) cur = i;
+			});
+			let sub = -1;
+			let leaf = -1;
+			/* a final section shorter than the viewport can never cross the
+			 * threshold; at the page bottom, snap to the very end */
+			const atBottom =
+				window.innerHeight + window.scrollY >=
+				document.documentElement.scrollHeight - 2;
+			if (atBottom && sections.length) {
+				cur = sections.length - 1;
+				sub = sections[cur].subs.length - 1;
+				leaf = sub >= 0 ? sections[cur].subs[sub].h4s.length - 1 : -1;
+			} else if (cur >= 0) {
+				sections[cur].subs.forEach((se, j) => {
+					if (se.h3 && se.h3.getBoundingClientRect().top < THRESH) sub = j;
+				});
+				if (sub >= 0) {
+					sections[cur].subs[sub].h4s.forEach((h, k) => {
+						if (h.getBoundingClientRect().top < THRESH) leaf = k;
+					});
+				}
+			}
+			const changed =
+				cur !== current || sub !== currentSub || leaf !== currentLeaf;
+			if (cur !== current) {
+				m1Open.delete(current);
+				m1Closed.delete(current);
+				clearM2For(current);
+				current = cur;
+			} else if (sub !== currentSub && currentSub >= 0) {
+				clearM2For(current, currentSub);
+			}
+			currentSub = sub;
+			currentLeaf = leaf;
+			/* class churn only when the position actually moved */
+			if (changed) {
+				apply();
+				scheduleReveal();
+			}
+			// appear in step with the post title merging into the header
+			const showTop = postH1
+				? postH1.getBoundingClientRect().bottom < 60
+				: window.scrollY > window.innerHeight;
+			for (const t of tops) {
+				t.classList.toggle("visible", showTop);
+			}
+		};
+		update();
+		window.addEventListener(
+			"scroll",
+			() => {
+				if (!ticking) {
+					ticking = true;
+					requestAnimationFrame(update);
+				}
+			},
+			{ passive: true },
+		);
 	}
 </script>
 

@@ -29,6 +29,19 @@ const sections = Array.from({ length: 8 }, (_, i) => ({
 	})),
 }));
 
+/* the same headings array a real post would get from render() */
+const headings = sections.flatMap((s) => [
+	{ depth: 2, slug: slug(s.title), text: s.title },
+	...s.subs.flatMap((sub) => [
+		{ depth: 3, slug: slug(`${s.title} ${sub.title}`), text: sub.title },
+		...sub.leaves.map((leaf) => ({
+			depth: 4,
+			slug: slug(`${s.title} ${leaf}`),
+			text: leaf,
+		})),
+	]),
+]);
+
 const para =
 	"Batch auctions collect orders for a short window, seal it, and clear every crossing trade at one price. The sealed book is a complete record of standing liquidity, every order committed and fillable at that instant. This filler paragraph exists so each heading has enough body below it to scroll through while watching the rail track position.";
 ---
@@ -38,6 +51,7 @@ const para =
 	description="Nested heading playground for the TOC rail"
 	pubDate={new Date("2026-07-18")}
 	noindex
+	headings={headings}
 >
 	{
 		sections.map((s, i) => (

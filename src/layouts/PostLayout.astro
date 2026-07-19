@@ -1,4 +1,5 @@
 ---
+import type { MarkdownHeading } from "astro";
 import BackToTop from "../components/BackToTop.astro";
 import ReadingTime from "../components/ReadingTime.astro";
 import TableOfContents from "../components/TableOfContents.astro";
@@ -13,6 +14,8 @@ interface Props {
 	noindex?: boolean;
 	slug?: string;
 	readingMinutes?: number;
+	/** build-time headings (from render(post)); the TOC renders from these */
+	headings?: MarkdownHeading[];
 	/** dev-only marker for draft posts */
 	draftBadge?: boolean;
 	art?: {
@@ -31,6 +34,7 @@ const {
 	slug,
 	art,
 	readingMinutes,
+	headings,
 	draftBadge,
 } = Astro.props;
 
@@ -78,7 +82,7 @@ const backdropSvg = art?.image
     </div>
     <div class="post-shell">
       <aside class="post-rail">
-        <TableOfContents />
+        <TableOfContents headings={headings} />
       </aside>
       <div class="post-main">
         <header class="post-header">
