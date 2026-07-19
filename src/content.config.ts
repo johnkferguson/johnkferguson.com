@@ -14,7 +14,7 @@ const posts = defineCollection({
 		 * any field here overrides (image path wins over generation) */
 		art: z
 			.object({
-				family: z.enum(["strata", "field", "walk"]).optional(),
+				family: z.enum(["strata", "field", "walk", "depth"]).optional(),
 				seed: z.string().optional(),
 				image: z.string().optional(),
 			})

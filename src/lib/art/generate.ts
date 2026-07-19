@@ -7,9 +7,9 @@
  * Colors are CSS variables so inline SVG themes with the site palette.
  */
 
-export type ArtFamily = "strata" | "field" | "walk";
+export type ArtFamily = "strata" | "field" | "walk" | "depth";
 
-export const FAMILIES: ArtFamily[] = ["strata", "field", "walk"];
+export const FAMILIES: ArtFamily[] = ["strata", "field", "walk", "depth"];
 
 /** deterministic 32-bit hash of a string (FNV-1a) */
 export function hashSeed(key: string): number {
@@ -98,7 +98,9 @@ export function artSvg(opts: ArtOptions): string {
 			? strata(r, w, h, q)
 			: family === "field"
 				? field(r, w, h, q)
-				: walk(r, w, h, q);
+				: family === "depth"
+					? depth(r, w, h, q)
+					: walk(r, w, h, q);
 	return [
 		`<svg viewBox="0 0 ${w} ${h}" xmlns="http://www.w3.org/2000/svg"`,
 		` preserveAspectRatio="xMidYMid slice" role="img" aria-hidden="true">`,
@@ -151,6 +153,42 @@ function field(r: () => number, w: number, h: number, q: QuietCtx): string {
 			);
 		}
 	}
+	return parts.join("");
+}
+
+/* vertical bars rising from the bottom edge, two-sided around a mid,
+ * like an order-book depth chart. The quiet zone caps bar heights
+ * instead of fading them: the art composes around the title. */
+function depth(r: () => number, w: number, h: number, q: QuietCtx): string {
+	const n = 36 + Math.floor(r() * 22);
+	const bw = w / n;
+	const mid = (0.35 + r() * 0.3) * w;
+	const zoneBottom =
+		q.rect && q.strength < 0.99 ? (q.rect.y + q.rect.h) * h : 0;
+	const zx0 = q.rect ? q.rect.x * w : 0;
+	const zx1 = q.rect ? (q.rect.x + q.rect.w) * w : 0;
+	const parts: string[] = [];
+	for (let i = 0; i < n; i++) {
+		const x = i * bw;
+		const cx = x + bw / 2;
+		const dist = Math.abs(cx - mid) / w;
+		const frac = Math.max(
+			0.04,
+			Math.min(0.92, 0.1 + dist * (1.1 + r() * 0.6) + (r() - 0.5) * 0.24),
+		);
+		let len = frac * h;
+		if (zoneBottom && x + bw * 0.72 >= zx0 && x <= zx1) {
+			len = Math.min(len, Math.max(0, h - zoneBottom - 6));
+		}
+		const color = cx < mid ? "var(--code-color)" : "var(--date-color)";
+		const op = 0.16 + r() * 0.42;
+		parts.push(
+			`<rect x="${x.toFixed(1)}" y="${(h - len).toFixed(1)}" width="${(bw * 0.72).toFixed(1)}" height="${len.toFixed(1)}" fill="${color}" opacity="${op.toFixed(2)}"/>`,
+		);
+	}
+	parts.push(
+		`<line x1="${mid.toFixed(1)}" y1="${(h * 0.12).toFixed(1)}" x2="${mid.toFixed(1)}" y2="${h}" stroke="var(--code-color)" stroke-width="1.2" opacity="${(0.45 * quietSpan(q, mid - 1, mid + 1, h * 0.3)).toFixed(2)}"/>`,
+	);
 	return parts.join("");
 }
 
