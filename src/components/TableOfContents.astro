@@ -462,6 +462,17 @@ const { inline = false } = Astro.props;
 		line-height: 1.5;
 	}
 
+	/* solid panel behind the rail while backdrop art is behind it;
+	 * pure paint, no layout effect */
+	.toc-rail::before {
+		content: "";
+		position: absolute;
+		inset: -0.7rem;
+		background: var(--bg);
+		border-radius: 10px;
+		z-index: -1;
+	}
+
 	.toc-rail .toc-scroll {
 		overflow-y: auto;
 		min-height: 0;

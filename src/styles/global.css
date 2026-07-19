@@ -226,6 +226,22 @@ article[data-toc-root] > * {
 	max-width: var(--prose-measure);
 }
 
+/* solid surface behind the article so backdrop art bleeds only in the
+ * gutters; pure paint (pseudo layer), no layout effect */
+article[data-toc-root] {
+	position: relative;
+	max-width: var(--prose-measure);
+}
+
+article[data-toc-root]::before {
+	content: "";
+	position: absolute;
+	inset: -0.6rem -1.25rem 0;
+	background: var(--bg);
+	border-radius: 10px;
+	z-index: -1;
+}
+
 /* Hover anchors on id'd headings: link icon in the left gutter (fixed
  * x position for every heading level), click copies the section URL.
  * Button injected by PostLayout script; tooltip via ::after. */

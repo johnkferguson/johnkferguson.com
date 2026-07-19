@@ -26,15 +26,17 @@ const formattedDate = pubDate.toLocaleDateString("en-US", {
 	timeZone: "UTC",
 });
 
-/* Banner art: an explicit image wins; otherwise generate a fixed piece
+/* Backdrop art: an explicit image wins; otherwise generate a fixed piece
  * seeded by the slug (stable across builds and visits). */
-const bannerSvg = art?.image
+const backdropSvg = art?.image
 	? null
 	: artSvg({
 			seedKey: art?.seed ?? slug ?? title,
 			family: art?.family,
 			width: 1600,
-			height: 500,
+			height: 640,
+			/* thin the art where the overlaid title sits */
+			quiet: { x: 0.28, y: 0.03, w: 0.58, h: 0.3 },
 		});
 ---
 
@@ -48,31 +50,29 @@ const bannerSvg = art?.image
 	headerContextDate={formattedDate}
 	noindex={noindex}
 >
-  <div class="post-banner">
-    {
-      art?.image ? (
-        <img class="banner-art" src={art.image} alt="" />
-      ) : (
-        <div class="banner-art" set:html={bannerSvg} />
-      )
-    }
-    <div class="banner-scrim"></div>
-    <div class="banner-inner">
-      <div class="banner-spacer" aria-hidden="true"></div>
-      <header class="post-header">
-        <h1>{title}</h1>
-        <p class="post-date">{formattedDate}</p>
-      </header>
+  <div class="post-page">
+    <div class="post-backdrop" aria-hidden="true">
+      {
+        art?.image ? (
+          <img src={art.image} alt="" />
+        ) : (
+          <div class="backdrop-svg" set:html={backdropSvg} />
+        )
+      }
     </div>
-  </div>
-  <div class="post-shell">
-    <aside class="post-rail">
-      <TableOfContents />
-    </aside>
-    <div class="post-main">
-      <article data-toc-root>
-        <slot />
-      </article>
+    <div class="post-shell">
+      <aside class="post-rail">
+        <TableOfContents />
+      </aside>
+      <div class="post-main">
+        <header class="post-header">
+          <h1>{title}</h1>
+          <p class="post-date">{formattedDate}</p>
+        </header>
+        <article data-toc-root>
+          <slot />
+        </article>
+      </div>
     </div>
   </div>
 </BaseLayout>
@@ -114,75 +114,65 @@ const bannerSvg = art?.image
 </script>
 
 <style>
-  /* —— full-width banner: art behind, title overlaid, scrolls away —— */
-  .post-banner {
+  /* —— out-of-flow art backdrop: occupies no space, scrolls with the
+   * page, fades out via mask. Content panels occlude it; the art
+   * bleeds through the gutters and margins. —— */
+  .post-page {
     position: relative;
-    overflow: hidden;
   }
 
-  .banner-art {
+  .post-backdrop {
     position: absolute;
-    inset: 0;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: clamp(420px, 65vh, 640px);
+    z-index: 0;
+    pointer-events: none;
+    -webkit-mask-image: linear-gradient(180deg, #000 50%, transparent 100%);
+    mask-image: linear-gradient(180deg, #000 50%, transparent 100%);
   }
 
-  .banner-art :global(svg) {
+  .post-backdrop img,
+  .backdrop-svg,
+  .backdrop-svg :global(svg) {
     width: 100%;
     height: 100%;
     display: block;
-  }
-
-  img.banner-art {
-    width: 100%;
-    height: 100%;
     object-fit: cover;
   }
 
-  .banner-scrim {
-    position: absolute;
-    inset: 0;
-    background: linear-gradient(180deg, transparent 25%, var(--bg) 100%);
-  }
-
-  /* mirrors the post-shell geometry so the title aligns with the
-   * article column below */
-  .banner-inner {
+  .post-page :global(.post-shell) {
     position: relative;
-    margin-inline: auto;
-    max-width: calc(var(--prose-measure) + 2 * var(--shell-pad));
-    min-height: clamp(190px, 27vh, 300px);
-    padding: 3rem var(--shell-pad) 0.4rem;
-    display: flex;
-    flex-direction: column;
-    justify-content: flex-end;
+    z-index: 1;
   }
 
-  .banner-spacer {
-    display: none;
-  }
-
-  @media (min-width: 1020px) {
-    .banner-inner {
-      max-width: var(--shell-max);
-      display: grid;
-      grid-template-columns: minmax(170px, 220px) minmax(0, var(--prose-wide));
-      justify-content: center;
-      column-gap: clamp(2.5rem, 4.5vw, 5rem);
-      align-items: end;
-    }
-    .banner-spacer {
-      display: block;
-    }
+  /* title legibility: a soft halo hugging the letterforms (no panel,
+   * art stays visible) plus the generator's quiet zone behind it */
+  .post-header {
+    position: relative;
+    max-width: var(--prose-measure);
+    margin-bottom: 1.6rem;
   }
 
   .post-header h1 {
     font-size: 2.1rem;
     line-height: 1.1;
     margin: 0 0 0.5rem;
+    text-shadow:
+      0 0 5px var(--bg),
+      0 0 10px var(--bg),
+      0 0 18px var(--bg),
+      0 0 30px var(--bg);
   }
 
   .post-date {
     font-size: 0.72rem;
     color: var(--date-color);
     margin: 0;
+    text-shadow:
+      0 0 4px var(--bg),
+      0 0 8px var(--bg),
+      0 0 14px var(--bg);
   }
 </style>

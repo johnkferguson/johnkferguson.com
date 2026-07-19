@@ -33,12 +33,36 @@ export function rng(seed: number): () => number {
 	};
 }
 
+export interface QuietZone {
+	/** all values are fractions of the viewBox */
+	x: number;
+	y: number;
+	w: number;
+	h: number;
+}
+
 export interface ArtOptions {
 	seedKey: string;
 	family?: ArtFamily;
 	/** viewBox size; rendered size is CSS's business */
 	width?: number;
 	height?: number;
+	/** region the art thins out to leave room for overlaid text */
+	quiet?: QuietZone;
+}
+
+/** attenuation factor for an element centered at (cx, cy) in px */
+function quietAt(
+	q: QuietZone | undefined,
+	w: number,
+	h: number,
+	cx: number,
+	cy: number,
+): number {
+	if (!q) return 1;
+	const inX = cx >= q.x * w && cx <= (q.x + q.w) * w;
+	const inY = cy >= q.y * h && cy <= (q.y + q.h) * h;
+	return inX && inY ? 0.16 : 1;
 }
 
 export function artSvg(opts: ArtOptions): string {
@@ -47,11 +71,12 @@ export function artSvg(opts: ArtOptions): string {
 	const seed = hashSeed(opts.seedKey);
 	const family = opts.family ?? FAMILIES[seed % FAMILIES.length];
 	const r = rng(seed);
+	const quiet = (cx: number, cy: number) => quietAt(opts.quiet, w, h, cx, cy);
 	const body =
 		family === "strata"
-			? strata(r, w, h)
+			? strata(r, w, h, quiet)
 			: family === "field"
-				? field(r, w, h)
+				? field(r, w, h, quiet)
 				: walk(r, w, h);
 	return [
 		`<svg viewBox="0 0 ${w} ${h}" xmlns="http://www.w3.org/2000/svg"`,
@@ -61,8 +86,10 @@ export function artSvg(opts: ArtOptions): string {
 	].join("");
 }
 
+type Quiet = (cx: number, cy: number) => number;
+
 /* mirrored horizontal bands around a midline */
-function strata(r: () => number, w: number, h: number): string {
+function strata(r: () => number, w: number, h: number, quiet: Quiet): string {
 	const rows = 9 + Math.floor(r() * 5);
 	const gap = h / (rows * 2 + 1);
 	const parts: string[] = [];
@@ -71,33 +98,36 @@ function strata(r: () => number, w: number, h: number): string {
 		const op = 0.12 + r() * 0.5;
 		const yTop = h / 2 - (i + 1) * gap;
 		const yBot = h / 2 + i * gap + gap * 0.15;
+		const lenBot = (0.2 + r() * 0.75) * w;
+		const opBot = 0.12 + r() * 0.4;
 		parts.push(
-			`<rect x="${w - len}" y="${yTop.toFixed(1)}" width="${len.toFixed(1)}" height="${(gap * 0.7).toFixed(1)}" fill="var(--code-color)" opacity="${op.toFixed(2)}"/>`,
-			`<rect x="0" y="${yBot.toFixed(1)}" width="${((0.2 + r() * 0.75) * w).toFixed(1)}" height="${(gap * 0.7).toFixed(1)}" fill="var(--date-color)" opacity="${(0.12 + r() * 0.4).toFixed(2)}"/>`,
+			`<rect x="${w - len}" y="${yTop.toFixed(1)}" width="${len.toFixed(1)}" height="${(gap * 0.7).toFixed(1)}" fill="var(--code-color)" opacity="${(op * quiet(w - len / 2, yTop + gap * 0.35)).toFixed(2)}"/>`,
+			`<rect x="0" y="${yBot.toFixed(1)}" width="${lenBot.toFixed(1)}" height="${(gap * 0.7).toFixed(1)}" fill="var(--date-color)" opacity="${(opBot * quiet(lenBot / 2, yBot + gap * 0.35)).toFixed(2)}"/>`,
 		);
 	}
 	parts.push(
-		`<line x1="0" y1="${h / 2}" x2="${w}" y2="${h / 2}" stroke="var(--code-color)" stroke-width="1.5" opacity="0.6"/>`,
+		`<line x1="0" y1="${h / 2}" x2="${w}" y2="${h / 2}" stroke="var(--code-color)" stroke-width="1.5" opacity="${(0.6 * quiet(w / 2, h / 2)).toFixed(2)}"/>`,
 	);
 	return parts.join("");
 }
 
 /* scattered rings and dots */
-function field(r: () => number, w: number, h: number): string {
+function field(r: () => number, w: number, h: number, quiet: Quiet): string {
 	const n = 26 + Math.floor(r() * 14);
 	const parts: string[] = [];
 	for (let i = 0; i < n; i++) {
-		const cx = (r() * w).toFixed(1);
-		const cy = (r() * h).toFixed(1);
+		const cx = r() * w;
+		const cy = r() * h;
 		const rad = (3 + r() * 34).toFixed(1);
 		const color = r() < 0.3 ? "var(--code-color)" : "var(--date-color)";
+		const q = quiet(cx, cy);
 		if (r() < 0.55) {
 			parts.push(
-				`<circle cx="${cx}" cy="${cy}" r="${rad}" fill="none" stroke="${color}" stroke-width="${(0.7 + r() * 1.6).toFixed(1)}" opacity="${(0.1 + r() * 0.35).toFixed(2)}"/>`,
+				`<circle cx="${cx.toFixed(1)}" cy="${cy.toFixed(1)}" r="${rad}" fill="none" stroke="${color}" stroke-width="${(0.7 + r() * 1.6).toFixed(1)}" opacity="${((0.1 + r() * 0.35) * q).toFixed(2)}"/>`,
 			);
 		} else {
 			parts.push(
-				`<circle cx="${cx}" cy="${cy}" r="${(1 + r() * 3.5).toFixed(1)}" fill="${color}" opacity="${(0.2 + r() * 0.5).toFixed(2)}"/>`,
+				`<circle cx="${cx.toFixed(1)}" cy="${cy.toFixed(1)}" r="${(1 + r() * 3.5).toFixed(1)}" fill="${color}" opacity="${((0.2 + r() * 0.5) * q).toFixed(2)}"/>`,
 			);
 		}
 	}
