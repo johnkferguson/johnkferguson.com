@@ -84,13 +84,13 @@
         <label><input type="radio" name="bq" value="bqroman" /> full size+ink, roman</label>
       </div>
       <label><input type="checkbox" value="accent" /> accent: TOC spine + copied</label>
+      <label><input type="checkbox" value="codeweight" checked /> code weight 500 (inline + blocks)</label>
       <div class="group">
-        <span class="group-label">code red (light)</span>
-        <label><input type="radio" name="red" value="red0" checked /> current</label>
-        <label><input type="radio" name="red" value="redhalf" /> halfway</label>
-        <label><input type="radio" name="red" value="reddeep" /> deep</label>
+        <span class="group-label">inline chip thickness</span>
+        <label><input type="radio" name="chip" value="chip0" /> current</label>
+        <label><input type="radio" name="chip" value="chipsubtle" checked /> subtle (+0.15px stroke)</label>
+        <label><input type="radio" name="chip" value="chipmore" /> more (+0.25px stroke)</label>
       </div>
-      <label><input type="checkbox" value="chipweight" /> chip/code weight bump</label>
     </div>
     <iframe src="/snapshot-fees" title="post preview"></iframe>
 
@@ -122,12 +122,11 @@
           ".toc-rail .toc-row:has(> a.active){border-left-color:var(--code-color) !important}",
           ".anchor-link.copied{color:var(--code-color) !important}",
         ].join("\n"),
-        redhalf:
-          ":root:not(.dark){--code-color:#b1525b}.dark{--code-color:#cb7a62}",
-        reddeep:
-          ":root:not(.dark){--code-color:#a3454f}.dark{--code-color:#c26a51}",
-        chipweight:
-          "article code{font-weight:500 !important} article .katex{font-weight:600 !important}",
+        codeweight: "article code{font-weight:500 !important}",
+        chipsubtle:
+          "article .katex{-webkit-text-stroke:0.15px currentColor} article .katex-display .katex{-webkit-text-stroke:0}",
+        chipmore:
+          "article .katex{-webkit-text-stroke:0.25px currentColor} article .katex-display .katex{-webkit-text-stroke:0}",
       };
       const STORE = "type-metrics-toggles";
       const frame = document.querySelector("iframe");
