@@ -16,9 +16,11 @@ const { inline = false } = Astro.props;
 	data-toc
 	aria-label="Sections"
 >
-	<div class="toc-scroll">
-		<span class="toc-title">Contents</span>
-		<ul></ul>
+	<div class="toc-panel">
+		<div class="toc-scroll">
+			<span class="toc-title">Contents</span>
+			<ul></ul>
+		</div>
 	</div>
 	{
 		!inline && (
@@ -462,9 +464,19 @@ const { inline = false } = Astro.props;
 		line-height: 1.5;
 	}
 
-	/* solid panel behind the rail while backdrop art is behind it;
-	 * pure paint, no layout effect */
-	.toc-rail::before {
+	/* solid panel hugging the list content (not the full rail height),
+	 * so backdrop art bleeds below a short TOC; pure paint via pseudo
+	 * layer on a non-scrolling wrapper (a scroll container would clip
+	 * the halo) */
+	.toc-rail .toc-panel {
+		position: relative;
+		display: flex;
+		flex-direction: column;
+		min-height: 0;
+		margin-bottom: 1rem;
+	}
+
+	.toc-rail .toc-panel::before {
 		content: "";
 		position: absolute;
 		inset: -0.7rem;
@@ -476,7 +488,6 @@ const { inline = false } = Astro.props;
 	.toc-rail .toc-scroll {
 		overflow-y: auto;
 		min-height: 0;
-		margin-bottom: 1rem;
 		scrollbar-width: thin;
 		scrollbar-color: var(--border-color) transparent;
 	}
