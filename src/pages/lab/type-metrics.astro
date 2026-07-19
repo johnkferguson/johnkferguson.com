@@ -70,12 +70,30 @@
         <label><input type="radio" name="page" value="/refactoring-with-love" /> refactoring</label>
         <label><input type="radio" name="page" value="/lab/toc-test" /> toc-test</label>
       </div>
-      <span class="group-label">no active experiments; palette round baked into the real styles</span>
+      <div class="group">
+        <span class="group-label">quote border color</span>
+        <label><input type="radio" name="bqc" value="bqc0" checked /> gray (now)</label>
+        <label><input type="radio" name="bqc" value="bqcterr" /> terracotta</label>
+        <label><input type="radio" name="bqc" value="bqcsoft" /> terracotta 55%</label>
+      </div>
+      <div class="group">
+        <span class="group-label">quote border width</span>
+        <label><input type="radio" name="bqw" value="bqw4" checked /> 4px (now)</label>
+        <label><input type="radio" name="bqw" value="bqw2" /> 2px</label>
+        <label><input type="radio" name="bqw" value="bqw1" /> 1px</label>
+      </div>
     </div>
     <iframe src="/snapshot-fees" title="post preview"></iframe>
 
     <script>
-      const RULES: Record<string, string> = {};
+      const RULES: Record<string, string> = {
+        bqcterr:
+          "article blockquote{border-left-color:var(--code-color) !important}",
+        bqcsoft:
+          "article blockquote{border-left-color:color-mix(in srgb, var(--code-color) 55%, transparent) !important}",
+        bqw2: "article blockquote{border-left-width:2px !important}",
+        bqw1: "article blockquote{border-left-width:1px !important}",
+      };
       const STORE = "type-metrics-toggles";
       const frame = document.querySelector("iframe");
       const panel = document.querySelector("[data-panel]");
