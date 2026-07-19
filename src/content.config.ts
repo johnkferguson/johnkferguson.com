@@ -2,8 +2,18 @@ import { defineCollection } from "astro:content";
 import { glob } from "astro/loaders";
 import { z } from "astro/zod";
 
+/* Drafts live in posts/drafts/ and are excluded from PRODUCTION builds
+ * at the loader level so none of their modules (labs, engine, KaTeX
+ * fonts) can reach the bundle. generateId strips the drafts/ prefix so
+ * a post keeps the same slug in dev and after publishing (publish =
+ * move the file up one level and drop draft: true). */
 const posts = defineCollection({
-	loader: glob({ pattern: "**/*.{md,mdx}", base: "./src/content/posts" }),
+	loader: glob({
+		pattern: ["**/*.{md,mdx}", ...(import.meta.env.PROD ? ["!drafts/**"] : [])],
+		base: "./src/content/posts",
+		generateId: ({ entry }) =>
+			entry.replace(/^drafts\//, "").replace(/\.(md|mdx)$/, ""),
+	}),
 	schema: z.object({
 		layout: z.string().optional(),
 		title: z.string(),
