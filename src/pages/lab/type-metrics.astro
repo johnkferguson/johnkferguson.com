@@ -70,64 +70,12 @@
         <label><input type="radio" name="page" value="/refactoring-with-love" /> refactoring</label>
         <label><input type="radio" name="page" value="/lab/toc-test" /> toc-test</label>
       </div>
-      <div class="group">
-        <span class="group-label">light mode warmth</span>
-        <label><input type="radio" name="warmth" value="warm0" checked /> current</label>
-        <label><input type="radio" name="warmth" value="warmsubtle" /> subtle</label>
-        <label><input type="radio" name="warmth" value="warmlight" /> warm</label>
-      </div>
-      <label><input type="checkbox" value="mutedbump" /> muted gray contrast bump</label>
-      <div class="group">
-        <span class="group-label">blockquotes</span>
-        <label><input type="radio" name="bq" value="bq0" checked /> current</label>
-        <label><input type="radio" name="bq" value="bqitalic" /> full size+ink, italic</label>
-        <label><input type="radio" name="bq" value="bqroman" /> full size+ink, roman</label>
-      </div>
-      <label><input type="checkbox" value="accent" /> accent: TOC spine + copied</label>
-      <label><input type="checkbox" value="codeweight" checked /> code weight 500 (inline + blocks)</label>
-      <div class="group">
-        <span class="group-label">inline chip thickness</span>
-        <label><input type="radio" name="chip" value="chip0" /> current</label>
-        <label><input type="radio" name="chip" value="chipsubtle" checked /> subtle (+0.15px stroke)</label>
-        <label><input type="radio" name="chip" value="chipmore" /> more (+0.25px stroke)</label>
-      </div>
+      <span class="group-label">no active experiments; palette round baked into the real styles</span>
     </div>
     <iframe src="/snapshot-fees" title="post preview"></iframe>
 
     <script>
-      const RULES: Record<string, string> = {
-        warmsubtle: [
-          ":root:not(.dark){",
-          "--bg:#fdfcfb;--bg-footer:#faf9f7;--text-color:#3b3936;",
-          "--heading-color:#201e1c;--link-color:#262422;--link-hover:#000;",
-          "--border-color:#e8e5e1;--code-background:#f6f4f0;",
-          "--date-color:#837f7a;--article-link-border:#ddd9d4;",
-          "--blockquote-border:#e8e5e1;}",
-        ].join(""),
-        warmlight: [
-          ":root:not(.dark){",
-          "--bg:#faf9f7;--bg-footer:#f6f4f0;--text-color:#3b3733;",
-          "--heading-color:#211d1a;--link-color:#2a2621;--link-hover:#000;",
-          "--border-color:#e7e2db;--code-background:#f3efe8;",
-          "--date-color:#867e74;--article-link-border:#ddd7cf;",
-          "--blockquote-border:#e7e2db;}",
-        ].join(""),
-        mutedbump:
-          ":root:not(.dark){--date-color:#6e6961}.dark{--date-color:#98928b}",
-        bqitalic:
-          "article blockquote{opacity:1 !important;color:var(--text-color) !important;font-size:1rem !important}",
-        bqroman:
-          "article blockquote{opacity:1 !important;color:var(--text-color) !important;font-size:1rem !important;font-style:normal !important}",
-        accent: [
-          ".toc-rail .toc-row:has(> a.active){border-left-color:var(--code-color) !important}",
-          ".anchor-link.copied{color:var(--code-color) !important}",
-        ].join("\n"),
-        codeweight: "article code{font-weight:500 !important}",
-        chipsubtle:
-          "article .katex{-webkit-text-stroke:0.15px currentColor} article .katex-display .katex{-webkit-text-stroke:0}",
-        chipmore:
-          "article .katex{-webkit-text-stroke:0.25px currentColor} article .katex-display .katex{-webkit-text-stroke:0}",
-      };
+      const RULES: Record<string, string> = {};
       const STORE = "type-metrics-toggles";
       const frame = document.querySelector("iframe");
       const panel = document.querySelector("[data-panel]");
