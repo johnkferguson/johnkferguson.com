@@ -70,12 +70,33 @@
         <label><input type="radio" name="page" value="/refactoring-with-love" /> refactoring</label>
         <label><input type="radio" name="page" value="/lab/toc-test" /> toc-test</label>
       </div>
-      <span class="group-label">next: palette toggles land here</span>
+      <label><input type="checkbox" value="warmlight" /> warm light mode</label>
+      <label><input type="checkbox" value="mutedbump" /> muted gray contrast bump</label>
+      <label><input type="checkbox" value="bqsolid" /> solid blockquotes</label>
+      <label><input type="checkbox" value="accent" /> terracotta accents</label>
     </div>
     <iframe src="/snapshot-fees" title="post preview"></iframe>
 
     <script>
-      const RULES: Record<string, string> = {};
+      const RULES: Record<string, string> = {
+        warmlight: [
+          ":root:not(.dark){",
+          "--bg:#faf9f7;--bg-footer:#f6f4f0;--text-color:#3b3733;",
+          "--heading-color:#211d1a;--link-color:#2a2621;--link-hover:#000;",
+          "--border-color:#e7e2db;--code-background:#f3efe8;",
+          "--date-color:#867e74;--article-link-border:#ddd7cf;",
+          "--blockquote-border:#e7e2db;}",
+        ].join(""),
+        mutedbump:
+          ":root:not(.dark){--date-color:#6e6961}.dark{--date-color:#98928b}",
+        bqsolid:
+          "article blockquote{opacity:1 !important;color:var(--date-color) !important}",
+        accent: [
+          ".toc-rail .toc-row:has(> a.active){border-left-color:var(--code-color) !important}",
+          "article a:hover{color:var(--code-color) !important;border-color:var(--code-color) !important}",
+          ".anchor-link.copied{color:var(--code-color) !important}",
+        ].join("\n"),
+      };
       const STORE = "type-metrics-toggles";
       const frame = document.querySelector("iframe");
       const panel = document.querySelector("[data-panel]");
