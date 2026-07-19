@@ -1,10 +1,17 @@
 ---
 // TOC stress-test playground: many nested h2/h3/h4 headings with filler
 // prose, for exercising the rail's accordion, three-level scrollspy, and
-// auto-scroll behavior. Unpublished (/lab/ = noindex, out of sitemap).
+// auto-scroll behavior. Also carries inline-code and KaTeX chip samples
+// for palette review. Unpublished (/lab/ = noindex, out of sitemap).
+import "katex/dist/katex.min.css";
+import "../../styles/snapshot-fees.css";
+import katex from "katex";
 import PostLayout from "../../layouts/PostLayout.astro";
 
 const slug = (s: string) => s.toLowerCase().replace(/[^a-z0-9]+/g, "-");
+
+const k = (tex: string) => katex.renderToString(tex, { throwOnError: false });
+const chipPara = `Liquidity resting inside ${k("M \\pm B/2")} rides free; beyond the band the fee climbs at slope ${k("k_1")} through the zone and ${k("k_2")} past it, while ${k("D")} sets the walk size and ${k("q_i")} the per-account share against the mark ${k("M")}.`;
 
 const sections = Array.from({ length: 8 }, (_, i) => ({
 	title: `Section ${i + 1}: ${["Mechanism", "Measurement", "Matching", "Settlement", "Incentives", "Adversaries", "Calibration", "Adoption"][i]}`,
@@ -46,6 +53,7 @@ const para =
 							window seals.
 						</p>
 						<pre><code>{`const step = clamp((reading / dOpen) ** alpha, 1 / L, L);\nconst dClose = Math.max(floor, dOpen * step);`}</code></pre>
+						<p set:html={chipPara} />
 					</>
 				)}
 				<p>{para}</p>
