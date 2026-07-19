@@ -35,7 +35,9 @@ describe("validateHeadingStructure", () => {
 
 describe("published posts", () => {
 	const postsDir = join(import.meta.dir, "../content/posts");
-	const posts = readdirSync(postsDir).filter((f) => /\.(md|mdx)$/.test(f));
+	const posts = readdirSync(postsDir, { recursive: true })
+		.map(String)
+		.filter((f) => /\.(md|mdx)$/.test(f));
 
 	test("posts exist", () => {
 		expect(posts.length).toBeGreaterThan(0);
