@@ -182,7 +182,8 @@ function depth(r: () => number, w: number, h: number, q: QuietCtx): string {
 		if (zoneBottom && x + bw * 0.72 >= zx0 && x <= zx1) {
 			len = Math.min(len, Math.max(0, h - zoneBottom - 6));
 		}
-		const color = cx < mid ? "var(--code-color)" : "var(--date-color)";
+		/* order-book semantics: bids (green) left, asks (terracotta) right */
+		const color = cx < mid ? "var(--accent-green)" : "var(--code-color)";
 		const op = 0.16 + r() * 0.42;
 		parts.push(
 			`<rect x="${x.toFixed(1)}" y="${(h - len).toFixed(1)}" width="${(bw * 0.72).toFixed(1)}" height="${len.toFixed(1)}" fill="${color}" opacity="${op.toFixed(2)}"/>`,

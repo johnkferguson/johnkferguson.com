@@ -1,12 +1,12 @@
 ---
-import { getCollection } from "astro:content";
 import { SITE_DESCRIPTION, SITE_NAME } from "../consts";
 import BaseLayout from "../layouts/BaseLayout.astro";
 import { artSvg } from "../lib/art/generate";
 import { createExcerpt } from "../lib/excerpt";
+import { getVisiblePosts, IS_DEV } from "../lib/posts";
 import { type PostPace, readingTimeMinutes } from "../lib/reading-time";
 
-const allPosts = await getCollection("posts");
+const allPosts = await getVisiblePosts();
 const sortedPosts = allPosts.sort(
 	(a, b) => b.data.date.valueOf() - a.data.date.valueOf(),
 );
@@ -19,6 +19,7 @@ interface DisplayPost {
 		title: string;
 		date: Date;
 		description?: string;
+		draft?: boolean;
 		pace?: PostPace;
 		art?: { family?: "strata" | "field" | "walk" | "depth"; seed?: string };
 	};
@@ -61,7 +62,7 @@ const mocks: DisplayPost[] = [
 		mockMinutes: 6,
 	},
 ];
-const displayPosts: DisplayPost[] = import.meta.env.DEV
+const displayPosts: DisplayPost[] = IS_DEV
 	? [...sortedPosts, ...mocks]
 	: sortedPosts;
 
@@ -126,6 +127,9 @@ const identityArt = artSvg({
                   <span class="thumb" aria-hidden="true" set:html={thumbSvg(post)} />
                   <span class="meta">
                     <span class="date">
+                      {IS_DEV && post.data.draft && (
+                        <span class="draft-badge">DRAFT</span>
+                      )}
                       {formatDate(post.data.date)}
                       <span class="rt">
                         <svg
@@ -363,6 +367,16 @@ const identityArt = artSvg({
     display: inline-flex;
     align-items: center;
     gap: 0.4rem;
+  }
+
+  .draft-badge {
+    font-family: var(--font-mono);
+    font-size: 0.5rem;
+    letter-spacing: 0.1em;
+    color: var(--code-color);
+    border: 1px solid var(--code-color);
+    border-radius: 4px;
+    padding: 0.08rem 0.3rem;
   }
 
   /* icon-only optical lift; the text keeps the date's line box */

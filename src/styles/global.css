@@ -27,6 +27,10 @@
 	--code-background: #f6f4f0;
 	--code-border: #d5d5e9;
 	--code-color: #bf616a;
+	/* muted accent family extending the terracotta (Nord-adjacent hues
+	 * tuned per mode): green for bid-side art, blue for link hovers */
+	--accent-green: #7f9b6d;
+	--accent-blue: #5e81ac;
 	--date-color: #6e6961;
 	--article-link-border: #ddd9d4;
 	--article-link-hover-border: #000000;
@@ -44,6 +48,8 @@
 	--code-background: #282320;
 	--code-border: #3d3835;
 	--code-color: #d08770;
+	--accent-green: #a3be8c;
+	--accent-blue: #88c0d0;
 	--date-color: #98928b;
 	--article-link-border: #4a4540;
 	--article-link-hover-border: #d1cbc4;

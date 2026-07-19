@@ -11,6 +11,8 @@ interface Props {
 	noindex?: boolean;
 	slug?: string;
 	readingMinutes?: number;
+	/** dev-only marker for draft posts */
+	draftBadge?: boolean;
 	art?: {
 		family?: "strata" | "field" | "walk" | "depth";
 		seed?: string;
@@ -27,6 +29,7 @@ const {
 	slug,
 	art,
 	readingMinutes,
+	draftBadge,
 } = Astro.props;
 
 const formattedDate = pubDate.toLocaleDateString("en-US", {
@@ -79,6 +82,7 @@ const backdropSvg = art?.image
         <header class="post-header">
           <h1>{title}</h1>
           <p class="post-date">
+            {draftBadge && <span class="draft-badge">DRAFT</span>}
             {formattedDate}
             {
               readingMinutes && (
@@ -216,6 +220,16 @@ const backdropSvg = art?.image
     display: inline-flex;
     align-items: center;
     gap: 0.4rem;
+  }
+
+  .draft-badge {
+    font-family: var(--font-mono);
+    font-size: 0.5rem;
+    letter-spacing: 0.1em;
+    color: var(--code-color);
+    border: 1px solid var(--code-color);
+    border-radius: 4px;
+    padding: 0.08rem 0.3rem;
   }
 
   /* icon-only optical lift; the text keeps the date's line box */

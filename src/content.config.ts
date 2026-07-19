@@ -10,6 +10,8 @@ const posts = defineCollection({
 		date: z.coerce.date(),
 		tags: z.array(z.string()).optional(),
 		description: z.string().optional(),
+		/* drafts render in dev, excluded from production builds */
+		draft: z.boolean().optional(),
 		/* reading pace for the time estimate; default mixed (220 wpm) */
 		pace: z.enum(["technical", "mixed", "non-technical"]).optional(),
 		/* banner/thumbnail art: generated from the slug seed by default;

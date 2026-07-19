@@ -1,11 +1,12 @@
 ---
-import { getCollection, render } from "astro:content";
+import { render } from "astro:content";
 import PostLayout from "../layouts/PostLayout.astro";
 import { createExcerpt } from "../lib/excerpt";
+import { getVisiblePosts, IS_DEV } from "../lib/posts";
 import { readingTimeMinutes } from "../lib/reading-time";
 
 export async function getStaticPaths() {
-	const posts = await getCollection("posts");
+	const posts = await getVisiblePosts();
 	return posts.map((post) => ({
 		params: { slug: post.id },
 		props: { post },
@@ -27,6 +28,7 @@ const readingMinutes = readingTimeMinutes(post.body ?? "", post.data.pace);
   slug={post.id}
   art={post.data.art}
   readingMinutes={readingMinutes}
+  draftBadge={IS_DEV && post.data.draft === true}
 >
   <Content />
 </PostLayout>
