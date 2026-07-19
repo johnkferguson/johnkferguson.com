@@ -193,6 +193,12 @@ const identityArt = artSvg({
     margin-bottom: 1.2rem;
   }
 
+  /* subtle full-width separator between posts */
+  .post-list li + li {
+    border-top: 1px solid color-mix(in srgb, var(--border-color) 65%, transparent);
+    padding-top: 1.2rem;
+  }
+
   /* whole item is one link; hover lifts it on a soft surface */
   .post-card {
     display: block;
