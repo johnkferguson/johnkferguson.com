@@ -1,43 +1,46 @@
 ---
-import EmailIcon from "./icons/EmailIcon.astro";
-import GithubIcon from "./icons/GithubIcon.astro";
-import TwitterIcon from "./icons/TwitterIcon.astro";
-
-const emailAddress = "hello@johnkellyferguson.com";
+// Thin single-line footer: centered mono strand with the year and the
+// site's outbound surfaces. No email by design.
+const year = new Date().getFullYear();
 const githubUsername = "johnkferguson";
 const twitterUsername = "johnkferguson";
 ---
 
-<footer class="border-t py-[1.7rem] text-center transition-colors duration-200" style="border-color: var(--border-color); background-color: var(--bg-footer);">
-  <div class="max-w-[720px] mx-auto px-3 text-left">
-    <ul class="flex flex-row justify-start gap-[0.25rem] p-0">
-      <li class="h-[3.45rem] list-none">
-        <a
-          href={`https://twitter.com/${twitterUsername}`}
-          aria-label="Twitter"
-          class="flex items-center justify-center"
-        >
-          <TwitterIcon class="w-[2.3rem] h-[2.3rem] fill-[var(--icon-color)] hover:fill-[var(--icon-hover-twitter)] transition-colors" />
-        </a>
-      </li>
-      <li class="github px-4">
-        <a
-          href={`https://github.com/${githubUsername}`}
-          aria-label="GitHub"
-          class="flex items-center justify-center"
-        >
-          <GithubIcon class="w-[2.3rem] h-[2.3rem] fill-[var(--icon-color)] hover:fill-[var(--icon-hover-github)] transition-colors" />
-        </a>
-      </li>
-      <li>
-        <a
-          href={`mailto:${emailAddress}`}
-          aria-label="Email"
-          class="flex items-center justify-center"
-        >
-          <EmailIcon class="w-[2.3rem] h-[2.3rem] fill-[var(--icon-color)] hover:fill-[var(--icon-hover-email)] transition-colors" />
-        </a>
-      </li>
-    </ul>
-  </div>
+<footer class="site-footer">
+  <span>© {year}</span>
+  <span class="sep">·</span>
+  <a href={`https://github.com/${githubUsername}`} rel="me">GitHub</a>
+  <span class="sep">·</span>
+  <a href={`https://x.com/${twitterUsername}`} rel="me">X</a>
+  <span class="sep">·</span>
+  <a href="/rss.xml">RSS</a>
 </footer>
+
+<style>
+  .site-footer {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.55rem;
+    border-top: 1px solid var(--border-color);
+    padding: 0.55rem var(--shell-pad);
+    font-family: var(--font-mono);
+    font-size: 0.55rem;
+    letter-spacing: 0.06em;
+    color: var(--date-color);
+  }
+
+  .site-footer a {
+    color: var(--date-color);
+    text-decoration: none;
+    transition: color 0.15s ease;
+  }
+
+  .site-footer a:hover {
+    color: var(--heading-color);
+  }
+
+  .sep {
+    opacity: 0.5;
+  }
+</style>
