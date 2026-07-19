@@ -2,6 +2,8 @@
 import { getCollection } from "astro:content";
 import { SITE_DESCRIPTION, SITE_NAME } from "../consts";
 import BaseLayout from "../layouts/BaseLayout.astro";
+import { artSvg } from "../lib/art/generate";
+import { createExcerpt } from "../lib/excerpt";
 
 const allPosts = await getCollection("posts");
 const sortedPosts = allPosts.sort(
@@ -16,33 +18,221 @@ function formatDate(date: Date): string {
 		timeZone: "UTC",
 	});
 }
+
+/* thumbnail = the same slug-seeded piece the post's backdrop uses, so
+ * the list previews the artwork you land inside */
+function thumbSvg(post: (typeof sortedPosts)[number]): string {
+	return artSvg({
+		seedKey: post.data.art?.seed ?? post.id,
+		family: post.data.art?.family,
+		width: 800,
+		height: 560,
+	});
+}
+
+/* identity backdrop: fresh piece per visit (client script reseeds);
+ * this build-seeded render is the no-JS fallback */
+const identityArt = artSvg({
+	seedKey: "home",
+	family: "field",
+	width: 800,
+	height: 900,
+});
 ---
 
-<BaseLayout
-  title={SITE_NAME}
-  description={SITE_DESCRIPTION}
->
-  <div class="py-8">
-    <div class="max-w-[95vw] md:max-w-[720px] mx-auto px-4 md:px-[15.75px]">
-      <ul class="list-none p-0 m-0">
-        {sortedPosts.map((post) => (
-          <li class="mb-[1.4rem]">
-            <span class="block text-[0.7rem] leading-none text-[var(--date-color)]">
-              {formatDate(post.data.date)}
-            </span>
-            <a
-              href={`/${post.id}`}
-              class="text-[1rem] md:text-[1.2rem] tracking-[-0.04em] leading-none font-normal link-underline post-title-link transition-colors"
-            >
-              {post.data.title}
-            </a>
-          </li>
-        ))}
+<BaseLayout title={SITE_NAME} description={SITE_DESCRIPTION}>
+  <div class="post-shell home-shell">
+    <aside class="post-rail home-rail">
+      <div class="identity">
+        <div class="identity-art" data-identity-art set:html={identityArt} />
+        <div class="identity-text">
+          <p class="blurb">
+            Writing on markets, mechanism design, and building software.
+            Currently building a blockchain protocol company.
+          </p>
+          <a href="/about" class="about-link">about &rarr;</a>
+        </div>
+      </div>
+    </aside>
+    <div class="post-main">
+      <ul class="post-list">
+        {
+          sortedPosts.map((post) => (
+            <li>
+              <a
+                class="thumb"
+                href={`/${post.id}`}
+                tabindex="-1"
+                aria-hidden="true"
+                set:html={thumbSvg(post)}
+              />
+              <div class="meta">
+                <a href={`/${post.id}`} class="post-title-link">
+                  {post.data.title}
+                </a>
+                <span class="date">{formatDate(post.data.date)}</span>
+                <p class="desc">
+                  {post.data.description || createExcerpt(post.body ?? "")}
+                </p>
+              </div>
+            </li>
+          ))
+        }
       </ul>
-      <p class="text-[16px] leading-[24px] mb-[21px] text-[var(--date-color)] md:text-[21px] md:leading-[31.5px]">
-        subscribe{" "}
-        <a href="/rss.xml" class="text-blue-700 dark:text-blue-400 hover:underline">via RSS</a>
-      </p>
     </div>
   </div>
 </BaseLayout>
+
+<script>
+	import { artSvg } from "../lib/art/generate";
+
+	// the identity backdrop is the one dynamic piece on the site: a
+	// fresh field every visit
+	const holder = document.querySelector<HTMLElement>("[data-identity-art]");
+	if (holder) {
+		holder.innerHTML = artSvg({
+			seedKey: Math.random().toString(36).slice(2),
+			family: "field",
+			width: 800,
+			height: 900,
+		});
+	}
+</script>
+
+<style>
+  .home-shell {
+    padding-top: 2.5rem;
+  }
+
+  /* identity block shows at every width; stacks above the list when
+   * the grid collapses */
+  .home-rail {
+    display: block;
+  }
+
+  .identity {
+    position: relative;
+    border-radius: 12px;
+    overflow: hidden;
+    padding: 1.1rem 1.2rem;
+    min-height: 15rem;
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-end;
+  }
+
+  @media (max-width: 1019px) {
+    .identity {
+      min-height: 11rem;
+      margin-bottom: 2rem;
+    }
+  }
+
+  .identity-art {
+    position: absolute;
+    inset: 0;
+    opacity: 0.5;
+    pointer-events: none;
+  }
+
+  .identity-art :global(svg) {
+    width: 100%;
+    height: 100%;
+    display: block;
+  }
+
+  .identity-text {
+    position: relative;
+  }
+
+  .blurb {
+    font-size: 0.82rem;
+    line-height: 1.55;
+    margin: 0 0 0.6rem;
+    text-shadow:
+      0 0 8px var(--bg),
+      0 0 16px var(--bg),
+      0 0 28px var(--bg);
+  }
+
+  .about-link {
+    font-family: var(--font-mono);
+    font-size: 0.55rem;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--date-color);
+    text-decoration: none;
+    transition: color 0.15s ease;
+  }
+
+  .about-link:hover {
+    color: var(--heading-color);
+  }
+
+  .post-list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    max-width: var(--prose-measure);
+  }
+
+  .post-list li {
+    display: flex;
+    gap: 1.1rem;
+    align-items: flex-start;
+    margin-bottom: 2rem;
+  }
+
+  .thumb {
+    flex: none;
+    width: 7.2rem;
+    height: 5rem;
+    border-radius: 8px;
+    overflow: hidden;
+    border: 1px solid var(--border-color);
+    transition: border-color 0.15s ease;
+  }
+
+  .thumb:hover {
+    border-color: var(--date-color);
+  }
+
+  .thumb :global(svg) {
+    width: 100%;
+    height: 100%;
+    display: block;
+  }
+
+  .meta {
+    min-width: 0;
+  }
+
+  .meta .post-title-link {
+    display: inline-block;
+    font-size: 1.05rem;
+    line-height: 1.3;
+    color: var(--heading-color);
+    border-bottom: 1px solid var(--article-link-border);
+    transition: border-color 0.2s ease;
+  }
+
+  .meta .post-title-link:hover {
+    border-color: var(--article-link-hover-border);
+  }
+
+  .date {
+    display: block;
+    font-family: var(--font-mono);
+    font-size: 0.52rem;
+    letter-spacing: 0.08em;
+    color: var(--date-color);
+    margin: 0.35rem 0 0.35rem;
+  }
+
+  .desc {
+    font-size: 0.8rem;
+    line-height: 1.5;
+    color: var(--text-color);
+    margin: 0;
+  }
+</style>
