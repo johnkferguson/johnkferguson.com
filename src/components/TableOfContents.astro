@@ -161,23 +161,28 @@ const { inline = false } = Astro.props;
 				}, 300);
 			};
 
+			const mark = (el: HTMLElement, on: boolean) => {
+				el.classList.toggle("active", on);
+				if (on) el.setAttribute("aria-current", "true");
+				else el.removeAttribute("aria-current");
+			};
 			const apply = () => {
 				for (const r of rails) {
 					sections.forEach((_, i) => {
-						r.rowLinks[i]?.classList.toggle("active", i === current);
+						if (r.rowLinks[i]) mark(r.rowLinks[i], i === current);
 						const open = expandedAt(i);
 						r.subWraps[i]?.classList.toggle("open", open);
 						r.carets[i]?.classList.toggle("open", open);
 						r.carets[i]?.setAttribute("aria-expanded", String(open));
 						r.subs[i]?.forEach((sr, j) => {
 							const subActive = i === current && j === currentSub;
-							sr.link.classList.toggle("active", subActive);
+							mark(sr.link, subActive);
 							const open2 = expanded2At(i, j);
 							sr.wrap?.classList.toggle("open", open2);
 							sr.caret?.classList.toggle("open", open2);
 							sr.caret?.setAttribute("aria-expanded", String(open2));
 							sr.leafLinks.forEach((la, k) =>
-								la.classList.toggle("active", subActive && k === currentLeaf),
+								mark(la, subActive && k === currentLeaf),
 							);
 						});
 					});
@@ -358,7 +363,16 @@ const { inline = false } = Astro.props;
 				});
 				let sub = -1;
 				let leaf = -1;
-				if (cur >= 0) {
+				/* a final section shorter than the viewport can never cross the
+				 * threshold; at the page bottom, snap to the very end */
+				const atBottom =
+					window.innerHeight + window.scrollY >=
+					document.documentElement.scrollHeight - 2;
+				if (atBottom && sections.length) {
+					cur = sections.length - 1;
+					sub = sections[cur].subs.length - 1;
+					leaf = sub >= 0 ? sections[cur].subs[sub].h4s.length - 1 : -1;
+				} else if (cur >= 0) {
 					sections[cur].subs.forEach((se, j) => {
 						if (se.h3.getBoundingClientRect().top < THRESH) sub = j;
 					});
@@ -380,8 +394,11 @@ const { inline = false } = Astro.props;
 				}
 				currentSub = sub;
 				currentLeaf = leaf;
-				apply();
-				if (changed) scheduleReveal();
+				/* class churn only when the position actually moved */
+				if (changed) {
+					apply();
+					scheduleReveal();
+				}
 				// appear in step with the post title merging into the header
 				const showTop = postH1
 					? postH1.getBoundingClientRect().bottom < 60
@@ -407,7 +424,7 @@ const { inline = false } = Astro.props;
 
 <style is:global>
 	[data-toc-root] :is(h2, h3, h4)[id] {
-		scroll-margin-top: 80px;
+		scroll-margin-top: var(--anchor-offset);
 	}
 </style>
 
@@ -457,8 +474,8 @@ const { inline = false } = Astro.props;
 	 * Top control pins to the bottom regardless of list length. */
 	.toc-rail {
 		position: sticky;
-		top: 4rem;
-		height: calc(100vh - 4rem - 1.25rem);
+		top: var(--rail-top);
+		height: calc(100vh - var(--rail-top) - 1.25rem);
 		display: flex;
 		flex-direction: column;
 		font-size: 0.68rem;
@@ -615,12 +632,6 @@ const { inline = false } = Astro.props;
 	.toc-top:hover {
 		color: var(--heading-color);
 		border-color: var(--article-link-hover-border);
-	}
-
-	@media (max-width: 1019px) {
-		.toc-rail {
-			display: none;
-		}
 	}
 
 	/* —— in-flow contents block —— */

@@ -230,7 +230,15 @@ a:hover {
 	--prose-wide: 44rem;
 	--shell-max: 1520px;
 	--shell-pad: clamp(1rem, 3vw, 3rem);
-	--rail-breakpoint: 1020px;
+	/* sticky system: everything that clears the pinned header derives
+	 * from these. The rail/grid breakpoint is 1020px, hardcoded in
+	 * media queries (CSS vars cannot parameterize them) — grep for
+	 * 1020 when changing it. */
+	--header-h: 2.1rem;
+	--sticky-top: calc(var(--header-h) + 1.5rem);
+	--sticky-height: calc(100vh - var(--sticky-top) - 2.8rem);
+	--rail-top: calc(var(--header-h) + 1.9rem);
+	--anchor-offset: 80px;
 }
 
 .post-shell {

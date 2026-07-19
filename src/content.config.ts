@@ -9,7 +9,12 @@ import { z } from "astro/zod";
  * move the file up one level and drop draft: true). */
 const posts = defineCollection({
 	loader: glob({
-		pattern: ["**/*.{md,mdx}", ...(import.meta.env.PROD ? ["!drafts/**"] : [])],
+		pattern: [
+			"**/*.{md,mdx}",
+			/* keyed on the build script's env (not PROD) so `astro sync`
+			 * keeps dev manifests draft-inclusive */
+			...(process.env.ASTRO_BUILD ? ["!drafts/**"] : []),
+		],
 		base: "./src/content/posts",
 		generateId: ({ entry }) =>
 			entry.replace(/^drafts\//, "").replace(/\.(md|mdx)$/, ""),

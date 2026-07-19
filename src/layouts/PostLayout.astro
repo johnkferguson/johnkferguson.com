@@ -107,24 +107,35 @@ const backdropSvg = art?.image
 		const headings = root.querySelectorAll<HTMLElement>(
 			":is(h2, h3, h4, h5, h6)[id]",
 		);
+		// screen-reader announcement for successful copies
+		const live = document.createElement("div");
+		live.setAttribute("aria-live", "polite");
+		live.style.cssText =
+			"position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%)";
+		root.append(live);
 		for (const h of headings) {
 			const btn = document.createElement("button");
 			btn.className = "anchor-link";
 			btn.type = "button";
 			btn.setAttribute("aria-label", "Copy link to this section");
 			btn.innerHTML = linkSvg;
+			let timer: number | undefined;
 			btn.addEventListener("click", async () => {
 				const url = `${location.origin}${location.pathname}#${h.id}`;
 				try {
 					await navigator.clipboard.writeText(url);
 				} catch {
-					/* clipboard unavailable; nothing sensible to do */
+					/* clipboard unavailable: no false confirmation */
+					return;
 				}
+				live.textContent = "Link copied";
 				btn.innerHTML = checkSvg;
 				btn.classList.add("copied");
-				setTimeout(() => {
+				clearTimeout(timer);
+				timer = window.setTimeout(() => {
 					btn.innerHTML = linkSvg;
 					btn.classList.remove("copied");
+					live.textContent = "";
 				}, 1200);
 			});
 			h.append(btn);

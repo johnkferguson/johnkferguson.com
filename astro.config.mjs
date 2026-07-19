@@ -13,6 +13,11 @@ import remarkMath from "remark-math";
 export default defineConfig({
 	site: "https://johnkferguson.com",
 	output: "static",
+	// Builds get their own cache: dev and build share the content-layer
+	// store by default, and a production build (which glob-excludes
+	// drafts) would clobber the running dev server's store, 500ing
+	// draft pages until a dev restart.
+	cacheDir: process.env.ASTRO_BUILD ? "node_modules/.astro-build" : undefined,
 	integrations: [
 		sitemap({
 			// /lab/ pages are unpublished playgrounds for in-progress interactive posts

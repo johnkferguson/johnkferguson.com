@@ -150,8 +150,8 @@ const identityArt = artSvg({
        * + shell padding 1.5rem) so it never travels before pinning; the
        * box ends above footer height so the footer slides in beneath
        * without ever pushing the identity up */
-      top: 3.6rem;
-      height: calc(100vh - 6.4rem);
+      top: var(--sticky-top);
+      height: var(--sticky-height);
     }
   }
 

@@ -15,6 +15,8 @@ Personal blog at johnkferguson.com. Static site built with Astro 7, Tailwind CSS
 
 When previewing changes locally, prefer `bun run dev` over `build + preview` — it watches for file changes and reloads automatically.
 
+Draft posts (`src/content/posts/drafts/`, `draft: true`) render in dev only; production builds glob-exclude them (keyed on `ASTRO_BUILD`, set by the build script) so none of their modules reach the bundle. The build script uses an isolated cache and ends with `astro sync` because builds otherwise clobber the shared `.astro/content-modules.mjs` manifest and 500 draft pages in a running dev server.
+
 ## Architecture
 
 - `src/content/posts/*.md` - Blog posts (Markdown with YAML frontmatter: title, date)
