@@ -135,7 +135,11 @@
     <iframe src="/snapshot-fees" title="post preview"></iframe>
 
     <script>
-      import { type ArtFamily, artSvg } from "../../lib/art/generate";
+      import {
+        type ArtFamily,
+        artSvg,
+        DEFAULT_QUIET,
+      } from "../../lib/art/generate";
 
       const frame = document.querySelector("iframe") as HTMLIFrameElement;
       const panel = document.querySelector("[data-panel]") as HTMLElement;
@@ -214,7 +218,7 @@
             family.value === "auto" ? undefined : (family.value as ArtFamily),
           width: 1600,
           height: 640,
-          quiet: { x: 0.28, y: 0.03, w: 0.58, h: 0.3 },
+          quiet: DEFAULT_QUIET,
           quietStrength: Number(dials.quiet.value) / 100,
         });
       };

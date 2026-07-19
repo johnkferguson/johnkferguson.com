@@ -1,6 +1,6 @@
 ---
 import TableOfContents from "../components/TableOfContents.astro";
-import { artSvg } from "../lib/art/generate";
+import { artSvg, DEFAULT_QUIET } from "../lib/art/generate";
 import BaseLayout from "./BaseLayout.astro";
 
 interface Props {
@@ -36,7 +36,7 @@ const backdropSvg = art?.image
 			width: 1600,
 			height: 640,
 			/* thin the art where the overlaid title sits */
-			quiet: { x: 0.28, y: 0.03, w: 0.58, h: 0.3 },
+			quiet: DEFAULT_QUIET,
 		});
 ---
 
