@@ -161,6 +161,12 @@ const identityArt = artSvg({
 </script>
 
 <style>
+  /* slim bottom padding so the sticky identity's column reaches far
+   * enough down that the footer arrives without pushing it */
+  .home-shell {
+    padding-bottom: 0.5rem;
+  }
+
   /* identity block shows at every width; stacks above the list when
    * the grid collapses */
   .home-rail {
@@ -179,8 +185,12 @@ const identityArt = artSvg({
   @media (min-width: 1020px) {
     .identity {
       position: sticky;
-      top: 2.1rem;
-      height: calc(100vh - 2.1rem - 1.5rem);
+      /* pin threshold equals the natural resting offset (header 2.1rem
+       * + shell padding 1.5rem) so it never travels before pinning; the
+       * box ends above footer height so the footer slides in beneath
+       * without ever pushing the identity up */
+      top: 3.6rem;
+      height: calc(100vh - 6.4rem);
     }
   }
 

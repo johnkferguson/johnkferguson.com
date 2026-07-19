@@ -37,10 +37,13 @@ const { postTitle, postDate } = Astro.props;
 <script>
 	const header = document.querySelector<HTMLElement>("[data-site-header]");
 	if (header) {
+		// scrolled dressing (border, shadow, title merge) is a post-page
+		// behavior; other pages keep the plain bar
+		const isPost = !!document.querySelector(".post-header");
 		let ticking = false;
 		const update = () => {
 			ticking = false;
-			header.classList.toggle("scrolled", window.scrollY > 24);
+			if (isPost) header.classList.toggle("scrolled", window.scrollY > 24);
 		};
 		update();
 		window.addEventListener(
