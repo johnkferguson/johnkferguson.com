@@ -10,14 +10,7 @@
 	--default-mono-font-family: "Fira Code", monospace;
 }
 
-/* Metric-tuned fallback: while Newsreader loads, the system serif
- * renders pre-shrunk to Newsreader-like size so the swap doesn't read
- * as text resizing (Newsreader runs small for its px size). */
-@font-face {
-	font-family: "Newsreader Fallback";
-	src: local("Georgia"), local("Times New Roman"), local("Liberation Serif");
-	size-adjust: 88%;
-}
+/* the "Newsreader Fallback" face (metric-tuned) lives in fonts.css */
 
 /*
  * Color Variables

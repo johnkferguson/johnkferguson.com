@@ -19,7 +19,6 @@
 		"@astrojs/preact": "^6.0.1",
 		"@astrojs/rss": "^4.0.19",
 		"@astrojs/sitemap": "^3.7.3",
-		"@fontsource-variable/newsreader": "^5.2.10",
 		"@fontsource/fira-code": "^5.2.5",
 		"@resvg/resvg-js": "^2.6.2",
 		"@tailwindcss/typography": "^0.5.19",
