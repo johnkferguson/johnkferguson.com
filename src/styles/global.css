@@ -18,6 +18,8 @@
 /* Light mode: subtle warm cast (matches dark mode's stone family) with
  * muted grays bumped for small-size contrast. */
 :root {
+	/* native UI (scrollbars, form controls) follows the active theme */
+	color-scheme: light;
 	--bg: #fdfcfb;
 	--text-color: #3b3936;
 	--heading-color: #201e1c;
@@ -39,6 +41,7 @@
 }
 
 .dark {
+	color-scheme: dark;
 	--bg: #1c1917;
 	--text-color: #c4bdb6;
 	--heading-color: #e6e1db;

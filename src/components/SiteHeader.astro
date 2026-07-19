@@ -136,15 +136,23 @@ const { postTitle, postDate } = Astro.props;
     opacity: 0;
     transform: translateY(4px);
     pointer-events: none;
+    /* out of the tab order while hidden */
+    visibility: hidden;
     transition:
       opacity 0.25s ease,
-      transform 0.25s ease;
+      transform 0.25s ease,
+      visibility 0s linear 0.25s;
   }
 
   .post-context.show {
     opacity: 1;
     transform: translateY(0);
     pointer-events: auto;
+    visibility: visible;
+    transition:
+      opacity 0.25s ease,
+      transform 0.25s ease,
+      visibility 0s;
   }
 
   .pc-title {

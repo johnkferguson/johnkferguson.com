@@ -593,10 +593,13 @@ const { inline = false } = Astro.props;
 		cursor: pointer;
 		opacity: 0;
 		pointer-events: none;
+		/* out of the tab order while hidden */
+		visibility: hidden;
 		transition:
 			opacity 0.2s ease,
 			color 0.15s ease,
-			border-color 0.15s ease;
+			border-color 0.15s ease,
+			visibility 0s linear 0.2s;
 	}
 
 	.toc-top-arrow {
@@ -607,6 +610,12 @@ const { inline = false } = Astro.props;
 	.toc-top.visible {
 		opacity: 1;
 		pointer-events: auto;
+		visibility: visible;
+		transition:
+			opacity 0.2s ease,
+			color 0.15s ease,
+			border-color 0.15s ease,
+			visibility 0s;
 	}
 
 	.toc-top:hover {
