@@ -190,13 +190,17 @@ const identityArt = artSvg({
   }
 
   .post-list li {
-    margin-bottom: 1.2rem;
+    margin-bottom: 0.9rem;
   }
 
-  /* subtle full-width separator between posts */
-  .post-list li + li {
-    border-top: 1px solid color-mix(in srgb, var(--border-color) 65%, transparent);
-    padding-top: 1.2rem;
+  /* subtle centered separator between posts */
+  .post-list li + li::before {
+    content: "";
+    display: block;
+    width: 38%;
+    height: 1px;
+    margin: 0 auto 0.7rem;
+    background: color-mix(in srgb, var(--border-color) 65%, transparent);
   }
 
   /* whole item is one link; hover lifts it on a soft surface */
