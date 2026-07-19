@@ -18,13 +18,13 @@ const { inline = false } = Astro.props;
 >
 	<div class="toc-panel">
 		<div class="toc-scroll">
-			<span class="toc-title">Contents</span>
+			<span class="toc-title micro-label">Contents</span>
 			<ul></ul>
 		</div>
 	</div>
 	{
 		!inline && (
-			<button class="toc-top" data-toc-top type="button">
+			<button class="toc-top micro-label" data-toc-top type="button">
 				<span class="toc-top-arrow" aria-hidden="true">&#8593;</span>
 				<span>Back to top</span>
 			</button>
@@ -414,11 +414,8 @@ const { inline = false } = Astro.props;
 <style>
 	.toc-title {
 		display: block;
-		font-family: var(--font-mono);
 		font-size: 0.52rem;
 		letter-spacing: 0.14em;
-		text-transform: uppercase;
-		color: var(--date-color);
 		margin-bottom: 0.5rem;
 	}
 
@@ -585,11 +582,8 @@ const { inline = false } = Astro.props;
 		border: 1px solid var(--border-color);
 		border-radius: 6px;
 		background: transparent;
-		color: var(--date-color);
-		font-family: var(--font-mono);
 		font-size: 0.5rem;
 		letter-spacing: 0.1em;
-		text-transform: uppercase;
 		cursor: pointer;
 		opacity: 0;
 		pointer-events: none;

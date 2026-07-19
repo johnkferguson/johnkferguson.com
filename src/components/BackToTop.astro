@@ -6,7 +6,7 @@
 
 <button data-back-to-top aria-label="Back to top">
 	<span class="btt-arrow" aria-hidden="true">&#8593;</span>
-	<span class="btt-label">Back to top</span>
+	<span class="btt-label micro-label">Back to top</span>
 </button>
 
 <script>
@@ -78,10 +78,10 @@
 	}
 
 	.btt-label {
-		font-family: var(--font-mono);
+		/* follow the button's hover color, not micro-label's static gray */
+		color: inherit;
 		font-size: 0.42rem;
 		letter-spacing: 0.12em;
-		text-transform: uppercase;
 		opacity: 0.75;
 	}
 

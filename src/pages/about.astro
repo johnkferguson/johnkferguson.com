@@ -26,7 +26,7 @@ const aboutArt = artSvg({
   <div class="post-shell about-shell">
     <aside class="post-rail about-rail">
       <div class="about-side">
-        <div class="about-art" set:html={aboutArt} />
+        <div class="side-art" set:html={aboutArt} />
       </div>
     </aside>
     <div class="post-main">
@@ -64,27 +64,6 @@ const aboutArt = artSvg({
     }
   }
 
-  .about-art {
-    position: absolute;
-    top: -1.5rem;
-    bottom: -1rem;
-    left: -1rem;
-    right: -1.5rem;
-    opacity: 0.5;
-    pointer-events: none;
-    -webkit-mask-image: radial-gradient(
-      80% 72% at 45% 48%,
-      #000 30%,
-      transparent 95%
-    );
-    mask-image: radial-gradient(80% 72% at 45% 48%, #000 30%, transparent 95%);
-  }
-
-  .about-art :global(svg) {
-    width: 100%;
-    height: 100%;
-    display: block;
-  }
 
   .about-header h1 {
     font-size: 2.1rem;

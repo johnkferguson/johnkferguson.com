@@ -168,6 +168,50 @@ a:hover {
 	color: var(--link-hover);
 }
 
+/* Small mono label voice (uppercase, muted); size and tracking stay
+ * local to each site */
+.micro-label {
+	font-family: var(--font-mono);
+	text-transform: uppercase;
+	color: var(--date-color);
+}
+
+/* dev-only marker on draft posts (homepage cards + post header) */
+.draft-badge {
+	font-family: var(--font-mono);
+	font-size: 0.5rem;
+	letter-spacing: 0.1em;
+	color: var(--code-color);
+	border: 1px solid var(--code-color);
+	border-radius: 4px;
+	padding: 0.08rem 0.3rem;
+}
+
+/* diffuse decorative art filling a sticky side column (homepage
+ * identity, about portrait slot): bleeds past its box and dissolves
+ * at every edge */
+.side-art {
+	position: absolute;
+	top: -1.5rem;
+	bottom: -1rem;
+	left: -1rem;
+	right: -1.5rem;
+	opacity: 0.5;
+	pointer-events: none;
+	-webkit-mask-image: radial-gradient(
+		80% 72% at 45% 48%,
+		#000 30%,
+		transparent 95%
+	);
+	mask-image: radial-gradient(80% 72% at 45% 48%, #000 30%, transparent 95%);
+}
+
+.side-art svg {
+	width: 100%;
+	height: 100%;
+	display: block;
+}
+
 /* Themed link with underline */
 .link-underline {
 	border-bottom: 1px solid var(--article-link-border);

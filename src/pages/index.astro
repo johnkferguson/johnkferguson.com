@@ -1,4 +1,5 @@
 ---
+import ReadingTime from "../components/ReadingTime.astro";
 import { SITE_DESCRIPTION, SITE_NAME } from "../consts";
 import BaseLayout from "../layouts/BaseLayout.astro";
 import { artSvg } from "../lib/art/generate";
@@ -63,13 +64,13 @@ const identityArt = artSvg({
   <div class="post-shell home-shell">
     <aside class="post-rail home-rail">
       <div class="identity">
-        <div class="identity-art" data-identity-art set:html={identityArt} />
+        <div class="side-art" data-identity-art set:html={identityArt} />
         <div class="identity-text">
           <p class="blurb">
             Writing on markets, mechanism design, and building software.
             Currently building a blockchain protocol company.
           </p>
-          <a href="/about" class="about-link">about &rarr;</a>
+          <a href="/about" class="about-link micro-label">about &rarr;</a>
         </div>
       </div>
     </aside>
@@ -88,21 +89,7 @@ const identityArt = artSvg({
                         <span class="draft-badge">DRAFT</span>
                       )}
                       {formatDate(post.data.date)}
-                      <span class="rt">
-                        <svg
-                          width="10"
-                          height="10"
-                          viewBox="0 0 16 16"
-                          fill="none"
-                          stroke="currentColor"
-                          stroke-width="1.6"
-                          aria-hidden="true"
-                        >
-                          <circle cx="8" cy="8" r="6.2" />
-                          <path d="M8 4.8V8l2.2 1.6" stroke-linecap="round" />
-                        </svg>
-                        {minutesFor(post)} min read
-                      </span>
+                      <ReadingTime minutes={minutesFor(post)} />
                     </span>
                     <span class="desc">
                       {post.data.description || createExcerpt(post.body ?? "")}
@@ -175,34 +162,6 @@ const identityArt = artSvg({
     }
   }
 
-  /* unboxed art: fills the whole left area up to the header, dissolving
-   * at every edge (no panel, no defined boundary) */
-  .identity-art {
-    position: absolute;
-    top: -1.5rem;
-    bottom: -1rem;
-    left: -1rem;
-    right: -1.5rem;
-    opacity: 0.5;
-    pointer-events: none;
-    -webkit-mask-image: radial-gradient(
-      80% 72% at 45% 48%,
-      #000 30%,
-      transparent 95%
-    );
-    mask-image: radial-gradient(
-      80% 72% at 45% 48%,
-      #000 30%,
-      transparent 95%
-    );
-  }
-
-  .identity-art :global(svg) {
-    width: 100%;
-    height: 100%;
-    display: block;
-  }
-
   .identity-text {
     position: relative;
   }
@@ -218,11 +177,8 @@ const identityArt = artSvg({
   }
 
   .about-link {
-    font-family: var(--font-mono);
     font-size: 0.55rem;
     letter-spacing: 0.08em;
-    text-transform: uppercase;
-    color: var(--date-color);
     text-decoration: none;
     transition: color 0.15s ease;
   }
@@ -312,34 +268,13 @@ const identityArt = artSvg({
 
   /* same voice as the post page's date line: serif, no tracking */
   .date {
+    --rt-lift: -1px;
     display: flex;
     align-items: center;
     gap: 0.7rem;
     font-size: 0.66rem;
     color: var(--date-color);
     margin: 0.15rem 0 0.4rem;
-  }
-
-  .rt {
-    display: inline-flex;
-    align-items: center;
-    gap: 0.4rem;
-  }
-
-  .draft-badge {
-    font-family: var(--font-mono);
-    font-size: 0.5rem;
-    letter-spacing: 0.1em;
-    color: var(--code-color);
-    border: 1px solid var(--code-color);
-    border-radius: 4px;
-    padding: 0.08rem 0.3rem;
-  }
-
-  /* icon-only optical lift; the text keeps the date's line box */
-  .rt svg {
-    display: block;
-    transform: translateY(-1px);
   }
 
   .desc {
