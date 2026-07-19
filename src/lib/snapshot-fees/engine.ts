@@ -445,6 +445,13 @@ export function computeMark(
 	// between disjoint candidates is disagreement (no dominant market → no
 	// fresh M); ties between overlapping candidates are two readings of one
 	// region and break deterministically. ——
+	// "Shares size" means the SAME PHYSICAL ORDER (account AND level) is
+	// counted by both candidates — possible only when their spans truly
+	// intersect through real liquidity. Deliberately NOT account-level:
+	// one account running small paired books in two separate regions must
+	// not convert a disjoint tie (disagreement → held) into a forced
+	// tiebreak. NOTE: the straddler currently bypasses this entirely by
+	// hijacking anchoring (see the test.todo in engine.test.ts).
 	const sharesSize = (a: Candidate, b: Candidate): boolean => {
 		for (const [id, em] of a.eligible) {
 			const bm = b.eligible.get(id);

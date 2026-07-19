@@ -217,6 +217,18 @@ describe("Mark pipeline: eligibility, candidates, boundary fill", () => {
 		expect(none.M).toBeNull();
 	});
 
+	// KNOWN ISSUE (found 2026-07-19, decision pending): a $20 straddle
+	// (tiny paired books in two far-apart markets) currently HIJACKS
+	// anchoring: the one-sided reach filters admit its far-side quotes
+	// into every seed's eligibility pass, all seeds converge to one
+	// widely-crossed anchor pair (which the span check exempts), and a
+	// $5 candidate mints a fresh mark BETWEEN the two real markets.
+	// Candidate fix: two-sided reach bound + coherence on |aAsk - aBid|.
+	// Repro preserved in the PR discussion; pin once semantics decided.
+	test.todo(
+		"straddler cannot merge two markets: same account in both tied disjoint candidates stays held",
+	);
+
 	test("non-positive D cannot mint a mark (guards the 0/0 walk)", () => {
 		const books = [
 			{
