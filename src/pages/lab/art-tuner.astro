@@ -2,6 +2,14 @@
 // Art backdrop tuner: a real post in an iframe with live dials for the
 // backdrop presentation (CSS-injected) and the generated art itself
 // (regenerated client-side). Unpublished playground (/lab/).
+import { getVisiblePosts } from "../../lib/posts";
+
+const posts = await getVisiblePosts();
+const pages = [
+	...posts.map((p) => ({ value: `/${p.id}`, label: p.id })),
+	{ value: "/lab/toc-test", label: "toc-test" },
+];
+const first = pages[0]?.value ?? "/";
 ---
 
 <!doctype html>
@@ -87,8 +95,7 @@
       <label
         ><span class="lbl">page</span>
         <select id="page">
-          <option value="/snapshot-fees">snapshot-fees</option>
-          <option value="/refactoring-with-love">refactoring</option>
+          {pages.map((p) => <option value={p.value}>{p.label}</option>)}
         </select>
       </label>
       <label
@@ -133,7 +140,7 @@
       </label>
       <button id="reset" type="button">reset</button>
     </div>
-    <iframe src="/snapshot-fees" title="post preview"></iframe>
+    <iframe src={first} title="post preview"></iframe>
 
     <script>
       import {
