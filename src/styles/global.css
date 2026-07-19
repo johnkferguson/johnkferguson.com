@@ -315,8 +315,8 @@ article ol {
 }
 
 article blockquote {
-	@apply border-l-[0.2rem] pl-4 italic my-6;
-	border-left-color: var(--blockquote-border);
+	@apply border-l-2 pl-4 italic my-6;
+	border-left-color: var(--code-color);
 }
 
 article pre {
