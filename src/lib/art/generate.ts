@@ -53,8 +53,10 @@ export interface ArtOptions {
 	quietStrength?: number;
 }
 
-/** default title/date region posts thin their art behind */
-export const DEFAULT_QUIET: QuietZone = { x: 0.28, y: 0.02, w: 0.58, h: 0.36 };
+/** default title/date region posts thin their art behind (deep enough
+ * to cover the date line at the production 360px backdrop height, where
+ * slice-scaling maps screen positions lower into the viewBox) */
+export const DEFAULT_QUIET: QuietZone = { x: 0.28, y: 0.02, w: 0.58, h: 0.5 };
 
 interface QuietCtx {
 	rect?: QuietZone;
@@ -186,9 +188,6 @@ function depth(r: () => number, w: number, h: number, q: QuietCtx): string {
 			`<rect x="${x.toFixed(1)}" y="${(h - len).toFixed(1)}" width="${(bw * 0.72).toFixed(1)}" height="${len.toFixed(1)}" fill="${color}" opacity="${op.toFixed(2)}"/>`,
 		);
 	}
-	parts.push(
-		`<line x1="${mid.toFixed(1)}" y1="${(h * 0.12).toFixed(1)}" x2="${mid.toFixed(1)}" y2="${h}" stroke="var(--code-color)" stroke-width="1.2" opacity="${(0.45 * quietSpan(q, mid - 1, mid + 1, h * 0.3)).toFixed(2)}"/>`,
-	);
 	return parts.join("");
 }
 

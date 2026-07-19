@@ -108,28 +108,28 @@
       </label>
       <label
         ><span class="lbl">height</span>
-        <input type="range" id="height" min="240" max="960" step="10" value="560" />
-        <output for="height">560px</output>
+        <input type="range" id="height" min="240" max="960" step="10" value="360" />
+        <output for="height">360px</output>
       </label>
       <label
         ><span class="lbl">fade start</span>
-        <input type="range" id="fade" min="10" max="90" step="5" value="50" />
-        <output for="fade">50%</output>
+        <input type="range" id="fade" min="10" max="90" step="5" value="75" />
+        <output for="fade">75%</output>
       </label>
       <label
         ><span class="lbl">art opacity</span>
-        <input type="range" id="opacity" min="20" max="100" step="5" value="100" />
-        <output for="opacity">100%</output>
+        <input type="range" id="opacity" min="20" max="100" step="5" value="60" />
+        <output for="opacity">60%</output>
       </label>
       <label
         ><span class="lbl">halo</span>
-        <input type="range" id="halo" min="0" max="220" step="10" value="100" />
-        <output for="halo">100%</output>
+        <input type="range" id="halo" min="0" max="320" step="10" value="220" />
+        <output for="halo">220%</output>
       </label>
       <label
         ><span class="lbl">quiet zone</span>
-        <input type="range" id="quiet" min="0" max="100" step="4" value="16" />
-        <output for="quiet">16%</output>
+        <input type="range" id="quiet" min="0" max="100" step="4" value="40" />
+        <output for="quiet">40%</output>
       </label>
       <button id="reset" type="button">reset</button>
     </div>
@@ -157,12 +157,13 @@
         halo: el<HTMLInputElement>("halo"),
         quiet: el<HTMLInputElement>("quiet"),
       };
+      /* production values (what the real pages ship with) */
       const DEFAULTS: Record<string, string> = {
-        height: "560",
-        fade: "50",
-        opacity: "100",
-        halo: "100",
-        quiet: "16",
+        height: "360",
+        fade: "75",
+        opacity: "60",
+        halo: "220",
+        quiet: "40",
       };
 
       const readouts = () => {
