@@ -350,19 +350,23 @@ const { inline = false } = Astro.props;
 			let ticking = false;
 			const update = () => {
 				ticking = false;
-				let cur = 0;
+				/* before the first h2 is reached (reading the lede), nothing
+				 * is current and nothing highlights */
+				let cur = -1;
 				sections.forEach((s, i) => {
 					if (s.h2.getBoundingClientRect().top < THRESH) cur = i;
 				});
 				let sub = -1;
-				sections[cur].subs.forEach((se, j) => {
-					if (se.h3.getBoundingClientRect().top < THRESH) sub = j;
-				});
 				let leaf = -1;
-				if (sub >= 0) {
-					sections[cur].subs[sub].h4s.forEach((h, k) => {
-						if (h.getBoundingClientRect().top < THRESH) leaf = k;
+				if (cur >= 0) {
+					sections[cur].subs.forEach((se, j) => {
+						if (se.h3.getBoundingClientRect().top < THRESH) sub = j;
 					});
+					if (sub >= 0) {
+						sections[cur].subs[sub].h4s.forEach((h, k) => {
+							if (h.getBoundingClientRect().top < THRESH) leaf = k;
+						});
+					}
 				}
 				const changed =
 					cur !== current || sub !== currentSub || leaf !== currentLeaf;
