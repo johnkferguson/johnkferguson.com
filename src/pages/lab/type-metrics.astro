@@ -70,30 +70,12 @@
         <label><input type="radio" name="page" value="/refactoring-with-love" /> refactoring</label>
         <label><input type="radio" name="page" value="/lab/toc-test" /> toc-test</label>
       </div>
-      <div class="group">
-        <span class="group-label">paragraph gap</span>
-        <label><input type="radio" name="para" value="para100" checked /> 1rem (now)</label>
-        <label><input type="radio" name="para" value="para090" /> 0.9rem</label>
-        <label><input type="radio" name="para" value="para085" /> 0.85rem</label>
-      </div>
-      <div class="group">
-        <span class="group-label">gap under headings</span>
-        <label><input type="radio" name="hgap" value="hgap050" checked /> 0.5rem (now)</label>
-        <label><input type="radio" name="hgap" value="hgap065" /> 0.65rem</label>
-        <label><input type="radio" name="hgap" value="hgap080" /> 0.8rem</label>
-      </div>
+      <span class="group-label">next: palette toggles land here</span>
     </div>
     <iframe src="/snapshot-fees" title="post preview"></iframe>
 
     <script>
-      const RULES: Record<string, string> = {
-        para090: "article p{margin-bottom:0.9rem !important}",
-        para085: "article p{margin-bottom:0.85rem !important}",
-        hgap065:
-          "article :is(h2,h3,h4){margin-bottom:0.65rem !important}",
-        hgap080:
-          "article :is(h2,h3,h4){margin-bottom:0.8rem !important}",
-      };
+      const RULES: Record<string, string> = {};
       const STORE = "type-metrics-toggles";
       const frame = document.querySelector("iframe");
       const panel = document.querySelector("[data-panel]");
