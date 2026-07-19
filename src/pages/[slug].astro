@@ -2,6 +2,7 @@
 import { getCollection, render } from "astro:content";
 import PostLayout from "../layouts/PostLayout.astro";
 import { createExcerpt } from "../lib/excerpt";
+import { readingTimeMinutes } from "../lib/reading-time";
 
 export async function getStaticPaths() {
 	const posts = await getCollection("posts");
@@ -15,6 +16,7 @@ const { post } = Astro.props;
 const { Content } = await render(post);
 
 const description = post.data.description || createExcerpt(post.body ?? "");
+const readingMinutes = readingTimeMinutes(post.body ?? "", post.data.pace);
 ---
 
 <PostLayout
@@ -24,6 +26,7 @@ const description = post.data.description || createExcerpt(post.body ?? "");
   author="John K. Ferguson"
   slug={post.id}
   art={post.data.art}
+  readingMinutes={readingMinutes}
 >
   <Content />
 </PostLayout>

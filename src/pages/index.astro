@@ -4,6 +4,7 @@ import { SITE_DESCRIPTION, SITE_NAME } from "../consts";
 import BaseLayout from "../layouts/BaseLayout.astro";
 import { artSvg } from "../lib/art/generate";
 import { createExcerpt } from "../lib/excerpt";
+import { type PostPace, readingTimeMinutes } from "../lib/reading-time";
 
 const allPosts = await getCollection("posts");
 const sortedPosts = allPosts.sort(
@@ -18,9 +19,12 @@ interface DisplayPost {
 		title: string;
 		date: Date;
 		description?: string;
+		pace?: PostPace;
 		art?: { family?: "strata" | "field" | "walk" | "depth"; seed?: string };
 	};
 	body?: string;
+	/* mocks carry a fixed value; real posts compute from prose */
+	mockMinutes?: number;
 }
 const mocks: DisplayPost[] = [
 	{
@@ -32,6 +36,7 @@ const mocks: DisplayPost[] = [
 				"Once you learn to see incentive structures, every queue, auction, and API rate limit becomes a design document.",
 			art: { family: "field", seed: "mock-1" },
 		},
+		mockMinutes: 7,
 	},
 	{
 		id: "mock-quiet-markets",
@@ -42,6 +47,7 @@ const mocks: DisplayPost[] = [
 				"What thin order books can teach about patience, and why the absence of trading is itself information.",
 			art: { family: "strata", seed: "mock-2" },
 		},
+		mockMinutes: 4,
 	},
 	{
 		id: "mock-building-in-public",
@@ -52,11 +58,18 @@ const mocks: DisplayPost[] = [
 				"A working rhythm for sharing progress without outsourcing judgment to an audience.",
 			art: { family: "walk", seed: "mock-3" },
 		},
+		mockMinutes: 6,
 	},
 ];
 const displayPosts: DisplayPost[] = import.meta.env.DEV
 	? [...sortedPosts, ...mocks]
 	: sortedPosts;
+
+function minutesFor(post: DisplayPost): number {
+	return (
+		post.mockMinutes ?? readingTimeMinutes(post.body ?? "", post.data.pace)
+	);
+}
 
 function formatDate(date: Date): string {
 	return date.toLocaleDateString("en-US", {
@@ -127,7 +140,7 @@ const identityArt = artSvg({
                           <circle cx="8" cy="8" r="6.2" />
                           <path d="M8 4.8V8l2.2 1.6" stroke-linecap="round" />
                         </svg>
-                        12 min read
+                        {minutesFor(post)} min read
                       </span>
                     </span>
                     <span class="desc">

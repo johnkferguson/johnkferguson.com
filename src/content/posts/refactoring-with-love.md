@@ -2,6 +2,7 @@
 layout: post
 title: "Refactoring with Love"
 date: 2026-06-26 14:35
+pace: "non-technical"
 art:
   family: "walk"
 ---
