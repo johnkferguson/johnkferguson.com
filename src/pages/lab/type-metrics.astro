@@ -122,8 +122,10 @@
           ".toc-rail .toc-row:has(> a.active){border-left-color:var(--code-color) !important}",
           ".anchor-link.copied{color:var(--code-color) !important}",
         ].join("\n"),
-        redhalf: ":root:not(.dark){--code-color:#b1525b}",
-        reddeep: ":root:not(.dark){--code-color:#a3454f}",
+        redhalf:
+          ":root:not(.dark){--code-color:#b1525b}.dark{--code-color:#cb7a62}",
+        reddeep:
+          ":root:not(.dark){--code-color:#a3454f}.dark{--code-color:#c26a51}",
         chipweight:
           "article code{font-weight:500 !important} article .katex{font-weight:600 !important}",
       };

@@ -32,10 +32,22 @@ const para =
 	noindex
 >
 	{
-		sections.map((s) => (
+		sections.map((s, i) => (
 			<>
 				<h2 id={slug(s.title)}>{s.title}</h2>
 				<p>{para}</p>
+				{i === 0 && (
+					<>
+						<p>
+							The engine walks the eligible book at size <code>D</code> per
+							side, so <code>computeMark(book, D)</code> stays{" "}
+							<code>O(n)</code> in price levels, and the daily update clamps
+							with <code>Math.max(floor, dOpen * step)</code> before the
+							window seals.
+						</p>
+						<pre><code>{`const step = clamp((reading / dOpen) ** alpha, 1 / L, L);\nconst dClose = Math.max(floor, dOpen * step);`}</code></pre>
+					</>
+				)}
 				<p>{para}</p>
 				{s.subs.map((sub) => (
 					<>
