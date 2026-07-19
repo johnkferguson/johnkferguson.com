@@ -120,14 +120,12 @@ export function computeAccountFees(
 	const edgeBid = M == null ? null : M - half;
 	const edgeAsk = M == null ? null : M + half;
 
-	// Bracketed stamp: the first Z bps of distance are priced at k₁, the
-	// excess at k₂, capped at F. No mark → no distance to measure → F.
+	// Bracketed stamp via the shared curve: distance beyond the band edge
+	// plus B/2 is distance from M. No mark → no distance to measure → F.
 	const stampOf = (price: number, side: "bid" | "ask"): number => {
 		if (edgeBid == null || edgeAsk == null) return F;
 		const d = side === "ask" ? price - edgeAsk : edgeBid - price;
-		const bps = Math.max(0, d / BP);
-		const raw = slope * Math.min(bps, Z) + slope2 * Math.max(0, bps - Z);
-		return Math.min(F, raw);
+		return baseFeeBps(Math.max(0, d / BP) + B / 2, { B, F, Z, slope, slope2 });
 	};
 
 	// Joint allocation: opposite-side stock is CONSUMED across same-side
@@ -612,4 +610,20 @@ export function stampCapBps(p: {
 }): number {
 	const { F, Z, slope, slope2 } = p;
 	return F <= slope * Z ? F / slope : Z + (F - slope * Z) / slope2;
+}
+
+/**
+ * The base-fee curve as a pure function of distance from the mark in
+ * bps: free inside the band, k₁ through the zone, k₂ beyond, capped at
+ * F. The single source of the stamp shape — labs must render this
+ * rather than re-implement it.
+ */
+export function baseFeeBps(
+	distFromMBps: number,
+	p: { B: number; F: number; Z: number; slope: number; slope2: number },
+): number {
+	const beyond = Math.max(0, distFromMBps - p.B / 2);
+	const raw =
+		p.slope * Math.min(beyond, p.Z) + p.slope2 * Math.max(0, beyond - p.Z);
+	return Math.min(p.F, raw);
 }

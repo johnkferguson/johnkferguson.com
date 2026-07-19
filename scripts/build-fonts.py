@@ -1,13 +1,15 @@
 #!/usr/bin/env -S uv run python
 # /// script
 # requires-python = ">=3.11"
-# dependencies = ["fonttools[woff]>=4.50"]
+# dependencies = ["fonttools[woff]==4.63.0"]
 # ///
 """One-time font pipeline: instance Newsreader's weight axis down to the
 range the site uses (400-700), keeping the full optical-size axis and
 the complete glyph set (no subsetting; future posts stay safe).
 
-Rerun only if the @fontsource-variable/newsreader package updates.
+Rerun only when upgrading Newsreader (fetch the fontsource
+variable woff2s into node_modules or a temp dir first); fonttools is
+pinned exactly so committed outputs stay byte-reproducible.
 Outputs to src/assets/fonts/ and prints the metrics needed for the
 CSS fallback overrides.
 """

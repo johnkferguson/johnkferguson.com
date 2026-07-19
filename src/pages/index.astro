@@ -1,32 +1,19 @@
 ---
+import type { CollectionEntry } from "astro:content";
 import ReadingTime from "../components/ReadingTime.astro";
 import { SITE_DESCRIPTION, SITE_NAME } from "../consts";
 import BaseLayout from "../layouts/BaseLayout.astro";
 import { artSvg } from "../lib/art/generate";
 import { createExcerpt } from "../lib/excerpt";
 import { getVisiblePosts, IS_DEV } from "../lib/posts";
-import { type PostPace, readingTimeMinutes } from "../lib/reading-time";
+import { readingTimeMinutes } from "../lib/reading-time";
 
 const allPosts = await getVisiblePosts();
 const sortedPosts = allPosts.sort(
 	(a, b) => b.data.date.valueOf() - a.data.date.valueOf(),
 );
 
-interface DisplayPost {
-	id: string;
-	data: {
-		title: string;
-		date: Date;
-		description?: string;
-		draft?: boolean;
-		pace?: PostPace;
-		art?: { family?: "strata" | "field" | "walk" | "depth"; seed?: string };
-	};
-	body?: string;
-}
-const displayPosts: DisplayPost[] = sortedPosts;
-
-function minutesFor(post: DisplayPost): number {
+function minutesFor(post: CollectionEntry<"posts">): number {
 	return readingTimeMinutes(post.body ?? "", post.data.pace);
 }
 
@@ -41,7 +28,7 @@ function formatDate(date: Date): string {
 
 /* thumbnail = the same slug-seeded piece the post's backdrop uses, so
  * the list previews the artwork you land inside */
-function thumbSvg(post: DisplayPost): string {
+function thumbSvg(post: CollectionEntry<"posts">): string {
 	return artSvg({
 		seedKey: post.data.art?.seed ?? post.id,
 		family: post.data.art?.family,
@@ -77,7 +64,7 @@ const identityArt = artSvg({
     <div class="post-main">
       <ul class="post-list">
         {
-          displayPosts.map((post) => (
+          sortedPosts.map((post) => (
             <li>
               <a href={`/${post.id}`} class="post-card">
                 <span class="card-title">{post.data.title}</span>

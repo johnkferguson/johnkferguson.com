@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { stampCapBps } from "../../lib/snapshot-fees/engine";
+import { baseFeeBps, stampCapBps } from "../../lib/snapshot-fees/engine";
 import "./snapshot-fees-lab.css";
 
 // ————————————————————————————————————————————————————————————————
@@ -245,12 +245,8 @@ export default function BaseFeeLab() {
 		});
 	};
 
-	// bracketed stamp: the first Z bps at k₁, the excess at k₂, capped at F
-	const feeAt = (d: number) => {
-		const dd = Math.max(0, d - B / 2);
-		const raw = slope * Math.min(dd, Z) + slope2 * Math.max(0, dd - Z);
-		return Math.min(F, raw);
-	};
+	// the engine's curve, rendered (never re-implemented here)
+	const feeAt = (d: number) => baseFeeBps(d, { B, F, Z, slope, slope2 });
 	const netAt = (d: number) => d - feeAt(d);
 	const dFull = B / 2 + stampCapBps({ F, Z, slope, slope2 });
 	const dKnee = B / 2 + Z;

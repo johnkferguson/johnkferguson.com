@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
 	type BookLevel,
 	BP,
@@ -326,7 +326,12 @@ export default function SnapshotFeesLab() {
 	const lastM = useRef(100);
 	const drag = useRef<DragState | null>(null);
 
-	const sideOf = (i: number): Side => (i === CENTER ? centerSide : sideAt(i));
+	/* stable identity so the model memo only recomputes on real input
+	 * changes, not on every hover/zoom render */
+	const sideOf = useCallback(
+		(i: number): Side => (i === CENTER ? centerSide : sideAt(i)),
+		[centerSide],
+	);
 	const model = useMemo(() => {
 		const book: BookLevel[] = sizes.map((size, i) => ({
 			i,
