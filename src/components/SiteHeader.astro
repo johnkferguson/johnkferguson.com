@@ -97,36 +97,25 @@ const { postTitle, postDate } = Astro.props;
     box-shadow: var(--header-shadow);
   }
 
-  /* constant height: the bar never resizes on scroll, so page content
-   * starts at its final position and nothing shifts. The name shrinks
-   * inside the fixed box, purely cosmetic. */
+  /* always the compact bar: the large-name state drew too much
+   * attention, so the header lives at its scrolled size permanently */
   .site-header-inner {
     max-width: var(--shell-max);
     margin-inline: auto;
-    height: 2.3rem;
+    height: 2.1rem;
     padding: 0 var(--shell-pad);
     display: flex;
     align-items: center;
     gap: 1.2rem;
-    transition: height 0.2s ease;
-  }
-
-  .site-header.scrolled .site-header-inner {
-    height: 2.1rem;
   }
 
   .site-name {
     flex: none;
-    font-size: 1.35rem;
+    font-size: 1.05rem;
     line-height: 1.2;
     letter-spacing: -0.02em;
     color: var(--heading-color);
     border-bottom: 1px solid var(--heading-color);
-    transition: font-size 0.2s ease;
-  }
-
-  .site-header.scrolled .site-name {
-    font-size: 1.05rem;
   }
 
   .post-context {
@@ -180,22 +169,12 @@ const { postTitle, postDate } = Astro.props;
   }
 
   .site-nav a {
-    font-size: 1rem;
+    font-size: 0.78rem;
     line-height: 1.2;
     color: var(--heading-color);
-    transition: font-size 0.2s ease;
-  }
-
-  /* nav shrinks at the same ratio as the name (1.05/1.35) */
-  .site-header.scrolled .site-nav a {
-    font-size: 0.78rem;
   }
 
   .site-header :global(#theme-toggle) {
-    transition: transform 0.2s ease;
-  }
-
-  .site-header.scrolled :global(#theme-toggle) {
     transform: translateY(-2px) scale(0.78);
   }
 
