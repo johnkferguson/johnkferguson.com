@@ -70,7 +70,12 @@
         <label><input type="radio" name="page" value="/refactoring-with-love" /> refactoring</label>
         <label><input type="radio" name="page" value="/lab/toc-test" /> toc-test</label>
       </div>
-      <label><input type="checkbox" value="warmlight" /> warm light mode</label>
+      <div class="group">
+        <span class="group-label">light mode warmth</span>
+        <label><input type="radio" name="warmth" value="warm0" checked /> current</label>
+        <label><input type="radio" name="warmth" value="warmsubtle" /> subtle</label>
+        <label><input type="radio" name="warmth" value="warmlight" /> warm</label>
+      </div>
       <label><input type="checkbox" value="mutedbump" /> muted gray contrast bump</label>
       <label><input type="checkbox" value="bqsolid" /> solid blockquotes</label>
       <label><input type="checkbox" value="accent" /> terracotta accents</label>
@@ -79,6 +84,14 @@
 
     <script>
       const RULES: Record<string, string> = {
+        warmsubtle: [
+          ":root:not(.dark){",
+          "--bg:#fdfcfb;--bg-footer:#faf9f7;--text-color:#3b3936;",
+          "--heading-color:#201e1c;--link-color:#262422;--link-hover:#000;",
+          "--border-color:#e8e5e1;--code-background:#f6f4f0;",
+          "--date-color:#837f7a;--article-link-border:#ddd9d4;",
+          "--blockquote-border:#e8e5e1;}",
+        ].join(""),
         warmlight: [
           ":root:not(.dark){",
           "--bg:#faf9f7;--bg-footer:#f6f4f0;--text-color:#3b3733;",
