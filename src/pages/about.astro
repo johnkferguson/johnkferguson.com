@@ -23,7 +23,7 @@ const aboutArt = artSvg({
 ---
 
 <BaseLayout title={title} description={page.data.description ?? ""}>
-  <div class="post-shell">
+  <div class="post-shell about-shell">
     <aside class="post-rail about-rail">
       <div class="about-side">
         <div class="about-art" set:html={aboutArt} />
@@ -41,6 +41,12 @@ const aboutArt = artSvg({
 </BaseLayout>
 
 <style>
+  /* slim bottom padding so the sticky column reaches far enough down
+   * that the footer arrives without pushing it (same as homepage) */
+  .about-shell {
+    padding-bottom: 0.5rem;
+  }
+
   /* decorative only for now; hidden when the grid collapses */
   .about-rail {
     display: none;
