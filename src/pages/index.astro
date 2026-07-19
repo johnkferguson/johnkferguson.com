@@ -59,21 +59,23 @@ const identityArt = artSvg({
         {
           sortedPosts.map((post) => (
             <li>
-              <a
-                class="thumb"
-                href={`/${post.id}`}
-                tabindex="-1"
-                aria-hidden="true"
-                set:html={thumbSvg(post)}
-              />
-              <div class="meta">
-                <a href={`/${post.id}`} class="post-title-link">
-                  {post.data.title}
-                </a>
-                <span class="date">{formatDate(post.data.date)}</span>
-                <p class="desc">
-                  {post.data.description || createExcerpt(post.body ?? "")}
-                </p>
+              <a href={`/${post.id}`} class="post-title-link">
+                {post.data.title}
+              </a>
+              <div class="row">
+                <a
+                  class="thumb"
+                  href={`/${post.id}`}
+                  tabindex="-1"
+                  aria-hidden="true"
+                  set:html={thumbSvg(post)}
+                />
+                <div class="meta">
+                  <span class="date">{formatDate(post.data.date)}</span>
+                  <p class="desc">
+                    {post.data.description || createExcerpt(post.body ?? "")}
+                  </p>
+                </div>
               </div>
             </li>
           ))
@@ -177,10 +179,14 @@ const identityArt = artSvg({
   }
 
   .post-list li {
+    margin-bottom: 2.2rem;
+  }
+
+  .row {
     display: flex;
     gap: 1.1rem;
     align-items: flex-start;
-    margin-bottom: 2rem;
+    margin-top: 0.55rem;
   }
 
   .thumb {
@@ -226,7 +232,7 @@ const identityArt = artSvg({
     font-size: 0.52rem;
     letter-spacing: 0.08em;
     color: var(--date-color);
-    margin: 0.35rem 0 0.35rem;
+    margin: 0.1rem 0 0.4rem;
   }
 
   .desc {
