@@ -83,7 +83,8 @@
         <label><input type="radio" name="bq" value="bqitalic" /> full size+ink, italic</label>
         <label><input type="radio" name="bq" value="bqroman" /> full size+ink, roman</label>
       </div>
-      <label><input type="checkbox" value="accent" /> terracotta accents</label>
+      <label><input type="checkbox" value="accent" /> accent: TOC spine + copied</label>
+      <label><input type="checkbox" value="deepred" /> deeper code red (light)</label>
     </div>
     <iframe src="/snapshot-fees" title="post preview"></iframe>
 
@@ -113,9 +114,9 @@
           "article blockquote{opacity:1 !important;color:var(--text-color) !important;font-size:1rem !important;font-style:normal !important}",
         accent: [
           ".toc-rail .toc-row:has(> a.active){border-left-color:var(--code-color) !important}",
-          "article a:hover{color:var(--code-color) !important;border-color:var(--code-color) !important}",
           ".anchor-link.copied{color:var(--code-color) !important}",
         ].join("\n"),
+        deepred: ":root:not(.dark){--code-color:#a3454f}",
       };
       const STORE = "type-metrics-toggles";
       const frame = document.querySelector("iframe");
