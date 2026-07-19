@@ -1,5 +1,6 @@
 ---
 import TableOfContents from "../components/TableOfContents.astro";
+import { artSvg } from "../lib/art/generate";
 import BaseLayout from "./BaseLayout.astro";
 
 interface Props {
@@ -8,9 +9,15 @@ interface Props {
 	pubDate: Date;
 	author?: string;
 	noindex?: boolean;
+	slug?: string;
+	art?: {
+		family?: "strata" | "field" | "walk";
+		seed?: string;
+		image?: string;
+	};
 }
 
-const { title, description, pubDate, author, noindex } = Astro.props;
+const { title, description, pubDate, author, noindex, slug, art } = Astro.props;
 
 const formattedDate = pubDate.toLocaleDateString("en-US", {
 	month: "long",
@@ -18,6 +25,17 @@ const formattedDate = pubDate.toLocaleDateString("en-US", {
 	year: "numeric",
 	timeZone: "UTC",
 });
+
+/* Banner art: an explicit image wins; otherwise generate a fixed piece
+ * seeded by the slug (stable across builds and visits). */
+const bannerSvg = art?.image
+	? null
+	: artSvg({
+			seedKey: art?.seed ?? slug ?? title,
+			family: art?.family,
+			width: 1600,
+			height: 500,
+		});
 ---
 
 <BaseLayout
@@ -30,15 +48,28 @@ const formattedDate = pubDate.toLocaleDateString("en-US", {
 	headerContextDate={formattedDate}
 	noindex={noindex}
 >
+  <div class="post-banner">
+    {
+      art?.image ? (
+        <img class="banner-art" src={art.image} alt="" />
+      ) : (
+        <div class="banner-art" set:html={bannerSvg} />
+      )
+    }
+    <div class="banner-scrim"></div>
+    <div class="banner-inner">
+      <div class="banner-spacer" aria-hidden="true"></div>
+      <header class="post-header">
+        <h1>{title}</h1>
+        <p class="post-date">{formattedDate}</p>
+      </header>
+    </div>
+  </div>
   <div class="post-shell">
     <aside class="post-rail">
       <TableOfContents />
     </aside>
     <div class="post-main">
-      <header class="post-header">
-        <h1>{title}</h1>
-        <p class="post-date">{formattedDate}</p>
-      </header>
       <article data-toc-root>
         <slot />
       </article>
@@ -83,15 +114,72 @@ const formattedDate = pubDate.toLocaleDateString("en-US", {
 </script>
 
 <style>
-  .post-header {
-    max-width: var(--prose-measure);
-    margin-bottom: 1.6rem;
+  /* —— full-width banner: art behind, title overlaid, scrolls away —— */
+  .post-banner {
+    position: relative;
+    overflow: hidden;
   }
+
+  .banner-art {
+    position: absolute;
+    inset: 0;
+  }
+
+  .banner-art :global(svg) {
+    width: 100%;
+    height: 100%;
+    display: block;
+  }
+
+  img.banner-art {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+
+  .banner-scrim {
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(180deg, transparent 25%, var(--bg) 100%);
+  }
+
+  /* mirrors the post-shell geometry so the title aligns with the
+   * article column below */
+  .banner-inner {
+    position: relative;
+    margin-inline: auto;
+    max-width: calc(var(--prose-measure) + 2 * var(--shell-pad));
+    min-height: clamp(190px, 27vh, 300px);
+    padding: 3rem var(--shell-pad) 0.4rem;
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-end;
+  }
+
+  .banner-spacer {
+    display: none;
+  }
+
+  @media (min-width: 1020px) {
+    .banner-inner {
+      max-width: var(--shell-max);
+      display: grid;
+      grid-template-columns: minmax(170px, 220px) minmax(0, var(--prose-wide));
+      justify-content: center;
+      column-gap: clamp(2.5rem, 4.5vw, 5rem);
+      align-items: end;
+    }
+    .banner-spacer {
+      display: block;
+    }
+  }
+
   .post-header h1 {
     font-size: 2.1rem;
     line-height: 1.1;
     margin: 0 0 0.5rem;
   }
+
   .post-date {
     font-size: 0.72rem;
     color: var(--date-color);

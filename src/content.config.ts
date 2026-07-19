@@ -10,6 +10,15 @@ const posts = defineCollection({
 		date: z.coerce.date(),
 		tags: z.array(z.string()).optional(),
 		description: z.string().optional(),
+		/* banner/thumbnail art: generated from the slug seed by default;
+		 * any field here overrides (image path wins over generation) */
+		art: z
+			.object({
+				family: z.enum(["strata", "field", "walk"]).optional(),
+				seed: z.string().optional(),
+				image: z.string().optional(),
+			})
+			.optional(),
 	}),
 });
 

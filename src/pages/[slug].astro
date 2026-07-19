@@ -31,6 +31,8 @@ const description = post.data.description || createExcerpt(post.body ?? "");
   description={description}
   pubDate={post.data.date}
   author="John K. Ferguson"
+  slug={post.id}
+  art={post.data.art}
 >
   <Content />
 </PostLayout>
