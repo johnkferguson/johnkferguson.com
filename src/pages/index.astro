@@ -10,6 +10,54 @@ const sortedPosts = allPosts.sort(
 	(a, b) => b.data.date.valueOf() - a.data.date.valueOf(),
 );
 
+/* dev-only mock entries so list scrolling can be judged with a fuller
+ * page; never present in production builds */
+interface DisplayPost {
+	id: string;
+	data: {
+		title: string;
+		date: Date;
+		description?: string;
+		art?: { family?: "strata" | "field" | "walk" | "depth"; seed?: string };
+	};
+	body?: string;
+}
+const mocks: DisplayPost[] = [
+	{
+		id: "mock-mechanisms-everywhere",
+		data: {
+			title: "Mechanisms Everywhere: Reading Incentives in the Wild",
+			date: new Date("2026-05-14"),
+			description:
+				"Once you learn to see incentive structures, every queue, auction, and API rate limit becomes a design document.",
+			art: { family: "field", seed: "mock-1" },
+		},
+	},
+	{
+		id: "mock-quiet-markets",
+		data: {
+			title: "Quiet Markets",
+			date: new Date("2026-04-02"),
+			description:
+				"What thin order books can teach about patience, and why the absence of trading is itself information.",
+			art: { family: "strata", seed: "mock-2" },
+		},
+	},
+	{
+		id: "mock-building-in-public",
+		data: {
+			title: "Building in Public, Thinking in Private",
+			date: new Date("2026-03-11"),
+			description:
+				"A working rhythm for sharing progress without outsourcing judgment to an audience.",
+			art: { family: "walk", seed: "mock-3" },
+		},
+	},
+];
+const displayPosts: DisplayPost[] = import.meta.env.DEV
+	? [...sortedPosts, ...mocks]
+	: sortedPosts;
+
 function formatDate(date: Date): string {
 	return date.toLocaleDateString("en-US", {
 		month: "long",
@@ -21,7 +69,7 @@ function formatDate(date: Date): string {
 
 /* thumbnail = the same slug-seeded piece the post's backdrop uses, so
  * the list previews the artwork you land inside */
-function thumbSvg(post: (typeof sortedPosts)[number]): string {
+function thumbSvg(post: DisplayPost): string {
 	return artSvg({
 		seedKey: post.data.art?.seed ?? post.id,
 		family: post.data.art?.family,
@@ -57,7 +105,7 @@ const identityArt = artSvg({
     <div class="post-main">
       <ul class="post-list">
         {
-          sortedPosts.map((post) => (
+          displayPosts.map((post) => (
             <li>
               <a href={`/${post.id}`} class="post-card">
                 <span class="card-title">{post.data.title}</span>
@@ -119,15 +167,21 @@ const identityArt = artSvg({
     display: block;
   }
 
+  /* text flush with the column edge (aligned with the header name);
+   * pinned while the list scrolls; sits toward the vertical center */
   .identity {
     position: relative;
-    border-radius: 12px;
-    overflow: hidden;
-    padding: 1.1rem 1.2rem;
-    min-height: 15rem;
     display: flex;
     flex-direction: column;
-    justify-content: flex-end;
+    justify-content: center;
+  }
+
+  @media (min-width: 1020px) {
+    .identity {
+      position: sticky;
+      top: 2.1rem;
+      height: calc(100vh - 2.1rem - 1.5rem);
+    }
   }
 
   @media (max-width: 1019px) {
@@ -137,11 +191,26 @@ const identityArt = artSvg({
     }
   }
 
+  /* unboxed art: fills the whole left area up to the header, dissolving
+   * at every edge (no panel, no defined boundary) */
   .identity-art {
     position: absolute;
-    inset: 0;
+    top: -1.5rem;
+    bottom: -1rem;
+    left: -1rem;
+    right: -1.5rem;
     opacity: 0.5;
     pointer-events: none;
+    -webkit-mask-image: radial-gradient(
+      80% 72% at 45% 48%,
+      #000 30%,
+      transparent 95%
+    );
+    mask-image: radial-gradient(
+      80% 72% at 45% 48%,
+      #000 30%,
+      transparent 95%
+    );
   }
 
   .identity-art :global(svg) {
