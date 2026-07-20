@@ -351,7 +351,10 @@ article[data-toc-root] .anchor-link.copied {
 	article[data-toc-root] .anchor-link {
 		position: static;
 		display: inline-flex;
-		vertical-align: -0.1em;
+		/* centers the icon on the heading's cap band, not its line box:
+		 * serif capitals sit above the line-box middle, so box-centering
+		 * reads low (measured 0.24em low across h2-h4) */
+		vertical-align: 0.12em;
 		margin-left: 0.45rem;
 		width: 1.3rem;
 		height: 1.3rem;
