@@ -2,7 +2,7 @@
  * Snapshot-fees lab theme.
  *
  * Series colors are from the validated dataviz method (aqua/orange/blue/
- * violet), stepped per mode against the site surfaces (#ffffff / #1c1917):
+ * violet), stepped per mode against the site surfaces (white / dark --bg):
  *   light "#199e70,#d95926,#2a78d6,#4a3aa7" and
  *   dark  "#199e70,#d95926,#256abf,#9085e9" both pass the palette validator
  *   (all-pairs CVD ≥ 16 light / ≥ 13 dark on deutan+protan).
@@ -27,7 +27,7 @@
 	--lab-inset: #ffffff;
 	--lab-hint: #c98500;
 	--lab-on-accent: #ffffff;
-	--lab-slider: #1c1917;
+	--lab-slider: var(--heading-color);
 
 	--lab-panel: var(--code-background);
 	--lab-panel2: var(--bg);
@@ -49,7 +49,7 @@
 	--lab-hatch: rgba(255, 255, 255, 0.55);
 	--lab-grid: #2e2a27;
 	--lab-inset: #332d29;
-	--lab-on-accent: #1c1917;
+	--lab-on-accent: var(--bg);
 	--lab-slider: #f0ebe5;
 }
 
