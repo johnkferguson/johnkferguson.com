@@ -14,7 +14,6 @@ art:
 
 import "katex/dist/katex.min.css";
 import "../../../styles/snapshot-fees.css";
-import TableOfContents from "../../../components/TableOfContents.astro";
 import BaseFeeLab from "../../../components/labs/BaseFeeLab";
 import DemandLab from "../../../components/labs/DemandLab";
 import PipelineChart from "../../../components/labs/PipelineChart.astro";
@@ -30,8 +29,6 @@ piece proposes Snapshot Fees, a fee mechanism that prices every fill from
 that snapshot, recomputed each auction, by how directional the filled
 liquidity actually was. The mechanism is built up one layer at a time, and
 each layer comes with an interactive lab for trying it directly.
-
-<TableOfContents inline />
 
 ## Understanding Batch Auctions
 

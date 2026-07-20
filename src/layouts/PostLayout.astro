@@ -94,6 +94,7 @@ const backdropSvg = art?.image
             {readingMinutes && <ReadingTime minutes={readingMinutes} />}
           </p>
         </header>
+        <TableOfContents inline headings={headings} />
         <article data-toc-root>
           <slot />
         </article>

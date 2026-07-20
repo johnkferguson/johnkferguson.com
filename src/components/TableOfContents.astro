@@ -2,15 +2,14 @@
 // Section navigation, rendered at build time from the page's headings
 // (depths 2-4, stepwise nesting guaranteed by the heading-structure
 // test). Two variants:
-//   <TableOfContents headings={...} />  sticky left rail: nested
+//   <TableOfContents headings={...} />         sticky left rail: nested
 //       accordion with carets, three-level scrollspy, Top link
-//   <TableOfContents inline />          in-flow Contents block (flat h2
-//       list, populated client-side from the article), shown when the
-//       rail does not fit
+//   <TableOfContents inline headings={...} />  collapsed <details>
+//       Contents block (flat h2 list), shown when the rail does not fit
 //
 // The client script attaches behavior only (scrollspy, accordion,
-// auto-scroll, Top); the full list exists without JS, and a noscript
-// style expands every sub-list for JS-less readers.
+// auto-scroll, Top, smooth scroll); the full list exists without JS, and
+// a noscript style expands every rail sub-list for JS-less readers.
 import type { MarkdownHeading } from "astro";
 
 interface Props {
@@ -43,18 +42,32 @@ const caretSvg =
 ---
 
 {
-	(inline || sections.length > 0) && (
-		<nav
-			class={inline ? "toc toc-inline" : "toc toc-rail"}
-			data-toc
-			aria-label="Sections"
-		>
+	inline && sections.length > 0 && (
+		<nav class="toc toc-inline" data-toc aria-label="Sections">
+			<details>
+				<summary class="micro-label">
+					<span class="toc-inline-caret" set:html={caretSvg} />
+					Contents
+				</summary>
+				<ul>
+					{sections.map((s) => (
+						<li>
+							<a href={`#${s.slug}`}>{s.text}</a>
+						</li>
+					))}
+				</ul>
+			</details>
+		</nav>
+	)
+}
+{
+	!inline && sections.length > 0 && (
+		<nav class="toc toc-rail" data-toc aria-label="Sections">
 			<div class="toc-panel">
 				<div class="toc-scroll">
 					<span class="toc-title micro-label">Contents</span>
 					<ul>
-						{!inline &&
-							sections.map((s) => (
+						{sections.map((s) => (
 								<li class="toc-section">
 									<div class="toc-row">
 										<a href={`#${s.slug}`}>{s.text}</a>
@@ -151,22 +164,14 @@ const caretSvg =
 		history.pushState(null, "", `#${el.id}`);
 	};
 
-	// —— inline variant: flat h2 list, populated from the article ——
-	if (inlineNav && root) {
-		const ul = inlineNav.querySelector("ul");
-		const h2s = [...root.querySelectorAll<HTMLElement>("h2[id]")];
-		if (ul && h2s.length) {
-			for (const h of h2s) {
-				const li = document.createElement("li");
-				const a = document.createElement("a");
-				a.href = `#${h.id}`;
-				a.textContent = h.textContent ?? "";
-				a.addEventListener("click", goTo(h));
-				li.append(a);
-				ul.append(li);
-			}
-		} else {
-			inlineNav.style.display = "none";
+	// —— inline variant: server-rendered list; JS adds smooth scroll.
+	// The open/closed state is the reader's; navigation never changes it. ——
+	if (inlineNav) {
+		for (const a of inlineNav.querySelectorAll<HTMLAnchorElement>("a")) {
+			const target = document.getElementById(
+				decodeURIComponent(a.hash.slice(1)),
+			);
+			if (target) a.addEventListener("click", goTo(target));
 		}
 	}
 
@@ -708,14 +713,46 @@ const caretSvg =
 		border-color: var(--article-link-hover-border);
 	}
 
-	/* —— in-flow contents block —— */
+	/* —— in-flow contents block: collapsed <details>, no JS needed —— */
 	.toc-inline {
 		border: 1px solid var(--border-color);
 		border-radius: 8px;
-		padding: 0.7rem 0.9rem;
+		padding: 0.55rem 0.9rem;
 		margin: 1.2rem 0 1.6rem;
 		font-size: 0.66rem;
 		line-height: 1.5;
+		/* opaque like the rail's panel: it sits in the backdrop art band,
+		 * and the art showing through hurts legibility */
+		background: var(--bg);
+	}
+
+	.toc-inline summary {
+		display: flex;
+		align-items: center;
+		gap: 0.45rem;
+		cursor: pointer;
+		list-style: none;
+	}
+
+	.toc-inline summary::-webkit-details-marker {
+		display: none;
+	}
+
+	.toc-inline .toc-inline-caret {
+		display: flex;
+		color: var(--date-color);
+	}
+
+	.toc-inline .toc-inline-caret :global(svg) {
+		transition: transform 0.2s ease;
+	}
+
+	.toc-inline details[open] .toc-inline-caret :global(svg) {
+		transform: rotate(90deg);
+	}
+
+	.toc-inline details[open] summary {
+		margin-bottom: 0.5rem;
 	}
 
 	.toc-inline :global(a) {
@@ -731,7 +768,8 @@ const caretSvg =
 
 	@media (prefers-reduced-motion: reduce) {
 		.toc-rail :global(.toc-subwrap),
-		.toc-rail :global(.toc-caret svg) {
+		.toc-rail :global(.toc-caret svg),
+		.toc-inline .toc-inline-caret :global(svg) {
 			transition: none;
 		}
 	}
