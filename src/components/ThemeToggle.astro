@@ -1,3 +1,11 @@
+---
+import { themeColors } from "../lib/palette";
+
+/* define:vars implies is:inline, which is what keeps the toggle script
+ * out of the bundled-and-deferred path. Same constraint as the theme
+ * script in BaseLayout. */
+---
+
 <button
   id="theme-toggle"
   type="button"
@@ -5,7 +13,7 @@
   class="p-1 transition-colors duration-200 cursor-pointer"
   style="color: var(--link-color);"
 >
-  <!-- Sun icon (shown in dark mode) -->
+  {/* Sun icon (shown in dark mode) */}
   <svg
     id="sun-icon"
     class="hidden w-[22px] h-[22px]"
@@ -24,7 +32,7 @@
     <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
     <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
   </svg>
-  <!-- Moon icon (shown in light mode) -->
+  {/* Moon icon (shown in light mode) */}
   <svg
     id="moon-icon"
     class="hidden w-[22px] h-[22px]"
@@ -46,7 +54,7 @@
 
 </style>
 
-<script is:inline>
+<script define:vars={{ themeColors }}>
   (function() {
     var toggle = document.getElementById('theme-toggle');
     var sunIcon = document.getElementById('sun-icon');
@@ -70,7 +78,7 @@
       // the icon update or the transition cleanup
       try { localStorage.setItem('theme', isDark ? 'dark' : 'light'); } catch (e) {}
       var meta = document.querySelector('meta[name="theme-color"]');
-      if (meta) meta.setAttribute('content', isDark ? '#1c1917' : '#fdfcfb');
+      if (meta) meta.setAttribute('content', themeColors[isDark ? 'dark' : 'light']);
       updateIcons();
       requestAnimationFrame(function() {
         requestAnimationFrame(function() {

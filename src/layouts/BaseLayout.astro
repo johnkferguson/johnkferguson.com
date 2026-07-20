@@ -10,6 +10,13 @@ import Head from "../components/Head.astro";
 import JsonLd from "../components/JsonLd.astro";
 import SiteFooter from "../components/SiteFooter.astro";
 import SiteHeader from "../components/SiteHeader.astro";
+import { themeColors } from "../lib/palette";
+
+/* The theme script below must stay inline and blocking, or the page
+ * paints in the wrong theme before it runs. define:vars implies
+ * is:inline, so it does — but adding is:inline alongside it, or moving
+ * the script, can push it onto the bundled-and-deferred path. Nothing
+ * tests for this; the symptom is a flash of the wrong theme. */
 
 interface Props {
 	title: string;
@@ -44,7 +51,7 @@ const {
     <link rel="preload" href={firaCodeWoff2} as="font" type="font/woff2" crossorigin />
     <Head title={title} description={description} ogImage={ogImage} type={type} pubDate={pubDate} noindex={noindex} />
     <JsonLd type={type} title={title} description={description} ogImage={ogImage} pubDate={pubDate} author={author} />
-    <script is:inline>
+    <script define:vars={{ themeColors }}>
       (function() {
         // stored choice wins; else the OS preference; dark if neither.
         // localStorage can throw in locked-down contexts; theming must
@@ -59,7 +66,7 @@ const {
         }
         if (theme === 'dark') document.documentElement.classList.add('dark');
         var meta = document.querySelector('meta[name="theme-color"]');
-        if (meta) meta.setAttribute('content', theme === 'dark' ? '#1c1917' : '#fdfcfb');
+        if (meta) meta.setAttribute('content', themeColors[theme]);
       })();
     </script>
   </head>

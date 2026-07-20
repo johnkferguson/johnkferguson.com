@@ -1,0 +1,179 @@
+/*
+ * Base Settings
+ *
+ * Element defaults and the small shared voices (.micro-label,
+ * .draft-badge, .side-art, .link-underline) that pages compose from.
+ */
+
+/* Footer rides the bottom of short pages: body is a full-height column
+ * and the footer carries margin-top auto. */
+body {
+	min-height: 100vh;
+	display: flex;
+	flex-direction: column;
+	/* see html rule: pairs with its overflow-x for a real viewport clip */
+	overflow-x: clip;
+}
+
+body > footer {
+	margin-top: auto;
+}
+
+html {
+	/* Decorative bleeds (.side-art, the article backdrop panel) overhang
+	 * the 1rem shell pad on narrow viewports; clip instead of letting the
+	 * page scroll sideways. clip (unlike hidden) creates no scroll
+	 * container, so sticky positioning is unaffected. Needed on BOTH html
+	 * and body: on body alone it propagates to the viewport as hidden
+	 * (still programmatically scrollable, body left unclipped); with html
+	 * carrying the propagated value, body's clip really clips. */
+	overflow-x: clip;
+	font-family: var(--font-serif);
+	/* Newsreader is a variable font with an optical-size axis; let text
+	 * sizes pick the sturdier text cut and headings the display cut. */
+	font-optical-sizing: auto;
+	/* Newsreader runs small for its px size; 17/20 here reads like the
+	 * old PT Serif 16/21. */
+	font-size: 17px;
+}
+
+@media (min-width: 44em) {
+	html {
+		font-size: 20px;
+	}
+}
+
+img {
+	max-width: 100%;
+	height: auto;
+	border-radius: 0.25rem;
+}
+
+@media (min-width: 44em) {
+	p:first-child > img {
+		width: 100%;
+	}
+}
+
+p {
+	margin: 0 0 1rem;
+}
+
+/* Newsreader's optical axis handles display tightening; no manual
+ * tracking. 600 weight: the 700 display cut is too dark for headings. */
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+	margin-bottom: 0.65rem;
+	font-weight: 600;
+	line-height: 1.1;
+	color: var(--heading-color);
+}
+
+h1,
+h2,
+h3 {
+	margin-top: 1.5rem;
+}
+h4,
+h5,
+h6 {
+	margin-top: 1.2rem;
+}
+
+h1 {
+	font-size: 2rem;
+}
+
+h2 {
+	font-size: 1.6rem;
+}
+
+h3 {
+	font-size: 1.4rem;
+}
+
+h4 {
+	font-size: 1.2rem;
+}
+
+a {
+	font-weight: inherit;
+	line-height: inherit;
+	color: var(--link-color);
+	text-decoration: none;
+	transition:
+		color 0.2s ease-in-out,
+		border-color 0.2s ease-in-out;
+}
+
+a:hover {
+	color: var(--link-hover);
+}
+
+/* selection tint; text color unchanged */
+::selection {
+	background: var(--selection-bg);
+}
+
+/* keyboard focus in the accent voice (matches active-TOC/copied usage);
+ * mouse/touch focus stays unmarked via :focus-visible */
+:focus-visible {
+	outline: 2px solid var(--code-color);
+	outline-offset: 2px;
+}
+
+/* Small mono label voice (uppercase, muted); size and tracking stay
+ * local to each site */
+.micro-label {
+	font-family: var(--font-mono);
+	text-transform: uppercase;
+	color: var(--date-color);
+}
+
+/* dev-only marker on draft posts (homepage cards + post header) */
+.draft-badge {
+	font-family: var(--font-mono);
+	font-size: 0.5rem;
+	letter-spacing: 0.1em;
+	color: var(--code-color);
+	border: 1px solid var(--code-color);
+	border-radius: 4px;
+	padding: 0.08rem 0.3rem;
+}
+
+/* diffuse decorative art filling a sticky side column (homepage
+ * identity, about portrait slot): bleeds past its box and dissolves
+ * at every edge */
+.side-art {
+	position: absolute;
+	top: -1.5rem;
+	bottom: -1rem;
+	left: -1rem;
+	right: -1.5rem;
+	opacity: 0.5;
+	pointer-events: none;
+	-webkit-mask-image: radial-gradient(
+		80% 72% at 45% 48%,
+		#000 30%,
+		transparent 95%
+	);
+	mask-image: radial-gradient(80% 72% at 45% 48%, #000 30%, transparent 95%);
+}
+
+.side-art svg {
+	width: 100%;
+	height: 100%;
+	display: block;
+}
+
+/* Themed link with underline */
+.link-underline {
+	border-bottom: 1px solid var(--article-link-border);
+}
+.link-underline:hover {
+	border-color: var(--article-link-hover-border);
+}
