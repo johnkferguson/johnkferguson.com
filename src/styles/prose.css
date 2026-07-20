@@ -127,41 +127,62 @@ article[data-toc-root] .anchor-link.copied::after {
 
 /* For Articles */
 article a {
-	@apply border-b transition-colors duration-200;
-	border-color: var(--article-link-border);
+	border-bottom: 1px solid var(--article-link-border);
+	/* overrides the ease-in-out on the base `a` rule; both properties
+	 * animate because base a:hover moves color and this moves the rule */
+	transition:
+		color 0.2s cubic-bezier(0.4, 0, 0.2, 1),
+		border-color 0.2s cubic-bezier(0.4, 0, 0.2, 1);
 }
 article a:hover {
-	@apply border-b;
-	border-color: var(--article-link-hover-border);
+	border-bottom-color: var(--article-link-hover-border);
 }
 
+article ul,
+article ol {
+	margin-left: 1.35em;
+	margin-bottom: 1rem;
+	padding-left: 1rem;
+	list-style-position: outside;
+}
 article ul {
-	@apply ml-[1.35em] mb-4 pl-4 list-disc list-outside;
+	list-style-type: disc;
 }
 article ol {
-	@apply ml-[1.35em] mb-4 pl-4 list-decimal list-outside;
+	list-style-type: decimal;
 }
 
 article blockquote {
-	@apply border-l-2 pl-4 italic my-6;
-	border-left-color: var(--code-color);
+	margin-block: 1.5rem;
+	padding-left: 1rem;
+	border-left: 2px solid var(--code-color);
+	font-style: italic;
 }
 
 article pre {
-	@apply text-[0.75rem] overflow-auto rounded p-4 my-4;
+	margin-block: 1rem;
+	padding: 1rem;
 	background-color: var(--code-background);
+	border-radius: 0.25rem;
+	font-size: 0.75rem;
+	overflow: auto;
 }
 
 article code {
-	@apply px-1 font-mono rounded text-[0.75rem];
+	padding-inline: 0.25rem;
+	font-family: var(--font-mono);
 	background-color: var(--code-background);
 	color: var(--code-color);
+	border-radius: 0.25rem;
+	font-size: 0.75rem;
 	font-weight: 500;
 }
 
 /* Block code: Medium reads heavy on light backgrounds, right on dark */
 article pre code {
-	@apply text-inherit border-0 p-0;
+	padding: 0;
+	border-width: 0;
+	color: inherit;
 	font-weight: 400;
 }
 

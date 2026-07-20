@@ -1,0 +1,326 @@
+/*
+ * Base reset — Tailwind v4.2.2 preflight, vendored.
+ *
+ * Kept verbatim rather than pruned to "what the site renders today".
+ * Markdown with GFM (Astro's default) can emit table, hr, sub, sup,
+ * abbr, small, del and task-list checkboxes without anyone touching a
+ * template, and the post labs use buttons and range inputs — where the
+ * form-control block below is what makes them inherit the site's font
+ * instead of falling back to the browser's UI font. Pruning would save
+ * about a kilobyte and put a trap in the path of the next post.
+ *
+ * Imported into @layer base by global.css, which is where preflight sat
+ * under Tailwind. That keeps the whole file weaker than every unlayered
+ * site rule regardless of specificity, so a reset declaration like
+ * `img { display: block }` can never out-compete page or component CSS
+ * by accident. Do not import this file unlayered.
+ *
+ * Deviations from upstream, all mechanical:
+ *   - --theme(--default-font-family, …) resolved to
+ *     var(--font-serif, serif), and --default-mono-font-family to
+ *     var(--font-mono, monospace). Those theme tokens held exactly
+ *     these faces before Tailwind was removed; the literal fallbacks
+ *     are new, so this file depends on nothing.
+ *   - the *-font-feature-settings / *-font-variation-settings theme
+ *     lookups resolve to `normal`, which is what they held.
+ *   - upstream's numbered comment markers are dropped; they indexed
+ *     into per-declaration trailing markers that no longer survive the
+ *     resolutions above.
+ *
+ * Upstream: tailwindcss 4.2.2, packages/tailwindcss/preflight.css
+ * (MIT, Tailwind Labs) — https://github.com/tailwindlabs/tailwindcss
+ * The package is no longer a dependency, so there is nothing to drift
+ * from. Revisit only if a browser bug appears that upstream has since
+ * fixed.
+ */
+
+/*
+  Prevent padding and border from affecting element width, remove
+  default margins and padding, and reset all borders.
+*/
+*,
+::after,
+::before,
+::backdrop,
+::file-selector-button {
+	box-sizing: border-box;
+	margin: 0;
+	padding: 0;
+	border: 0 solid;
+}
+
+/*
+  Consistent line-height, no font-size adjustment after an iOS
+  orientation change, a readable tab size, and no iOS tap highlight.
+
+  The font-family carries a literal fallback because --font-serif is
+  defined in base.css: import order is irrelevant (custom properties
+  resolve at computed-value time, not parse time), but if that token
+  were ever removed or renamed the var() would be invalid at
+  computed-value time and html would drop to the browser default. The
+  fallback is what lets this file stand on its own. base.css restates
+  the same font-family for the site proper.
+*/
+html,
+:host {
+	line-height: 1.5;
+	-webkit-text-size-adjust: 100%;
+	tab-size: 4;
+	font-family: var(--font-serif, serif);
+	font-feature-settings: normal;
+	font-variation-settings: normal;
+	-webkit-tap-highlight-color: transparent;
+}
+
+/*
+  Correct height and border-color inheritance in Firefox, and reset the
+  default border style to a 1px solid border.
+*/
+hr {
+	height: 0;
+	color: inherit;
+	border-top-width: 1px;
+}
+
+/* Correct text decoration in Chrome, Edge, and Safari. */
+abbr:where([title]) {
+	-webkit-text-decoration: underline dotted;
+	text-decoration: underline dotted;
+}
+
+/* Remove default size and weight for headings; base.css sets ours. */
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+	font-size: inherit;
+	font-weight: inherit;
+}
+
+/* Opt-in link styling instead of opt-out. */
+a {
+	color: inherit;
+	-webkit-text-decoration: inherit;
+	text-decoration: inherit;
+}
+
+/* Correct font weight in Edge and Safari. */
+b,
+strong {
+	font-weight: bolder;
+}
+
+/*
+  The site's mono face (literal fallback for the same reason as html
+  above), and a correction for the odd `em` font sizing in all browsers.
+*/
+code,
+kbd,
+samp,
+pre {
+	font-family: var(--font-mono, monospace);
+	font-feature-settings: normal;
+	font-variation-settings: normal;
+	font-size: 1em;
+}
+
+/* Correct font size in all browsers. */
+small {
+	font-size: 80%;
+}
+
+/* Keep sub/sup from affecting line height. */
+sub,
+sup {
+	font-size: 75%;
+	line-height: 0;
+	position: relative;
+	vertical-align: baseline;
+}
+
+sub {
+	bottom: -0.25em;
+}
+
+sup {
+	top: -0.5em;
+}
+
+/*
+  Remove text indentation from table contents and correct border-color
+  inheritance in Chrome and Safari, and remove gaps between borders.
+*/
+table {
+	text-indent: 0;
+	border-color: inherit;
+	border-collapse: collapse;
+}
+
+/* Modern Firefox focus style for all focusable elements. */
+:-moz-focusring {
+	outline: auto;
+}
+
+/* Correct vertical alignment in Chrome and Firefox. */
+progress {
+	vertical-align: baseline;
+}
+
+/* Correct display in Chrome and Safari. */
+summary {
+	display: list-item;
+}
+
+/* Unstyled lists by default; prose.css restyles article lists. */
+ol,
+ul,
+menu {
+	list-style: none;
+}
+
+/*
+  Replaced elements block by default, with a saner default vertical
+  alignment.
+*/
+img,
+svg,
+video,
+canvas,
+audio,
+iframe,
+embed,
+object {
+	display: block;
+	vertical-align: middle;
+}
+
+/* Constrain media to the parent width, preserving aspect ratio. */
+img,
+video {
+	max-width: 100%;
+	height: auto;
+}
+
+/*
+  Inherit font styles, remove border radius and background color, and
+  keep opacity consistent for disabled states, in all browsers.
+*/
+button,
+input,
+select,
+optgroup,
+textarea,
+::file-selector-button {
+	font: inherit;
+	font-feature-settings: inherit;
+	font-variation-settings: inherit;
+	letter-spacing: inherit;
+	color: inherit;
+	border-radius: 0;
+	background-color: transparent;
+	opacity: 1;
+}
+
+/* Restore default font weight. */
+:where(select:is([multiple], [size])) optgroup {
+	font-weight: bolder;
+}
+
+/* Restore indentation. */
+:where(select:is([multiple], [size])) optgroup option {
+	padding-inline-start: 20px;
+}
+
+/* Restore space after button. */
+::file-selector-button {
+	margin-inline-end: 4px;
+}
+
+/* Reset the default placeholder opacity in Firefox. */
+::placeholder {
+	opacity: 1;
+}
+
+/*
+  Default placeholder color as a semi-transparent version of the current
+  text color, in browsers that do not crash on color-mix with
+  currentcolor.
+*/
+@supports (not (-webkit-appearance: -apple-pay-button)) /* Not Safari */ or
+	(contain-intrinsic-size: 1px) /* Safari 17+ */ {
+	::placeholder {
+		color: color-mix(in oklab, currentcolor 50%, transparent);
+	}
+}
+
+/* Prevent resizing textareas horizontally by default. */
+textarea {
+	resize: vertical;
+}
+
+/* Remove the inner padding in Chrome and Safari on macOS. */
+::-webkit-search-decoration {
+	-webkit-appearance: none;
+}
+
+/*
+  Same height when empty in iOS Safari, and allow text alignment to be
+  changed there.
+*/
+::-webkit-date-and-time-value {
+	min-height: 1lh;
+	text-align: inherit;
+}
+
+/* Prevent height change in macOS Safari when set to display: block. */
+::-webkit-datetime-edit {
+	display: inline-flex;
+}
+
+/* Remove excess padding for consistent height across browsers. */
+::-webkit-datetime-edit-fields-wrapper {
+	padding: 0;
+}
+
+::-webkit-datetime-edit,
+::-webkit-datetime-edit-year-field,
+::-webkit-datetime-edit-month-field,
+::-webkit-datetime-edit-day-field,
+::-webkit-datetime-edit-hour-field,
+::-webkit-datetime-edit-minute-field,
+::-webkit-datetime-edit-second-field,
+::-webkit-datetime-edit-millisecond-field,
+::-webkit-datetime-edit-meridiem-field {
+	padding-block: 0;
+}
+
+/* Center the dropdown marker on inputs with paired datalists in Chrome. */
+::-webkit-calendar-picker-indicator {
+	line-height: 1;
+}
+
+/* Remove the additional :invalid styles in Firefox. */
+:-moz-ui-invalid {
+	box-shadow: none;
+}
+
+/* Correct the inability to style border radius in iOS Safari. */
+button,
+input:where([type="button"], [type="reset"], [type="submit"]),
+::file-selector-button {
+	appearance: button;
+}
+
+/* Correct the cursor style of increment/decrement buttons in Safari. */
+::-webkit-inner-spin-button,
+::-webkit-outer-spin-button {
+	height: auto;
+}
+
+/* Keep elements with the HTML hidden attribute hidden. */
+[hidden]:where(:not([hidden="until-found"])) {
+	/* biome-ignore lint/complexity/noImportantStyles: upstream preflight; the attribute must beat any display rule */
+	display: none !important;
+}

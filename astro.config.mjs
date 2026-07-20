@@ -4,7 +4,6 @@ import { unified } from "@astrojs/markdown-remark";
 import mdx from "@astrojs/mdx";
 import preact from "@astrojs/preact";
 import sitemap from "@astrojs/sitemap";
-import tailwindcss from "@tailwindcss/vite";
 import { defineConfig } from "astro/config";
 import rehypeExternalLinks from "rehype-external-links";
 import rehypeKatex from "rehype-katex";
@@ -26,9 +25,6 @@ export default defineConfig({
 		mdx(),
 		preact({ compat: true }),
 	],
-	vite: {
-		plugins: [tailwindcss()],
-	},
 	trailingSlash: "never",
 	// Astro 7 defaults: compressHTML switched to "jsx" whitespace rules and the
 	// Markdown processor switched to Sätteri. Pin both to the v6 behavior so
