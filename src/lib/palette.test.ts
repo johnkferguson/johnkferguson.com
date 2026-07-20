@@ -1,6 +1,6 @@
 import { describe, expect, test } from "bun:test";
-import { readFileSync } from "node:fs";
-import { resolve } from "node:path";
+import { readdirSync, readFileSync } from "node:fs";
+import { relative, resolve } from "node:path";
 import { palette } from "./palette";
 
 /* colors.css is the source of truth; palette.ts is a partial mirror for
@@ -53,28 +53,73 @@ describe("palette mirrors colors.css", () => {
 	}
 });
 
-describe("no consumer keeps its own copy", () => {
-	/* the drift this module exists to prevent: these four files each used
-	 * to hardcode palette hexes, and nothing failed when the CSS moved */
-	const CONSUMERS = [
-		"src/consts.ts",
-		"src/lib/og.ts",
-		"src/layouts/BaseLayout.astro",
-		"src/components/ThemeToggle.astro",
-	];
+/**
+ * Files allowed to contain a palette hex. This is an exclusion list on
+ * purpose: an inclusion list would only ever guard the files that were
+ * already dirty when it was written, and the next one to hardcode a hex
+ * is exactly the case this test exists to catch. Adding an entry here
+ * should be a decision, so each one carries its reason.
+ */
+const ALLOWED = new Map([
+	["src/styles/colors.css", "the source of truth itself"],
+	[
+		"src/lib/palette.ts",
+		"the mirror; palette.test.ts checks it against colors.css",
+	],
+	[
+		"public/assets/favicon.svg",
+		"static asset with no CSS context and no theme to follow; generated from the palette, so regenerate it if the palette changes",
+	],
+	[
+		"src/pages/lab/art-tuner.astro",
+		"unpublished dark-only debug UI with its own bespoke surface colors, not a copy of the palette",
+	],
+]);
 
+describe("no file keeps its own copy of the palette", () => {
 	const hexes = [
 		...Object.values(palette.light),
 		...Object.values(palette.dark),
 	];
 
-	for (const file of CONSUMERS) {
-		test(`${file} references no palette hex directly`, () => {
-			const source = readFileSync(resolve(file), "utf8");
-			const found = hexes.filter((hex) =>
-				source.toLowerCase().includes(hex.toLowerCase()),
+	/* a filesystem walk, not `git ls-files`: an untracked file is exactly
+	 * the case this test exists to catch, and listing tracked files only
+	 * would let a brand-new one pass locally and fail later in CI */
+	const BINARY = /\.(woff2?|ttf|otf|eot|png|jpe?g|webp|avif|ico|gif|pdf)$/i;
+	const tracked = ["src", "public"]
+		.flatMap((dir) =>
+			readdirSync(resolve(dir), { recursive: true, withFileTypes: true })
+				.filter((e) => e.isFile())
+				.map((e) => relative(resolve("."), resolve(e.parentPath, e.name))),
+		)
+		.filter((f) => !BINARY.test(f));
+
+	test("the file sweep actually found files", () => {
+		/* a walk that silently returned nothing would make this vacuous */
+		expect(tracked.length).toBeGreaterThan(20);
+		expect(tracked).toContain("src/styles/colors.css");
+	});
+
+	test("no unlisted file contains a palette hex", () => {
+		const offenders: string[] = [];
+		for (const file of tracked) {
+			if (ALLOWED.has(file)) continue;
+			const source = readFileSync(resolve(file), "utf8").toLowerCase();
+			const found = hexes.filter((hex) => source.includes(hex.toLowerCase()));
+			if (found.length > 0) offenders.push(`${file}: ${found.join(", ")}`);
+		}
+		expect(offenders).toEqual([]);
+	});
+
+	test("every allowed file still exists and still needs the exemption", () => {
+		/* an exemption left behind after its file stopped hardcoding hexes
+		 * quietly widens the net for that path */
+		for (const [file, reason] of ALLOWED) {
+			const source = readFileSync(resolve(file), "utf8").toLowerCase();
+			const found = hexes.some((hex) => source.includes(hex.toLowerCase()));
+			expect(found, `${file} no longer needs its exemption (${reason})`).toBe(
+				true,
 			);
-			expect(found).toEqual([]);
-		});
-	}
+		}
+	});
 });

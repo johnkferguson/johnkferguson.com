@@ -174,7 +174,7 @@ export function pinArtColors(svg: string): string {
 	const leftover = pinned.match(/var\(--[a-z-]+\)/i);
 	if (leftover) {
 		throw new Error(
-			`OG card art contains an unmapped CSS variable: ${leftover[0]}. Add it to pinArtColors.`,
+			`OG card art contains an unmapped CSS variable: ${leftover[0]}. Add it to the dark palette in src/lib/palette.ts.`,
 		);
 	}
 	return pinned;
