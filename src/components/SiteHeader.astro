@@ -69,6 +69,10 @@ const { postTitle, postDate } = Astro.props;
 					behavior: reduceMotion ? "auto" : "smooth",
 				});
 			});
+			/* Deliberately not gated behind the 640px query that hides the
+			 * context on phones: unlike the per-scroll-frame work in the
+			 * TOC rail and back-to-top (which is gated), an observer costs
+			 * nothing per frame and fires only when the h1 crosses. */
 			const io = new IntersectionObserver(
 				([entry]) => {
 					const passed =
@@ -169,6 +173,15 @@ const { postTitle, postDate } = Astro.props;
     font-size: 0.55rem;
     letter-spacing: 0.06em;
     color: var(--date-color);
+  }
+
+  /* narrow: no room for a meaningful title between the name and nav
+   * (every real title ellipsizes into noise), and tap-to-top is covered
+   * by the floating back-to-top button; the bar stays name + nav only */
+  @media (max-width: 639px) {
+    .post-context {
+      display: none;
+    }
   }
 
   .site-nav {
