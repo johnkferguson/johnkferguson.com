@@ -1,0 +1,316 @@
+/*
+ * Base reset — Tailwind v4.2.2 preflight, vendored.
+ *
+ * Kept verbatim rather than pruned to "what the site renders today".
+ * Markdown with GFM (Astro's default) can emit table, hr, sub, sup,
+ * abbr, small, del and task-list checkboxes without anyone touching a
+ * template, and the post labs use buttons and range inputs — where the
+ * form-control block below is what makes them inherit the site's font
+ * instead of falling back to the browser's UI font. Pruning would save
+ * about a kilobyte and put a trap in the path of the next post.
+ *
+ * Two deviations from upstream, both mechanical:
+ *   - --theme(--default-font-family, …) resolved to var(--font-serif),
+ *     and --default-mono-font-family to var(--font-mono). Those theme
+ *     tokens held exactly these values before Tailwind was removed.
+ *   - the *-font-feature-settings / *-font-variation-settings theme
+ *     lookups resolve to `normal`, which is what they held.
+ *
+ * Upstream: tailwindcss 4.2.2, packages/tailwindcss/preflight.css
+ * (MIT, Tailwind Labs) — https://github.com/tailwindlabs/tailwindcss
+ * The package is no longer a dependency, so there is nothing to drift
+ * from. Revisit only if a browser bug appears that upstream has since
+ * fixed.
+ */
+
+/*
+  1. Prevent padding and border from affecting element width.
+  2. Remove default margins and padding.
+  3. Reset all borders.
+*/
+*,
+::after,
+::before,
+::backdrop,
+::file-selector-button {
+	box-sizing: border-box;
+	margin: 0;
+	padding: 0;
+	border: 0 solid;
+}
+
+/*
+  1. Consistent line-height across browsers.
+  2. Prevent font-size adjustment after orientation change in iOS.
+  3. More readable tab size.
+  4. The site's serif. base.css restates this; kept here so the reset
+     stands on its own if the base sheet is ever reordered.
+  7. Disable tap highlights on iOS.
+*/
+html,
+:host {
+	line-height: 1.5;
+	-webkit-text-size-adjust: 100%;
+	tab-size: 4;
+	font-family: var(--font-serif);
+	font-feature-settings: normal;
+	font-variation-settings: normal;
+	-webkit-tap-highlight-color: transparent;
+}
+
+/*
+  1. Correct height in Firefox.
+  2. Correct border-color inheritance in Firefox.
+  3. Reset the default border style to a 1px solid border.
+*/
+hr {
+	height: 0;
+	color: inherit;
+	border-top-width: 1px;
+}
+
+/* Correct text decoration in Chrome, Edge, and Safari. */
+abbr:where([title]) {
+	-webkit-text-decoration: underline dotted;
+	text-decoration: underline dotted;
+}
+
+/* Remove default size and weight for headings; base.css sets ours. */
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+	font-size: inherit;
+	font-weight: inherit;
+}
+
+/* Opt-in link styling instead of opt-out. */
+a {
+	color: inherit;
+	-webkit-text-decoration: inherit;
+	text-decoration: inherit;
+}
+
+/* Correct font weight in Edge and Safari. */
+b,
+strong {
+	font-weight: bolder;
+}
+
+/*
+  1. The site's mono face.
+  4. Correct the odd `em` font sizing in all browsers.
+*/
+code,
+kbd,
+samp,
+pre {
+	font-family: var(--font-mono);
+	font-feature-settings: normal;
+	font-variation-settings: normal;
+	font-size: 1em;
+}
+
+/* Correct font size in all browsers. */
+small {
+	font-size: 80%;
+}
+
+/* Keep sub/sup from affecting line height. */
+sub,
+sup {
+	font-size: 75%;
+	line-height: 0;
+	position: relative;
+	vertical-align: baseline;
+}
+
+sub {
+	bottom: -0.25em;
+}
+
+sup {
+	top: -0.5em;
+}
+
+/*
+  1. Remove text indentation from table contents in Chrome and Safari.
+  2. Correct table border color inheritance in Chrome and Safari.
+  3. Remove gaps between table borders by default.
+*/
+table {
+	text-indent: 0;
+	border-color: inherit;
+	border-collapse: collapse;
+}
+
+/* Modern Firefox focus style for all focusable elements. */
+:-moz-focusring {
+	outline: auto;
+}
+
+/* Correct vertical alignment in Chrome and Firefox. */
+progress {
+	vertical-align: baseline;
+}
+
+/* Correct display in Chrome and Safari. */
+summary {
+	display: list-item;
+}
+
+/* Unstyled lists by default; prose.css restyles article lists. */
+ol,
+ul,
+menu {
+	list-style: none;
+}
+
+/*
+  1. Replaced elements block by default.
+  2. Saner default vertical alignment for replaced elements.
+*/
+img,
+svg,
+video,
+canvas,
+audio,
+iframe,
+embed,
+object {
+	display: block;
+	vertical-align: middle;
+}
+
+/* Constrain media to the parent width, preserving aspect ratio. */
+img,
+video {
+	max-width: 100%;
+	height: auto;
+}
+
+/*
+  1. Inherit font styles in all browsers.
+  2. Remove border radius in all browsers.
+  3. Remove background color in all browsers.
+  4. Consistent opacity for disabled states.
+*/
+button,
+input,
+select,
+optgroup,
+textarea,
+::file-selector-button {
+	font: inherit;
+	font-feature-settings: inherit;
+	font-variation-settings: inherit;
+	letter-spacing: inherit;
+	color: inherit;
+	border-radius: 0;
+	background-color: transparent;
+	opacity: 1;
+}
+
+/* Restore default font weight. */
+:where(select:is([multiple], [size])) optgroup {
+	font-weight: bolder;
+}
+
+/* Restore indentation. */
+:where(select:is([multiple], [size])) optgroup option {
+	padding-inline-start: 20px;
+}
+
+/* Restore space after button. */
+::file-selector-button {
+	margin-inline-end: 4px;
+}
+
+/* Reset the default placeholder opacity in Firefox. */
+::placeholder {
+	opacity: 1;
+}
+
+/*
+  Default placeholder color as a semi-transparent version of the current
+  text color, in browsers that do not crash on color-mix with
+  currentcolor.
+*/
+@supports (not (-webkit-appearance: -apple-pay-button)) /* Not Safari */ or
+	(contain-intrinsic-size: 1px) /* Safari 17+ */ {
+	::placeholder {
+		color: color-mix(in oklab, currentcolor 50%, transparent);
+	}
+}
+
+/* Prevent resizing textareas horizontally by default. */
+textarea {
+	resize: vertical;
+}
+
+/* Remove the inner padding in Chrome and Safari on macOS. */
+::-webkit-search-decoration {
+	-webkit-appearance: none;
+}
+
+/*
+  1. Same height when empty in iOS Safari.
+  2. Allow text alignment to be changed in iOS Safari.
+*/
+::-webkit-date-and-time-value {
+	min-height: 1lh;
+	text-align: inherit;
+}
+
+/* Prevent height change in macOS Safari when set to display: block. */
+::-webkit-datetime-edit {
+	display: inline-flex;
+}
+
+/* Remove excess padding for consistent height across browsers. */
+::-webkit-datetime-edit-fields-wrapper {
+	padding: 0;
+}
+
+::-webkit-datetime-edit,
+::-webkit-datetime-edit-year-field,
+::-webkit-datetime-edit-month-field,
+::-webkit-datetime-edit-day-field,
+::-webkit-datetime-edit-hour-field,
+::-webkit-datetime-edit-minute-field,
+::-webkit-datetime-edit-second-field,
+::-webkit-datetime-edit-millisecond-field,
+::-webkit-datetime-edit-meridiem-field {
+	padding-block: 0;
+}
+
+/* Center the dropdown marker on inputs with paired datalists in Chrome. */
+::-webkit-calendar-picker-indicator {
+	line-height: 1;
+}
+
+/* Remove the additional :invalid styles in Firefox. */
+:-moz-ui-invalid {
+	box-shadow: none;
+}
+
+/* Correct the inability to style border radius in iOS Safari. */
+button,
+input:where([type="button"], [type="reset"], [type="submit"]),
+::file-selector-button {
+	appearance: button;
+}
+
+/* Correct the cursor style of increment/decrement buttons in Safari. */
+::-webkit-inner-spin-button,
+::-webkit-outer-spin-button {
+	height: auto;
+}
+
+/* Keep elements with the HTML hidden attribute hidden. */
+[hidden]:where(:not([hidden="until-found"])) {
+	/* biome-ignore lint/complexity/noImportantStyles: upstream preflight; the attribute must beat any display rule */
+	display: none !important;
+}

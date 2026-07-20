@@ -2,36 +2,19 @@
  * Stylesheet index. Imported once, from BaseLayout.astro.
  *
  * Import order is meaningful, not alphabetical:
- *   - "tailwindcss" must come first; it declares the layer order and
- *     ships preflight.
+ *   - reset.css comes first; everything after it assumes the reset.
  *   - colors.css defines :root then .dark, and print.css overrides both
  *     at the same specificity. Both relationships are source-order-only,
  *     so colors.css must precede print.css and print.css comes last.
  *   - the middle three are independent; they sit in their original order.
  *
- * These files are reachable ONLY through this one. Tailwind's resolver
- * inlines them before Vite sees any CSS, so the @apply directives in
- * prose.css expand on this path alone — importing a split file directly
- * from a component would ship it raw.
- *
  * Not indexed here: fonts.css (@font-face, imported by BaseLayout ahead
  * of this file) and math.css (KaTeX dressing, imported per page).
  */
-@import "tailwindcss";
+@import "./reset.css";
 @import "./colors.css";
 @import "./base.css";
 @import "./layout.css";
 @import "./post-shell.css";
 @import "./prose.css";
 @import "./print.css";
-
-@custom-variant dark (&:where(.dark, .dark *));
-
-@theme {
-	--font-serif: "Newsreader Variable", "Newsreader Fallback", serif;
-	--font-mono: "Fira Code", monospace;
-	--default-font-family: "Newsreader Variable", "Newsreader Fallback", serif;
-	--default-mono-font-family: "Fira Code", monospace;
-}
-
-/* the "Newsreader Fallback" face (metric-tuned) lives in fonts.css */

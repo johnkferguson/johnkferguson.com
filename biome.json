@@ -24,8 +24,7 @@
 			"enabled": true
 		},
 		"parser": {
-			"cssModules": true,
-			"tailwindDirectives": true
+			"cssModules": true
 		}
 	},
 	"overrides": [

@@ -5,6 +5,14 @@
  * .draft-badge, .side-art, .link-underline) that pages compose from.
  */
 
+/* Type tokens. They live here rather than in their own file because
+ * they are only ever about typography, and reset.css reads them for its
+ * html and code rules. The faces themselves are declared in fonts.css. */
+:root {
+	--font-serif: "Newsreader Variable", "Newsreader Fallback", serif;
+	--font-mono: "Fira Code", monospace;
+}
+
 /* Footer rides the bottom of short pages: body is a full-height column
  * and the footer carries margin-top auto. */
 body {
@@ -13,6 +21,13 @@ body {
 	flex-direction: column;
 	/* see html rule: pairs with its overflow-x for a real viewport clip */
 	overflow-x: clip;
+	font-weight: 400;
+	line-height: 1.65;
+	/* the theme flip fades surface and text together; .theme-snap in
+	 * colors.css suppresses this for the single-frame toggle */
+	transition:
+		color 0.2s cubic-bezier(0.4, 0, 0.2, 1),
+		background-color 0.2s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 body > footer {
