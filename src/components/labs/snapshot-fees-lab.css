@@ -1,0 +1,93 @@
+/*
+ * Snapshot-fees lab theme.
+ *
+ * Series colors are from the validated dataviz method (aqua/orange/blue/
+ * violet), stepped per mode against the site surfaces (#ffffff / #1c1917):
+ *   light "#199e70,#d95926,#2a78d6,#4a3aa7" and
+ *   dark  "#199e70,#d95926,#256abf,#9085e9" both pass the palette validator
+ *   (all-pairs CVD ≥ 16 light / ≥ 13 dark on deutan+protan).
+ * Semantics: green/orange = your book · blue = fees · purple = everything
+ * the Mark defines (M, band edges, walk slices) · band fill is neutral gray.
+ * Chrome colors reference the site's theme variables so they switch with the
+ * .dark class automatically.
+ */
+.sf-lab {
+	--lab-bid: #199e70;
+	--lab-ask: #d95926;
+	--lab-fee: #e34948;
+	--lab-mark: #4a3aa7;
+	--lab-zone: #2a78d6;
+	--lab-zone-soft: rgba(42, 120, 214, 0.07);
+	--lab-danger: #d03b3b;
+	--lab-band: rgba(120, 120, 120, 0.12);
+	--lab-band-edge: rgba(74, 58, 167, 0.55);
+	--lab-mark-slice: rgba(74, 58, 167, 0.09);
+	--lab-hatch: rgba(0, 0, 0, 0.45);
+	--lab-grid: #efefef;
+	--lab-inset: #ffffff;
+	--lab-hint: #c98500;
+	--lab-on-accent: #ffffff;
+	--lab-slider: #1c1917;
+
+	--lab-panel: var(--code-background);
+	--lab-panel2: var(--bg);
+	--lab-line: var(--border-color);
+	--lab-text: var(--heading-color);
+	--lab-dim: var(--text-color);
+	--lab-faint: var(--date-color);
+	--lab-mono: var(--font-mono);
+}
+
+.dark .sf-lab {
+	--lab-fee: #e66767;
+	--lab-mark: #9085e9;
+	--lab-zone: #4b8fdd;
+	--lab-zone-soft: rgba(75, 143, 221, 0.09);
+	--lab-band: rgba(255, 255, 255, 0.06);
+	--lab-band-edge: rgba(144, 133, 233, 0.6);
+	--lab-mark-slice: rgba(144, 133, 233, 0.14);
+	--lab-hatch: rgba(255, 255, 255, 0.55);
+	--lab-grid: #2e2a27;
+	--lab-inset: #332d29;
+	--lab-on-accent: #1c1917;
+	--lab-slider: #f0ebe5;
+}
+
+/* scrollable insets (e.g. the base-fee schedule) — theme-aware thin bar */
+.sf-lab .sf-scroll {
+	scrollbar-width: thin;
+	scrollbar-color: var(--border-color) transparent;
+}
+
+.sf-lab .sf-scroll::-webkit-scrollbar {
+	width: 8px;
+}
+
+.sf-lab .sf-scroll::-webkit-scrollbar-thumb {
+	background: var(--border-color);
+	border-radius: 4px;
+}
+
+.sf-lab .sf-scroll::-webkit-scrollbar-track {
+	background: transparent;
+}
+
+/* the Effect readout fades in the first time a dial moves */
+.sf-lab .sf-effect {
+	animation: sf-fade-in 400ms ease;
+}
+
+@keyframes sf-fade-in {
+	from {
+		opacity: 0;
+	}
+	to {
+		opacity: 1;
+	}
+}
+
+@media (prefers-reduced-motion: reduce) {
+	.sf-lab .sf-effect {
+		animation: none;
+	}
+}

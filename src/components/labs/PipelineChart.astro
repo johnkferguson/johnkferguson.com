@@ -1,0 +1,175 @@
+---
+// One auction's pipeline as a static fork-join chart. Nodes link to the
+// matching h3 subsections below it in the article. Color carries the
+// marginal-cost story: gray nodes are the venue's existing work, purple
+// nodes are unique to the mechanism, gradient nodes are a blend of both.
+// Zero client JS; themes through the lab CSS variables.
+import "./snapshot-fees-lab.css";
+---
+
+<div class="sf-lab pipeline-chart">
+	<svg
+		viewBox="0 0 640 540"
+		role="img"
+		aria-label="Flowchart of one auction: seal the auction, then calculate the mark and match in parallel, then price the fills, then finalize the window"
+	>
+		<defs>
+			<marker
+				id="pc-arrow"
+				viewBox="0 0 8 8"
+				refX="7"
+				refY="4"
+				markerWidth="7"
+				markerHeight="7"
+				orient="auto-start-reverse"
+			>
+				<path d="M0,0 L8,4 L0,8 Z" style="fill: var(--lab-dim)"></path>
+			</marker>
+		</defs>
+
+		<!-- edges -->
+		<g style="stroke: var(--lab-dim)" stroke-width="1.25" fill="none">
+			<path d="M279.1,98.2 L215.3,157.7" marker-end="url(#pc-arrow)"></path>
+			<path d="M360.9,98.2 L424.7,157.7" marker-end="url(#pc-arrow)"></path>
+			<path d="M210.9,238.2 L274.7,297.7" marker-end="url(#pc-arrow)"></path>
+			<path d="M429.1,238.2 L365.3,297.7" marker-end="url(#pc-arrow)"></path>
+			<path d="M320,396 L320,420" marker-end="url(#pc-arrow)"></path>
+		</g>
+
+		<!-- Seal the Auction: the venue's existing work -->
+		<a href="#seal-the-auction">
+			<circle cx="320" cy="60" r="52" class="pc-node pc-venue"></circle>
+			<text x="320" y="56">Seal the</text>
+			<text x="320" y="74">Auction</text>
+		</a>
+
+		<!-- Calculate the Mark: unique to the mechanism -->
+		<a href="#calculate-the-mark">
+			<circle cx="170" cy="200" r="52" class="pc-node pc-ours"></circle>
+			<text x="170" y="196">Calculate</text>
+			<text x="170" y="214">the Mark</text>
+		</a>
+
+		<!-- Match: the venue's existing work -->
+		<a href="#match">
+			<circle cx="470" cy="200" r="52" class="pc-node pc-venue"></circle>
+			<text x="470" y="205">Match</text>
+		</a>
+
+		<!-- Price the Fills: a blend, drawn as an evenly striped ring -->
+		<a href="#price-the-fills">
+			<circle cx="320" cy="340" r="52" class="pc-node pc-blend-base"></circle>
+			<circle cx="320" cy="340" r="52" class="pc-blend-dash"></circle>
+			<text x="320" y="336">Price</text>
+			<text x="320" y="354">the Fills</text>
+		</a>
+
+		<!-- Finalize the Window: a blend, drawn as an evenly striped ring -->
+		<a href="#finalize-the-window">
+			<circle cx="320" cy="476" r="52" class="pc-node pc-blend-base"></circle>
+			<circle cx="320" cy="476" r="52" class="pc-blend-dash"></circle>
+			<text x="320" y="472">Finalize</text>
+			<text x="320" y="490">the Window</text>
+		</a>
+	</svg>
+	<div class="pc-legend">
+		<span><i class="pc-sw pc-sw-venue"></i> Venue's Existing Work</span>
+		<span><i class="pc-sw pc-sw-ours"></i> Unique to the Mechanism</span>
+		<span><i class="pc-sw pc-sw-blend"></i> Both</span>
+	</div>
+</div>
+
+<style>
+	.pipeline-chart {
+		margin: 1.25rem 0 1.75rem;
+	}
+
+	.pipeline-chart svg {
+		width: min(100%, 560px);
+		display: block;
+		margin: 0 auto;
+	}
+
+	.pipeline-chart text {
+		font-family: var(--lab-mono);
+		font-size: 14.5px;
+		text-anchor: middle;
+		fill: var(--lab-text);
+	}
+
+	.pc-node {
+		fill: var(--lab-panel);
+		stroke-width: 3;
+	}
+
+	.pc-venue {
+		stroke: var(--lab-faint);
+	}
+
+	.pc-ours {
+		stroke: var(--lab-mark);
+	}
+
+	/* the blend ring: purple base circle under an evenly dashed gray circle;
+	   dash length divides the circumference (2π·52 / 40) so the stripes tile
+	   the ring exactly, with no tangent-aligned solid arcs */
+	.pc-blend-base {
+		stroke: var(--lab-mark);
+		stroke-width: 3;
+	}
+
+	.pc-blend-dash {
+		fill: none;
+		stroke: var(--lab-faint);
+		stroke-width: 3;
+		stroke-dasharray: 8.168 8.168;
+	}
+
+	.pipeline-chart a {
+		cursor: pointer;
+	}
+
+	.pipeline-chart a:hover .pc-node,
+	.pipeline-chart a:hover .pc-blend-dash {
+		stroke-width: 4;
+	}
+
+	.pc-legend {
+		display: flex;
+		flex-wrap: wrap;
+		gap: 4px 18px;
+		justify-content: center;
+		font-family: var(--lab-mono);
+		font-size: 11px;
+		color: var(--lab-dim);
+		margin-top: 6px;
+	}
+
+	.pc-sw {
+		display: inline-block;
+		width: 20px;
+		height: 9px;
+		border-radius: 5px;
+		vertical-align: baseline;
+	}
+
+	.pc-sw-venue {
+		border: 1.5px solid var(--lab-faint);
+	}
+
+	.pc-sw-ours {
+		border: 1.5px solid var(--lab-mark);
+	}
+
+	.pc-sw-blend {
+		border: 1.5px solid transparent;
+		background:
+			linear-gradient(var(--lab-panel), var(--lab-panel)) padding-box,
+			repeating-linear-gradient(
+					45deg,
+					var(--lab-faint) 0 4px,
+					var(--lab-mark) 4px 8px
+				)
+				border-box;
+	}
+</style>
