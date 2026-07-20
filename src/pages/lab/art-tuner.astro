@@ -154,7 +154,6 @@ const first = pages[0]?.value ?? "/";
       const el = <T extends HTMLElement>(id: string) =>
         document.getElementById(id) as T;
 
-      const page = el<HTMLSelectElement>("page");
       const family = el<HTMLSelectElement>("family");
       const seed = el<HTMLInputElement>("seed");
       const dials = {
