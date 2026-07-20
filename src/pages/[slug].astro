@@ -2,6 +2,7 @@
 import { render } from "astro:content";
 import PostLayout from "../layouts/PostLayout.astro";
 import { createExcerpt } from "../lib/excerpt";
+import { containsMath } from "../lib/literal-dollars";
 import { getVisiblePosts, IS_DEV } from "../lib/posts";
 import { readingTimeMinutes } from "../lib/reading-time";
 
@@ -29,6 +30,7 @@ const readingMinutes = readingTimeMinutes(post.body ?? "", post.data.pace);
   art={post.data.art}
   readingMinutes={readingMinutes}
   headings={headings}
+  hasMath={containsMath(post.body ?? "")}
   draftBadge={IS_DEV && post.data.draft === true}
 >
   <Content />

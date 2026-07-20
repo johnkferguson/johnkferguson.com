@@ -4,6 +4,10 @@ import BackToTop from "../components/BackToTop.astro";
 import ReadingTime from "../components/ReadingTime.astro";
 import TableOfContents from "../components/TableOfContents.astro";
 import { artSvg, DEFAULT_QUIET } from "../lib/art/generate";
+/* ?raw keeps math.css out of the CSS module graph: Astro ships
+ * component-imported CSS to every page in the graph whether or not the
+ * importing markup rendered, and this must ship only with hasMath */
+import mathCss from "../styles/math.css?raw";
 import BaseLayout from "./BaseLayout.astro";
 
 interface Props {
@@ -16,6 +20,8 @@ interface Props {
 	readingMinutes?: number;
 	/** build-time headings (from render(post)); the TOC renders from these */
 	headings?: MarkdownHeading[];
+	/** post body contains math (containsMath); gates the KaTeX CSS */
+	hasMath?: boolean;
 	/** dev-only marker for draft posts */
 	draftBadge?: boolean;
 	art?: {
@@ -35,6 +41,7 @@ const {
 	art,
 	readingMinutes,
 	headings,
+	hasMath,
 	draftBadge,
 } = Astro.props;
 
@@ -71,6 +78,17 @@ const backdropSvg = art?.image
 	headerContextDate={formattedDate}
 	noindex={noindex}
 >
+  {
+    /* static link + raw-inlined dressing, NOT imports: served from
+     * public/katex (scripts/build-katex.py), loaded only when the post
+     * has math (issue 20) */
+    hasMath && (
+      <Fragment slot="head">
+        <link rel="stylesheet" href="/katex/katex.min.css" />
+        <style set:html={mathCss} />
+      </Fragment>
+    )
+  }
   <div class="post-page">
     <div class="post-backdrop" aria-hidden="true">
       {
