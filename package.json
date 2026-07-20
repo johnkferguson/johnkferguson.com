@@ -5,7 +5,7 @@
 	"private": true,
 	"scripts": {
 		"dev": "astro dev",
-		"build": "astro build",
+		"build": "ASTRO_BUILD=1 astro build && rm -rf dist/lab && astro sync",
 		"preview": "astro preview",
 		"astro": "astro",
 		"test": "bun test",
@@ -20,9 +20,7 @@
 		"@astrojs/rss": "^4.0.19",
 		"@astrojs/sitemap": "^3.7.3",
 		"@fontsource/fira-code": "^5.2.5",
-		"@fontsource/pt-serif": "^5.1.1",
 		"@resvg/resvg-js": "^2.6.2",
-		"@tailwindcss/typography": "^0.5.19",
 		"@tailwindcss/vite": "^4.2.2",
 		"astro": "^7.0.7",
 		"katex": "^0.17.0",
