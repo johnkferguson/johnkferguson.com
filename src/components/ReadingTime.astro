@@ -1,0 +1,37 @@
+---
+/* Clock + "N min read" chip. The icon's optical lift varies slightly
+ * with the surrounding text size; contexts tune it via --rt-lift. */
+interface Props {
+	minutes: number;
+}
+const { minutes } = Astro.props;
+---
+
+<span class="rt">
+  <svg
+    width="10"
+    height="10"
+    viewBox="0 0 16 16"
+    fill="none"
+    stroke="currentColor"
+    stroke-width="1.6"
+    aria-hidden="true"
+  >
+    <circle cx="8" cy="8" r="6.2"></circle>
+    <path d="M8 4.8V8l2.2 1.6" stroke-linecap="round"></path>
+  </svg>
+  {minutes} min read
+</span>
+
+<style>
+  .rt {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+  }
+
+  .rt svg {
+    display: block;
+    transform: translateY(var(--rt-lift, -0.75px));
+  }
+</style>

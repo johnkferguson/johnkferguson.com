@@ -1,4 +1,9 @@
 ---
+import type { MarkdownHeading } from "astro";
+import BackToTop from "../components/BackToTop.astro";
+import ReadingTime from "../components/ReadingTime.astro";
+import TableOfContents from "../components/TableOfContents.astro";
+import { artSvg, DEFAULT_QUIET } from "../lib/art/generate";
 import BaseLayout from "./BaseLayout.astro";
 
 interface Props {
@@ -6,9 +11,32 @@ interface Props {
 	description: string;
 	pubDate: Date;
 	author?: string;
+	noindex?: boolean;
+	slug?: string;
+	readingMinutes?: number;
+	/** build-time headings (from render(post)); the TOC renders from these */
+	headings?: MarkdownHeading[];
+	/** dev-only marker for draft posts */
+	draftBadge?: boolean;
+	art?: {
+		family?: "strata" | "field" | "walk" | "depth";
+		seed?: string;
+		image?: string;
+	};
 }
 
-const { title, description, pubDate, author } = Astro.props;
+const {
+	title,
+	description,
+	pubDate,
+	author,
+	noindex,
+	slug,
+	art,
+	readingMinutes,
+	headings,
+	draftBadge,
+} = Astro.props;
 
 const formattedDate = pubDate.toLocaleDateString("en-US", {
 	month: "long",
@@ -16,18 +44,183 @@ const formattedDate = pubDate.toLocaleDateString("en-US", {
 	year: "numeric",
 	timeZone: "UTC",
 });
+
+/* Backdrop art: an explicit image wins; otherwise generate a fixed piece
+ * seeded by the slug (stable across builds and visits). */
+const backdropSvg = art?.image
+	? null
+	: artSvg({
+			seedKey: art?.seed ?? slug ?? title,
+			family: art?.family,
+			width: 1600,
+			height: 640,
+			/* thin the art where the overlaid title sits */
+			quiet: DEFAULT_QUIET,
+			quietStrength: 0.4,
+		});
 ---
 
-<BaseLayout title={title} description={description} type="article" pubDate={pubDate} author={author}>
-  <div class="pt-0 pb-8">
-    <div class="max-w-[720px] mx-auto px-3">
-      <header class="mb-[1.2rem]">
-        <h1 class="text-2xl font-bold leading-tight mb-2">{title}</h1>
-        <p class="text-sm mt-1 text-[var(--date-color)]">{formattedDate}</p>
-      </header>
-      <article class="max-w-none">
-        <slot />
-      </article>
+<BaseLayout
+	title={title}
+	description={description}
+	type="article"
+	pubDate={pubDate}
+	author={author}
+	headerContextTitle={title}
+	headerContextDate={formattedDate}
+	noindex={noindex}
+>
+  <div class="post-page">
+    <div class="post-backdrop" aria-hidden="true">
+      {
+        art?.image ? (
+          <img src={art.image} alt="" />
+        ) : (
+          <div class="backdrop-svg" set:html={backdropSvg} />
+        )
+      }
     </div>
+    <div class="post-shell">
+      <aside class="post-rail">
+        <TableOfContents headings={headings} />
+      </aside>
+      <div class="post-main">
+        <header class="post-header">
+          <h1>{title}</h1>
+          <p class="post-date">
+            {draftBadge && <span class="draft-badge">DRAFT</span>}
+            {formattedDate}
+            {readingMinutes && <ReadingTime minutes={readingMinutes} />}
+          </p>
+        </header>
+        <article data-toc-root>
+          <slot />
+        </article>
+      </div>
+    </div>
+    <BackToTop />
   </div>
 </BaseLayout>
+
+<script>
+	// hover anchor: a copy-link button appended to every id'd heading
+	const root = document.querySelector("[data-toc-root]");
+	if (root) {
+		const linkSvg =
+			'<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>';
+		const checkSvg =
+			'<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg>';
+		const headings = root.querySelectorAll<HTMLElement>(
+			":is(h2, h3, h4, h5, h6)[id]",
+		);
+		// screen-reader announcement for successful copies
+		const live = document.createElement("div");
+		live.setAttribute("aria-live", "polite");
+		live.style.cssText =
+			"position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%)";
+		root.append(live);
+		for (const h of headings) {
+			const btn = document.createElement("button");
+			btn.className = "anchor-link";
+			btn.type = "button";
+			btn.setAttribute("aria-label", "Copy link to this section");
+			btn.innerHTML = linkSvg;
+			let timer: number | undefined;
+			btn.addEventListener("click", async () => {
+				const url = `${location.origin}${location.pathname}#${h.id}`;
+				try {
+					await navigator.clipboard.writeText(url);
+				} catch {
+					/* clipboard unavailable: no false confirmation */
+					return;
+				}
+				live.textContent = "Link copied";
+				btn.innerHTML = checkSvg;
+				btn.classList.add("copied");
+				clearTimeout(timer);
+				timer = window.setTimeout(() => {
+					btn.innerHTML = linkSvg;
+					btn.classList.remove("copied");
+					live.textContent = "";
+				}, 1200);
+			});
+			h.append(btn);
+		}
+	}
+</script>
+
+<style>
+  /* —— out-of-flow art backdrop: occupies no space, scrolls with the
+   * page, fades out via mask. Content panels occlude it; the art
+   * bleeds through the gutters and margins. —— */
+  .post-page {
+    position: relative;
+  }
+
+  .post-backdrop {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 360px;
+    z-index: 0;
+    opacity: 0.6;
+    pointer-events: none;
+    -webkit-mask-image: linear-gradient(180deg, #000 75%, transparent 100%);
+    mask-image: linear-gradient(180deg, #000 75%, transparent 100%);
+  }
+
+  .post-backdrop img,
+  .backdrop-svg,
+  .backdrop-svg :global(svg) {
+    width: 100%;
+    height: 100%;
+    display: block;
+    object-fit: cover;
+  }
+
+  .post-page :global(.post-shell) {
+    position: relative;
+    z-index: 1;
+  }
+
+  /* the bottom spacing .post-shell used to carry, moved inside the grid
+   * row so it doesn't shrink the sticky rail's travel zone (home/about
+   * shells keep their own padding and no extra spacing here) */
+  .post-page :global(.post-main) {
+    padding-bottom: 3rem;
+  }
+
+  /* title legibility: a soft halo hugging the letterforms (no panel,
+   * art stays visible) plus the generator's quiet zone behind it */
+  .post-header {
+    position: relative;
+    max-width: var(--prose-measure);
+    margin-bottom: 1.6rem;
+  }
+
+  .post-header h1 {
+    font-size: 2.1rem;
+    line-height: 1.1;
+    margin: 0 0 0.5rem;
+    text-shadow:
+      0 0 11px var(--bg),
+      0 0 22px var(--bg),
+      0 0 40px var(--bg),
+      0 0 66px var(--bg);
+  }
+
+  .post-date {
+    --rt-lift: -0.5px;
+    display: flex;
+    align-items: center;
+    gap: 0.7rem;
+    font-size: 0.72rem;
+    color: var(--date-color);
+    margin: 0;
+    text-shadow:
+      0 0 9px var(--bg),
+      0 0 18px var(--bg),
+      0 0 31px var(--bg);
+  }
+</style>

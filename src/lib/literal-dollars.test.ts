@@ -1,0 +1,100 @@
+import { describe, expect, test } from "bun:test";
+import { readdirSync, readFileSync } from "node:fs";
+import { join } from "node:path";
+import { validateLiteralDollars } from "./literal-dollars";
+
+describe("validateLiteralDollars", () => {
+	test("accepts real inline math", () => {
+		expect(
+			validateLiteralDollars(
+				"The mark $M$ moves by $B/2$ when $q_i$ crosses $M \\pm B/2$.",
+			),
+		).toEqual([]);
+	});
+
+	test("accepts math with numbers and operators", () => {
+		expect(
+			validateLiteralDollars(
+				"Averaging gives $0.2 \\times 2000 + 0.8 \\times 8000 = 6800$ here.",
+			),
+		).toEqual([]);
+	});
+
+	test("accepts a bare numeric chip", () => {
+		expect(validateLiteralDollars("exactly $10$ units")).toEqual([]);
+	});
+
+	test("accepts escaped literal dollars", () => {
+		expect(validateLiteralDollars("It costs \\$5 and \\$10 together.")).toEqual(
+			[],
+		);
+	});
+
+	test("flags a lone unescaped dollar amount", () => {
+		const v = validateLiteralDollars("It costs $5 total.");
+		expect(v).toHaveLength(1);
+		expect(v[0].message).toContain("odd number");
+	});
+
+	test("flags two amounts read as fake math", () => {
+		const v = validateLiteralDollars("It costs $5 and $10 together.");
+		expect(v).toHaveLength(1);
+		expect(v[0].message).toContain("prose swallowed");
+		expect(v[0].snippet).toBe("$5 and $");
+	});
+
+	test("flags a money range", () => {
+		const v = validateLiteralDollars("Expect $5-$10 per unit.");
+		expect(v).toHaveLength(1);
+		expect(v[0].message).toContain("money range");
+	});
+
+	test("flags money corrupting real math in the same paragraph", () => {
+		const v = validateLiteralDollars("It costs $5 but the mark $M$ moves.");
+		expect(v.length).toBeGreaterThan(0);
+	});
+
+	test("amounts in different paragraphs still flag individually", () => {
+		const v = validateLiteralDollars("Costs $5 here.\n\nCosts $10 there.");
+		expect(v).toHaveLength(2);
+		expect(v.map((x) => x.line)).toEqual([1, 3]);
+	});
+
+	test("ignores code fences and inline code", () => {
+		expect(
+			validateLiteralDollars(
+				"Run `echo $HOME` first.\n\n```sh\necho $5 $10\n```\n\ndone",
+			),
+		).toEqual([]);
+	});
+
+	test("ignores display math blocks", () => {
+		expect(
+			validateLiteralDollars("Before.\n\n$$\nx = y\n$$\n\nAfter."),
+		).toEqual([]);
+	});
+
+	test("ignores inline double-dollar math", () => {
+		expect(validateLiteralDollars("The value $$x = y$$ here.")).toEqual([]);
+	});
+
+	test("ignores frontmatter", () => {
+		expect(
+			validateLiteralDollars("---\ndescription: costs $5 or $10\n---\n\nBody."),
+		).toEqual([]);
+	});
+});
+
+describe("published posts", () => {
+	const postsDir = join(import.meta.dir, "../content/posts");
+	const posts = readdirSync(postsDir, { recursive: true })
+		.map(String)
+		.filter((f) => /\.(md|mdx)$/.test(f));
+
+	for (const post of posts) {
+		test(`${post} has no unescaped literal dollars`, () => {
+			const body = readFileSync(join(postsDir, post), "utf8");
+			expect(validateLiteralDollars(body)).toEqual([]);
+		});
+	}
+});

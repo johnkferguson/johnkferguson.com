@@ -1,8 +1,10 @@
-import { type CollectionEntry, getCollection } from "astro:content";
+import type { CollectionEntry } from "astro:content";
 import type { APIRoute, GetStaticPaths } from "astro";
+import { mdxBodyToMarkdown } from "../lib/mdx-plain";
+import { getVisiblePosts } from "../lib/posts";
 
 export const getStaticPaths: GetStaticPaths = async () => {
-	const posts = await getCollection("posts");
+	const posts = await getVisiblePosts();
 	return posts.map((post) => ({
 		params: { slug: post.id },
 		props: { post },
@@ -22,7 +24,7 @@ export const GET: APIRoute = ({ props }) => {
 		"",
 	];
 
-	const markdown = header.join("\n") + (post.body ?? "");
+	const markdown = header.join("\n") + mdxBodyToMarkdown(post.body ?? "");
 
 	return new Response(markdown.trim(), {
 		headers: {

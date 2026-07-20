@@ -1,26 +1,200 @@
 ---
+// Pinned site header: always a slim fixed-height bar. On post pages the
+// post title and date fade into the center once the h1 scrolls off.
 import { SITE_NAME } from "../consts";
 import ThemeToggle from "./ThemeToggle.astro";
+
+interface Props {
+	postTitle?: string;
+	postDate?: string;
+}
+
+const { postTitle, postDate } = Astro.props;
 ---
 
-<header class="border-t pt-2 min-h-[2.4rem] leading-[2.1rem]" style="border-color: var(--heading-color);">
-  <div class="max-w-[720px] mx-auto px-3 flex items-center justify-between">
-    <a
-      href="/"
-      class="block text-[1.5rem] tracking-[-1px] relative border-b z-[1] font-normal"
-      style="color: var(--heading-color); border-color: var(--heading-color);"
-    >
-      {SITE_NAME}
-    </a>
-    <nav class="flex items-center gap-4">
-      <a
-        href="/about"
-        class="text-[1rem] link-underline transition-colors"
-        style="color: var(--heading-color);"
+<header class="site-header" data-site-header>
+  <div class="site-header-inner">
+    <a href="/" class="site-name">{SITE_NAME}</a>
+    {postTitle && (
+      <button
+        class="post-context"
+        data-post-context
+        type="button"
+        aria-label="Back to top"
+        title="Back to top"
       >
-        About
-      </a>
+        <span class="pc-title">{postTitle}</span>
+        {postDate && <span class="pc-date">{postDate}</span>}
+      </button>
+    )}
+    <nav class="site-nav">
+      <a href="/about" class="link-underline">About</a>
       <ThemeToggle />
     </nav>
   </div>
 </header>
+
+<script>
+	const header = document.querySelector<HTMLElement>("[data-site-header]");
+	if (header) {
+		// scrolled dressing (border, shadow, title merge) is a post-page
+		// behavior; other pages keep the plain bar
+		const isPost = !!document.querySelector(".post-header");
+		let ticking = false;
+		const update = () => {
+			ticking = false;
+			if (isPost) header.classList.toggle("scrolled", window.scrollY > 24);
+		};
+		update();
+		window.addEventListener(
+			"scroll",
+			() => {
+				if (!ticking) {
+					ticking = true;
+					requestAnimationFrame(update);
+				}
+			},
+			{ passive: true },
+		);
+
+		const ctx = header.querySelector<HTMLElement>("[data-post-context]");
+		const h1 = document.querySelector<HTMLElement>(".post-header h1");
+		if (ctx && h1) {
+			const reduceMotion = window.matchMedia(
+				"(prefers-reduced-motion: reduce)",
+			).matches;
+			ctx.addEventListener("click", () => {
+				window.scrollTo({
+					top: 0,
+					behavior: reduceMotion ? "auto" : "smooth",
+				});
+			});
+			const io = new IntersectionObserver(
+				([entry]) => {
+					const passed =
+						!entry.isIntersecting && entry.boundingClientRect.top < 0;
+					ctx.classList.toggle("show", passed);
+				},
+				{ threshold: 0 },
+			);
+			io.observe(h1);
+		}
+	}
+</script>
+
+<style>
+  .site-header {
+    position: sticky;
+    top: 0;
+    z-index: 30;
+    background: var(--bg);
+    border-bottom: 1px solid transparent;
+    transition:
+      border-color 0.2s ease,
+      background-color 0.2s ease,
+      box-shadow 0.2s ease;
+  }
+
+  .site-header.scrolled {
+    border-bottom-color: var(--border-color);
+    box-shadow: var(--header-shadow);
+  }
+
+  /* always the compact bar: the large-name state drew too much
+   * attention, so the header lives at its scrolled size permanently */
+  .site-header-inner {
+    max-width: var(--shell-max);
+    margin-inline: auto;
+    height: var(--header-h);
+    padding: 0 var(--shell-pad);
+    display: flex;
+    align-items: center;
+    gap: 1.2rem;
+  }
+
+  .site-name {
+    flex: none;
+    font-size: 1.05rem;
+    line-height: 1.2;
+    letter-spacing: -0.02em;
+    color: var(--heading-color);
+    border-bottom: 1px solid var(--heading-color);
+  }
+
+  .post-context {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    align-items: baseline;
+    justify-content: center;
+    gap: 0.7rem;
+    border: 0;
+    background: transparent;
+    font: inherit;
+    text-align: center;
+    cursor: pointer;
+    opacity: 0;
+    transform: translateY(4px);
+    pointer-events: none;
+    /* out of the tab order while hidden */
+    visibility: hidden;
+    transition:
+      opacity 0.25s ease,
+      transform 0.25s ease,
+      visibility 0s linear 0.25s;
+  }
+
+  .post-context.show {
+    opacity: 1;
+    transform: translateY(0);
+    pointer-events: auto;
+    visibility: visible;
+    transition:
+      opacity 0.25s ease,
+      transform 0.25s ease,
+      visibility 0s;
+  }
+
+  .pc-title {
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+    font-size: 0.8rem;
+    color: var(--heading-color);
+  }
+
+  .pc-date {
+    flex: none;
+    font-family: var(--font-mono);
+    font-size: 0.55rem;
+    letter-spacing: 0.06em;
+    color: var(--date-color);
+  }
+
+  .site-nav {
+    flex: none;
+    margin-left: auto;
+    display: flex;
+    align-items: center;
+    gap: 0.7rem;
+  }
+
+  .site-nav a {
+    font-size: 0.78rem;
+    line-height: 1.2;
+    color: var(--heading-color);
+  }
+
+  .site-header :global(#theme-toggle) {
+    transform: translateY(-2px) scale(0.78);
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .site-header,
+    .site-header-inner,
+    .site-name,
+    .post-context {
+      transition: none;
+    }
+  }
+</style>

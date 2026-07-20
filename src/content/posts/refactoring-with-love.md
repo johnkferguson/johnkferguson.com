@@ -1,7 +1,10 @@
 ---
 layout: post
 title: "Refactoring with Love"
-date: 2026-06-26 14:35
+date: 2026-06-26
+pace: "non-technical"
+art:
+  family: "walk"
 ---
 
 I started working as a software engineer back in 2013.

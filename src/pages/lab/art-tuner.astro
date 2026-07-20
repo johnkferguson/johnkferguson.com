@@ -1,0 +1,267 @@
+---
+// Art backdrop tuner: a real post in an iframe with live dials for the
+// backdrop presentation (CSS-injected) and the generated art itself
+// (regenerated client-side). Unpublished playground (/lab/).
+import { getVisiblePosts } from "../../lib/posts";
+
+const posts = await getVisiblePosts();
+const pages = [
+	...posts.map((p) => ({ value: `/${p.id}`, label: p.id })),
+	{ value: "/lab/toc-test", label: "toc-test" },
+];
+const first = pages[0]?.value ?? "/";
+---
+
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="robots" content="noindex, nofollow" />
+    <title>Art Tuner</title>
+    <style>
+      * {
+        box-sizing: border-box;
+      }
+      body {
+        margin: 0;
+        height: 100vh;
+        display: flex;
+        flex-direction: column;
+        font-family: "Fira Code", monospace;
+        background: #16130f;
+        color: #c4bdb6;
+      }
+      .panel {
+        flex: none;
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: 0.5rem 1.1rem;
+        padding: 0.5rem 0.9rem;
+        font-size: 11px;
+        border-bottom: 1px solid #3a3533;
+      }
+      label {
+        display: flex;
+        align-items: center;
+        gap: 0.35rem;
+        white-space: nowrap;
+      }
+      .lbl {
+        color: #8a8480;
+        font-size: 10px;
+        text-transform: uppercase;
+        letter-spacing: 0.07em;
+      }
+      input[type="range"] {
+        width: 110px;
+        accent-color: #d08770;
+      }
+      output {
+        min-width: 3.2em;
+        color: #e6e1db;
+      }
+      select,
+      input[type="text"],
+      button {
+        font-family: inherit;
+        font-size: 11px;
+        background: #201d1a;
+        color: #c4bdb6;
+        border: 1px solid #3a3533;
+        border-radius: 5px;
+        padding: 0.15rem 0.4rem;
+      }
+      input[type="text"] {
+        width: 7em;
+      }
+      button {
+        cursor: pointer;
+      }
+      button:hover {
+        color: #e6e1db;
+        border-color: #8a8480;
+      }
+      iframe {
+        flex: 1;
+        border: 0;
+        width: 100%;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="panel" data-panel>
+      <label
+        ><span class="lbl">page</span>
+        <select id="page">
+          {pages.map((p) => <option value={p.value}>{p.label}</option>)}
+        </select>
+      </label>
+      <label
+        ><span class="lbl">family</span>
+        <select id="family">
+          <option value="auto">auto (slug)</option>
+          <option value="strata">strata</option>
+          <option value="field">field</option>
+          <option value="walk">walk</option>
+          <option value="depth">depth</option>
+        </select>
+      </label>
+      <label
+        ><span class="lbl">seed</span>
+        <input type="text" id="seed" placeholder="(slug)" />
+        <button id="reroll" type="button">reroll</button>
+      </label>
+      <label
+        ><span class="lbl">height</span>
+        <input type="range" id="height" min="240" max="960" step="10" value="360" />
+        <output for="height">360px</output>
+      </label>
+      <label
+        ><span class="lbl">fade start</span>
+        <input type="range" id="fade" min="10" max="90" step="5" value="75" />
+        <output for="fade">75%</output>
+      </label>
+      <label
+        ><span class="lbl">art opacity</span>
+        <input type="range" id="opacity" min="20" max="100" step="5" value="60" />
+        <output for="opacity">60%</output>
+      </label>
+      <label
+        ><span class="lbl">halo</span>
+        <input type="range" id="halo" min="0" max="320" step="10" value="220" />
+        <output for="halo">220%</output>
+      </label>
+      <label
+        ><span class="lbl">quiet zone</span>
+        <input type="range" id="quiet" min="0" max="100" step="4" value="40" />
+        <output for="quiet">40%</output>
+      </label>
+      <button id="reset" type="button">reset</button>
+    </div>
+    <iframe src={first} title="post preview"></iframe>
+
+    <script>
+      import {
+        type ArtFamily,
+        artSvg,
+        DEFAULT_QUIET,
+      } from "../../lib/art/generate";
+
+      const frame = document.querySelector("iframe") as HTMLIFrameElement;
+      const panel = document.querySelector("[data-panel]") as HTMLElement;
+      const el = <T extends HTMLElement>(id: string) =>
+        document.getElementById(id) as T;
+
+      const family = el<HTMLSelectElement>("family");
+      const seed = el<HTMLInputElement>("seed");
+      const dials = {
+        height: el<HTMLInputElement>("height"),
+        fade: el<HTMLInputElement>("fade"),
+        opacity: el<HTMLInputElement>("opacity"),
+        halo: el<HTMLInputElement>("halo"),
+        quiet: el<HTMLInputElement>("quiet"),
+      };
+      /* production values (what the real pages ship with) */
+      const DEFAULTS: Record<string, string> = {
+        height: "360",
+        fade: "75",
+        opacity: "60",
+        halo: "220",
+        quiet: "40",
+      };
+
+      const readouts = () => {
+        for (const [k, input] of Object.entries(dials)) {
+          const out = panel.querySelector<HTMLOutputElement>(
+            `output[for="${k}"]`,
+          );
+          if (out)
+            out.textContent = input.value + (k === "height" ? "px" : "%");
+        }
+      };
+
+      const slugOf = () => {
+        try {
+          return (
+            frame.contentWindow?.location.pathname.replace(/^\//, "") || "post"
+          );
+        } catch {
+          return "post";
+        }
+      };
+
+      const applyCss = () => {
+        const doc = frame.contentDocument;
+        if (!doc?.head) return;
+        let style = doc.getElementById("art-tuner-css");
+        if (!style) {
+          style = doc.createElement("style");
+          style.id = "art-tuner-css";
+          doc.head.append(style);
+        }
+        const h = dials.height.value;
+        const f = dials.fade.value;
+        const o = Number(dials.opacity.value) / 100;
+        const s = Number(dials.halo.value) / 100;
+        const grad = `linear-gradient(180deg,#000 ${f}%,transparent 100%)`;
+        const shadow = (px: number[]) =>
+          px.map((p) => `0 0 ${(p * s).toFixed(1)}px var(--bg)`).join(",");
+        style.textContent = [
+          `.post-backdrop{height:${h}px !important;opacity:${o} !important;`,
+          `-webkit-mask-image:${grad} !important;mask-image:${grad} !important}`,
+          s === 0
+            ? ".post-header h1{text-shadow:none !important}"
+            : `.post-header h1{text-shadow:${shadow([5, 10, 18, 30])} !important}`,
+        ].join("");
+      };
+
+      const regen = () => {
+        const holder = frame.contentDocument?.querySelector(".backdrop-svg");
+        if (!holder) return;
+        holder.innerHTML = artSvg({
+          seedKey: seed.value.trim() || slugOf(),
+          family:
+            family.value === "auto" ? undefined : (family.value as ArtFamily),
+          width: 1600,
+          height: 640,
+          quiet: DEFAULT_QUIET,
+          quietStrength: Number(dials.quiet.value) / 100,
+        });
+      };
+
+      panel.addEventListener("input", (e) => {
+        const t = e.target as HTMLInputElement;
+        readouts();
+        if (t.id === "page") {
+          frame.src = t.value;
+          return;
+        }
+        if (["family", "seed", "quiet"].includes(t.id)) regen();
+        if (["height", "fade", "opacity", "halo"].includes(t.id)) applyCss();
+      });
+
+      el<HTMLButtonElement>("reroll").addEventListener("click", () => {
+        seed.value = Math.random().toString(36).slice(2, 8);
+        regen();
+      });
+
+      el<HTMLButtonElement>("reset").addEventListener("click", () => {
+        for (const [k, input] of Object.entries(dials))
+          input.value = DEFAULTS[k];
+        seed.value = "";
+        family.value = "auto";
+        readouts();
+        applyCss();
+        regen();
+      });
+
+      frame.addEventListener("load", () => {
+        applyCss();
+        regen();
+      });
+      readouts();
+    </script>
+  </body>
+</html>

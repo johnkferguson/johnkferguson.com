@@ -1,0 +1,91 @@
+---
+// TOC stress-test playground: many nested h2/h3/h4 headings with filler
+// prose, for exercising the rail's accordion, three-level scrollspy, and
+// auto-scroll behavior. Also carries inline-code and KaTeX chip samples
+// for palette review. Unpublished (/lab/ = noindex, out of sitemap).
+import "../../styles/math.css";
+import PostLayout from "../../layouts/PostLayout.astro";
+
+const slug = (s: string) => s.toLowerCase().replace(/[^a-z0-9]+/g, "-");
+
+/* fake chips: same .katex dressing, no KaTeX library (keeps its 1MB
+ * font set out of the bundle; this page only exercises layout) */
+const k = (tex: string) =>
+	`<span class="katex" style="font-style:italic">${tex}</span>`;
+const chipPara = `Liquidity resting inside ${k("M ± B/2")} rides free; beyond the band the fee climbs at slope ${k("k₁")} through the zone and ${k("k₂")} past it, while ${k("D")} sets the walk size and ${k("qᵢ")} the per-account share against the mark ${k("M")}.`;
+
+const sections = Array.from({ length: 8 }, (_, i) => ({
+	title: `Section ${i + 1}: ${["Mechanism", "Measurement", "Matching", "Settlement", "Incentives", "Adversaries", "Calibration", "Adoption"][i]}`,
+	// Section 5 gets a huge sub-list to exercise rail overflow
+	subs: Array.from({ length: i === 4 ? 18 : (i % 3) + 2 }, (_, j) => ({
+		title: `Topic ${i + 1}.${j + 1}`,
+		leaves:
+			j % 2 === 0
+				? Array.from(
+						{ length: (j % 2) + 2 },
+						(_, k) => `Detail ${i + 1}.${j + 1}.${k + 1}`,
+					)
+				: [],
+	})),
+}));
+
+/* the same headings array a real post would get from render() */
+const headings = sections.flatMap((s) => [
+	{ depth: 2, slug: slug(s.title), text: s.title },
+	...s.subs.flatMap((sub) => [
+		{ depth: 3, slug: slug(`${s.title} ${sub.title}`), text: sub.title },
+		...sub.leaves.map((leaf) => ({
+			depth: 4,
+			slug: slug(`${s.title} ${leaf}`),
+			text: leaf,
+		})),
+	]),
+]);
+
+const para =
+	"Batch auctions collect orders for a short window, seal it, and clear every crossing trade at one price. The sealed book is a complete record of standing liquidity, every order committed and fillable at that instant. This filler paragraph exists so each heading has enough body below it to scroll through while watching the rail track position.";
+---
+
+<PostLayout
+	title="TOC Stress Test"
+	description="Nested heading playground for the TOC rail"
+	pubDate={new Date("2026-07-18")}
+	noindex
+	headings={headings}
+>
+	{
+		sections.map((s, i) => (
+			<>
+				<h2 id={slug(s.title)}>{s.title}</h2>
+				<p>{para}</p>
+				{i === 0 && (
+					<>
+						<p>
+							The engine walks the eligible book at size <code>D</code> per
+							side, so <code>computeMark(book, D)</code> stays{" "}
+							<code>O(n)</code> in price levels, and the daily update clamps
+							with <code>Math.max(floor, dOpen * step)</code> before the
+							window seals.
+						</p>
+						<pre><code>{`const step = clamp((reading / dOpen) ** alpha, 1 / L, L);\nconst dClose = Math.max(floor, dOpen * step);`}</code></pre>
+						<p set:html={chipPara} />
+					</>
+				)}
+				<p>{para}</p>
+				{s.subs.map((sub) => (
+					<>
+						<h3 id={slug(`${s.title} ${sub.title}`)}>{sub.title}</h3>
+						<p>{para}</p>
+						<p>{para}</p>
+						{sub.leaves.map((leaf) => (
+							<>
+								<h4 id={slug(`${s.title} ${leaf}`)}>{leaf}</h4>
+								<p>{para}</p>
+							</>
+						))}
+					</>
+				))}
+			</>
+		))
+	}
+</PostLayout>

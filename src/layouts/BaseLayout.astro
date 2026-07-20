@@ -1,8 +1,9 @@
 ---
-import "@fontsource/pt-serif/400.css";
-import "@fontsource/pt-serif/400-italic.css";
-import "@fontsource/pt-serif/700.css";
+import "../styles/fonts.css";
+import firaCodeWoff2 from "@fontsource/fira-code/files/fira-code-latin-400-normal.woff2?url";
+import newsreaderWoff2 from "../assets/fonts/newsreader-latin-opsz-normal.woff2?url";
 import "@fontsource/fira-code/400.css";
+import "@fontsource/fira-code/500.css";
 import "@fontsource/fira-code/700.css";
 import "../styles/global.css";
 import Head from "../components/Head.astro";
@@ -18,6 +19,9 @@ interface Props {
 	pubDate?: Date;
 	author?: string;
 	noindex?: boolean;
+	/* shown in the pinned header bar once the page's h1 scrolls off */
+	headerContextTitle?: string;
+	headerContextDate?: string;
 }
 
 const {
@@ -28,25 +32,39 @@ const {
 	pubDate,
 	author,
 	noindex,
+	headerContextTitle,
+	headerContextDate,
 } = Astro.props;
 ---
 
 <!doctype html>
 <html lang="en">
   <head>
+    <link rel="preload" href={newsreaderWoff2} as="font" type="font/woff2" crossorigin />
+    <link rel="preload" href={firaCodeWoff2} as="font" type="font/woff2" crossorigin />
     <Head title={title} description={description} image={image} type={type} pubDate={pubDate} noindex={noindex} />
     <JsonLd type={type} title={title} description={description} image={image} pubDate={pubDate} author={author} />
     <script is:inline>
       (function() {
-        var theme = localStorage.getItem('theme');
-        if (theme !== 'light') {
-          document.documentElement.classList.add('dark');
+        // stored choice wins; else the OS preference; dark if neither.
+        // localStorage can throw in locked-down contexts; theming must
+        // still resolve.
+        var theme = null;
+        try { theme = localStorage.getItem('theme'); } catch (e) {}
+        if (theme !== 'light' && theme !== 'dark') {
+          try {
+            theme = window.matchMedia('(prefers-color-scheme: light)').matches
+              ? 'light' : 'dark';
+          } catch (e) { theme = 'dark'; }
         }
+        if (theme === 'dark') document.documentElement.classList.add('dark');
+        var meta = document.querySelector('meta[name="theme-color"]');
+        if (meta) meta.setAttribute('content', theme === 'dark' ? '#1c1917' : '#fdfcfb');
       })();
     </script>
   </head>
-  <body class="font-normal leading-[1.5] transition-colors duration-200" style="background-color: var(--bg); color: var(--text-color);">
-    <SiteHeader />
+  <body class="font-normal leading-[1.65] transition-colors duration-200" style="background-color: var(--bg); color: var(--text-color);">
+    <SiteHeader postTitle={headerContextTitle} postDate={headerContextDate} />
     <slot />
     <SiteFooter />
   </body>
