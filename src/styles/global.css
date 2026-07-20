@@ -253,7 +253,11 @@ a:hover {
 
 .post-shell {
 	margin-inline: auto;
-	padding: 1.5rem var(--shell-pad) 3rem;
+	/* bottom spacing lives on .post-main (inside the grid row), not here:
+	 * the sticky rail can only travel within its grid column, so shell
+	 * padding below the row would shrink its travel zone and let the last
+	 * screenful of scroll drag the rail up under the header */
+	padding: 1.5rem var(--shell-pad) 0;
 	/* single-column mode: shrink the shell to the prose measure so the
 	 * page reads centered, like a plain essay */
 	max-width: calc(var(--prose-measure) + 2 * var(--shell-pad));
@@ -271,8 +275,11 @@ a:hover {
 		justify-content: center;
 		column-gap: clamp(2.5rem, 4.5vw, 5rem);
 	}
+	/* flex column so the sticky Top button's natural position (margin-top
+	 * auto) is the column's end, right above the footer */
 	.post-rail {
-		display: block;
+		display: flex;
+		flex-direction: column;
 	}
 }
 

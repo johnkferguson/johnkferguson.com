@@ -106,15 +106,22 @@ const caretSvg =
 					</ul>
 				</div>
 			</div>
-			{!inline && (
-				<button class="toc-top micro-label" data-toc-top type="button">
-					<span class="toc-top-arrow" aria-hidden="true">
-						&#8593;
-					</span>
-					<span>Back to top</span>
-				</button>
-			)}
 		</nav>
+	)
+}
+{
+	/* Sibling of the nav, not a child: the rail hugs its list while the
+	 * button lives at the END of the .post-rail flex column and sticks to
+	 * the viewport bottom on its own. When the page bottom arrives, only
+	 * the button rides up with the column's end (footer-dodging); the
+	 * rail itself never moves. */
+	!inline && sections.length > 0 && (
+		<button class="toc-top micro-label" data-toc-top type="button">
+			<span class="toc-top-arrow" aria-hidden="true">
+				&#8593;
+			</span>
+			<span>Back to top</span>
+		</button>
 	)
 }
 
@@ -506,12 +513,14 @@ const caretSvg =
 	}
 
 	/* —— sticky left rail (lives in the post-shell grid column) ——
-	 * Fixed height with the heading list scrolling inside it, so the
-	 * Top control pins to the bottom regardless of list length. */
+	 * The rail hugs its list (max-height bounds the internal scroll; the
+	 * reserve leaves room for the sticky Top button plus its clearance
+	 * below), so nothing full-height exists to collide with the footer
+	 * at the end of the page. */
 	.toc-rail {
 		position: sticky;
 		top: var(--rail-top);
-		height: calc(100vh - var(--rail-top) - 1.25rem);
+		max-height: calc(100vh - var(--rail-top) - 3.5rem);
 		display: flex;
 		flex-direction: column;
 		font-size: 0.68rem;
@@ -622,6 +631,14 @@ const caretSvg =
 	}
 
 	.toc-top {
+		/* rides 1.25rem above the viewport bottom for the whole read.
+		 * Its natural position (end of the .post-rail column) is pushed
+		 * below the sticky line by the negative margin, so it never
+		 * un-sticks: at full scroll it stays put and overlays the
+		 * footer's unused left side (the shell's z-index paints it on
+		 * top). The margin absorbs the footer's ~2.05rem height. */
+		position: sticky;
+		bottom: 1.25rem;
 		flex: none;
 		align-self: flex-start;
 		display: flex;
@@ -630,11 +647,14 @@ const caretSvg =
 		align-items: baseline;
 		gap: 0.4rem;
 		margin-top: auto;
+		margin-bottom: -2rem;
 		padding: 0.34rem 0.55rem 0.26rem;
 		line-height: 1;
 		border: 1px solid var(--border-color);
 		border-radius: 6px;
-		background: transparent;
+		/* solid: it overlays the footer at full scroll, and the footer's
+		 * hairline would shine through a transparent body */
+		background: var(--bg);
 		font-size: 0.5rem;
 		letter-spacing: 0.1em;
 		cursor: pointer;
