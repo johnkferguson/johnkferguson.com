@@ -1,12 +1,21 @@
 ---
-import { getCollection } from "astro:content";
+import type { CollectionEntry } from "astro:content";
+import ReadingTime from "../components/ReadingTime.astro";
 import { SITE_DESCRIPTION, SITE_NAME } from "../consts";
 import BaseLayout from "../layouts/BaseLayout.astro";
+import { artSvg } from "../lib/art/generate";
+import { createExcerpt } from "../lib/excerpt";
+import { getVisiblePosts, IS_DEV } from "../lib/posts";
+import { readingTimeMinutes } from "../lib/reading-time";
 
-const allPosts = await getCollection("posts");
+const allPosts = await getVisiblePosts();
 const sortedPosts = allPosts.sort(
 	(a, b) => b.data.date.valueOf() - a.data.date.valueOf(),
 );
+
+function minutesFor(post: CollectionEntry<"posts">): number {
+	return readingTimeMinutes(post.body ?? "", post.data.pace);
+}
 
 function formatDate(date: Date): string {
 	return date.toLocaleDateString("en-US", {
@@ -16,33 +25,254 @@ function formatDate(date: Date): string {
 		timeZone: "UTC",
 	});
 }
+
+/* thumbnail = the same slug-seeded piece the post's backdrop uses, so
+ * the list previews the artwork you land inside */
+function thumbSvg(post: CollectionEntry<"posts">): string {
+	return artSvg({
+		seedKey: post.data.art?.seed ?? post.id,
+		family: post.data.art?.family,
+		width: 800,
+		height: 560,
+	});
+}
+
+/* identity backdrop: fresh piece per visit (client script reseeds);
+ * this build-seeded render is the no-JS fallback */
+const identityArt = artSvg({
+	seedKey: "home",
+	family: "field",
+	width: 800,
+	height: 900,
+});
 ---
 
-<BaseLayout
-  title={SITE_NAME}
-  description={SITE_DESCRIPTION}
->
-  <div class="py-8">
-    <div class="max-w-[95vw] md:max-w-[720px] mx-auto px-4 md:px-[15.75px]">
-      <ul class="list-none p-0 m-0">
-        {sortedPosts.map((post) => (
-          <li class="mb-[1.4rem]">
-            <span class="block text-[0.7rem] leading-none text-[var(--date-color)]">
-              {formatDate(post.data.date)}
-            </span>
-            <a
-              href={`/${post.id}`}
-              class="text-[1rem] md:text-[1.2rem] tracking-[-0.04em] leading-none font-normal link-underline post-title-link transition-colors"
-            >
-              {post.data.title}
-            </a>
-          </li>
-        ))}
+<BaseLayout title={SITE_NAME} description={SITE_DESCRIPTION}>
+  <div class="post-shell home-shell">
+    <aside class="post-rail home-rail">
+      <div class="identity">
+        <div class="side-art" data-identity-art set:html={identityArt} />
+        <div class="identity-text">
+          <p class="blurb">
+            Writing on markets, mechanism design, and software development.
+            Currently building <a
+              href="https://towardstypetwo.com/"
+              class="link-underline"
+              target="_blank"
+              rel="noopener noreferrer">Towards Type Two</a
+            >, a blockchain development company.
+          </p>
+          <a href="/about" class="about-link micro-label">about &rarr;</a>
+        </div>
+      </div>
+    </aside>
+    <div class="post-main">
+      <ul class="post-list">
+        {
+          sortedPosts.map((post) => (
+            <li>
+              <a href={`/${post.id}`} class="post-card">
+                <span class="card-title">{post.data.title}</span>
+                <span class="row">
+                  <span class="thumb" aria-hidden="true" set:html={thumbSvg(post)} />
+                  <span class="meta">
+                    <span class="date">
+                      {IS_DEV && post.data.draft && (
+                        <span class="draft-badge">DRAFT</span>
+                      )}
+                      {formatDate(post.data.date)}
+                      <ReadingTime minutes={minutesFor(post)} />
+                    </span>
+                    <span class="desc">
+                      {post.data.description || createExcerpt(post.body ?? "")}
+                    </span>
+                  </span>
+                </span>
+              </a>
+            </li>
+          ))
+        }
       </ul>
-      <p class="text-[16px] leading-[24px] mb-[21px] text-[var(--date-color)] md:text-[21px] md:leading-[31.5px]">
-        subscribe{" "}
-        <a href="/rss.xml" class="text-blue-700 dark:text-blue-400 hover:underline">via RSS</a>
-      </p>
     </div>
   </div>
 </BaseLayout>
+
+<script>
+	import { artSvg } from "../lib/art/generate";
+
+	// the identity backdrop is the one dynamic piece on the site: a
+	// fresh field every visit
+	const holder = document.querySelector<HTMLElement>("[data-identity-art]");
+	if (holder) {
+		holder.innerHTML = artSvg({
+			seedKey: Math.random().toString(36).slice(2),
+			family: "field",
+			width: 800,
+			height: 900,
+		});
+	}
+</script>
+
+<style>
+  /* slim bottom padding so the sticky identity's column reaches far
+   * enough down that the footer arrives without pushing it */
+  .home-shell {
+    padding-bottom: 0.5rem;
+  }
+
+  /* identity block shows at every width; stacks above the list when
+   * the grid collapses */
+  .home-rail {
+    display: block;
+  }
+
+  /* text flush with the column edge (aligned with the header name);
+   * pinned while the list scrolls; sits toward the vertical center */
+  .identity {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+  }
+
+  @media (min-width: 1020px) {
+    .identity {
+      position: sticky;
+      /* pin threshold equals the natural resting offset (header 2.1rem
+       * + shell padding 1.5rem) so it never travels before pinning; the
+       * box ends above footer height so the footer slides in beneath
+       * without ever pushing the identity up */
+      top: var(--sticky-top);
+      height: var(--sticky-height);
+    }
+  }
+
+  @media (max-width: 1019px) {
+    .identity {
+      min-height: 11rem;
+      margin-bottom: 2rem;
+    }
+  }
+
+  .identity-text {
+    position: relative;
+  }
+
+  .blurb {
+    font-size: 0.82rem;
+    line-height: 1.55;
+    margin: 0 0 0.6rem;
+    text-shadow:
+      0 0 8px var(--bg),
+      0 0 16px var(--bg),
+      0 0 28px var(--bg);
+  }
+
+  .about-link {
+    font-size: 0.55rem;
+    letter-spacing: 0.08em;
+    text-decoration: none;
+    transition: color 0.15s ease;
+  }
+
+  .about-link:hover {
+    color: var(--heading-color);
+  }
+
+  .post-list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    max-width: var(--prose-measure);
+  }
+
+  .post-list li {
+    /* matches the separator's margin below so the line sits centered */
+    margin-bottom: 0.7rem;
+  }
+
+  /* subtle centered separator between posts */
+  .post-list li + li::before {
+    content: "";
+    display: block;
+    width: 38%;
+    height: 1px;
+    margin: 0 auto 0.7rem;
+    background: color-mix(in srgb, var(--border-color) 65%, transparent);
+  }
+
+  /* whole item is one link; hover lifts it on a soft surface */
+  .post-card {
+    display: block;
+    padding: 0.8rem 0.9rem;
+    margin: 0 -0.9rem;
+    border-radius: 10px;
+    border-bottom: none;
+    transition: background-color 0.18s ease;
+  }
+
+  .post-card:hover {
+    background: color-mix(in srgb, var(--code-background) 55%, transparent);
+  }
+
+  .card-title {
+    display: block;
+    font-size: 1.05rem;
+    line-height: 1.3;
+    color: var(--heading-color);
+  }
+
+  .row {
+    display: flex;
+    gap: 1.1rem;
+    align-items: flex-start;
+    margin-top: 0.3rem;
+  }
+
+  /* diffuse thumbnail: no border or box; the art dissolves into the
+   * page via a radial mask */
+  .thumb {
+    flex: none;
+    width: 7.6rem;
+    height: 5.2rem;
+    -webkit-mask-image: radial-gradient(
+      ellipse 92% 88% at 50% 50%,
+      #000 45%,
+      transparent 98%
+    );
+    mask-image: radial-gradient(
+      ellipse 92% 88% at 50% 50%,
+      #000 45%,
+      transparent 98%
+    );
+  }
+
+  .thumb :global(svg) {
+    width: 100%;
+    height: 100%;
+    display: block;
+  }
+
+  .meta {
+    display: block;
+    min-width: 0;
+  }
+
+  /* same voice as the post page's date line: serif, no tracking */
+  .date {
+    --rt-lift: -1px;
+    display: flex;
+    align-items: center;
+    gap: 0.7rem;
+    font-size: 0.66rem;
+    color: var(--date-color);
+    margin: 0.15rem 0 0.4rem;
+  }
+
+  .desc {
+    display: block;
+    font-size: 0.8rem;
+    line-height: 1.5;
+    color: var(--text-color);
+  }
+</style>

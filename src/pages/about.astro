@@ -2,6 +2,7 @@
 import { getEntry, render } from "astro:content";
 import { SITE_NAME } from "../consts";
 import BaseLayout from "../layouts/BaseLayout.astro";
+import { artSvg } from "../lib/art/generate";
 
 const page = await getEntry("pages", "about");
 if (!page) {
@@ -10,17 +11,63 @@ if (!page) {
 const { Content } = await render(page);
 
 const title = `${page.data.title} — ${SITE_NAME}`;
+
+/* stable piece (fixed seed, unlike the homepage's per-visit art);
+ * the left column is also where a portrait would eventually live */
+const aboutArt = artSvg({
+	seedKey: "about",
+	family: "field",
+	width: 800,
+	height: 900,
+});
 ---
 
 <BaseLayout title={title} description={page.data.description ?? ""}>
-  <div class="pt-0 pb-8">
-    <div class="max-w-[720px] mx-auto px-3">
-      <header class="mb-[1.2rem]">
-        <h1 class="text-2xl font-bold leading-tight mb-2">{page.data.title}</h1>
+  <div class="post-shell about-shell">
+    <aside class="post-rail about-rail">
+      <div class="about-side">
+        <div class="side-art" set:html={aboutArt} />
+      </div>
+    </aside>
+    <div class="post-main">
+      <header class="about-header">
+        <h1>{page.data.title}</h1>
       </header>
-      <article class="max-w-none">
+      <article data-toc-root>
         <Content />
       </article>
     </div>
   </div>
 </BaseLayout>
+
+<style>
+  /* slim bottom padding so the sticky column reaches far enough down
+   * that the footer arrives without pushing it (same as homepage) */
+  .about-shell {
+    padding-bottom: 0.5rem;
+  }
+
+  /* decorative only for now; hidden when the grid collapses */
+  .about-rail {
+    display: none;
+  }
+
+  @media (min-width: 1020px) {
+    .about-rail {
+      display: block;
+    }
+
+    .about-side {
+      position: sticky;
+      top: var(--sticky-top);
+      height: var(--sticky-height);
+    }
+  }
+
+
+  .about-header h1 {
+    font-size: 2.1rem;
+    line-height: 1.1;
+    margin: 0 0 1.4rem;
+  }
+</style>
