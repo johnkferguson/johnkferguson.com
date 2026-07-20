@@ -1,0 +1,170 @@
+/*
+ * Article prose: the rendered markdown body. Everything here is a
+ * descendant selector because markdown output carries no classes of
+ * its own.
+ */
+
+article[data-toc-root] > * {
+	max-width: var(--prose-measure);
+}
+
+/* solid surface behind the article so backdrop art bleeds only in the
+ * gutters; pure paint (pseudo layer), no layout effect */
+article[data-toc-root] {
+	position: relative;
+	max-width: var(--prose-measure);
+}
+
+article[data-toc-root]::before {
+	content: "";
+	position: absolute;
+	inset: -0.6rem -1.25rem 0;
+	background: var(--bg);
+	border-radius: 10px;
+	z-index: -1;
+}
+
+/* Hover anchors on id'd headings: link icon in the left gutter (fixed
+ * x position for every heading level), click copies the section URL.
+ * Button injected by PostLayout script; tooltip via ::after. */
+article[data-toc-root] :is(h2, h3, h4, h5, h6)[id] {
+	position: relative;
+}
+
+article[data-toc-root] .anchor-link {
+	position: absolute;
+	left: -1.5rem;
+	top: calc(0.5lh - 0.5rem);
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	width: 0.9rem;
+	height: 0.9rem;
+	border: 0;
+	background: transparent;
+	color: var(--date-color);
+	cursor: pointer;
+	opacity: 0;
+	transition:
+		opacity 0.15s ease,
+		color 0.15s ease;
+}
+
+article[data-toc-root] :is(h2, h3, h4, h5, h6)[id]:hover .anchor-link,
+article[data-toc-root] .anchor-link:focus-visible {
+	opacity: 1;
+}
+
+article[data-toc-root] .anchor-link:hover {
+	color: var(--heading-color);
+}
+
+article[data-toc-root] .anchor-link.copied {
+	color: var(--code-color);
+	opacity: 1;
+}
+
+/* tooltip centered below the icon */
+article[data-toc-root] .anchor-link::after {
+	content: "Copy link";
+	position: absolute;
+	left: 50%;
+	transform: translateX(-50%);
+	top: calc(100% + 0.35rem);
+	z-index: 5;
+	white-space: nowrap;
+	font-family: var(--font-mono);
+	font-size: 0.5rem;
+	letter-spacing: 0.08em;
+	text-transform: uppercase;
+	color: var(--date-color);
+	background: var(--bg);
+	border: 1px solid var(--border-color);
+	border-radius: 4px;
+	padding: 0.12rem 0.4rem;
+	opacity: 0;
+	pointer-events: none;
+	transition: opacity 0.15s ease;
+}
+
+article[data-toc-root] .anchor-link:hover::after,
+article[data-toc-root] .anchor-link:focus-visible::after {
+	opacity: 1;
+}
+
+article[data-toc-root] .anchor-link.copied::after {
+	content: "Copied";
+	opacity: 1;
+}
+
+/* Touch devices have no hover: the anchor stays visible at low emphasis,
+ * inline after the heading text (the gutter position would hang into the
+ * 1rem shell pad and clip offscreen), with a bigger tap target and no
+ * hover tooltip (the copied icon swap is the feedback).
+ * MUST stay last in this section: media queries add no specificity, so
+ * these overrides win by source order alone. Moved above the tooltip
+ * rules, the display:none would silently stop applying the moment the
+ * base tooltip declares a display of its own, and an absolutely
+ * positioned tooltip on a now-static button escapes offscreen. */
+@media (hover: none) {
+	article[data-toc-root] .anchor-link {
+		position: static;
+		display: inline-flex;
+		/* centers the icon on the heading's cap band, not its line box:
+		 * serif capitals sit above the line-box middle, so box-centering
+		 * reads low (measured 0.24em low across h2-h4) */
+		vertical-align: 0.12em;
+		margin-left: 0.45rem;
+		width: 1.3rem;
+		height: 1.3rem;
+		opacity: 0.45;
+	}
+
+	article[data-toc-root] .anchor-link::after {
+		display: none;
+	}
+}
+
+/* For Articles */
+article a {
+	@apply border-b transition-colors duration-200;
+	border-color: var(--article-link-border);
+}
+article a:hover {
+	@apply border-b;
+	border-color: var(--article-link-hover-border);
+}
+
+article ul {
+	@apply ml-[1.35em] mb-4 pl-4 list-disc list-outside;
+}
+article ol {
+	@apply ml-[1.35em] mb-4 pl-4 list-decimal list-outside;
+}
+
+article blockquote {
+	@apply border-l-2 pl-4 italic my-6;
+	border-left-color: var(--code-color);
+}
+
+article pre {
+	@apply text-[0.75rem] overflow-auto rounded p-4 my-4;
+	background-color: var(--code-background);
+}
+
+article code {
+	@apply px-1 font-mono rounded text-[0.75rem];
+	background-color: var(--code-background);
+	color: var(--code-color);
+	font-weight: 500;
+}
+
+/* Block code: Medium reads heavy on light backgrounds, right on dark */
+article pre code {
+	@apply text-inherit border-0 p-0;
+	font-weight: 400;
+}
+
+.dark article pre code {
+	font-weight: 500;
+}

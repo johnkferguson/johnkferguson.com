@@ -1,0 +1,51 @@
+/*
+ * Print: an article on paper. Force the light palette (dark-mode cream
+ * text on white paper is unreadable with backgrounds off), drop the
+ * screen chrome and decoration, keep code/math dressing subtle.
+ *
+ * Imported LAST and unlayered on purpose. The :root/.dark override below
+ * is a normal declaration at the same specificity as the definitions in
+ * colors.css, so it wins by source order alone — put this file in a
+ * cascade layer while colors.css stays unlayered and printing from dark
+ * mode silently reverts to cream-on-white.
+ */
+@media print {
+	:root,
+	.dark {
+		--bg: #ffffff;
+		--text-color: #222222;
+		--heading-color: #000000;
+		--link-color: #222222;
+		--link-hover: #000000;
+		--border-color: #dddddd;
+		--code-background: #f4f4f4;
+		--code-color: #444444;
+		--date-color: #555555;
+		--article-link-border: #bbbbbb;
+	}
+
+	.site-header,
+	body > footer,
+	[data-back-to-top],
+	.toc-rail,
+	.toc-top,
+	.toc-inline,
+	.post-rail,
+	article[data-toc-root] .anchor-link,
+	.post-backdrop,
+	.side-art {
+		/* biome-ignore lint/complexity/noImportantStyles: must beat component-scoped display rules in one shot */
+		display: none !important;
+	}
+
+	article pre,
+	article blockquote {
+		break-inside: avoid;
+	}
+
+	h2,
+	h3,
+	h4 {
+		break-after: avoid;
+	}
+}
