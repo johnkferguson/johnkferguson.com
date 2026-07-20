@@ -3,9 +3,9 @@
 Personal site and blog of John K. Ferguson. Writing on markets, mechanism
 design, and software development.
 
-Built with [Astro](https://astro.build/), styled with Tailwind CSS v4,
-run with [Bun](https://bun.sh/), deployed on Netlify as a fully static
-site.
+Built with [Astro](https://astro.build/), styled with hand-written CSS
+and no framework, run with [Bun](https://bun.sh/), deployed on Netlify
+as a fully static site.
 
 ## Notable pieces
 
