@@ -1,0 +1,19 @@
+rules:
+  unpinned-uses:
+    config:
+      policies:
+        # OVERRIDE. zizmor's default is hash-pin — since v1.20.0 it requires
+        # SHA pinning on all actions, not just third-party ones. Without this
+        # file the workflows produce high-severity findings for every `uses:`.
+        #
+        # We pin to version tags instead, deliberately: Dependabot only raises
+        # security alerts for actions using semantic versioning, so hash-pinning
+        # would trade alerting away for tag immutability. On a small set of
+        # well-known publishers, keeping the alerts is the better trade.
+        #
+        # ref-pin still rejects bare refs and floating branches, so `uses: a/b`
+        # or `@main` remains a finding.
+        #
+        # Revisit if the action set grows beyond well-known publishers: flip to
+        # hash-pin and run `pinact` to rewrite the refs.
+        "*": ref-pin

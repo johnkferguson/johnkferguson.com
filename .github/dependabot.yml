@@ -1,0 +1,84 @@
+version: 2
+
+updates:
+  # Bun supports version updates but NOT security updates, and GitHub's
+  # dependency graph does not parse bun.lock at all — alerts resolve only from
+  # the package.json ranges below, so the transitive tree is not covered.
+  # Keeping direct deps current is therefore the practical remediation path.
+  - package-ecosystem: "bun"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "06:00"
+      timezone: "Etc/UTC"
+    # Counts currently OPEN PRs, not PRs per run. At the default of 5 a few
+    # unmerged PRs silently stop new updates appearing, with no warning.
+    open-pull-requests-limit: 10
+    labels:
+      - "dependencies"
+    commit-message:
+      prefix: "chore(deps)"
+      prefix-development: "chore(deps-dev)"
+      include: "scope"
+    # Quarantine new releases so a compromised publish is likely caught before
+    # it reaches CI or Netlify. Majors get longer: no urgency, and that is where
+    # breakage lives. Security updates are never delayed by cooldown.
+    # 7 days is zizmor's dependabot-cooldown threshold; keep default-days in
+    # sync with minimumReleaseAge in bunfig.toml.
+    cooldown:
+      default-days: 7
+      semver-major-days: 30
+    # Order matters: Dependabot assigns each dependency to the FIRST group whose
+    # patterns it matches. `preact` is listed before `astro` so @astrojs/preact
+    # lands with preact core rather than in the @astrojs/* catch-all — they
+    # break together, so they should bump together.
+    groups:
+      preact:
+        patterns:
+          - "preact"
+          - "@astrojs/preact"
+      markdown:
+        patterns:
+          - "markdown-it"
+          - "@types/markdown-it"
+          - "remark-*"
+          - "rehype-*"
+          - "katex"
+          - "sanitize-html"
+          - "@types/sanitize-html"
+      fonts:
+        patterns:
+          - "@fontsource/*"
+          - "@fontsource-variable/*"
+      astro:
+        patterns:
+          - "astro"
+          - "@astrojs/*"
+      dev-tooling:
+        dependency-type: "development"
+        patterns:
+          - "*"
+
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "06:00"
+      timezone: "Etc/UTC"
+    # Counts currently OPEN PRs, not PRs per run. At the default of 5 a few
+    # unmerged PRs silently stop new updates appearing, with no warning.
+    open-pull-requests-limit: 10
+    labels:
+      - "dependencies"
+      - "github-actions"
+    commit-message:
+      prefix: "chore(ci)"
+    # github-actions supports default-days only; semver-* keys are not honored.
+    cooldown:
+      default-days: 7
+    groups:
+      actions:
+        patterns:
+          - "*"

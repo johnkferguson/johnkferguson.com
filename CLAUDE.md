@@ -50,6 +50,15 @@ Draft posts (`src/content/posts/drafts/`, `draft: true`) render in dev only; pro
 - Test at realistic CSS viewport widths with `resize_page`. John's 1920px monitor presents as roughly 1000-1100 CSS px due to zoom/display scaling, so always check ~1000-1100 as well as 390 (mobile) and 1400+. The post TOC rail appears at >= 1020 CSS px.
 - Before publishing changes, `lighthouse_audit` on the affected pages.
 
+## Dependency Management & CI Hardening
+
+- **`bun.lock` is invisible to GitHub's dependency graph** — Dependabot alerts only ever resolve from the `package.json` ranges, so the transitive tree is uncovered. `bun audit` (via `scripts/audit.sh`) is the only thing that sees it. This is why the audit gate carries more weight here than on an npm project.
+- **`scripts/audit.sh` is the single source of truth for accepted advisories** — not the workflows. It runs `bun audit --audit-level=high` with an `--ignore` list; each entry documents its exposure class (not dependency paths, which churn). Called from both `check.yml` (PR gate) and `security.yml` (daily scheduled sweep — catches advisories newly published against unchanged deps). Add or drop ignores there; a moderate deliberately left un-ignored is recorded in the same comment so a future re-score to high fails loudly with context.
+- **Two cooldown numbers must stay in sync**: `minimumReleaseAge` in `bunfig.toml` (seconds) and `cooldown.default-days` in `.github/dependabot.yml` (both 7 days). `bunfig.toml` also covers manual `bun add`/`bun update` and Netlify's `bun install`, which Dependabot's server-side cooldown does not.
+- **`minimumReleaseAge` failure mode**: a too-new version fails resolution with `No version matching "<pkg>" found for specifier (minimum-release-age: ...)` — it reads like the version doesn't exist but means it's younger than 7 days. Escape hatch: add the package to `minimumReleaseAgeExcludes` in `bunfig.toml`. Consequence to remember: `bun update` grabs newest-compatible and can pull versions younger than the window, which a plain `bun install` (Netlify) then refuses even though CI's `--frozen-lockfile` glosses over it — keep the lockfile within the cooldown.
+- **Actions are tag-pinned (`ref-pin`), deliberately** — `zizmor.yml` overrides zizmor's default `hash-pin`. Dependabot only raises security alerts for actions using semantic versioning, so hash-pinning would trade that alerting away. Bare refs / floating branches are still rejected.
+- **`trustedDependencies` (`package.json`) replaces bun's built-in 368-package allowlist** rather than extending it — so it must list every dependency that needs install scripts. Only `esbuild` and `sharp` declare lifecycle scripts here (verified from a `node_modules`-removed install; a re-run over an existing tree proves nothing). `bun-version` is pinned in both workflows and `BUN_VERSION` in `netlify.toml`.
+
 ## Git Conventions
 
 - Commit on a feature branch, not main

@@ -1,0 +1,18 @@
+[install]
+# Quarantine freshly published npm releases: a version must have been public
+# for at least 7 days before bun will install it. Mirrors the Dependabot
+# cooldown in .github/dependabot.yml, but also covers manual `bun add` /
+# `bun update` runs and Netlify's `bun install`, which Dependabot's
+# server-side cooldown does not.
+#
+# 604800 seconds = 7 days. Keep this in sync with cooldown.default-days in
+# .github/dependabot.yml — if this window is longer, Dependabot proposes
+# versions local and Netlify installs then refuse, and its PRs fail to build.
+#
+# Escape hatch: add a package name to minimumReleaseAgeExcludes to bypass the
+# wait for that dependency when you genuinely need a fresh release. On a fresh
+# resolution the block reads:
+#   No version matching "<pkg>" found for specifier (minimum-release-age: ...)
+# which looks like the version does not exist but means it is simply too new.
+minimumReleaseAge = 604800
+minimumReleaseAgeExcludes = []

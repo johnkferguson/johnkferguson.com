@@ -5,16 +5,49 @@ on:
   push:
     branches: [main]
 
+# Cancel a stale run when new commits land on the same ref.
+concurrency:
+  group: check-${{ github.ref }}
+  cancel-in-progress: true
+
+# Specifying any key sets every other scope to none. Nothing here needs write.
+permissions:
+  contents: read
+
 jobs:
   check:
     runs-on: ubuntu-latest
+    # Otherwise inherits the 360-minute default, holding a live token for six
+    # hours if a step hangs.
+    timeout-minutes: 10
     steps:
       - uses: actions/checkout@v4
+        with:
+          # The git token is otherwise left on disk for later steps. Safe here:
+          # nothing after checkout does git operations (the scripts/ font tools
+          # are run manually, not in CI).
+          persist-credentials: false
+      # Static security analysis of the workflows themselves: template
+      # injection, over-broad permissions, credential persistence, unsafe
+      # triggers. advanced-security is off because this repo has no GHAS, so
+      # findings surface as inline annotations instead of a SARIF upload.
+      - uses: zizmorcore/zizmor-action@v0.6.0
+        with:
+          advanced-security: false
+          inline-annotations: true
+          min-severity: low
+          config: zizmor.yml
       - uses: actions/setup-node@v4
         with:
           node-version: 22
       - uses: oven-sh/setup-bun@v2
-      - run: bun install
+        with:
+          bun-version: 1.3.13
+      - run: bun install --frozen-lockfile
+      # Gates PRs on high/critical advisories. Lives here rather than only in
+      # security.yml because this is the status check on a PR; the ignore list
+      # and its reasoning live in the script so the two callers cannot drift.
+      - run: ./scripts/audit.sh
       # --pass-with-no-tests: unit tests live on feature branches until they
       # merge; a branch with zero test files should not fail the check
       - run: bun test --pass-with-no-tests
