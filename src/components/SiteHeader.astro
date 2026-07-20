@@ -69,6 +69,10 @@ const { postTitle, postDate } = Astro.props;
 					behavior: reduceMotion ? "auto" : "smooth",
 				});
 			});
+			/* Deliberately not gated behind the 640px query that hides the
+			 * context on phones: unlike the per-scroll-frame work in the
+			 * TOC rail and back-to-top (which is gated), an observer costs
+			 * nothing per frame and fires only when the h1 crosses. */
 			const io = new IntersectionObserver(
 				([entry]) => {
 					const passed =

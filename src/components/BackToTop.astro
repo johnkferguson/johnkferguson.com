@@ -21,7 +21,26 @@
 		 * the animation ourselves keeps it one continuous motion that ends
 		 * exactly at 0 regardless of viewport changes. Any real input
 		 * cancels it, so an impatient scroll always wins. */
+		/* keys that scroll the page; a keydown canceller listening for any
+		 * key would kill the animation on Enter's own key repeat, since
+		 * Enter activates the button and then repeats while held */
+		const SCROLL_KEYS = new Set([
+			"ArrowUp",
+			"ArrowDown",
+			"ArrowLeft",
+			"ArrowRight",
+			"PageUp",
+			"PageDown",
+			"Home",
+			"End",
+			" ",
+		]);
+		/* a run in flight, so a second click replaces it instead of both
+		 * writing conflicting positions every frame */
+		let cancelActive: (() => void) | null = null;
+
 		const scrollToTop = () => {
+			cancelActive?.();
 			const start = window.scrollY;
 			if (start <= 0) return;
 			if (reduceMotion) {
@@ -31,6 +50,9 @@
 			const duration = Math.min(600, Math.max(280, start * 0.32));
 			const t0 = performance.now();
 			let cancelled = false;
+			const onKey = (e: KeyboardEvent) => {
+				if (SCROLL_KEYS.has(e.key)) cancel();
+			};
 			const cancel = () => {
 				cancelled = true;
 				cleanup();
@@ -38,11 +60,16 @@
 			const cleanup = () => {
 				window.removeEventListener("wheel", cancel);
 				window.removeEventListener("touchstart", cancel);
-				window.removeEventListener("keydown", cancel);
+				window.removeEventListener("pointerdown", cancel);
+				window.removeEventListener("keydown", onKey);
+				if (cancelActive === cancel) cancelActive = null;
 			};
+			cancelActive = cancel;
 			window.addEventListener("wheel", cancel, { passive: true });
 			window.addEventListener("touchstart", cancel, { passive: true });
-			window.addEventListener("keydown", cancel);
+			/* grabbing the scrollbar mid-animation should hand control back */
+			window.addEventListener("pointerdown", cancel, { passive: true });
+			window.addEventListener("keydown", onKey);
 			const step = (now: number) => {
 				if (cancelled) return;
 				const t = Math.max(0, Math.min(1, (now - t0) / duration));
@@ -107,7 +134,7 @@
 		border: 1px solid color-mix(in srgb, var(--border-color) 55%, var(--date-color));
 		background: var(--bg);
 		color: var(--text-color);
-		box-shadow: 0 2px 12px rgba(0, 0, 0, 0.3);
+		box-shadow: var(--float-shadow);
 		cursor: pointer;
 		opacity: 0;
 		transform: translateY(8px);

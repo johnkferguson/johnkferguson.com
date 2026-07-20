@@ -283,7 +283,11 @@ const { Content: Blurb } = await render(blurbEntry);
     margin: 0.15rem 0 0.4rem;
   }
 
-  .date-text {
+  /* card rows are tight at narrow widths: each item wraps as a whole
+   * unit, never mid-phrase (the constraint is this layout's, so it
+   * lives here rather than inside the shared components) */
+  .date-text,
+  .date :global(.rt) {
     white-space: nowrap;
   }
 
