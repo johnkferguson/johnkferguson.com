@@ -11,7 +11,7 @@
  * Not indexed here: fonts.css (@font-face, imported by BaseLayout ahead
  * of this file) and math.css (KaTeX dressing, imported per page).
  */
-@import "./reset.css";
+@import "./reset.css" layer(base);
 @import "./colors.css";
 @import "./base.css";
 @import "./layout.css";

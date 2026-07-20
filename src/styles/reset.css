@@ -9,12 +9,23 @@
  * instead of falling back to the browser's UI font. Pruning would save
  * about a kilobyte and put a trap in the path of the next post.
  *
- * Two deviations from upstream, both mechanical:
- *   - --theme(--default-font-family, …) resolved to var(--font-serif),
- *     and --default-mono-font-family to var(--font-mono). Those theme
- *     tokens held exactly these values before Tailwind was removed.
+ * Imported into @layer base by global.css, which is where preflight sat
+ * under Tailwind. That keeps the whole file weaker than every unlayered
+ * site rule regardless of specificity, so a reset declaration like
+ * `img { display: block }` can never out-compete page or component CSS
+ * by accident. Do not import this file unlayered.
+ *
+ * Deviations from upstream, all mechanical:
+ *   - --theme(--default-font-family, …) resolved to
+ *     var(--font-serif, serif), and --default-mono-font-family to
+ *     var(--font-mono, monospace). Those theme tokens held exactly
+ *     these faces before Tailwind was removed; the literal fallbacks
+ *     are new, so this file depends on nothing.
  *   - the *-font-feature-settings / *-font-variation-settings theme
  *     lookups resolve to `normal`, which is what they held.
+ *   - upstream's numbered comment markers are dropped; they indexed
+ *     into per-declaration trailing markers that no longer survive the
+ *     resolutions above.
  *
  * Upstream: tailwindcss 4.2.2, packages/tailwindcss/preflight.css
  * (MIT, Tailwind Labs) — https://github.com/tailwindlabs/tailwindcss
@@ -24,9 +35,8 @@
  */
 
 /*
-  1. Prevent padding and border from affecting element width.
-  2. Remove default margins and padding.
-  3. Reset all borders.
+  Prevent padding and border from affecting element width, remove
+  default margins and padding, and reset all borders.
 */
 *,
 ::after,
@@ -40,28 +50,31 @@
 }
 
 /*
-  1. Consistent line-height across browsers.
-  2. Prevent font-size adjustment after orientation change in iOS.
-  3. More readable tab size.
-  4. The site's serif. base.css restates this; kept here so the reset
-     stands on its own if the base sheet is ever reordered.
-  7. Disable tap highlights on iOS.
+  Consistent line-height, no font-size adjustment after an iOS
+  orientation change, a readable tab size, and no iOS tap highlight.
+
+  The font-family carries a literal fallback because --font-serif is
+  defined in base.css: import order is irrelevant (custom properties
+  resolve at computed-value time, not parse time), but if that token
+  were ever removed or renamed the var() would be invalid at
+  computed-value time and html would drop to the browser default. The
+  fallback is what lets this file stand on its own. base.css restates
+  the same font-family for the site proper.
 */
 html,
 :host {
 	line-height: 1.5;
 	-webkit-text-size-adjust: 100%;
 	tab-size: 4;
-	font-family: var(--font-serif);
+	font-family: var(--font-serif, serif);
 	font-feature-settings: normal;
 	font-variation-settings: normal;
 	-webkit-tap-highlight-color: transparent;
 }
 
 /*
-  1. Correct height in Firefox.
-  2. Correct border-color inheritance in Firefox.
-  3. Reset the default border style to a 1px solid border.
+  Correct height and border-color inheritance in Firefox, and reset the
+  default border style to a 1px solid border.
 */
 hr {
 	height: 0;
@@ -100,14 +113,14 @@ strong {
 }
 
 /*
-  1. The site's mono face.
-  4. Correct the odd `em` font sizing in all browsers.
+  The site's mono face (literal fallback for the same reason as html
+  above), and a correction for the odd `em` font sizing in all browsers.
 */
 code,
 kbd,
 samp,
 pre {
-	font-family: var(--font-mono);
+	font-family: var(--font-mono, monospace);
 	font-feature-settings: normal;
 	font-variation-settings: normal;
 	font-size: 1em;
@@ -136,9 +149,8 @@ sup {
 }
 
 /*
-  1. Remove text indentation from table contents in Chrome and Safari.
-  2. Correct table border color inheritance in Chrome and Safari.
-  3. Remove gaps between table borders by default.
+  Remove text indentation from table contents and correct border-color
+  inheritance in Chrome and Safari, and remove gaps between borders.
 */
 table {
 	text-indent: 0;
@@ -169,8 +181,8 @@ menu {
 }
 
 /*
-  1. Replaced elements block by default.
-  2. Saner default vertical alignment for replaced elements.
+  Replaced elements block by default, with a saner default vertical
+  alignment.
 */
 img,
 svg,
@@ -192,10 +204,8 @@ video {
 }
 
 /*
-  1. Inherit font styles in all browsers.
-  2. Remove border radius in all browsers.
-  3. Remove background color in all browsers.
-  4. Consistent opacity for disabled states.
+  Inherit font styles, remove border radius and background color, and
+  keep opacity consistent for disabled states, in all browsers.
 */
 button,
 input,
@@ -256,8 +266,8 @@ textarea {
 }
 
 /*
-  1. Same height when empty in iOS Safari.
-  2. Allow text alignment to be changed in iOS Safari.
+  Same height when empty in iOS Safari, and allow text alignment to be
+  changed there.
 */
 ::-webkit-date-and-time-value {
 	min-height: 1lh;
