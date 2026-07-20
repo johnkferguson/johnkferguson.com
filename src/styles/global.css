@@ -1,72 +1,99 @@
 @import "tailwindcss";
-@plugin "@tailwindcss/typography";
 
 @custom-variant dark (&:where(.dark, .dark *));
 
 @theme {
-	--font-serif: "PT Serif", serif;
+	--font-serif: "Newsreader Variable", "Newsreader Fallback", serif;
 	--font-mono: "Fira Code", monospace;
-	--default-font-family: "PT Serif", serif;
+	--default-font-family: "Newsreader Variable", "Newsreader Fallback", serif;
 	--default-mono-font-family: "Fira Code", monospace;
 }
+
+/* the "Newsreader Fallback" face (metric-tuned) lives in fonts.css */
 
 /*
  * Color Variables
  */
+/* Light mode: subtle warm cast (matches dark mode's stone family) with
+ * muted grays bumped for small-size contrast. */
 :root {
-	--bg: #ffffff;
-	--bg-footer: #fdfdfd;
-	--text-color: #555555;
-	--heading-color: #333333;
-	--link-color: #222222;
+	/* native UI (scrollbars, form controls) follows the active theme */
+	color-scheme: light;
+	--bg: #fdfcfb;
+	--text-color: #3b3936;
+	--heading-color: #201e1c;
+	--link-color: #262422;
 	--link-hover: #000000;
-	--border-color: #e8e8e8;
-	--code-background: #f8f8f8;
-	--code-border: #d5d5e9;
+	--border-color: #e8e5e1;
+	--code-background: #f6f4f0;
 	--code-color: #bf616a;
-	--date-color: #818181;
-	--article-link-border: #dddddd;
+	/* muted accent family extending the terracotta (Nord-adjacent hues
+	 * tuned per mode): green for bid-side art; blue reserved (the link
+ * hover experiment was rejected, a future treatment may use it) */
+	--accent-green: #7f9b6d;
+	--accent-blue: #5e81ac;
+	--date-color: #6e6961;
+	--article-link-border: #ddd9d4;
 	--article-link-hover-border: #000000;
-	--blockquote-border: #e8e8e8;
-	--icon-color: #c2c2c2;
-	--icon-hover-twitter: #9ae4e8;
-	--icon-hover-github: #000000;
-	--icon-hover-email: #000000;
+	--header-shadow: inset 0 -7px 12px -7px rgba(0, 0, 0, 0.25);
 }
 
 .dark {
+	color-scheme: dark;
 	--bg: #1c1917;
-	--bg-footer: #201d1a;
 	--text-color: #c4bdb6;
 	--heading-color: #e6e1db;
 	--link-color: #d1cbc4;
 	--link-hover: #f0ebe5;
 	--border-color: #3a3533;
 	--code-background: #282320;
-	--code-border: #3d3835;
 	--code-color: #d08770;
-	--date-color: #8a8480;
+	--accent-green: #a3be8c;
+	--accent-blue: #88c0d0;
+	--date-color: #98928b;
 	--article-link-border: #4a4540;
 	--article-link-hover-border: #d1cbc4;
-	--blockquote-border: #3a3533;
-	--icon-color: #6b6560;
-	--icon-hover-twitter: #9ae4e8;
-	--icon-hover-github: #ffffff;
-	--icon-hover-email: #ffffff;
+	--header-shadow: inset 0 -8px 14px -7px rgba(0, 0, 0, 0.6);
+}
+
+/* While flipping theme, kill all transitions so every element changes
+ * color in the same frame instead of fading at mismatched cadences. */
+.theme-snap *,
+.theme-snap *::before,
+.theme-snap *::after {
+	/* biome-ignore lint/complexity/noImportantStyles: must beat every per-element transition for the single-frame theme flip */
+	transition: none !important;
 }
 
 /*
  * Base Settings
  */
 
+/* Footer rides the bottom of short pages: body is a full-height column
+ * and the footer carries margin-top auto. */
+body {
+	min-height: 100vh;
+	display: flex;
+	flex-direction: column;
+}
+
+body > footer {
+	margin-top: auto;
+}
+
 html {
 	font-family: var(--font-serif);
-	font-size: 16px;
+	/* Newsreader is a variable font with an optical-size axis; let text
+	 * sizes pick the sturdier text cut and headings the display cut. */
+	font-optical-sizing: auto;
+	/* Newsreader runs small for its px size; 17/20 here reads like the
+	 * old PT Serif 16/21. */
+	font-size: 17px;
 }
 
 @media (min-width: 44em) {
 	html {
-		font-size: 21px;
+		font-size: 20px;
 	}
 }
 
@@ -86,17 +113,18 @@ p {
 	margin: 0 0 1rem;
 }
 
+/* Newsreader's optical axis handles display tightening; no manual
+ * tracking. 600 weight: the 700 display cut is too dark for headings. */
 h1,
 h2,
 h3,
 h4,
 h5,
 h6 {
-	margin-bottom: 0.5rem;
-	font-weight: bold;
+	margin-bottom: 0.65rem;
+	font-weight: 600;
 	line-height: 1.1;
 	color: var(--heading-color);
-	letter-spacing: -0.033rem;
 }
 
 h1,
@@ -131,20 +159,57 @@ a {
 	line-height: inherit;
 	color: var(--link-color);
 	text-decoration: none;
-	transition: all 0.2s ease-in-out;
+	transition:
+		color 0.2s ease-in-out,
+		border-color 0.2s ease-in-out;
 }
 
 a:hover {
 	color: var(--link-hover);
 }
 
-blockquote {
-	border-left: 0.2rem solid var(--blockquote-border);
-	padding-left: 1rem;
-	font-size: 0.9rem;
-	opacity: 0.6;
-	font-style: italic;
-	margin: 1.5rem 0;
+/* Small mono label voice (uppercase, muted); size and tracking stay
+ * local to each site */
+.micro-label {
+	font-family: var(--font-mono);
+	text-transform: uppercase;
+	color: var(--date-color);
+}
+
+/* dev-only marker on draft posts (homepage cards + post header) */
+.draft-badge {
+	font-family: var(--font-mono);
+	font-size: 0.5rem;
+	letter-spacing: 0.1em;
+	color: var(--code-color);
+	border: 1px solid var(--code-color);
+	border-radius: 4px;
+	padding: 0.08rem 0.3rem;
+}
+
+/* diffuse decorative art filling a sticky side column (homepage
+ * identity, about portrait slot): bleeds past its box and dissolves
+ * at every edge */
+.side-art {
+	position: absolute;
+	top: -1.5rem;
+	bottom: -1rem;
+	left: -1rem;
+	right: -1.5rem;
+	opacity: 0.5;
+	pointer-events: none;
+	-webkit-mask-image: radial-gradient(
+		80% 72% at 45% 48%,
+		#000 30%,
+		transparent 95%
+	);
+	mask-image: radial-gradient(80% 72% at 45% 48%, #000 30%, transparent 95%);
+}
+
+.side-art svg {
+	width: 100%;
+	height: 100%;
+	display: block;
 }
 
 /* Themed link with underline */
@@ -155,12 +220,143 @@ blockquote {
 	border-color: var(--article-link-hover-border);
 }
 
-/* Post title links on index */
-.post-title-link {
+/*
+ * Post page shell: full-width grid with a sticky TOC rail on the left
+ * and the content column on the right. All article content, labs
+ * included, sits at the prose measure.
+ */
+:root {
+	--prose-measure: 34rem;
+	--prose-wide: 44rem;
+	--shell-max: 1520px;
+	--shell-pad: clamp(1rem, 3vw, 3rem);
+	/* sticky system: everything that clears the pinned header derives
+	 * from these. The rail/grid breakpoint is 1020px, hardcoded in
+	 * media queries (CSS vars cannot parameterize them) — grep for
+	 * 1020 when changing it. */
+	--header-h: 2.1rem;
+	--sticky-top: calc(var(--header-h) + 1.5rem);
+	--sticky-height: calc(100vh - var(--sticky-top) - 2.8rem);
+	--rail-top: calc(var(--header-h) + 1.9rem);
+	--anchor-offset: 80px;
+}
+
+.post-shell {
+	margin-inline: auto;
+	padding: 1.5rem var(--shell-pad) 3rem;
+	/* single-column mode: shrink the shell to the prose measure so the
+	 * page reads centered, like a plain essay */
+	max-width: calc(var(--prose-measure) + 2 * var(--shell-pad));
+}
+
+.post-rail {
+	display: none;
+}
+
+@media (min-width: 1020px) {
+	.post-shell {
+		max-width: var(--shell-max);
+		display: grid;
+		grid-template-columns: minmax(170px, 220px) minmax(0, var(--prose-wide));
+		justify-content: center;
+		column-gap: clamp(2.5rem, 4.5vw, 5rem);
+	}
+	.post-rail {
+		display: block;
+	}
+}
+
+article[data-toc-root] > * {
+	max-width: var(--prose-measure);
+}
+
+/* solid surface behind the article so backdrop art bleeds only in the
+ * gutters; pure paint (pseudo layer), no layout effect */
+article[data-toc-root] {
+	position: relative;
+	max-width: var(--prose-measure);
+}
+
+article[data-toc-root]::before {
+	content: "";
+	position: absolute;
+	inset: -0.6rem -1.25rem 0;
+	background: var(--bg);
+	border-radius: 10px;
+	z-index: -1;
+}
+
+/* Hover anchors on id'd headings: link icon in the left gutter (fixed
+ * x position for every heading level), click copies the section URL.
+ * Button injected by PostLayout script; tooltip via ::after. */
+article[data-toc-root] :is(h2, h3, h4, h5, h6)[id] {
+	position: relative;
+}
+
+article[data-toc-root] .anchor-link {
+	position: absolute;
+	left: -1.5rem;
+	top: calc(0.5lh - 0.5rem);
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	width: 0.9rem;
+	height: 0.9rem;
+	border: 0;
+	background: transparent;
+	color: var(--date-color);
+	cursor: pointer;
+	opacity: 0;
+	transition:
+		opacity 0.15s ease,
+		color 0.15s ease;
+}
+
+article[data-toc-root] :is(h2, h3, h4, h5, h6)[id]:hover .anchor-link,
+article[data-toc-root] .anchor-link:focus-visible {
+	opacity: 1;
+}
+
+article[data-toc-root] .anchor-link:hover {
 	color: var(--heading-color);
 }
-.post-title-link:hover {
-	color: var(--link-hover);
+
+article[data-toc-root] .anchor-link.copied {
+	color: var(--code-color);
+	opacity: 1;
+}
+
+/* tooltip centered below the icon */
+article[data-toc-root] .anchor-link::after {
+	content: "Copy link";
+	position: absolute;
+	left: 50%;
+	transform: translateX(-50%);
+	top: calc(100% + 0.35rem);
+	z-index: 5;
+	white-space: nowrap;
+	font-family: var(--font-mono);
+	font-size: 0.5rem;
+	letter-spacing: 0.08em;
+	text-transform: uppercase;
+	color: var(--date-color);
+	background: var(--bg);
+	border: 1px solid var(--border-color);
+	border-radius: 4px;
+	padding: 0.12rem 0.4rem;
+	opacity: 0;
+	pointer-events: none;
+	transition: opacity 0.15s ease;
+}
+
+article[data-toc-root] .anchor-link:hover::after,
+article[data-toc-root] .anchor-link:focus-visible::after {
+	opacity: 1;
+}
+
+article[data-toc-root] .anchor-link.copied::after {
+	content: "Copied";
+	opacity: 1;
 }
 
 /* For Articles */
@@ -174,15 +370,15 @@ article a:hover {
 }
 
 article ul {
-	@apply ml-[1.35em] mb-4 pl-4 list-disc list-inside;
+	@apply ml-[1.35em] mb-4 pl-4 list-disc list-outside;
 }
 article ol {
 	@apply ml-[1.35em] mb-4 pl-4 list-decimal list-outside;
 }
 
 article blockquote {
-	@apply border-l-[0.2rem] pl-4 text-[0.9rem] opacity-60 italic my-6;
-	border-left-color: var(--blockquote-border);
+	@apply border-l-2 pl-4 italic my-6;
+	border-left-color: var(--code-color);
 }
 
 article pre {
@@ -191,14 +387,18 @@ article pre {
 }
 
 article code {
-	@apply text-[0.75rem] overflow-auto rounded;
+	@apply px-1 font-mono rounded text-[0.75rem];
 	background-color: var(--code-background);
+	color: var(--code-color);
+	font-weight: 500;
 }
 
-article code {
-	@apply px-1 font-mono text-[var(--code-color)];
-}
-
+/* Block code: Medium reads heavy on light backgrounds, right on dark */
 article pre code {
 	@apply text-inherit border-0 p-0;
+	font-weight: 400;
+}
+
+.dark article pre code {
+	font-weight: 500;
 }
