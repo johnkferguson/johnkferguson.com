@@ -14,7 +14,7 @@ import SiteHeader from "../components/SiteHeader.astro";
 interface Props {
 	title: string;
 	description: string;
-	image?: string;
+	ogImage?: string;
 	type?: "website" | "article";
 	pubDate?: Date;
 	author?: string;
@@ -27,7 +27,7 @@ interface Props {
 const {
 	title,
 	description,
-	image,
+	ogImage,
 	type = "website",
 	pubDate,
 	author,
@@ -42,8 +42,8 @@ const {
   <head>
     <link rel="preload" href={newsreaderWoff2} as="font" type="font/woff2" crossorigin />
     <link rel="preload" href={firaCodeWoff2} as="font" type="font/woff2" crossorigin />
-    <Head title={title} description={description} image={image} type={type} pubDate={pubDate} noindex={noindex} />
-    <JsonLd type={type} title={title} description={description} image={image} pubDate={pubDate} author={author} />
+    <Head title={title} description={description} ogImage={ogImage} type={type} pubDate={pubDate} noindex={noindex} />
+    <JsonLd type={type} title={title} description={description} ogImage={ogImage} pubDate={pubDate} author={author} />
     <script is:inline>
       (function() {
         // stored choice wins; else the OS preference; dark if neither.
@@ -65,7 +65,9 @@ const {
   </head>
   <body class="font-normal leading-[1.65] transition-colors duration-200" style="background-color: var(--bg); color: var(--text-color);">
     <SiteHeader postTitle={headerContextTitle} postDate={headerContextDate} />
-    <slot />
+    <main>
+      <slot />
+    </main>
     <SiteFooter />
   </body>
 </html>
