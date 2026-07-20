@@ -1,5 +1,5 @@
 ---
-import type { CollectionEntry } from "astro:content";
+import { type CollectionEntry, getEntry, render } from "astro:content";
 import ReadingTime from "../components/ReadingTime.astro";
 import { SITE_DESCRIPTION, SITE_NAME } from "../consts";
 import BaseLayout from "../layouts/BaseLayout.astro";
@@ -45,6 +45,12 @@ const identityArt = artSvg({
 	width: 800,
 	height: 900,
 });
+
+/* the blurb is plain markdown so future edits touch content, not
+ * markup; the site pipeline gives its external links target=_blank */
+const blurbEntry = await getEntry("snippets", "home-blurb");
+if (!blurbEntry) throw new Error("missing content/snippets/home-blurb.md");
+const { Content: Blurb } = await render(blurbEntry);
 ---
 
 <BaseLayout title={SITE_NAME} description={SITE_DESCRIPTION}>
@@ -53,15 +59,9 @@ const identityArt = artSvg({
       <div class="identity">
         <div class="side-art" data-identity-art set:html={identityArt} />
         <div class="identity-text">
-          <p class="blurb">
-            Writing on markets, mechanism design, and software development.
-            Currently building <a
-              href="https://towardstypetwo.com/"
-              class="link-underline"
-              target="_blank"
-              rel="noopener noreferrer">Towards Type Two</a
-            >, a blockchain development company.
-          </p>
+          <div class="blurb">
+            <Blurb />
+          </div>
           <a href="/about" class="about-link micro-label">about &rarr;</a>
         </div>
       </div>
@@ -161,11 +161,23 @@ const identityArt = artSvg({
   .blurb {
     font-size: 0.82rem;
     line-height: 1.55;
-    margin: 0 0 0.6rem;
     text-shadow:
       0 0 8px var(--bg),
       0 0 16px var(--bg),
       0 0 28px var(--bg);
+  }
+
+  /* rendered markdown children (unscoped), styled like .link-underline */
+  .blurb :global(p) {
+    margin: 0 0 0.6rem;
+  }
+
+  .blurb :global(a) {
+    border-bottom: 1px solid var(--article-link-border);
+  }
+
+  .blurb :global(a:hover) {
+    border-color: var(--article-link-hover-border);
   }
 
   .about-link {

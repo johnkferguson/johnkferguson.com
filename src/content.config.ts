@@ -49,4 +49,11 @@ const pages = defineCollection({
 	}),
 });
 
-export const collections = { posts, pages };
+/* small editable fragments rendered inside layouts (homepage blurb);
+ * body-only markdown, no frontmatter required */
+const snippets = defineCollection({
+	loader: glob({ pattern: "**/*.md", base: "./src/content/snippets" }),
+	schema: z.object({}),
+});
+
+export const collections = { posts, pages, snippets };
