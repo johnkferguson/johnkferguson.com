@@ -33,12 +33,19 @@ updates:
     # patterns it matches. `preact` is listed before `astro` so @astrojs/preact
     # lands with preact core rather than in the @astrojs/* catch-all — they
     # break together, so they should bump together.
+    # Groups bundle minor and patch bumps into one PR per group. Majors are
+    # deliberately excluded so each arrives as its own PR: a major that needs a
+    # code change (a new tsconfig option, a config migration) then fails or
+    # merges on its own instead of holding four unrelated patch bumps hostage.
+    # Cooldown still applies, so a major waits its semver-major-days first.
     groups:
       preact:
+        update-types: ["minor", "patch"]
         patterns:
           - "preact"
           - "@astrojs/preact"
       markdown:
+        update-types: ["minor", "patch"]
         patterns:
           - "markdown-it"
           - "@types/markdown-it"
@@ -48,15 +55,18 @@ updates:
           - "sanitize-html"
           - "@types/sanitize-html"
       fonts:
+        update-types: ["minor", "patch"]
         patterns:
           - "@fontsource/*"
           - "@fontsource-variable/*"
       astro:
+        update-types: ["minor", "patch"]
         patterns:
           - "astro"
           - "@astrojs/*"
       dev-tooling:
         dependency-type: "development"
+        update-types: ["minor", "patch"]
         patterns:
           - "*"
 
@@ -80,5 +90,8 @@ updates:
       default-days: 7
     groups:
       actions:
+        # Same reasoning as the bun groups: a major action bump (a new runner or
+        # node runtime, changed inputs) arrives on its own rather than bundled.
+        update-types: ["minor", "patch"]
         patterns:
           - "*"
