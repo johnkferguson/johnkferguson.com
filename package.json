@@ -12,6 +12,10 @@
 		"check": "biome check .",
 		"check:fix": "biome check --fix ."
 	},
+	"trustedDependencies": [
+		"esbuild",
+		"sharp"
+	],
 	"dependencies": {
 		"@astrojs/check": "^0.9.9",
 		"@astrojs/markdown-remark": "^7.2.1",
@@ -23,7 +27,7 @@
 		"@resvg/resvg-js": "^2.6.2",
 		"astro": "^7.0.7",
 		"katex": "^0.17.0",
-		"markdown-it": "^14.1.0",
+		"markdown-it": "^14.3.0",
 		"preact": "^10.29.7",
 		"rehype-external-links": "^3.0.0",
 		"rehype-katex": "^7.0.1",
