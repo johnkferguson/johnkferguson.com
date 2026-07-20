@@ -512,6 +512,18 @@ const caretSvg =
 		background: var(--code-background);
 	}
 
+	/* rows sit flush, so a focus ring (2px + 2px offset) reaches into the
+	 * neighbours' boxes and an adjacent active row's background would
+	 * paint over it; lift the focused row so its ring stays whole.
+	 * Links are square on the left to sit flush against the spine, and
+	 * the outline inherits that radius, so round all four corners while
+	 * focused for a closed ring. */
+	.toc :global(a:focus-visible) {
+		position: relative;
+		z-index: 1;
+		border-radius: 4px;
+	}
+
 	/* —— sticky left rail (lives in the post-shell grid column) ——
 	 * The rail hugs its list (max-height bounds the internal scroll; the
 	 * reserve leaves room for the sticky Top button plus its clearance
@@ -551,6 +563,12 @@ const caretSvg =
 	.toc-rail .toc-scroll {
 		overflow-y: auto;
 		min-height: 0;
+		/* focus rings draw outside the link box (2px ring + 2px offset)
+		 * and this scroll container would clip them at every edge; the
+		 * padding gives them room and the negative margin cancels it so
+		 * the rail's alignment is unchanged */
+		padding: 4px;
+		margin: -4px;
 		scrollbar-width: thin;
 		scrollbar-color: var(--border-color) transparent;
 	}
