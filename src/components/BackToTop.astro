@@ -4,20 +4,9 @@
 // the user prefers reduced motion.
 ---
 
-<button data-back-to-top aria-label="Back to top" title="Back to top">
-	<svg
-		width="16"
-		height="16"
-		viewBox="0 0 16 16"
-		fill="none"
-		stroke="currentColor"
-		stroke-width="1.8"
-		stroke-linecap="round"
-		stroke-linejoin="round"
-		aria-hidden="true"
-	>
-		<path d="M8 13V3M3.5 7.5 8 3l4.5 4.5"></path>
-	</svg>
+<button data-back-to-top aria-label="Back to top">
+	<span class="btt-arrow" aria-hidden="true">&#8593;</span>
+	<span class="btt-label micro-label">Back to top</span>
 </button>
 
 <script>
@@ -29,10 +18,14 @@
 		btn.addEventListener("click", () => {
 			window.scrollTo({ top: 0, behavior: reduceMotion ? "auto" : "smooth" });
 		});
+		const postH1 = document.querySelector<HTMLElement>(".post-header h1");
 		let ticking = false;
 		const update = () => {
 			ticking = false;
-			btn.classList.toggle("visible", window.scrollY > window.innerHeight);
+			const show = postH1
+				? postH1.getBoundingClientRect().bottom < 60
+				: window.scrollY > window.innerHeight;
+			btn.classList.toggle("visible", show);
 		};
 		update();
 		window.addEventListener(
@@ -55,11 +48,11 @@
 		bottom: 1.1rem;
 		z-index: 40;
 		display: flex;
+		flex-direction: column;
 		align-items: center;
-		justify-content: center;
-		width: 2.4rem;
-		height: 2.4rem;
-		border-radius: 50%;
+		gap: 0.22rem;
+		padding: 0.5rem 0.7rem 0.42rem;
+		border-radius: 8px;
 		border: 1px solid var(--border-color);
 		background: var(--bg);
 		color: var(--date-color);
@@ -67,17 +60,42 @@
 		opacity: 0;
 		transform: translateY(8px);
 		pointer-events: none;
+		/* visibility keeps the hidden button out of the tab order; its
+		 * transition delay lets the fade-out finish first */
+		visibility: hidden;
 		transition:
 			opacity 0.2s ease,
 			transform 0.2s ease,
 			color 0.15s ease,
-			border-color 0.15s ease;
+			border-color 0.15s ease,
+			visibility 0s linear 0.2s;
+	}
+
+	.btt-arrow {
+		font-family: var(--font-mono);
+		font-size: 0.7rem;
+		line-height: 1;
+	}
+
+	.btt-label {
+		/* follow the button's hover color, not micro-label's static gray */
+		color: inherit;
+		font-size: 0.42rem;
+		letter-spacing: 0.12em;
+		opacity: 0.75;
 	}
 
 	button.visible {
 		opacity: 1;
 		transform: translateY(0);
 		pointer-events: auto;
+		visibility: visible;
+		transition:
+			opacity 0.2s ease,
+			transform 0.2s ease,
+			color 0.15s ease,
+			border-color 0.15s ease,
+			visibility 0s;
 	}
 
 	button:hover {
@@ -89,6 +107,13 @@
 		button {
 			transition: opacity 0.2s ease;
 			transform: none;
+		}
+	}
+
+	/* the TOC rail carries its own Top link at wide viewports */
+	@media (min-width: 1020px) {
+		button {
+			display: none;
 		}
 	}
 </style>

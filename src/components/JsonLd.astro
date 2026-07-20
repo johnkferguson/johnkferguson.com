@@ -65,7 +65,9 @@ const pageSchema =
 				url,
 				author: personSchema,
 			};
+/* escape < so content can never close the script tag early */
+const ld = (schema: object) => JSON.stringify(schema).replace(/</g, "\\u003c");
 ---
 
-<script is:inline type="application/ld+json" set:html={JSON.stringify(websiteSchema)} />
-<script is:inline type="application/ld+json" set:html={JSON.stringify(pageSchema)} />
+<script is:inline type="application/ld+json" set:html={ld(websiteSchema)} />
+<script is:inline type="application/ld+json" set:html={ld(pageSchema)} />
