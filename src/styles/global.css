@@ -343,6 +343,26 @@ article[data-toc-root] .anchor-link.copied {
 	opacity: 1;
 }
 
+/* touch devices have no hover: the anchor stays visible at low emphasis,
+ * inline after the heading text (the gutter position would hang into the
+ * 1rem shell pad and clip offscreen), with a bigger tap target and no
+ * hover tooltip (the copied icon swap is the feedback) */
+@media (hover: none) {
+	article[data-toc-root] .anchor-link {
+		position: static;
+		display: inline-flex;
+		vertical-align: -0.1em;
+		margin-left: 0.45rem;
+		width: 1.3rem;
+		height: 1.3rem;
+		opacity: 0.45;
+	}
+
+	article[data-toc-root] .anchor-link::after {
+		display: none;
+	}
+}
+
 /* tooltip centered below the icon */
 article[data-toc-root] .anchor-link::after {
 	content: "Copy link";

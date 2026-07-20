@@ -171,6 +171,15 @@ const { postTitle, postDate } = Astro.props;
     color: var(--date-color);
   }
 
+  /* narrow: no room for a meaningful title between the name and nav
+   * (every real title ellipsizes into noise), and tap-to-top is covered
+   * by the floating back-to-top button; the bar stays name + nav only */
+  @media (max-width: 639px) {
+    .post-context {
+      display: none;
+    }
+  }
+
   .site-nav {
     flex: none;
     margin-left: auto;

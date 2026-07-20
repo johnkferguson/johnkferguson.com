@@ -28,6 +28,8 @@ const { minutes } = Astro.props;
     display: inline-flex;
     align-items: center;
     gap: 0.4rem;
+    /* wraps as a unit in tight card rows, never mid-phrase */
+    white-space: nowrap;
   }
 
   .rt svg {

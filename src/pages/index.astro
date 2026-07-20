@@ -80,7 +80,7 @@ const { Content: Blurb } = await render(blurbEntry);
                       {IS_DEV && post.data.draft && (
                         <span class="draft-badge">DRAFT</span>
                       )}
-                      {formatDate(post.data.date)}
+                      <span class="date-text">{formatDate(post.data.date)}</span>
                       <ReadingTime minutes={minutesFor(post)} />
                     </span>
                     <span class="desc">
@@ -275,10 +275,16 @@ const { Content: Blurb } = await render(blurbEntry);
     --rt-lift: -1px;
     display: flex;
     align-items: center;
-    gap: 0.7rem;
+    /* items wrap as whole units when the draft badge crowds the row */
+    flex-wrap: wrap;
+    gap: 0.15rem 0.7rem;
     font-size: 0.66rem;
     color: var(--date-color);
     margin: 0.15rem 0 0.4rem;
+  }
+
+  .date-text {
+    white-space: nowrap;
   }
 
   .desc {
