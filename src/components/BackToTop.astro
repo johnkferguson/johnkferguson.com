@@ -15,22 +15,50 @@
 		const reduceMotion = window.matchMedia(
 			"(prefers-reduced-motion: reduce)",
 		).matches;
-		btn.addEventListener("click", () => {
-			window.scrollTo({ top: 0, behavior: reduceMotion ? "auto" : "smooth" });
-			/* mobile browsers resize the viewport mid-animation as the URL
-			 * bar expands, which can end the smooth scroll tens of px short
-			 * and leave the post title clipped under the sticky header.
-			 * Settle it exactly at the top once scrolling stops, but only
-			 * from close range so an interrupting user scroll is left alone. */
-			const settle = () => {
-				if (window.scrollY > 0 && window.scrollY < 150) window.scrollTo(0, 0);
-			};
-			if ("onscrollend" in window) {
-				window.addEventListener("scrollend", settle, { once: true });
-			} else {
-				window.setTimeout(settle, 700);
+		/* Native smooth scrolling lands short on mobile: the URL bar expands
+		 * mid-animation, resizes the viewport, and truncates the scroll,
+		 * leaving the post title clipped under the sticky header. Driving
+		 * the animation ourselves keeps it one continuous motion that ends
+		 * exactly at 0 regardless of viewport changes. Any real input
+		 * cancels it, so an impatient scroll always wins. */
+		const scrollToTop = () => {
+			const start = window.scrollY;
+			if (start <= 0) return;
+			if (reduceMotion) {
+				window.scrollTo(0, 0);
+				return;
 			}
-		});
+			const duration = Math.min(600, Math.max(280, start * 0.32));
+			const t0 = performance.now();
+			let cancelled = false;
+			const cancel = () => {
+				cancelled = true;
+				cleanup();
+			};
+			const cleanup = () => {
+				window.removeEventListener("wheel", cancel);
+				window.removeEventListener("touchstart", cancel);
+				window.removeEventListener("keydown", cancel);
+			};
+			window.addEventListener("wheel", cancel, { passive: true });
+			window.addEventListener("touchstart", cancel, { passive: true });
+			window.addEventListener("keydown", cancel);
+			const step = (now: number) => {
+				if (cancelled) return;
+				const t = Math.max(0, Math.min(1, (now - t0) / duration));
+				/* easeOutCubic displacement from start down to 0: most of
+				 * the distance goes early, then a soft landing */
+				window.scrollTo(0, Math.round(start * (1 - t) ** 3));
+				if (t < 1) {
+					requestAnimationFrame(step);
+				} else {
+					window.scrollTo(0, 0);
+					cleanup();
+				}
+			};
+			requestAnimationFrame(step);
+		};
+		btn.addEventListener("click", scrollToTop);
 		const postH1 = document.querySelector<HTMLElement>(".post-header h1");
 		let ticking = false;
 		const update = () => {
