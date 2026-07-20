@@ -5,7 +5,7 @@ interface Props {
 	type: "website" | "article";
 	title: string;
 	description: string;
-	image?: string;
+	ogImage?: string;
 	pubDate?: Date;
 	author?: string;
 }
@@ -14,15 +14,15 @@ const {
 	type,
 	title,
 	description,
-	image,
+	ogImage,
 	pubDate,
 	author = SITE_NAME,
 } = Astro.props;
 
 const url = new URL(Astro.url.pathname, Astro.site).href;
 const siteUrl = Astro.site?.href ?? "https://johnkferguson.com";
-const ogImageURL = image
-	? new URL(image, Astro.site).href
+const ogImageURL = ogImage
+	? new URL(ogImage, Astro.site).href
 	: new URL("/assets/og-image.png", Astro.site).href;
 
 const personSchema = {
