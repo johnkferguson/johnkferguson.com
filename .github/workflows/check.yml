@@ -21,7 +21,7 @@ jobs:
     # hours if a step hangs.
     timeout-minutes: 10
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with:
           # The git token is otherwise left on disk for later steps. Safe here:
           # nothing after checkout does git operations (the scripts/ font tools
@@ -37,7 +37,7 @@ jobs:
           inline-annotations: true
           min-severity: low
           config: zizmor.yml
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v7
         with:
           node-version: 22
       - uses: oven-sh/setup-bun@v2
@@ -54,7 +54,7 @@ jobs:
       - run: bunx biome check .
       - run: bunx astro check
       - run: bun run build
-      - uses: actions/cache@v4
+      - uses: actions/cache@v6
         with:
           path: .lycheecache
           key: lychee-${{ github.sha }}
