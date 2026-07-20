@@ -436,17 +436,25 @@ const caretSvg =
 				t.classList.toggle("visible", showTop);
 			}
 		};
-		update();
-		window.addEventListener(
-			"scroll",
-			() => {
-				if (!ticking) {
-					ticking = true;
-					requestAnimationFrame(update);
-				}
-			},
-			{ passive: true },
-		);
+		const onScroll = () => {
+			if (!ticking) {
+				ticking = true;
+				requestAnimationFrame(update);
+			}
+		};
+		/* the rail only exists at >=1020px; below that, skip the per-frame
+		 * rect measurements entirely (weakest CPUs are the narrow ones) */
+		const wide = window.matchMedia("(min-width: 1020px)");
+		const arm = () => {
+			if (wide.matches) {
+				update();
+				window.addEventListener("scroll", onScroll, { passive: true });
+			} else {
+				window.removeEventListener("scroll", onScroll);
+			}
+		};
+		arm();
+		wide.addEventListener("change", arm);
 	}
 </script>
 

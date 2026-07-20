@@ -27,17 +27,25 @@
 				: window.scrollY > window.innerHeight;
 			btn.classList.toggle("visible", show);
 		};
-		update();
-		window.addEventListener(
-			"scroll",
-			() => {
-				if (!ticking) {
-					ticking = true;
-					requestAnimationFrame(update);
-				}
-			},
-			{ passive: true },
-		);
+		const onScroll = () => {
+			if (!ticking) {
+				ticking = true;
+				requestAnimationFrame(update);
+			}
+		};
+		/* the button is display:none at >=1020px (the TOC rail carries its
+		 * own Top link there); skip the scroll work while it's invisible */
+		const wide = window.matchMedia("(min-width: 1020px)");
+		const arm = () => {
+			if (wide.matches) {
+				window.removeEventListener("scroll", onScroll);
+			} else {
+				update();
+				window.addEventListener("scroll", onScroll, { passive: true });
+			}
+		};
+		arm();
+		wide.addEventListener("change", arm);
 	}
 </script>
 

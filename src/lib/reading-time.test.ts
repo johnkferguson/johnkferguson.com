@@ -28,6 +28,11 @@ describe("countProseWords", () => {
 		expect(countProseWords(body)).toBe(3);
 	});
 
+	test("escaped literal dollars count as words, math does not", () => {
+		expect(countProseWords("it costs \\$5 and \\$10 total")).toBe(6);
+		expect(countProseWords("the mark $M$ moved")).toBe(3);
+	});
+
 	test("markdown syntax is not words", () => {
 		expect(countProseWords("## Heading\n\n> quote text\n\n- item one")).toBe(6);
 	});

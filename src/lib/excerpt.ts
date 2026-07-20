@@ -6,7 +6,9 @@ export function createExcerpt(content: string, maxLength = 160): string {
 		/* links keep their text, never their URLs */
 		.replace(/!\[[^\]]*\]\([^)]*\)/g, "")
 		.replace(/\[([^\]]*)\]\([^)]*\)/g, "$1")
-		.replace(/(\*\*|\*|_|`|>|#|\[|\]|\(|\))/g, "");
+		.replace(/(\*\*|\*|_|`|>|#|\[|\]|\(|\))/g, "")
+		/* literal dollars are escaped \$ in post prose; excerpts show them plain */
+		.replace(/\\\$/g, "$");
 	if (plain.length <= maxLength) return plain;
 	let truncated = plain.substring(0, maxLength);
 	const lastSpace = truncated.lastIndexOf(" ");

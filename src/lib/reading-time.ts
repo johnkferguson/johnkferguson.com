@@ -20,8 +20,10 @@ export const WPM: Record<PostPace, number> = {
 export function countProseWords(body: string): number {
 	let s = mdxBodyToMarkdown(body);
 	s = s.replace(/```[\s\S]*?```/g, " ");
-	s = s.replace(/\$\$[\s\S]*?\$\$/g, " ");
-	s = s.replace(/\$[^$\n]+\$/g, " ");
+	/* escaped \$ is a literal dollar in prose (site convention), not a
+	 * math delimiter; the lookbehinds keep "\$5" countable as a word */
+	s = s.replace(/(?<!\\)\$\$[\s\S]*?(?<!\\)\$\$/g, " ");
+	s = s.replace(/(?<!\\)\$[^$\n]+(?<!\\)\$/g, " ");
 	s = s.replace(/!\[[^\]]*\]\([^)]*\)/g, " ");
 	s = s.replace(/\[([^\]]*)\]\([^)]*\)/g, "$1");
 	s = s.replace(/[#>*_`~]/g, " ");

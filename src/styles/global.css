@@ -75,6 +75,8 @@ body {
 	min-height: 100vh;
 	display: flex;
 	flex-direction: column;
+	/* see html rule: pairs with its overflow-x for a real viewport clip */
+	overflow-x: clip;
 }
 
 body > footer {
@@ -82,6 +84,14 @@ body > footer {
 }
 
 html {
+	/* Decorative bleeds (.side-art, the article backdrop panel) overhang
+	 * the 1rem shell pad on narrow viewports; clip instead of letting the
+	 * page scroll sideways. clip (unlike hidden) creates no scroll
+	 * container, so sticky positioning is unaffected. Needed on BOTH html
+	 * and body: on body alone it propagates to the viewport as hidden
+	 * (still programmatically scrollable, body left unclipped); with html
+	 * carrying the propagated value, body's clip really clips. */
+	overflow-x: clip;
 	font-family: var(--font-serif);
 	/* Newsreader is a variable font with an optical-size axis; let text
 	 * sizes pick the sturdier text cut and headings the display cut. */
