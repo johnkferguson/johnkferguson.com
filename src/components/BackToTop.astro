@@ -2,9 +2,21 @@
 // Floating back-to-top button. Hidden until the page is scrolled well past
 // the first viewport, then fades in bottom-right. Scrolls smoothly unless
 // the user prefers reduced motion.
+//
+// railCoversWide: at >=1020px the TOC rail's own Top link replaces this
+// button, so it hides there. A post with no h2s renders no rail; the
+// layout passes false and the button stays at every width.
+interface Props {
+	railCoversWide?: boolean;
+}
+const { railCoversWide = true } = Astro.props;
 ---
 
-<button data-back-to-top aria-label="Back to top">
+<button
+	data-back-to-top
+	class:list={[{ "rail-covers-wide": railCoversWide }]}
+	aria-label="Back to top"
+>
 	<span class="btt-arrow" aria-hidden="true">&#8593;</span>
 	<span class="btt-label micro-label">Back to top</span>
 </button>
@@ -101,11 +113,13 @@
 				requestAnimationFrame(update);
 			}
 		};
-		/* the button is display:none at >=1020px (the TOC rail carries its
-		 * own Top link there); skip the scroll work while it's invisible */
+		/* when the rail's Top link covers wide viewports the button is
+		 * display:none at >=1020px; skip the scroll work while invisible.
+		 * Without that class (no-h2 post, no rail) it works at any width. */
+		const coversWide = btn.classList.contains("rail-covers-wide");
 		const wide = window.matchMedia("(min-width: 1020px)");
 		const arm = () => {
-			if (wide.matches) {
+			if (coversWide && wide.matches) {
 				window.removeEventListener("scroll", onScroll);
 			} else {
 				update();
@@ -191,7 +205,7 @@
 
 	/* the TOC rail carries its own Top link at wide viewports */
 	@media (min-width: 1020px) {
-		button {
+		button.rail-covers-wide {
 			display: none;
 		}
 	}

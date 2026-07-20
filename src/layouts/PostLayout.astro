@@ -98,7 +98,7 @@ const backdropSvg = art?.image
         </article>
       </div>
     </div>
-    <BackToTop />
+    <BackToTop railCoversWide={(headings ?? []).some((h) => h.depth === 2)} />
   </div>
 </BaseLayout>
 

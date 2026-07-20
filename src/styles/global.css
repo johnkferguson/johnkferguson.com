@@ -183,6 +183,18 @@ a:hover {
 	color: var(--link-hover);
 }
 
+/* selection tint from the accent family; text color unchanged */
+::selection {
+	background: color-mix(in srgb, var(--code-color) 30%, transparent);
+}
+
+/* keyboard focus in the accent voice (matches active-TOC/copied usage);
+ * mouse/touch focus stays unmarked via :focus-visible */
+:focus-visible {
+	outline: 2px solid var(--code-color);
+	outline-offset: 2px;
+}
+
 /* Small mono label voice (uppercase, muted); size and tracking stay
  * local to each site */
 .micro-label {
@@ -451,4 +463,50 @@ article pre code {
 
 .dark article pre code {
 	font-weight: 500;
+}
+
+/*
+ * Print: an article on paper. Force the light palette (dark-mode cream
+ * text on white paper is unreadable with backgrounds off), drop the
+ * screen chrome and decoration, keep code/math dressing subtle.
+ */
+@media print {
+	:root,
+	.dark {
+		--bg: #ffffff;
+		--text-color: #222222;
+		--heading-color: #000000;
+		--link-color: #222222;
+		--link-hover: #000000;
+		--border-color: #dddddd;
+		--code-background: #f4f4f4;
+		--code-color: #444444;
+		--date-color: #555555;
+		--article-link-border: #bbbbbb;
+	}
+
+	.site-header,
+	body > footer,
+	[data-back-to-top],
+	.toc-rail,
+	.toc-top,
+	.toc-inline,
+	.post-rail,
+	article[data-toc-root] .anchor-link,
+	.post-backdrop,
+	.side-art {
+		/* biome-ignore lint/complexity/noImportantStyles: must beat component-scoped display rules in one shot */
+		display: none !important;
+	}
+
+	article pre,
+	article blockquote {
+		break-inside: avoid;
+	}
+
+	h2,
+	h3,
+	h4 {
+		break-after: avoid;
+	}
 }
