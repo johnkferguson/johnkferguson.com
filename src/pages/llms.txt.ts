@@ -1,12 +1,12 @@
-import { getCollection } from "astro:content";
 import type { APIRoute } from "astro";
 import { SITE_DESCRIPTION, SITE_NAME } from "../consts";
+import { getVisiblePosts } from "../lib/posts";
 
 export const GET: APIRoute = async ({ site }) => {
 	const siteUrl = site?.href ?? "https://johnkferguson.com";
 	const base = siteUrl.replace(/\/$/, "");
 
-	const posts = await getCollection("posts");
+	const posts = await getVisiblePosts();
 	const sortedPosts = posts.sort(
 		(a, b) => b.data.date.valueOf() - a.data.date.valueOf(),
 	);
