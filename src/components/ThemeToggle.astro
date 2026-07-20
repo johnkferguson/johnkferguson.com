@@ -1,3 +1,7 @@
+---
+import { themeColors } from "../lib/palette";
+---
+
 <button
   id="theme-toggle"
   type="button"
@@ -46,7 +50,7 @@
 
 </style>
 
-<script is:inline>
+<script define:vars={{ themeColors }}>
   (function() {
     var toggle = document.getElementById('theme-toggle');
     var sunIcon = document.getElementById('sun-icon');
@@ -70,7 +74,7 @@
       // the icon update or the transition cleanup
       try { localStorage.setItem('theme', isDark ? 'dark' : 'light'); } catch (e) {}
       var meta = document.querySelector('meta[name="theme-color"]');
-      if (meta) meta.setAttribute('content', isDark ? '#1c1917' : '#fdfcfb');
+      if (meta) meta.setAttribute('content', themeColors[isDark ? 'dark' : 'light']);
       updateIcons();
       requestAnimationFrame(function() {
         requestAnimationFrame(function() {

@@ -12,14 +12,17 @@
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { Resvg } from "@resvg/resvg-js";
+import { palette } from "./palette";
 
+/* cards are always drawn in the dark palette, whatever theme the reader
+ * is in — a share preview has no theme to follow */
 export const OG = {
 	width: 1200,
 	height: 630,
-	bg: "#1c1917",
-	ink: "#e6e1db",
-	muted: "#98928b",
-	accent: "#d08770",
+	bg: palette.dark["--bg"],
+	ink: palette.dark["--heading-color"],
+	muted: palette.dark["--date-color"],
+	accent: palette.dark["--code-color"],
 } as const;
 
 /** Family name written into the instances by build-og-fonts.py. The card
@@ -160,12 +163,12 @@ export function missingGlyphs(text: string): string[] {
 }
 
 export function pinArtColors(svg: string): string {
-	const pinned = svg
-		.replaceAll("var(--code-color)", "#d08770")
-		.replaceAll("var(--date-color)", "#98928b")
-		.replaceAll("var(--accent-green)", "#a3be8c")
-		.replaceAll("var(--accent-blue)", "#88c0d0")
-		.replaceAll("var(--bg)", OG.bg);
+	/* every token in the dark palette, so adding one to palette.ts is all
+	 * it takes for the art module to be able to use it */
+	let pinned = svg;
+	for (const [prop, hex] of Object.entries(palette.dark)) {
+		pinned = pinned.replaceAll(`var(${prop})`, hex);
+	}
 	/* resvg silently drops attributes it cannot parse, so an unmapped
 	 * variable would ship as an invisible shape; fail the build instead */
 	const leftover = pinned.match(/var\(--[a-z-]+\)/i);
