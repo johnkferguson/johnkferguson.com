@@ -77,6 +77,7 @@ const btn = (active: boolean) => ({
 	fontSize: 11,
 	padding: "4px 10px",
 	borderRadius: 5,
+	boxShadow: "var(--lab-btn-shadow)",
 	cursor: "pointer",
 });
 
@@ -719,49 +720,34 @@ export default function DemandLab() {
 						</div>
 					</div>
 				</div>
-			</div>
 
-			{/* scenarios */}
-			<div
-				style={{
-					display: "flex",
-					gap: 6,
-					flexWrap: "wrap",
-					margin: "10px 2px 0",
-				}}
-			>
-				{SCENARIOS.map((sc) => (
+				{/* scenarios — a footer band of the frame */}
+				<div class="sf-scenarios">
+					{SCENARIOS.map((sc) => (
+						<button
+							key={sc.key}
+							type="button"
+							onClick={() => applyScenario(sc)}
+							style={{
+								...btn(activeScenario?.key === sc.key),
+								flex: "1 1 auto",
+							}}
+						>
+							{sc.title}
+						</button>
+					))}
 					<button
-						key={sc.key}
 						type="button"
-						onClick={() => applyScenario(sc)}
-						style={{ ...btn(activeScenario?.key === sc.key), flex: "1 1 auto" }}
+						style={{ ...btn(!activeScenario), flex: "1 1 auto" }}
 					>
-						{sc.title}
+						Custom
 					</button>
-				))}
-				<button
-					type="button"
-					style={{ ...btn(!activeScenario), flex: "1 1 auto" }}
-				>
-					Custom
-				</button>
-			</div>
-			<div
-				style={{
-					background: C.panel,
-					border: `1px solid ${C.line}`,
-					borderRadius: 8,
-					padding: "10px 14px",
-					margin: "8px 0 0",
-					fontSize: 14,
-					lineHeight: 1.6,
-					color: C.dim,
-				}}
-			>
-				{activeScenario
-					? renderBlurb(activeScenario.blurb)
-					: "Custom demand history, yours to shape. Drag the bars and dials freely; pick a scenario to return to a defined state."}
+				</div>
+				<div class="sf-caption">
+					{activeScenario
+						? renderBlurb(activeScenario.blurb)
+						: "Custom demand history, yours to shape. Drag the bars and dials freely; pick a scenario to return to a defined state."}
+				</div>
 			</div>
 		</div>
 	);

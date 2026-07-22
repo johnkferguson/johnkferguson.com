@@ -42,6 +42,17 @@
 	 * the inset stone so they stand off the page background */
 	--lab-btn-active-bg: var(--lab-dim);
 	--lab-btn-bg: var(--lab-inset);
+
+	/* the scenario strip's weave: an SVG tile (rasterized once and repeated,
+	 * so fractional display scaling cannot moiré it the way repeating CSS
+	 * gradients do) */
+	--lab-weave-tile: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='4' height='4'%3E%3Cpath d='M0 .5h4M.5 0v4' stroke='rgba(0,0,0,0.022)'/%3E%3C/svg%3E");
+
+	/* the scenario caption zone: a step lighter than the panel */
+	--lab-caption: #faf8f5;
+
+	/* pill depth on the weave bed */
+	--lab-btn-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
 }
 
 .dark .sf-lab {
@@ -59,6 +70,65 @@
 	--lab-slider: #f0ebe5;
 	--lab-btn-active-bg: var(--lab-text);
 	--lab-btn-bg: var(--lab-panel2);
+	--lab-weave-tile: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='4' height='4'%3E%3Cpath d='M0 .5h4M.5 0v4' stroke='rgba(255,255,255,0.028)'/%3E%3C/svg%3E");
+	--lab-caption: #2f2a26;
+	--lab-btn-shadow: 0 1px 3px rgba(0, 0, 0, 0.5);
+}
+
+/* The lab footer, shared by every lab: the scenario band and the
+ * caption below it, both full-bleed regions of the frame (the negative
+ * margins cancel the panel's 4px/2px padding).
+ *
+ * The band carries a cheesecloth weave — hairlines crossing at a fine
+ * grid, near imperceptible, just enough to give the controls a bed of
+ * texture. Its top and bottom rules are gradient-drawn 1px layers whose
+ * tips dissolve over their last 18px, so they never form a hard
+ * T-junction with the card's side borders; being 1px tall, the fade
+ * cannot bleed down the band. */
+.sf-lab .sf-scenarios {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 6px;
+	margin: 4px -4px 0;
+	padding: 10px;
+	background-image:
+		linear-gradient(
+			90deg,
+			transparent,
+			var(--lab-line) 18px,
+			var(--lab-line) calc(100% - 18px),
+			transparent
+		),
+		linear-gradient(
+			90deg,
+			transparent,
+			var(--lab-line) 18px,
+			var(--lab-line) calc(100% - 18px),
+			transparent
+		),
+		var(--lab-weave-tile);
+	background-size:
+		100% 1px,
+		100% 1px,
+		4px 4px;
+	background-position:
+		0 0,
+		0 100%,
+		0 0;
+	background-repeat: no-repeat, no-repeat, repeat;
+}
+
+/* the caption bed: a step lighter than the panel, closing the card
+ * with its bottom radius (7px = the panel's 8px minus its 1px border) */
+.sf-lab .sf-caption {
+	background: var(--lab-caption);
+	margin: 0 -4px -2px;
+	padding: 10px 14px 12px;
+	border-radius: 0 0 7px 7px;
+	font-size: 14px;
+	line-height: 1.6;
+	color: var(--lab-dim);
+	white-space: pre-line;
 }
 
 /* scrollable insets (e.g. the base-fee schedule) — theme-aware thin bar */

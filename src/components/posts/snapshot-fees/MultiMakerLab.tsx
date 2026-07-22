@@ -717,6 +717,7 @@ export default function MultiMakerLab() {
 		fontSize: 11,
 		padding: "4px 10px",
 		borderRadius: 5,
+		boxShadow: "var(--lab-btn-shadow)",
 		cursor: "pointer",
 	});
 
@@ -1094,6 +1095,7 @@ export default function MultiMakerLab() {
 							style={{
 								...btn(false),
 								padding: "4px 7px",
+								boxShadow: "none",
 								opacity: zoom >= ZOOM_HALVES.length - 1 ? 0.35 : 1,
 								cursor: zoom >= ZOOM_HALVES.length - 1 ? "default" : "pointer",
 							}}
@@ -1120,6 +1122,7 @@ export default function MultiMakerLab() {
 							style={{
 								...btn(false),
 								padding: "4px 7px",
+								boxShadow: "none",
 								opacity: zoom === 0 ? 0.35 : 1,
 								cursor: zoom === 0 ? "default" : "pointer",
 							}}
@@ -2133,50 +2136,32 @@ export default function MultiMakerLab() {
 							})()}
 					</svg>
 				</div>
-			</div>
 
-			{/* scenarios */}
-			<div
-				style={{
-					display: "flex",
-					gap: 6,
-					flexWrap: "wrap",
-					margin: "10px 2px 0",
-				}}
-			>
-				{SCENARIOS.map((sc) => (
+				{/* scenarios — a footer band of the frame */}
+				<div class="sf-scenarios">
+					{SCENARIOS.map((sc) => (
+						<button
+							key={sc.key}
+							type="button"
+							onClick={() => applyScenario(sc)}
+							style={{ ...btn(scenario === sc.key), flex: "1 1 auto" }}
+						>
+							{sc.title}
+						</button>
+					))}
 					<button
-						key={sc.key}
 						type="button"
-						onClick={() => applyScenario(sc)}
-						style={{ ...btn(scenario === sc.key), flex: "1 1 auto" }}
+						onClick={() => setScenario(null)}
+						style={{ ...btn(scenario === null), flex: "1 1 auto" }}
 					>
-						{sc.title}
+						Custom
 					</button>
-				))}
-				<button
-					type="button"
-					onClick={() => setScenario(null)}
-					style={{ ...btn(scenario === null), flex: "1 1 auto" }}
-				>
-					Custom
-				</button>
-			</div>
-			<div
-				style={{
-					background: C.panel,
-					border: `1px solid ${C.line}`,
-					borderRadius: 8,
-					padding: "10px 14px",
-					margin: "8px 0 0",
-					fontSize: 14,
-					lineHeight: 1.6,
-					color: C.dim,
-				}}
-			>
-				{scenario
-					? SCENARIOS.find((sc) => sc.key === scenario)?.blurb
-					: "Custom setup, yours to shape. Drag bars and dials freely; pick a scenario to reset."}
+				</div>
+				<div class="sf-caption">
+					{scenario
+						? SCENARIOS.find((sc) => sc.key === scenario)?.blurb
+						: "Custom setup, yours to shape. Drag bars and dials freely; pick a scenario to reset."}
+				</div>
 			</div>
 		</div>
 	);
