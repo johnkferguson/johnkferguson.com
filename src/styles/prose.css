@@ -54,8 +54,20 @@ article[data-toc-root] .anchor-link {
 }
 
 article[data-toc-root] :is(h2, h3, h4, h5, h6)[id]:hover .anchor-link,
+article[data-toc-root] .lab-head:hover .anchor-link,
 article[data-toc-root] .anchor-link:focus-visible {
 	opacity: 1;
+}
+
+/* lab title strips carry the same affordance; the button centers on the
+ * strip instead of a heading's cap band */
+article[data-toc-root] .lab-head {
+	position: relative;
+}
+
+article[data-toc-root] .lab-head .anchor-link {
+	top: 50%;
+	transform: translateY(-50%);
 }
 
 article[data-toc-root] .anchor-link:hover {
@@ -129,6 +141,13 @@ article[data-toc-root] .anchor-link.copied::after {
 
 	article[data-toc-root] .anchor-link::after {
 		display: none;
+	}
+
+	/* the lab strip's button flows inline with the flex row here; undo
+	 * the desktop centering transform (it outranks the static reset) */
+	article[data-toc-root] .lab-head .anchor-link {
+		transform: none;
+		margin-left: 0;
 	}
 }
 

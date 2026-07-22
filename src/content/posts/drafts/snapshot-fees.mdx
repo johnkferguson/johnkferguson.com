@@ -13,6 +13,7 @@ art:
 ---
 
 import "../../../styles/snapshot-fees.css";
+import Lab from "../../../components/Lab.astro";
 import BaseFeeLab from "../../../components/labs/BaseFeeLab";
 import DemandLab from "../../../components/labs/DemandLab";
 import PipelineChart from "../../../components/labs/PipelineChart.astro";
@@ -191,9 +192,9 @@ nets more edge per fill, just less per bps. And once the fee reaches $F$,
 the schedule stops caring about distance entirely: past that point, every
 placement is priced like a market order.
 
-<div class="labwrap">
+<Lab title="Setting the Base Fee">
   <BaseFeeLab client:visible />
-</div>
+</Lab>
 
 ## The Order Fee
 
@@ -324,9 +325,9 @@ directional book where pairing runs out on the way to the edge, a thin side
 that drags the mark itself, and spillover between levels. Drag any bar and the receipt
 re-prices; the $D$ dial resizes the measuring walk itself.
 
-<div class="labwrap">
+<Lab title="Running One Maker's Book">
   <SnapshotFeesLab client:visible />
-</div>
+</Lab>
 
 ## Many Makers, One Mark
 
@@ -376,9 +377,9 @@ away from the market and watch the larger book keep the mark. Then press
 play and watch $M$ drift as the makers reprice, while your book stands still
 and its receipts re-price around it.
 
-<div class="labwrap">
+<Lab title="Sharing the Mark">
   <SnapshotFeesMultiLab client:visible />
-</div>
+</Lab>
 
 ## Measuring Typical Demand
 
@@ -509,9 +510,9 @@ reshape the regime. The limit, the seed, and the floor are dials, and none
 of their values is settled design: they are calibration choices a venue
 would fit to its own market.
 
-<div class="labwrap">
+<Lab title="Chasing Demand">
   <DemandLab client:visible />
-</div>
+</Lab>
 
 ## One Auction, Start to Finish
 

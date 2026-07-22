@@ -802,24 +802,12 @@ export default function SnapshotFeesMultiLab() {
 				style={{
 					background: C.panel,
 					border: `1px solid ${C.line}`,
-					borderRadius: 8,
+					borderTop: "none",
+					borderRadius: "0 0 8px 8px",
 					padding: "6px 4px 2px",
 					position: "relative",
 				}}
 			>
-				<div
-					style={{
-						textAlign: "center",
-						fontFamily: mono,
-						fontSize: 13.5,
-						letterSpacing: "0.08em",
-						color: C.text,
-						padding: "4px 0 10px",
-					}}
-				>
-					MULTI MAKER BATCH AUCTION FEES
-				</div>
-
 				<div
 					style={{
 						display: "grid",

@@ -8,6 +8,7 @@ import { defineConfig } from "astro/config";
 import rehypeExternalLinks from "rehype-external-links";
 import rehypeKatex from "rehype-katex";
 import remarkMath from "remark-math";
+import { remarkLabs } from "./src/lib/remark-labs.mjs";
 
 export default defineConfig({
 	site: "https://johnkferguson.com",
@@ -39,7 +40,7 @@ export default defineConfig({
 	markdown: {
 		processor: unified(),
 		syntaxHighlight: false,
-		remarkPlugins: [remarkMath],
+		remarkPlugins: [remarkMath, remarkLabs],
 		rehypePlugins: [
 			[
 				rehypeExternalLinks,

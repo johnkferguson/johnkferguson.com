@@ -1,0 +1,61 @@
+---
+// Generic frame for interactive lab embeds. Renders the shared title
+// strip (static HTML, so it shows before the island hydrates) and the
+// deep-link anchor; the remark-labs plugin reads <Lab> tags at build
+// time to surface each lab in the table of contents.
+//
+// The strip reproduces the lab panel's top edge (background, side
+// borders, rounded top corners); the lab components render their panels
+// with squared, borderless tops so the two meet seamlessly.
+import { labSlug } from "../lib/remark-labs.mjs";
+
+interface Props {
+	title: string;
+	/** Anchor id; defaults to lab-<slugged title>. */
+	id?: string;
+}
+const { title, id = `lab-${labSlug(title)}` } = Astro.props;
+
+/* the TOC's beaker, at strip size: green fill + surface line paint
+ * first, the full currentColor outline paints last so the flask border
+ * stays whole at the waterline */
+const beakerSvg =
+	'<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7 16h10l2.28 4.55a1 1 0 0 1-.9 1.45H5.62a1 1 0 0 1-.9-1.45Z" stroke="none" fill="#5a9367"/><path d="M7 16h10" stroke="#5a9367"/><path d="M10 2v7.527a2 2 0 0 1-.211.896L4.72 20.55a1 1 0 0 0 .9 1.45h12.76a1 1 0 0 0 .9-1.45l-5.069-10.127A2 2 0 0 1 14 9.527V2"/><path d="M8.5 2h7"/></svg>';
+---
+
+<div class="labwrap" id={id}>
+	<div class="lab-head">
+		<span class="lab-beaker" set:html={beakerSvg} />
+		<span>{title}</span>
+	</div>
+	<slot />
+</div>
+
+<style>
+	.lab-head {
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		gap: 0.45rem;
+		background: var(--code-background);
+		border: 1px solid var(--border-color);
+		border-bottom: 0;
+		border-radius: 8px 8px 0 0;
+		/* 10px above the text and 4px below: with the panel's 6px top
+		 * padding underneath, the text sits 10px from both the strip's
+		 * border and the dial grid's separator line, matching the spacing
+		 * the labs had when they rendered this strip themselves */
+		padding: 10px 4px 4px;
+		text-align: center;
+		font-family: var(--font-mono);
+		font-size: 13.5px;
+		letter-spacing: 0.08em;
+		text-transform: uppercase;
+		color: var(--heading-color);
+	}
+
+	.lab-beaker {
+		display: flex;
+		flex: none;
+	}
+</style>

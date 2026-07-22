@@ -513,25 +513,13 @@ export default function SnapshotFeesLab() {
 				style={{
 					background: C.panel,
 					border: `1px solid ${C.line}`,
-					borderRadius: 8,
+					borderTop: "none",
+					borderRadius: "0 0 8px 8px",
 					padding: "6px 4px 2px",
 					position: "relative",
 				}}
 			>
-				{/* title, then every dial in one place — no advanced split */}
-				<div
-					style={{
-						textAlign: "center",
-						fontFamily: mono,
-						fontSize: 13.5,
-						letterSpacing: "0.08em",
-						color: C.text,
-						padding: "4px 0 10px",
-					}}
-				>
-					SINGLE MARKET MAKER BATCH AUCTION FEES
-				</div>
-
+				{/* every dial in one place — no advanced split */}
 				<div
 					style={{
 						display: "grid",

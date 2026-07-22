@@ -20,6 +20,8 @@ interface Props {
 	readingMinutes?: number;
 	/** build-time headings (from render(post)); the TOC renders from these */
 	headings?: MarkdownHeading[];
+	/** interactive labs found by remark-labs; merged into the TOC tree */
+	labs?: { title: string; id: string; afterHeading: number }[];
 	/** post body contains math (containsMath); gates the KaTeX CSS */
 	hasMath?: boolean;
 	/** dev-only marker for draft posts */
@@ -41,6 +43,7 @@ const {
 	art,
 	readingMinutes,
 	headings,
+	labs,
 	hasMath,
 	draftBadge,
 } = Astro.props;
@@ -101,7 +104,7 @@ const backdropSvg = art?.image
     </div>
     <div class="post-shell">
       <aside class="post-rail">
-        <TableOfContents headings={headings} />
+        <TableOfContents headings={headings} labs={labs} />
       </aside>
       <div class="post-main">
         <header class="post-header">
@@ -112,7 +115,7 @@ const backdropSvg = art?.image
             {readingMinutes && <ReadingTime minutes={readingMinutes} />}
           </p>
         </header>
-        <TableOfContents inline headings={headings} />
+        <TableOfContents inline headings={headings} labs={labs} />
         <article data-toc-root>
           <slot />
         </article>
@@ -139,15 +142,15 @@ const backdropSvg = art?.image
 		live.style.cssText =
 			"position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%)";
 		root.append(live);
-		for (const h of headings) {
+		const addAnchor = (host: HTMLElement, id: string, label: string) => {
 			const btn = document.createElement("button");
 			btn.className = "anchor-link";
 			btn.type = "button";
-			btn.setAttribute("aria-label", "Copy link to this section");
+			btn.setAttribute("aria-label", label);
 			btn.innerHTML = linkSvg;
 			let timer: number | undefined;
 			btn.addEventListener("click", async () => {
-				const url = `${location.origin}${location.pathname}#${h.id}`;
+				const url = `${location.origin}${location.pathname}#${id}`;
 				try {
 					await navigator.clipboard.writeText(url);
 				} catch {
@@ -164,7 +167,15 @@ const backdropSvg = art?.image
 					live.textContent = "";
 				}, 1200);
 			});
-			h.append(btn);
+			host.append(btn);
+		};
+		for (const h of headings) addAnchor(h, h.id, "Copy link to this section");
+		// lab title strips get the same affordance, anchored to the labwrap id
+		for (const head of root.querySelectorAll<HTMLElement>(
+			".labwrap[id] > .lab-head",
+		)) {
+			const id = head.parentElement?.id;
+			if (id) addAnchor(head, id, "Copy link to this lab");
 		}
 
 		// hover copy: a button floated over code and math blocks. Math blocks

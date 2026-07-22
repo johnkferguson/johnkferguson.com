@@ -12,33 +12,58 @@
 // a noscript style expands every rail sub-list for JS-less readers.
 import type { MarkdownHeading } from "astro";
 
+interface LabEntry {
+	title: string;
+	id: string;
+	/** index into `headings` of the heading whose territory the lab sits in */
+	afterHeading: number;
+}
 interface Props {
 	inline?: boolean;
 	headings?: MarkdownHeading[];
+	labs?: LabEntry[];
 }
-const { inline = false, headings = [] } = Astro.props;
+const { inline = false, headings = [], labs = [] } = Astro.props;
 
 interface SubEntry {
 	slug: string;
 	text: string;
 	leaves: { slug: string; text: string }[];
+	labs: LabEntry[];
 }
 interface Section {
 	slug: string;
 	text: string;
 	subs: SubEntry[];
+	labs: LabEntry[];
 }
 const sections: Section[] = [];
-for (const h of headings) {
-	if (h.depth === 2) sections.push({ slug: h.slug, text: h.text, subs: [] });
+headings.forEach((h, i) => {
+	if (h.depth === 2)
+		sections.push({ slug: h.slug, text: h.text, subs: [], labs: [] });
 	else if (h.depth === 3)
-		sections.at(-1)?.subs.push({ slug: h.slug, text: h.text, leaves: [] });
+		sections
+			.at(-1)
+			?.subs.push({ slug: h.slug, text: h.text, leaves: [], labs: [] });
 	else if (h.depth === 4)
 		sections.at(-1)?.subs.at(-1)?.leaves.push({ slug: h.slug, text: h.text });
-}
+	/* labs attach to the innermost entry the TOC keeps for their heading:
+	 * the section itself for h2, the current subsection for h3/h4 */
+	const s = sections.at(-1);
+	if (!s) return;
+	for (const lab of labs.filter((l) => l.afterHeading === i)) {
+		(h.depth >= 3 ? (s.subs.at(-1)?.labs ?? s.labs) : s.labs).push(lab);
+	}
+});
 
 const caretSvg =
 	'<svg width="10" height="10" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 3.5 10.5 8 6 12.5"/></svg>';
+/* flask-conical with green liquid (#5a9367, John's pick): the fill and
+ * green surface line paint first, the full currentColor outline paints
+ * last so the flask border stays whole where the surface line's round
+ * caps would otherwise cut it */
+const beakerSvg =
+	'<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7 16h10l2.28 4.55a1 1 0 0 1-.9 1.45H5.62a1 1 0 0 1-.9-1.45Z" stroke="none" fill="#5a9367"/><path d="M7 16h10" stroke="#5a9367"/><path d="M10 2v7.527a2 2 0 0 1-.211.896L4.72 20.55a1 1 0 0 0 .9 1.45h12.76a1 1 0 0 0 .9-1.45l-5.069-10.127A2 2 0 0 1 14 9.527V2"/><path d="M8.5 2h7"/></svg>';
 ---
 
 {
@@ -51,9 +76,23 @@ const caretSvg =
 				</summary>
 				<ul>
 					{sections.map((s) => (
-						<li>
-							<a href={`#${s.slug}`}>{s.text}</a>
-						</li>
+						<>
+							<li>
+								<a href={`#${s.slug}`}>{s.text}</a>
+							</li>
+							{/* labs flat under their section; s.labs precede sub labs
+							 * in document order by construction */}
+							{[...s.labs, ...s.subs.flatMap((sub) => sub.labs)].map(
+								(lab) => (
+									<li>
+										<a class="toc-lab" href={`#${lab.id}`}>
+											<span class="toc-beaker" set:html={beakerSvg} />
+											<span>{lab.title}</span>
+										</a>
+									</li>
+								),
+							)}
+						</>
 					))}
 				</ul>
 			</details>
@@ -71,7 +110,7 @@ const caretSvg =
 								<li class="toc-section">
 									<div class="toc-row">
 										<a href={`#${s.slug}`}>{s.text}</a>
-										{s.subs.length > 0 && (
+										{(s.subs.length > 0 || s.labs.length > 0) && (
 											<button
 												class="toc-caret"
 												type="button"
@@ -81,14 +120,15 @@ const caretSvg =
 											/>
 										)}
 									</div>
-									{s.subs.length > 0 && (
+									{(s.subs.length > 0 || s.labs.length > 0) && (
 										<div class="toc-subwrap">
 											<ul class="toc-sub">
 												{s.subs.map((sub) => (
 													<li>
 														<div class="toc-row">
 															<a href={`#${sub.slug}`}>{sub.text}</a>
-															{sub.leaves.length > 0 && (
+															{(sub.leaves.length > 0 ||
+																sub.labs.length > 0) && (
 																<button
 																	class="toc-caret"
 																	type="button"
@@ -98,7 +138,8 @@ const caretSvg =
 																/>
 															)}
 														</div>
-														{sub.leaves.length > 0 && (
+														{(sub.leaves.length > 0 ||
+															sub.labs.length > 0) && (
 															<div class="toc-subwrap">
 																<ul class="toc-sub toc-sub2">
 																	{sub.leaves.map((leaf) => (
@@ -106,9 +147,33 @@ const caretSvg =
 																			<a href={`#${leaf.slug}`}>{leaf.text}</a>
 																		</li>
 																	))}
+																	{sub.labs.map((lab) => (
+																		<li>
+																			<a class="toc-lab" href={`#${lab.id}`}>
+																				<span
+																					class="toc-beaker"
+																					set:html={beakerSvg}
+																				/>
+																				<span>{lab.title}</span>
+																			</a>
+																		</li>
+																	))}
 																</ul>
 															</div>
 														)}
+													</li>
+												))}
+												{s.labs.map((lab) => (
+													<li>
+														<div class="toc-row">
+															<a class="toc-lab" href={`#${lab.id}`}>
+																<span
+																	class="toc-beaker"
+																	set:html={beakerSvg}
+																/>
+																<span>{lab.title}</span>
+															</a>
+														</div>
 													</li>
 												))}
 											</ul>
@@ -471,7 +536,8 @@ const caretSvg =
 </script>
 
 <style is:global>
-	[data-toc-root] :is(h2, h3, h4)[id] {
+	[data-toc-root] :is(h2, h3, h4)[id],
+	[data-toc-root] .labwrap[id] {
 		scroll-margin-top: var(--anchor-offset);
 	}
 </style>
@@ -515,6 +581,18 @@ const caretSvg =
 	.toc :global(a.active) {
 		color: var(--heading-color);
 		background: var(--code-background);
+	}
+
+	/* lab entries: beaker icon riding the first text line */
+	.toc :global(a.toc-lab) {
+		display: flex;
+		gap: 0.25rem;
+	}
+
+	.toc :global(.toc-beaker) {
+		display: flex;
+		flex: none;
+		margin-top: 0.16em;
 	}
 
 	/* rows sit flush, so a focus ring (2px + 2px offset) reaches into the
@@ -758,6 +836,10 @@ const caretSvg =
 	.toc-inline :global(a) {
 		border-left: 2px solid var(--border-color);
 		border-radius: 0 4px 4px 0;
+	}
+
+	.toc-inline :global(a.toc-lab) {
+		padding-left: 1.3rem;
 	}
 
 	@media (min-width: 1020px) {
