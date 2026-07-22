@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { baseFeeBps, stampCapBps } from "../../../lib/snapshot-fees/engine";
+import { baseFeeBps, fullFeeBps } from "../../../lib/snapshot-fees/engine";
 import "./lab-theme.css";
 
 // ————————————————————————————————————————————————————————————————
@@ -248,7 +248,7 @@ export default function BaseFeeLab() {
 	// the engine's curve, rendered (never re-implemented here)
 	const feeAt = (d: number) => baseFeeBps(d, { B, F, Z, slope, slope2 });
 	const netAt = (d: number) => d - feeAt(d);
-	const dFull = B / 2 + stampCapBps({ F, Z, slope, slope2 });
+	const dFull = B / 2 + fullFeeBps({ F, Z, slope, slope2 });
 	const dKnee = B / 2 + Z;
 
 	// geometry — viewBox sized for the two-thirds slot so text stays legible

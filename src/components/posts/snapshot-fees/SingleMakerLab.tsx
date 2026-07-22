@@ -3,9 +3,9 @@ import {
 	type BookLevel,
 	BP,
 	computeModel,
+	fullFeeBps,
 	type MarketModel,
 	type Side,
-	stampCapBps,
 } from "../../../lib/snapshot-fees/engine";
 import "./lab-theme.css";
 
@@ -24,7 +24,7 @@ const TICK = 0.005; // $ per level
 const MAX_DEPTH = 25000; // $ per level
 const STEP_DOLLARS = 250;
 // Defaults for the Maker Zone Z (the Mark's working radius: eligibility
-// range, walk truncation, boundary-fill price, and the stamp knee) and the
+// range, walk truncation, boundary-fill price, and the base-fee knee) and the
 // far slope k₂ beyond the zone edge.
 const Z_DEFAULT = 4;
 const SLOPE2_DEFAULT = 0.95;
@@ -109,7 +109,7 @@ const SCENARIOS: Scenario[] = [
 		key: "wide",
 		title: "Quoting Wide",
 		blurb:
-			"Two-sided and fully paired, but placed outside the band, so the only charge is the stamp for imprecision. Widen B and watch the band swallow the quotes and the fees fall away.",
+			"Two-sided and fully paired, but placed outside the band, so the only charge is each level's base fee. Widen B and watch the band swallow the quotes and the fees fall away.",
 		book: () =>
 			bookOf({
 				[CENTER - 9]: 8000,
@@ -162,7 +162,7 @@ const mono = "var(--lab-mono)";
 // What each dial does, narrated as you move it
 const DIAL_EFFECT: Record<string, { up: string; down: string }> = {
 	B: {
-		up: "Wider inner band: more placement stamps at zero.",
+		up: "Wider inner band: more placement gets a zero base fee.",
 		down: "Tighter inner band: precision is judged more strictly.",
 	},
 	F: {
@@ -309,7 +309,7 @@ export default function SingleMakerLab() {
 	// —— fee schedule ——
 	const [F, setF] = useState(10); // cap / taker rate, bps
 	const [Z, setZ] = useState(Z_DEFAULT); // Maker Zone, bps past the band edge
-	const [slope, setSlope] = useState(0.8); // k₁: stamp bps per bp inside the zone
+	const [slope, setSlope] = useState(0.8); // k₁: base-fee bps per bp inside the zone
 	const [slope2, setSlope2] = useState(SLOPE2_DEFAULT); // k₂ beyond the zone
 	const [comp, setComp] = useState(0); // inside compensation max, bps (parked module)
 
@@ -615,7 +615,7 @@ export default function SingleMakerLab() {
 					>
 						<span style={label}>Full fee reached</span>
 						<span style={{ fontFamily: mono, fontSize: 12, color: C.text }}>
-							{(B / 2 + stampCapBps({ F, Z, slope, slope2 })).toFixed(1)}
+							{(B / 2 + fullFeeBps({ F, Z, slope, slope2 })).toFixed(1)}
 							bps from M
 						</span>
 					</div>
@@ -1546,7 +1546,7 @@ export default function SingleMakerLab() {
 								const items: { amt: number; t: string; c: string }[] = [];
 								// matches at-or-inside the base fee collapse into one line
 								const atOrInside = b.pairs
-									.filter((pr) => pr.stamp <= b.own)
+									.filter((pr) => pr.baseFee <= b.own)
 									.reduce((sum, pr) => sum + pr.paired, 0);
 								if (atOrInside > 0)
 									items.push({
@@ -1555,7 +1555,7 @@ export default function SingleMakerLab() {
 										c: C.dim,
 									});
 								for (const pr of b.pairs) {
-									const extra = Math.max(0, pr.stamp - b.own);
+									const extra = Math.max(0, pr.baseFee - b.own);
 									if (extra <= 0) continue;
 									const pct = Math.round((pr.paired / b.q) * 100);
 									const amt = (pr.paired / b.q) * extra;

@@ -26,7 +26,7 @@ const YOUR_MAX = 25000;
 const MAKER_MAX = 40000;
 const STEP_DOLLARS = 250;
 // Defaults for the Maker Zone Z (the Mark's working radius: eligibility
-// range, walk truncation, boundary-fill price, and the stamp knee) and the
+// range, walk truncation, boundary-fill price, and the base-fee knee) and the
 // far slope k₂ beyond the zone edge.
 const Z_DEFAULT = 4;
 const SLOPE2_DEFAULT = 0.95;
@@ -177,7 +177,7 @@ const SCENARIOS: Scenario[] = [
 		key: "crossed",
 		title: "Crossed Market",
 		blurb:
-			"Your bid stands 2.5bps above the makers' best ask, at size, with your own ask behind it. A crossed book is not an error: the walks run per side, the impact prices cross, and M lands inside the overlap, pulled toward the aggressive bid. The crossing bid itself stamps at zero, since aggression is never charged for contesting the price. In a dual-flow venue makers never trade each other, so a cross like this drains through taker flow instead. A cross narrower than about two taker caps is not even an arbitrage, since a round trip pays the cap twice; a small cross is simply a better price for natural flow.",
+			"Your bid stands 2.5bps above the makers' best ask, at size, with your own ask behind it. A crossed book is not an error: the walks run per side, the impact prices cross, and M lands inside the overlap, pulled toward the aggressive bid. The crossing bid's own base fee is zero, since aggression is never charged for contesting the price. In a dual-flow venue makers never trade each other, so a cross like this drains through taker flow instead. A cross narrower than about two taker caps is not even an arbitrage, since a round trip pays the cap twice; a small cross is simply a better price for natural flow.",
 		you: () =>
 			bookOf({
 				[CENTER + 6]: 20000,
@@ -208,7 +208,7 @@ const SCENARIOS: Scenario[] = [
 // What each dial does, narrated as you move it
 const DIAL_EFFECT: Record<string, { up: string; down: string }> = {
 	B: {
-		up: "Wider inner band: more placement stamps at zero.",
+		up: "Wider inner band: more placement gets a zero base fee.",
 		down: "Tighter inner band: precision is judged more strictly.",
 	},
 	F: {
@@ -1992,7 +1992,7 @@ export default function MultiMakerLab() {
 								});
 								const items: { amt: number; t: string; c: string }[] = [];
 								const atOrInside = b.pairs
-									.filter((pr) => pr.stamp <= b.own)
+									.filter((pr) => pr.baseFee <= b.own)
 									.reduce((sum, pr) => sum + pr.paired, 0);
 								if (atOrInside > 0)
 									items.push({
@@ -2001,7 +2001,7 @@ export default function MultiMakerLab() {
 										c: C.dim,
 									});
 								for (const pr of b.pairs) {
-									const extra = Math.max(0, pr.stamp - b.own);
+									const extra = Math.max(0, pr.baseFee - b.own);
 									if (extra <= 0) continue;
 									const pct = Math.round((pr.paired / b.q) * 100);
 									const amt = (pr.paired / b.q) * extra;

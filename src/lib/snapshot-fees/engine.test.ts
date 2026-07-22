@@ -6,7 +6,7 @@ import {
 	computeMark,
 	computeModel,
 	type FeeParams,
-	stampCapBps,
+	fullFeeBps,
 } from "./engine";
 
 // Reference computation from the mechanism spec (worse-of revision) — "an
@@ -15,7 +15,7 @@ import {
 // absolute (the spec's older drafts wrote this as the multiple "W=5", i.e.
 // 5×S; vectors verify arithmetic at their stated settings, which need not
 // match working defaults).
-// Fee rule: each paired dollar pays max(own stamp, partner stamp);
+// Fee rule: each paired dollar pays max(own base fee, partner base fee);
 // directional dollars pay F. λ and the combine step no longer exist.
 const P: FeeParams = {
 	B: 4,
@@ -59,7 +59,7 @@ describe("spec reference computation (worse-of)", () => {
 		expect(m.state).toBe("fresh");
 	});
 
-	test("stamps", () => {
+	test("base fees", () => {
 		expect(bk(1).own).toBe(0); // bid 99.99 — in band
 		expect(bk(2).own).toBe(0); // ask 100.01 — in band
 		expect(bk(0).own).toBeCloseTo(0.5, 10); // bid 99.97 — d = 1bp
@@ -603,7 +603,7 @@ describe("anchors and invariants", () => {
 		expect(m.M).toBeNull();
 		expect(m.edgeBid).toBeNull();
 		expect(m.levels[0].bk?.final).toBe(P.F);
-		// paired-at-any-width dollars are equally unstampable without a mark
+		// paired-at-any-width dollars are equally unpriceable without a mark
 		const af = computeAccountFees(book, P, null);
 		for (const lv of af.levels) {
 			if (!lv.bk) continue;
@@ -613,7 +613,7 @@ describe("anchors and invariants", () => {
 	});
 
 	test("worse-leg identity: a symmetric paired book pays one leg, not two", () => {
-		// bids and asks both 2bp outside the band (stamp 1.0 at k=0.5):
+		// bids and asks both 2bp outside the band (base fee 1.0 at k=0.5):
 		// per-dollar max(1.0, 1.0) = 1.0 — width pressure is k alone.
 		const m = computeModel(
 			[
@@ -664,7 +664,7 @@ describe("anchors and invariants", () => {
 			null,
 		);
 		expect(withJunk.M).toBeCloseTo(without.M ?? Number.NaN, 10);
-		expect(withJunk.stampOf(100.4, "ask")).toBe(P.F);
+		expect(withJunk.baseFeeOf(100.4, "ask")).toBe(P.F);
 		const feeWith = withJunk.levels[0].bk?.final;
 		const feeWithout = without.levels[0].bk?.final;
 		expect(feeWith).toBeCloseTo(feeWithout ?? Number.NaN, 10);
@@ -673,7 +673,7 @@ describe("anchors and invariants", () => {
 	test("single-account caveat: a LONE far ask within the span bends M toward itself", () => {
 		// The self-anchoring regime: the far ask is its own side's best, the
 		// pair stands 41bp apart (inside the 44bp span, so still a coherent
-		// candidate), it feeds the walk and cuts its own stamp below the cap
+		// candidate), it feeds the walk and cuts its own base fee below the cap
 		// (documented limitation; leave-one-out is the upgrade path). At
 		// working calibrations with a tighter span this shape is excluded —
 		// see the span-check tests.
@@ -702,7 +702,7 @@ describe("anchors and invariants", () => {
 		}
 	});
 
-	test("own-distance floor: fee ≥ own stamp", () => {
+	test("own-distance floor: fee ≥ own base fee", () => {
 		const m = computeModel(book, P, null);
 		for (const lv of m.levels) {
 			if (!lv.bk) continue;
@@ -851,8 +851,8 @@ describe("multi-maker Mark", () => {
 	});
 });
 
-describe("piecewise stamp (the zone knee)", () => {
-	// Settled calibration: B=2, Z=8, k1=0.8, k2=1, F=10: stamp 6.4bps at the
+describe("piecewise base fee (the zone knee)", () => {
+	// Settled calibration: B=2, Z=8, k1=0.8, k2=1, F=10: base fee 6.4bps at the
 	// knee, cap reached 11.6bps beyond the band edge (12.6bps from M).
 	const p: FeeParams = {
 		B: 2,
@@ -866,7 +866,7 @@ describe("piecewise stamp (the zone knee)", () => {
 
 	test("gentle inside the zone, steeper beyond, capped at F", () => {
 		const af = computeAccountFees([], p, 100);
-		const at = (dBps: number) => af.stampOf(100.01 + dBps * BP, "ask");
+		const at = (dBps: number) => af.baseFeeOf(100.01 + dBps * BP, "ask");
 		expect(at(4)).toBeCloseTo(3.2, 10); // k1 region
 		expect(at(8)).toBeCloseTo(6.4, 10); // the knee
 		expect(at(10)).toBeCloseTo(8.4, 10); // k2 region: 6.4 + 1 x 2
@@ -874,10 +874,10 @@ describe("piecewise stamp (the zone knee)", () => {
 		expect(at(20)).toBe(10); // and holds
 	});
 
-	test("stampCapBps: cap distance honours the knee", () => {
-		expect(stampCapBps(p)).toBeCloseTo(11.6, 10);
+	test("fullFeeBps: cap distance honours the knee", () => {
+		expect(fullFeeBps(p)).toBeCloseTo(11.6, 10);
 		// a cap below the knee never reaches k2: F/k1 alone
-		expect(stampCapBps({ ...p, F: 5 })).toBeCloseTo(6.25, 10);
+		expect(fullFeeBps({ ...p, F: 5 })).toBeCloseTo(6.25, 10);
 	});
 });
 

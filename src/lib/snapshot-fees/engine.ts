@@ -34,15 +34,15 @@ export interface FeeParams {
 	/** Fee cap / taker rate, in bps. */
 	F: number;
 	/**
-	 * Maker Zone Z — working radius past the band edge, in bps. The stamp
+	 * Maker Zone Z — working radius past the band edge, in bps. The base-fee
 	 * knee sits Z beyond the band edge; the Mark's eligibility range, walk
 	 * truncation, and boundary-fill price all reach Z + B/2 from the
 	 * anchors, so both layers cover the same working width (span B + 2Z).
 	 */
 	Z: number;
-	/** Stamp slope k₁ — fee bps per bp beyond the band edge, inside the zone. */
+	/** Base-fee slope k₁ — fee bps per bp beyond the band edge, inside the zone. */
 	slope: number;
-	/** Stamp slope k₂ — fee bps per bp beyond the zone edge (the knee). */
+	/** Base-fee slope k₂ — fee bps per bp beyond the zone edge (the knee). */
 	slope2: number;
 	/** Inside compensation max, bps (parked module — reward channel). */
 	comp: number;
@@ -51,11 +51,11 @@ export interface FeeParams {
 /** $ per basis point at the $100 reference price. */
 export const BP = 0.01;
 
-/** One leg of pairing: the partner level, the dollars paired with it, its stamp. */
+/** One leg of pairing: the partner level, the dollars paired with it, its base fee. */
 export interface PairLeg {
 	price: number;
 	paired: number;
-	stamp: number;
+	baseFee: number;
 }
 
 export interface Allocation {
@@ -66,7 +66,7 @@ export interface Allocation {
 }
 
 export interface FeeBreakdown {
-	/** This level's own placement stamp, bps. */
+	/** This level's own base fee, bps. */
 	own: number;
 	pairs: PairLeg[];
 	unpaired: number;
@@ -93,15 +93,15 @@ export interface AccountFees {
 	/** Band edges; null in the no-mark state. */
 	edgeBid: number | null;
 	edgeAsk: number | null;
-	stampOf: (price: number, side: "bid" | "ask") => number;
+	baseFeeOf: (price: number, side: "bid" | "ask") => number;
 }
 
 /**
- * Stamps, joint pairing allocation (spillover), and per-dollar worse-of fees
+ * Base fees, joint pairing allocation (spillover), and per-dollar worse-of fees
  * for one account's book against a given M. The Mark may be communal (multi
  * maker) or the account's own (single-maker lab). With no mark (M null — the
  * pre-first-mark state) there is nothing to measure placement against, so
- * every stamp is the cap and every dollar pays F.
+ * every base fee is the cap and every dollar pays F.
  */
 export function computeAccountFees(
 	book: BookLevel[],
@@ -120,9 +120,9 @@ export function computeAccountFees(
 	const edgeBid = M == null ? null : M - half;
 	const edgeAsk = M == null ? null : M + half;
 
-	// Bracketed stamp via the shared curve: distance beyond the band edge
+	// Bracketed base fee via the shared curve: distance beyond the band edge
 	// plus B/2 is distance from M. No mark → no distance to measure → F.
-	const stampOf = (price: number, side: "bid" | "ask"): number => {
+	const baseFeeOf = (price: number, side: "bid" | "ask"): number => {
 		if (edgeBid == null || edgeAsk == null) return F;
 		const d = side === "ask" ? price - edgeAsk : edgeBid - price;
 		return baseFeeBps(Math.max(0, d / BP) + B / 2, { B, F, Z, slope, slope2 });
@@ -155,7 +155,7 @@ export function computeAccountFees(
 				entry.pairs.push({
 					price: opp[oi].price,
 					paired: m,
-					stamp: stampOf(opp[oi].price, opp[oi].side as "bid" | "ask"),
+					baseFee: baseFeeOf(opp[oi].price, opp[oi].side as "bid" | "ask"),
 				});
 				rem -= m;
 				oRem -= m;
@@ -171,7 +171,7 @@ export function computeAccountFees(
 
 	const breakdown = (lv: BookLevel): FeeBreakdown | null => {
 		if (lv.size <= 0 || lv.side === "mid") return null;
-		const own = stampOf(lv.price, lv.side);
+		const own = baseFeeOf(lv.price, lv.side);
 		const a = (lv.side === "bid" ? bidAlloc : askAlloc).get(lv.i) ?? {
 			pairs: [],
 			unpaired: lv.size,
@@ -179,10 +179,10 @@ export function computeAccountFees(
 		};
 		const q = lv.size;
 		// Per-dollar worse-of: each paired dollar pays the worse of its two
-		// legs — this order's own stamp or its partner's — and directional
+		// legs — this order's own base fee or its partner's — and directional
 		// dollars pay F. A round trip is as good as its worse leg.
 		const pairing =
-			(a.pairs.reduce((s, pr) => s + pr.paired * Math.max(own, pr.stamp), 0) +
+			(a.pairs.reduce((s, pr) => s + pr.paired * Math.max(own, pr.baseFee), 0) +
 				a.unpaired * F) /
 			q;
 		const combined = Math.min(F, pairing);
@@ -207,7 +207,7 @@ export function computeAccountFees(
 	};
 
 	const levels: FeeLevel[] = book.map((lv) => ({ ...lv, bk: breakdown(lv) }));
-	return { levels, edgeBid, edgeAsk, stampOf };
+	return { levels, edgeBid, edgeAsk, baseFeeOf };
 }
 
 // ————————————————————————————————————————————————————————————————
@@ -225,7 +225,7 @@ export interface MakerBook {
  *         candidate, or a strict tie between disjoint candidates); the last
  *         M carries with this flag.
  * none  — no mark has ever formed (launch): nothing to measure, nothing to
- *         carry. Fees stamp at the cap until the first candidate appears.
+ *         carry. Every base fee is the cap until the first candidate appears.
  */
 export type MarkState = "fresh" | "held" | "none";
 
@@ -584,12 +584,12 @@ export interface MarketModel {
 	askTotal: number;
 	/** Size the Mark walk consumed, keyed by level identity. */
 	markUsed: Map<number, number>;
-	stampOf: (price: number, side: "bid" | "ask") => number;
+	baseFeeOf: (price: number, side: "bid" | "ask") => number;
 }
 
 /**
  * Run the full window pipeline on one account's book, as a one-book market:
- * seed → candidate → impact walks with boundary fill → M → band → stamps →
+ * seed → candidate → impact walks with boundary fill → M → band → base fees →
  * joint pairing allocation (spillover) → combined fee. `lastM` is the mark
  * carried from prior windows (null at launch — the no-mark state, where
  * everything pays the cap).
@@ -627,12 +627,12 @@ export function computeModel(
 		bidTotal,
 		askTotal,
 		markUsed: mm.used.get("solo") ?? new Map(),
-		stampOf: af.stampOf,
+		baseFeeOf: af.baseFeeOf,
 	};
 }
 
-/** Bps beyond the band edge at which the stamp reaches the cap F. */
-export function stampCapBps(p: {
+/** Bps beyond the band edge at which the base fee reaches the cap F. */
+export function fullFeeBps(p: {
 	F: number;
 	Z: number;
 	slope: number;
@@ -645,7 +645,7 @@ export function stampCapBps(p: {
 /**
  * The base-fee curve as a pure function of distance from the mark in
  * bps: free inside the band, k₁ through the zone, k₂ beyond, capped at
- * F. The single source of the stamp shape — labs must render this
+ * F. The single source of the base-fee curve — labs must render this
  * rather than re-implement it.
  */
 export function baseFeeBps(
