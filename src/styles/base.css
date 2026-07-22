@@ -43,6 +43,12 @@ html {
 	 * (still programmatically scrollable, body left unclipped); with html
 	 * carrying the propagated value, body's clip really clips. */
 	overflow-x: clip;
+	/* short pages (the homepage) have no scrollbar and would lay out
+	 * ~15px wider than scrolling pages, shifting the header's right side
+	 * between routes; forcing the track keeps every page identical
+	 * (scrollbar-gutter: stable computes but reserves nothing at the
+	 * viewport in Chromium — verified empirically) */
+	overflow-y: scroll;
 	font-family: var(--font-serif);
 	/* Newsreader is a variable font with an optical-size axis; let text
 	 * sizes pick the sturdier text cut and headings the display cut. */
