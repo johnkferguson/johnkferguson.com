@@ -14,11 +14,11 @@ art:
 
 import "../../../styles/snapshot-fees.css";
 import Lab from "../../../components/Lab.astro";
-import BaseFeeLab from "../../../components/labs/BaseFeeLab";
-import DemandLab from "../../../components/labs/DemandLab";
-import PipelineChart from "../../../components/labs/PipelineChart.astro";
-import SnapshotFeesLab from "../../../components/labs/SnapshotFeesLab";
-import SnapshotFeesMultiLab from "../../../components/labs/SnapshotFeesMultiLab";
+import AuctionPipelineChart from "../../../components/posts/snapshot-fees/AuctionPipelineChart.astro";
+import BaseFeeLab from "../../../components/posts/snapshot-fees/BaseFeeLab";
+import DemandLab from "../../../components/posts/snapshot-fees/DemandLab";
+import MultiMakerLab from "../../../components/posts/snapshot-fees/MultiMakerLab";
+import SingleMakerLab from "../../../components/posts/snapshot-fees/SingleMakerLab";
 
 
 Batch auctions collect orders for a short window, seal it, and clear every
@@ -326,7 +326,7 @@ that drags the mark itself, and spillover between levels. Drag any bar and the r
 re-prices; the $D$ dial resizes the measuring walk itself.
 
 <Lab title="Running One Maker's Book">
-  <SnapshotFeesLab client:visible />
+  <SingleMakerLab client:visible />
 </Lab>
 
 ## Many Makers, One Mark
@@ -378,7 +378,7 @@ play and watch $M$ drift as the makers reprice, while your book stands still
 and its receipts re-price around it.
 
 <Lab title="Sharing the Mark">
-  <SnapshotFeesMultiLab client:visible />
+  <MultiMakerLab client:visible />
 </Lab>
 
 ## Measuring Typical Demand
@@ -525,7 +525,7 @@ finalizing the window books the results. The chart's shape is about what
 depends on what, not about scheduling: a venue can run the two branches in
 parallel or simply perform everything top to bottom.
 
-<PipelineChart />
+<AuctionPipelineChart />
 
 Each step below carries its computational cost. Three counts cover them:
 $n$ resting orders in the sealed book, $a$ accounts standing both a bid

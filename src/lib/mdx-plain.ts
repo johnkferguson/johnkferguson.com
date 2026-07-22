@@ -16,7 +16,7 @@ export function mdxBodyToMarkdown(body: string): string {
 	);
 	// the pipeline flowchart -> a note
 	s = s.replace(
-		/^<PipelineChart\s*\/>\s*$/gm,
+		/^<AuctionPipelineChart\s*\/>\s*$/gm,
 		"*[Flowchart in the web version: Seal the Auction, then Calculate the Mark and Match in parallel, then Price the Fills, then Finalize the Window]*",
 	);
 	// remaining standalone component tags (TableOfContents, BackToTop, ...)

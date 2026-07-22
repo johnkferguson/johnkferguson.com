@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
-import { baseFeeBps, stampCapBps } from "../../lib/snapshot-fees/engine";
-import "./snapshot-fees-lab.css";
+import { baseFeeBps, stampCapBps } from "../../../lib/snapshot-fees/engine";
+import "./lab-theme.css";
 
 // ————————————————————————————————————————————————————————————————
 // Snapshot Fees — base fee laboratory. The simplest piece of the

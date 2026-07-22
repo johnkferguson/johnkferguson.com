@@ -9,7 +9,7 @@ describe("mdxBodyToMarkdown", () => {
 
 	test("strips top-level import lines", () => {
 		const body =
-			'import Lab from "../components/labs/Lab";\nimport "katex/dist/katex.min.css";\n\nprose';
+			'import Lab from "../components/Lab.astro";\nimport "katex/dist/katex.min.css";\n\nprose';
 		expect(mdxBodyToMarkdown(body)).toBe("prose");
 	});
 
@@ -21,8 +21,10 @@ describe("mdxBodyToMarkdown", () => {
 		);
 	});
 
-	test("PipelineChart becomes the flowchart description", () => {
-		const out = mdxBodyToMarkdown("before\n\n<PipelineChart />\n\nafter");
+	test("AuctionPipelineChart becomes the flowchart description", () => {
+		const out = mdxBodyToMarkdown(
+			"before\n\n<AuctionPipelineChart />\n\nafter",
+		);
 		expect(out).toContain("*[Flowchart in the web version:");
 		expect(out).toContain("Seal the Auction");
 	});

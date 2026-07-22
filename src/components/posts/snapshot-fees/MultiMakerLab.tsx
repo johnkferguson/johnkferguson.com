@@ -7,8 +7,8 @@ import {
 	computeMark,
 	type MultiMark,
 	type Side,
-} from "../../lib/snapshot-fees/engine";
-import "./snapshot-fees-lab.css";
+} from "../../../lib/snapshot-fees/engine";
+import "./lab-theme.css";
 
 // ————————————————————————————————————————————————————————————————
 // Snapshot Fees — multi-maker laboratory, mirrored: your book grows up
@@ -398,7 +398,7 @@ interface DragState {
 	moved: boolean;
 }
 
-export default function SnapshotFeesMultiLab() {
+export default function MultiMakerLab() {
 	const [B, setB] = useState(2); // inner band width, bps
 	const [D, setD] = useState(20000);
 	const [F, setF] = useState(10);

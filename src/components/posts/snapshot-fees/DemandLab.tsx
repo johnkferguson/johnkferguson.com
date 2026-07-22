@@ -4,8 +4,8 @@ import {
 	type EpochResult,
 	runEpochs,
 	type WindowGroup,
-} from "../../lib/snapshot-fees/demand";
-import "./snapshot-fees-lab.css";
+} from "../../../lib/snapshot-fees/demand";
+import "./lab-theme.css";
 
 // ————————————————————————————————————————————————————————————————
 // Snapshot Fees — the Typical Demand laboratory. Ten days of demand and
@@ -33,7 +33,7 @@ const FLOOR_DEFAULT = 50_000;
 // the chart's range: its units have no visible referent here.
 const M_FIXED = 25;
 
-// Theme roles — resolved per light/dark mode in snapshot-fees-lab.css
+// Theme roles — resolved per light/dark mode in lab-theme.css
 const C = {
 	panel: "var(--lab-panel)",
 	panel2: "var(--lab-panel2)",

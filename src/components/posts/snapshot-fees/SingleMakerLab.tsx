@@ -6,8 +6,8 @@ import {
 	type MarketModel,
 	type Side,
 	stampCapBps,
-} from "../../lib/snapshot-fees/engine";
-import "./snapshot-fees-lab.css";
+} from "../../../lib/snapshot-fees/engine";
+import "./lab-theme.css";
 
 // ————————————————————————————————————————————————————————————————
 // Snapshot Fees — single-maker laboratory
@@ -133,7 +133,7 @@ const SCENARIOS: Scenario[] = [
 	},
 ];
 
-// Theme roles — resolved per light/dark mode in snapshot-fees-lab.css
+// Theme roles — resolved per light/dark mode in lab-theme.css
 const C = {
 	panel: "var(--lab-panel)",
 	panel2: "var(--lab-panel2)",
@@ -302,7 +302,7 @@ interface DragState {
 	moved: boolean;
 }
 
-export default function SnapshotFeesLab() {
+export default function SingleMakerLab() {
 	// —— market standard ——
 	const [B, setB] = useState(2); // inner band width, bps
 	const [D, setD] = useState(20000); // typical demand, $
