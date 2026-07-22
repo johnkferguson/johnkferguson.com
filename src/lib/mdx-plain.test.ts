@@ -13,10 +13,11 @@ describe("mdxBodyToMarkdown", () => {
 		expect(mdxBodyToMarkdown(body)).toBe("prose");
 	});
 
-	test("labwrap embeds become a pointer naming the lab", () => {
-		const body = '<div class="labwrap">\n<BaseFeeLab client:load />\n</div>';
+	test("Lab embeds become a pointer naming the lab by its title", () => {
+		const body =
+			'<Lab title="Setting the Base Fee">\n  <BaseFeeLab client:visible />\n</Lab>';
 		expect(mdxBodyToMarkdown(body)).toBe(
-			"*[Interactive lab in the web version: BaseFeeLab]*",
+			"*[Interactive lab in the web version: Setting the Base Fee]*",
 		);
 	});
 
@@ -38,10 +39,10 @@ describe("mdxBodyToMarkdown", () => {
 	});
 
 	/* Known limitation, pinned so a markup change fails loudly here
-	 * instead of silently leaking JSX into the .md endpoints: the labwrap
-	 * regex only handles a single self-closing component. */
-	test("labwrap with children is NOT handled (documented limitation)", () => {
-		const body = '<div class="labwrap">\n<Lab>content</Lab>\n</div>';
+	 * instead of silently leaking JSX into the .md endpoints: the Lab
+	 * regex only handles a single self-closing island inside the frame. */
+	test("Lab with other children is NOT handled (documented limitation)", () => {
+		const body = '<Lab title="X">\nsome prose\n</Lab>';
 		expect(mdxBodyToMarkdown(body)).toBe(body);
 	});
 });
