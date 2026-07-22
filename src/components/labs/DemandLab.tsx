@@ -71,8 +71,8 @@ const label = {
 } as const;
 
 const btn = (active: boolean) => ({
-	background: active ? C.text : C.panel2,
-	border: `1px solid ${active ? C.text : C.line}`,
+	background: active ? "var(--lab-btn-active-bg)" : "var(--lab-btn-bg)",
+	border: `1px solid ${active ? "var(--lab-btn-active-bg)" : C.line}`,
 	color: active ? C.panel2 : C.dim,
 	fontSize: 11,
 	padding: "4px 10px",
@@ -298,7 +298,7 @@ export default function DemandLab() {
 						fontSize: 13.5,
 						letterSpacing: "0.08em",
 						color: C.text,
-						padding: "10px 0 4px",
+						padding: "4px 0 10px",
 					}}
 				>
 					TYPICAL DEMAND: THE DAILY REBASE

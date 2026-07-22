@@ -24,10 +24,10 @@
 	--lab-mark-slice: rgba(74, 58, 167, 0.09);
 	--lab-hatch: rgba(0, 0, 0, 0.45);
 	--lab-grid: #efefef;
-	--lab-inset: #ffffff;
+	--lab-inset: #eeeae4;
 	--lab-hint: #c98500;
 	--lab-on-accent: #ffffff;
-	--lab-slider: var(--heading-color);
+	--lab-slider: var(--text-color);
 
 	--lab-panel: var(--code-background);
 	--lab-panel2: var(--bg);
@@ -36,6 +36,12 @@
 	--lab-dim: var(--text-color);
 	--lab-faint: var(--date-color);
 	--lab-mono: var(--font-mono);
+
+	/* buttons (scenario pills, zoom, play): active tracks the slider gray in
+	 * light mode rather than the near-black heading color; idle buttons take
+	 * the inset stone so they stand off the page background */
+	--lab-btn-active-bg: var(--lab-dim);
+	--lab-btn-bg: var(--lab-inset);
 }
 
 .dark .sf-lab {
@@ -51,6 +57,8 @@
 	--lab-inset: #332d29;
 	--lab-on-accent: var(--bg);
 	--lab-slider: #f0ebe5;
+	--lab-btn-active-bg: var(--lab-text);
+	--lab-btn-bg: var(--lab-panel2);
 }
 
 /* scrollable insets (e.g. the base-fee schedule) — theme-aware thin bar */
