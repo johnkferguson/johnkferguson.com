@@ -32,6 +32,7 @@
 	.toc-inline,
 	.post-rail,
 	article[data-toc-root] .anchor-link,
+	article .block-copy,
 	.post-backdrop,
 	.side-art {
 		/* biome-ignore lint/complexity/noImportantStyles: must beat component-scoped display rules in one shot */

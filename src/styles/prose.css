@@ -34,7 +34,10 @@ article[data-toc-root] :is(h2, h3, h4, h5, h6)[id] {
 article[data-toc-root] .anchor-link {
 	position: absolute;
 	left: -1.5rem;
-	top: calc(0.5lh - 0.5rem);
+	/* the -0.12em centers on the heading's cap band, not its line box:
+	 * serif capitals sit above the line-box middle, so box-centering
+	 * reads low (same correction as the touch variant below) */
+	top: calc(0.5lh - 0.5rem - 0.12em);
 	display: flex;
 	align-items: center;
 	justify-content: center;
@@ -64,24 +67,28 @@ article[data-toc-root] .anchor-link.copied {
 	opacity: 1;
 }
 
-/* tooltip centered below the icon */
+/* tooltip centered above the icon, clear of the heading text */
 article[data-toc-root] .anchor-link::after {
 	content: "Copy link";
 	position: absolute;
 	left: 50%;
 	transform: translateX(-50%);
-	top: calc(100% + 0.35rem);
+	bottom: calc(100% + 0.35rem);
 	z-index: 5;
 	white-space: nowrap;
 	font-family: var(--font-mono);
 	font-size: 0.5rem;
+	/* undo the heading's inherited bold; match the block-copy tooltip */
+	font-weight: 400;
 	letter-spacing: 0.08em;
 	text-transform: uppercase;
 	color: var(--date-color);
 	background: var(--bg);
 	border: 1px solid var(--border-color);
 	border-radius: 4px;
-	padding: 0.12rem 0.4rem;
+	/* asymmetric: mono uppercase rides high in its line box (same optical
+	 * correction as the back-to-top button) */
+	padding: 0.17rem 0.4rem 0.07rem;
 	opacity: 0;
 	pointer-events: none;
 	transition: opacity 0.15s ease;
@@ -176,6 +183,140 @@ article code {
 	border-radius: 0.25rem;
 	font-size: 0.75rem;
 	font-weight: 500;
+}
+
+/* Copy buttons floated over code and math blocks (buttons injected by the
+ * PostLayout script, which wraps each block in .block-copy-wrap — the
+ * blocks themselves scroll horizontally, so the button must sit outside
+ * the scroll container). Interaction grammar mirrors .anchor-link above:
+ * hover/focus reveal, copied state in the code color, tooltip via ::after. */
+article .block-copy-wrap {
+	position: relative;
+	/* stacking context: lets the mobile tab sit at z-index -1, behind the
+	 * block but never behind anything outside the wrapper */
+	isolation: isolate;
+}
+
+article .block-copy {
+	position: absolute;
+	top: 0.15rem;
+	right: 0.15rem;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	width: 1.4rem;
+	height: 1.4rem;
+	border: 0;
+	border-radius: 4px;
+	background: var(--code-background);
+	color: var(--date-color);
+	cursor: pointer;
+	opacity: 0;
+	transition:
+		opacity 0.15s ease,
+		color 0.15s ease;
+}
+
+article .block-copy-wrap:hover .block-copy,
+article .block-copy:focus-visible {
+	opacity: 1;
+}
+
+article .block-copy:hover {
+	color: var(--heading-color);
+}
+
+article .block-copy.copied {
+	color: var(--code-color);
+	opacity: 1;
+}
+
+/* tooltip, right-aligned above the icon so it sits outside the block */
+article .block-copy::after {
+	content: attr(data-tip);
+	position: absolute;
+	right: 0;
+	bottom: calc(100% + 0.3rem);
+	z-index: 5;
+	white-space: nowrap;
+	font-family: var(--font-mono);
+	font-size: 0.5rem;
+	letter-spacing: 0.08em;
+	text-transform: uppercase;
+	color: var(--date-color);
+	background: var(--bg);
+	border: 1px solid var(--border-color);
+	border-radius: 4px;
+	/* asymmetric: mono uppercase rides high in its line box (same optical
+	 * correction as the back-to-top button) */
+	padding: 0.17rem 0.4rem 0.07rem;
+	opacity: 0;
+	pointer-events: none;
+	transition: opacity 0.15s ease;
+}
+
+article .block-copy:hover::after,
+article .block-copy:focus-visible::after {
+	opacity: 1;
+}
+
+article .block-copy.copied::after {
+	content: "Copied";
+	opacity: 1;
+}
+
+/* Touch devices have no hover, and blocks there usually need horizontal
+ * scrolling, so a corner button would sit on top of content. Instead the
+ * button becomes a thin bookmark tab riding the block's top-right edge,
+ * in the back-to-top button's visual vocabulary, with the tooltip text
+ * inlined as its label (the copied swap still relabels it). */
+@media (hover: none) {
+	article .block-copy {
+		/* flush with the block's right edge; the bottom 6px tuck BEHIND the
+		 * block, under its rounded corner, like a bookmark behind a page */
+		top: 6px;
+		right: 0;
+		z-index: -1;
+		transform: translateY(-100%);
+		width: auto;
+		height: auto;
+		display: inline-flex;
+		gap: 0.28rem;
+		padding: 0.14rem 0.45rem calc(0.1rem + 6px);
+		border: 0;
+		border-radius: 6px 6px 0 0;
+		background: var(--border-color);
+		opacity: 1;
+	}
+
+	article .block-copy svg {
+		width: 10px;
+		height: 10px;
+	}
+
+	/* faint occlusion shade at the tab's base, fading up from where it
+	 * tucks behind the block — the depth cue lives on the tab alone */
+	article .block-copy {
+		box-shadow: inset 0 -9px 6px -5px rgba(0, 0, 0, 0.14);
+	}
+
+	.dark article .block-copy {
+		box-shadow: inset 0 -9px 6px -5px rgba(0, 0, 0, 0.3);
+	}
+
+	article .block-copy::after {
+		position: static;
+		border: 0;
+		background: transparent;
+		padding: 0;
+		opacity: 1;
+		font-size: 0.45rem;
+		letter-spacing: 0.12em;
+		/* fits "COPY LATEX", the longest label: swapping to "COPIED" must
+		 * recenter the text, never resize the tab */
+		min-width: 7.3em;
+		text-align: center;
+	}
 }
 
 /* Block code: Medium reads heavy on light backgrounds, right on dark */

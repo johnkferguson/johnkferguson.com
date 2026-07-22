@@ -166,6 +166,59 @@ const backdropSvg = art?.image
 			});
 			h.append(btn);
 		}
+
+		// hover copy: a button floated over code and math blocks. Math blocks
+		// copy their TeX source (KaTeX keeps it in the MathML annotation;
+		// selecting rendered KaTeX by hand yields garbled text), code blocks
+		// copy their text. Each block is moved into a positioning wrapper
+		// because pre and .katex-display are horizontal scroll containers —
+		// a button inside would scroll away with the content.
+		const copySvg =
+			'<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="8" y="2" width="8" height="4" rx="1"/><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/></svg>';
+		const blocks = root.querySelectorAll<HTMLElement>("pre, .katex-display");
+		for (const block of blocks) {
+			const isMath = block.classList.contains("katex-display");
+			const textOf = () =>
+				isMath
+					? (block.querySelector('annotation[encoding="application/x-tex"]')
+							?.textContent ?? "")
+					: (block.querySelector("code")?.textContent ??
+						block.textContent ??
+						"");
+			if (!textOf().trim()) continue;
+			const wrap = document.createElement("div");
+			wrap.className = "block-copy-wrap";
+			block.before(wrap);
+			wrap.append(block);
+			const btn = document.createElement("button");
+			btn.className = "block-copy";
+			btn.type = "button";
+			btn.dataset.tip = isMath ? "Copy LaTeX" : "Copy code";
+			btn.setAttribute(
+				"aria-label",
+				isMath ? "Copy this formula's LaTeX source" : "Copy this code block",
+			);
+			btn.innerHTML = copySvg;
+			let timer: number | undefined;
+			btn.addEventListener("click", async () => {
+				try {
+					await navigator.clipboard.writeText(textOf());
+				} catch {
+					/* clipboard unavailable: no false confirmation */
+					return;
+				}
+				live.textContent = "Copied";
+				btn.innerHTML = checkSvg;
+				btn.classList.add("copied");
+				clearTimeout(timer);
+				timer = window.setTimeout(() => {
+					btn.innerHTML = copySvg;
+					btn.classList.remove("copied");
+					live.textContent = "";
+				}, 1200);
+			});
+			wrap.append(btn);
+		}
 	}
 </script>
 
