@@ -1,16 +1,30 @@
 ---
 /* Dev-only in-place art picker. PostLayout mounts this only when
- * import.meta.env.DEV, so nothing here ships in production builds.
+ * import.meta.env.DEV (via dynamic import), so nothing here ships in
+ * production builds.
  *
  * Swaps the live post backdrop in place (same client-side regeneration
  * trick as /lab/art-tuner) so art is judged where it lives: behind the
- * real title, date, TOC, and opening text. When a roll sings, "copy
- * frontmatter" emits the art: block to pin in the post. */
+ * real title, date, TOC, and opening text. The panel overlays the prose
+ * column (which already hides the art there), with two previews on top:
+ * the full uncropped piece and the homepage-thumbnail crop. Favorite
+ * configurations persist in localStorage for flipping between
+ * candidates. "Copy frontmatter" emits the art: block to pin. */
 ---
 
 <div class="art-dev-picker" data-art-picker>
   <button type="button" class="adp-toggle" title="art picker (dev)">✦</button>
   <div class="adp-panel" hidden>
+    <div class="adp-previews">
+      <div class="adp-prev">
+        <div class="adp-prev-full" data-prev-full></div>
+        <span class="adp-lbl">full piece</span>
+      </div>
+      <div class="adp-prev">
+        <div class="adp-prev-thumb" data-prev-thumb></div>
+        <span class="adp-lbl">home thumb</span>
+      </div>
+    </div>
     <label class="adp-row">
       <span class="adp-lbl">art</span>
       <select data-source></select>
@@ -22,15 +36,25 @@
     </div>
     <div data-dials></div>
     <div class="adp-row adp-actions">
+      <button type="button" data-fav>&#9733; save</button>
       <button type="button" data-copy>copy frontmatter</button>
       <button type="button" data-reset>reset</button>
     </div>
+    <div class="adp-favs" data-favs></div>
   </div>
 </div>
 
 <script>
   import { artSvg, DEFAULT_QUIET, FAMILIES } from "../lib/art/generate";
   import { PIECES } from "../lib/art/pieces";
+
+  interface Fav {
+    source: string;
+    seed: string;
+    params: Record<string, number>;
+  }
+
+  const FAVS_KEY = "adp-favs";
 
   const root = document.querySelector("[data-art-picker]") as HTMLElement;
   const holder = document.querySelector(".backdrop-svg");
@@ -39,6 +63,9 @@
   const source = root.querySelector("[data-source]") as HTMLSelectElement;
   const seedEl = root.querySelector("[data-seed]") as HTMLInputElement;
   const dialsEl = root.querySelector("[data-dials]") as HTMLElement;
+  const favsEl = root.querySelector("[data-favs]") as HTMLElement;
+  const prevFull = root.querySelector("[data-prev-full]") as HTMLElement;
+  const prevThumb = root.querySelector("[data-prev-thumb]") as HTMLElement;
   const copyBtn = root.querySelector("[data-copy]") as HTMLButtonElement;
 
   const slug = location.pathname.replace(/^\/|\/$/g, "") || "post";
@@ -60,17 +87,18 @@
     return source.value ? { kind, name } : null;
   };
 
-  const buildDials = () => {
+  const buildDials = (overrides?: Record<string, number>) => {
     const sel = selected();
     const piece = sel?.kind === "piece" ? PIECES[sel.name] : null;
     for (const k of Object.keys(params)) delete params[k];
     dialsEl.innerHTML = "";
     if (!piece) return;
     for (const spec of piece.params) {
-      params[spec.key] = spec.default;
+      const value = overrides?.[spec.key] ?? spec.default;
+      params[spec.key] = value;
       const row = document.createElement("label");
       row.className = "adp-row";
-      row.innerHTML = `<span class="adp-lbl">${spec.label}</span><input type="range" min="${spec.min}" max="${spec.max}" step="${spec.step}" value="${spec.default}" data-key="${spec.key}" /><output>${spec.default}</output>`;
+      row.innerHTML = `<span class="adp-lbl">${spec.label}</span><input type="range" min="${spec.min}" max="${spec.max}" step="${spec.step}" value="${value}" data-key="${spec.key}" /><output>${value}</output>`;
       const input = row.querySelector("input") as HTMLInputElement;
       const out = row.querySelector("output") as HTMLOutputElement;
       input.addEventListener("input", () => {
@@ -82,10 +110,9 @@
     }
   };
 
-  const regen = () => {
-    if (!holder) return;
+  const artOpts = (width: number, height: number, useQuiet: boolean) => {
     const sel = selected();
-    holder.innerHTML = artSvg({
+    return {
       seedKey: seedEl.value.trim() || slug,
       piece: sel?.kind === "piece" ? sel.name : undefined,
       family:
@@ -93,14 +120,152 @@
           ? (sel.name as (typeof FAMILIES)[number])
           : undefined,
       params: { ...params },
-      width: 1600,
-      height: 640,
-      quiet: DEFAULT_QUIET,
-      quietStrength: 0.4,
+      width,
+      height,
+      quiet: useQuiet ? DEFAULT_QUIET : undefined,
+      quietStrength: useQuiet ? 0.4 : undefined,
+    };
+  };
+
+  const regen = () => {
+    /* the live backdrop, exactly as PostLayout generates it */
+    if (holder) holder.innerHTML = artSvg(artOpts(1600, 640, true));
+    /* full piece, uncropped and unfaded (meet instead of slice) */
+    prevFull.innerHTML = artSvg(artOpts(1600, 640, true)).replace(
+      "xMidYMid slice",
+      "xMidYMid meet",
+    );
+    /* the homepage list crop: no quiet zone, radial mask via CSS */
+    prevThumb.innerHTML = artSvg(artOpts(800, 560, false));
+    renderFavs();
+  };
+
+  /* ----- favorites (localStorage) ----- */
+
+  const currentFav = (): Fav => ({
+    source: source.value,
+    seed: seedEl.value.trim(),
+    params: { ...params },
+  });
+
+  const loadFavs = (): Fav[] => {
+    try {
+      return JSON.parse(localStorage.getItem(FAVS_KEY) ?? "[]");
+    } catch {
+      return [];
+    }
+  };
+
+  const storeFavs = (favs: Fav[]) => {
+    localStorage.setItem(FAVS_KEY, JSON.stringify(favs));
+  };
+
+  const favLabel = (f: Fav) => {
+    const name = f.source ? f.source.split(":")[1] : "default";
+    const sel = f.source.split(":");
+    const piece = sel[0] === "piece" ? PIECES[sel[1]] : null;
+    const changed = piece
+      ? piece.params
+          .filter((s) => f.params[s.key] !== undefined && f.params[s.key] !== s.default)
+          .map((s) => `${s.key} ${f.params[s.key]}`)
+          .join(", ")
+      : "";
+    return `${name} · ${f.seed || "(slug)"}${changed ? ` · ${changed}` : ""}`;
+  };
+
+  const applyFav = (f: Fav) => {
+    source.value = f.source;
+    if (source.value !== f.source) source.value = ""; // piece no longer exists
+    seedEl.value = f.seed;
+    buildDials(f.params);
+    regen();
+  };
+
+  const renderFavs = () => {
+    const favs = loadFavs();
+    const now = JSON.stringify(currentFav());
+    favsEl.innerHTML = "";
+    favs.forEach((f, i) => {
+      const row = document.createElement("div");
+      row.className = "adp-fav";
+      if (JSON.stringify(f) === now) row.classList.add("adp-fav-active");
+      const apply = document.createElement("button");
+      apply.type = "button";
+      apply.className = "adp-fav-apply";
+      apply.textContent = favLabel(f);
+      apply.addEventListener("click", () => applyFav(f));
+      const del = document.createElement("button");
+      del.type = "button";
+      del.className = "adp-fav-del";
+      del.textContent = "×";
+      del.title = "remove";
+      del.addEventListener("click", () => {
+        const next = loadFavs();
+        next.splice(i, 1);
+        storeFavs(next);
+        renderFavs();
+      });
+      row.append(apply, del);
+      favsEl.append(row);
     });
   };
 
-  const frontmatter = () => {
+  /* ----- panel placement: overlay the prose column ----- */
+
+  const placePanel = () => {
+    const main = document.querySelector(".post-main");
+    if (!main) return;
+    const rect = main.getBoundingClientRect();
+    panel.style.left = `${Math.max(8, rect.left)}px`;
+    panel.style.width = `${Math.min(rect.width, window.innerWidth - 16)}px`;
+  };
+
+  /* ----- events ----- */
+
+  toggle.addEventListener("click", () => {
+    panel.hidden = !panel.hidden;
+    if (!panel.hidden) {
+      placePanel();
+      regen();
+    }
+  });
+  window.addEventListener("resize", () => {
+    if (!panel.hidden) placePanel();
+  });
+  source.addEventListener("input", () => {
+    buildDials();
+    regen();
+  });
+  seedEl.addEventListener("input", regen);
+  (root.querySelector("[data-shuffle]") as HTMLElement).addEventListener(
+    "click",
+    () => {
+      seedEl.value = Math.random().toString(36).slice(2, 8);
+      regen();
+    },
+  );
+  (root.querySelector("[data-fav]") as HTMLElement).addEventListener(
+    "click",
+    () => {
+      const favs = loadFavs();
+      const me = JSON.stringify(currentFav());
+      if (!favs.some((f) => JSON.stringify(f) === me)) {
+        favs.push(currentFav());
+        storeFavs(favs);
+      }
+      renderFavs();
+    },
+  );
+  (root.querySelector("[data-reset]") as HTMLElement).addEventListener(
+    "click",
+    () => {
+      source.value = "";
+      seedEl.value = "";
+      buildDials();
+      location.reload();
+    },
+  );
+  copyBtn.addEventListener("click", async () => {
     const sel = selected();
     const lines = ["art:"];
     if (sel?.kind === "piece") lines.push(`  piece: ${sel.name}`);
@@ -115,35 +280,7 @@
       lines.push("  params:");
       for (const s of changed) lines.push(`    ${s.key}: ${params[s.key]}`);
     }
-    return `${lines.join("\n")}\n`;
-  };
-
-  toggle.addEventListener("click", () => {
-    panel.hidden = !panel.hidden;
-  });
-  source.addEventListener("input", () => {
-    buildDials();
-    regen();
-  });
-  seedEl.addEventListener("input", regen);
-  (root.querySelector("[data-shuffle]") as HTMLElement).addEventListener(
-    "click",
-    () => {
-      seedEl.value = Math.random().toString(36).slice(2, 8);
-      regen();
-    },
-  );
-  (root.querySelector("[data-reset]") as HTMLElement).addEventListener(
-    "click",
-    () => {
-      source.value = "";
-      seedEl.value = "";
-      buildDials();
-      location.reload();
-    },
-  );
-  copyBtn.addEventListener("click", async () => {
-    await navigator.clipboard.writeText(frontmatter());
+    await navigator.clipboard.writeText(`${lines.join("\n")}\n`);
     copyBtn.textContent = "copied";
     setTimeout(() => {
       copyBtn.textContent = "copy frontmatter";
@@ -156,19 +293,20 @@
   }
 </script>
 
-<!-- global because the dial rows are created by the script and would
-     miss Astro's scoped-style attribute; everything nests under the
-     root class so nothing leaks (dev-only anyway) -->
+<!-- global because dial and favorite rows are created by the script and
+     would miss Astro's scoped-style attribute; everything nests under
+     the root class so nothing leaks (dev-only anyway) -->
 <style is:global>
   .art-dev-picker {
-    position: fixed;
-    left: 0.55rem;
-    bottom: 0.55rem;
-    z-index: 90;
     font-family: var(--font-mono);
   }
 
+  /* bottom-right, lifted clear of back-to-top's narrow-layout spot */
   .art-dev-picker .adp-toggle {
+    position: fixed;
+    right: 0.55rem;
+    bottom: 3.1rem;
+    z-index: 91;
     width: 2rem;
     height: 2rem;
     border-radius: 50%;
@@ -185,14 +323,15 @@
     cursor: default;
   }
 
+  /* overlays the prose column (left/width set by script from
+   * .post-main's rect); the content already hides the art there */
   .art-dev-picker .adp-panel {
-    position: absolute;
-    left: 0;
-    bottom: 2.5rem;
-    width: 16.5rem;
-    max-height: 70vh;
+    position: fixed;
+    bottom: 0.55rem;
+    z-index: 90;
+    max-height: calc(100vh - 4.5rem);
     overflow-y: auto;
-    padding: 0.7rem 0.8rem;
+    padding: 0.8rem 0.9rem;
     background: var(--bg);
     border: 1px solid var(--border-color);
     border-radius: 8px;
@@ -200,6 +339,54 @@
     display: flex;
     flex-direction: column;
     gap: 0.55rem;
+  }
+
+  .art-dev-picker .adp-previews {
+    display: flex;
+    gap: 0.9rem;
+    align-items: flex-start;
+  }
+
+  .art-dev-picker .adp-prev {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+    min-width: 0;
+  }
+
+  .art-dev-picker .adp-prev:first-child {
+    flex: 1;
+  }
+
+  .art-dev-picker .adp-prev-full {
+    aspect-ratio: 2.5;
+    width: 100%;
+    border: 1px solid var(--border-color);
+    border-radius: 6px;
+    overflow: hidden;
+  }
+
+  /* the homepage list treatment at its real size (see index.astro) */
+  .art-dev-picker .adp-prev-thumb {
+    width: 7.6rem;
+    height: 5.2rem;
+    -webkit-mask-image: radial-gradient(
+      ellipse 92% 88% at 50% 50%,
+      #000 45%,
+      transparent 98%
+    );
+    mask-image: radial-gradient(
+      ellipse 92% 88% at 50% 50%,
+      #000 45%,
+      transparent 98%
+    );
+  }
+
+  .art-dev-picker .adp-prev-full svg,
+  .art-dev-picker .adp-prev-thumb svg {
+    display: block;
+    width: 100%;
+    height: 100%;
   }
 
   .art-dev-picker .adp-row {
@@ -218,9 +405,13 @@
     letter-spacing: 0.08em;
   }
 
+  .art-dev-picker .adp-prev .adp-lbl {
+    width: auto;
+  }
+
   .art-dev-picker select,
   .art-dev-picker input[type="text"],
-  .art-dev-picker button:not(.adp-toggle) {
+  .art-dev-picker .adp-panel button {
     font-family: inherit;
     font-size: 0.6rem;
     color: var(--text-color);
@@ -229,19 +420,23 @@
     border-radius: 5px;
     padding: 0.2rem 0.4rem;
     min-width: 0;
+    cursor: pointer;
   }
 
   .art-dev-picker select {
     flex: 1;
+    max-width: 18rem;
   }
 
   .art-dev-picker input[type="text"] {
-    flex: 1;
-    width: 5rem;
+    flex: none;
+    width: 7rem;
+    cursor: text;
   }
 
   .art-dev-picker input[type="range"] {
     flex: 1;
+    max-width: 16rem;
     min-width: 0;
     accent-color: var(--code-color);
   }
@@ -253,16 +448,38 @@
     font-size: 0.58rem;
   }
 
-  .art-dev-picker button:not(.adp-toggle) {
-    cursor: pointer;
-  }
-
-  .art-dev-picker button:not(.adp-toggle):hover {
+  .art-dev-picker .adp-panel button:hover {
     color: var(--heading-color);
     border-color: var(--date-color);
   }
 
   .art-dev-picker .adp-actions {
-    justify-content: flex-end;
+    justify-content: flex-start;
+  }
+
+  .art-dev-picker .adp-favs {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+  }
+
+  .art-dev-picker .adp-fav {
+    display: flex;
+    gap: 0.3rem;
+    align-items: stretch;
+  }
+
+  .art-dev-picker .adp-fav-apply {
+    flex: 1;
+    text-align: left;
+  }
+
+  .art-dev-picker .adp-fav-active .adp-fav-apply {
+    border-color: var(--code-color);
+    color: var(--heading-color);
+  }
+
+  .art-dev-picker .adp-fav-del {
+    flex: none;
   }
 </style>
