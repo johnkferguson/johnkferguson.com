@@ -1,49 +1,33 @@
 /**
  * Seeded generative art for banners, thumbnails, and the home backdrop.
- * Placeholder-quality families for now; the layout system treats art as
- * swappable (frontmatter image overrides generation), so families can be
- * refined or replaced by pregenerated images later without rework.
+ *
+ * Two tiers: bespoke per-post pieces (src/lib/art/pieces, pinned via
+ * frontmatter `art.piece`) and the four generic families below, which
+ * remain the fallback for anything without a commissioned piece. The
+ * layout system treats art as swappable (frontmatter image overrides
+ * generation), so families can be retired as pieces replace them.
  *
  * Colors are CSS variables so inline SVG themes with the site palette.
  */
+
+import type { QuietCtx, QuietZone } from "./core";
+import { hashSeed, quietPoint, quietSpan, resolveParams, rng } from "./core";
+import { getPiece } from "./pieces";
+
+export type { QuietZone } from "./core";
+export { DEFAULT_QUIET, hashSeed, rng } from "./core";
 
 export type ArtFamily = "strata" | "field" | "walk" | "depth";
 
 export const FAMILIES: ArtFamily[] = ["strata", "field", "walk", "depth"];
 
-/** deterministic 32-bit hash of a string (FNV-1a) */
-export function hashSeed(key: string): number {
-	let h = 0x811c9dc5;
-	for (let i = 0; i < key.length; i++) {
-		h ^= key.charCodeAt(i);
-		h = Math.imul(h, 0x01000193);
-	}
-	return h >>> 0;
-}
-
-/** mulberry32 seeded PRNG, returns [0, 1) */
-export function rng(seed: number): () => number {
-	let a = seed >>> 0;
-	return () => {
-		a += 0x6d2b79f5;
-		let t = a;
-		t = Math.imul(t ^ (t >>> 15), t | 1);
-		t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
-		return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
-	};
-}
-
-export interface QuietZone {
-	/** all values are fractions of the viewBox */
-	x: number;
-	y: number;
-	w: number;
-	h: number;
-}
-
 export interface ArtOptions {
 	seedKey: string;
 	family?: ArtFamily;
+	/** bespoke per-post piece from src/lib/art/pieces; wins over family */
+	piece?: string;
+	/** dial overrides for the piece (defaults come from its spec) */
+	params?: Record<string, number>;
 	/** viewBox size; rendered size is CSS's business */
 	width?: number;
 	height?: number;
@@ -53,41 +37,10 @@ export interface ArtOptions {
 	quietStrength?: number;
 }
 
-/** default title/date region posts thin their art behind (deep enough
- * to cover the date line at the production 360px backdrop height, where
- * slice-scaling maps screen positions lower into the viewBox) */
-export const DEFAULT_QUIET: QuietZone = { x: 0.28, y: 0.02, w: 0.58, h: 0.5 };
-
-interface QuietCtx {
-	rect?: QuietZone;
-	strength: number;
-	w: number;
-	h: number;
-}
-
-/** attenuation for a point */
-function quietPoint(q: QuietCtx, cx: number, cy: number): number {
-	if (!q.rect) return 1;
-	const inX = cx >= q.rect.x * q.w && cx <= (q.rect.x + q.rect.w) * q.w;
-	const inY = cy >= q.rect.y * q.h && cy <= (q.rect.y + q.rect.h) * q.h;
-	return inX && inY ? q.strength : 1;
-}
-
-/** attenuation for a horizontal span [x0, x1] at height y: any overlap
- * with the zone counts (a bar passing through must attenuate even if
- * its center is elsewhere) */
-function quietSpan(q: QuietCtx, x0: number, x1: number, y: number): number {
-	if (!q.rect) return 1;
-	const inY = y >= q.rect.y * q.h && y <= (q.rect.y + q.rect.h) * q.h;
-	const overlapX = x1 >= q.rect.x * q.w && x0 <= (q.rect.x + q.rect.w) * q.w;
-	return inY && overlapX ? q.strength : 1;
-}
-
 export function artSvg(opts: ArtOptions): string {
 	const w = opts.width ?? 800;
 	const h = opts.height ?? 450;
 	const seed = hashSeed(opts.seedKey);
-	const family = opts.family ?? FAMILIES[seed % FAMILIES.length];
 	const r = rng(seed);
 	const q: QuietCtx = {
 		rect: opts.quiet,
@@ -95,14 +48,23 @@ export function artSvg(opts: ArtOptions): string {
 		w,
 		h,
 	};
-	const body =
-		family === "strata"
-			? strata(r, w, h, q)
-			: family === "field"
-				? field(r, w, h, q)
-				: family === "depth"
-					? depth(r, w, h, q)
-					: walk(r, w, h, q);
+	let body: string;
+	if (opts.piece) {
+		const piece = getPiece(opts.piece);
+		/* a frontmatter typo should fail the build, not ship fallback art */
+		if (!piece) throw new Error(`unknown art piece "${opts.piece}"`);
+		body = piece.render(r, w, h, q, resolveParams(piece.params, opts.params));
+	} else {
+		const family = opts.family ?? FAMILIES[seed % FAMILIES.length];
+		body =
+			family === "strata"
+				? strata(r, w, h, q)
+				: family === "field"
+					? field(r, w, h, q)
+					: family === "depth"
+						? depth(r, w, h, q)
+						: walk(r, w, h, q);
+	}
 	return [
 		`<svg viewBox="0 0 ${w} ${h}" xmlns="http://www.w3.org/2000/svg"`,
 		` preserveAspectRatio="xMidYMid slice" role="img" aria-hidden="true">`,

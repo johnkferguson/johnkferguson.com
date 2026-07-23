@@ -53,6 +53,8 @@ export function GET({ props }: APIContext) {
 		artSvg({
 			seedKey: post.data.art?.seed ?? post.id,
 			family: post.data.art?.family,
+			piece: post.data.art?.piece,
+			params: post.data.art?.params,
 			width: OG.width,
 			height: OG.height,
 			quiet: { x: 0.04, y: 0.22, w: 0.92, h: 0.56 },

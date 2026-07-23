@@ -34,7 +34,11 @@ const posts = defineCollection({
 		art: z
 			.object({
 				family: z.enum(["strata", "field", "walk", "depth"]).optional(),
+				/** bespoke generator from src/lib/art/pieces; wins over family */
+				piece: z.string().optional(),
 				seed: z.string().optional(),
+				/** dial overrides for the piece, keyed by its param spec */
+				params: z.record(z.string(), z.number()).optional(),
 				image: z.string().optional(),
 			})
 			.optional(),

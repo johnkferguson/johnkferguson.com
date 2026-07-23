@@ -1,0 +1,268 @@
+---
+/* Dev-only in-place art picker. PostLayout mounts this only when
+ * import.meta.env.DEV, so nothing here ships in production builds.
+ *
+ * Swaps the live post backdrop in place (same client-side regeneration
+ * trick as /lab/art-tuner) so art is judged where it lives: behind the
+ * real title, date, TOC, and opening text. When a roll sings, "copy
+ * frontmatter" emits the art: block to pin in the post. */
+---
+
+<div class="art-dev-picker" data-art-picker>
+  <button type="button" class="adp-toggle" title="art picker (dev)">✦</button>
+  <div class="adp-panel" hidden>
+    <label class="adp-row">
+      <span class="adp-lbl">art</span>
+      <select data-source></select>
+    </label>
+    <div class="adp-row">
+      <span class="adp-lbl">seed</span>
+      <input type="text" data-seed placeholder="(slug)" />
+      <button type="button" data-shuffle>shuffle</button>
+    </div>
+    <div data-dials></div>
+    <div class="adp-row adp-actions">
+      <button type="button" data-copy>copy frontmatter</button>
+      <button type="button" data-reset>reset</button>
+    </div>
+  </div>
+</div>
+
+<script>
+  import { artSvg, DEFAULT_QUIET, FAMILIES } from "../lib/art/generate";
+  import { PIECES } from "../lib/art/pieces";
+
+  const root = document.querySelector("[data-art-picker]") as HTMLElement;
+  const holder = document.querySelector(".backdrop-svg");
+  const toggle = root.querySelector(".adp-toggle") as HTMLButtonElement;
+  const panel = root.querySelector(".adp-panel") as HTMLElement;
+  const source = root.querySelector("[data-source]") as HTMLSelectElement;
+  const seedEl = root.querySelector("[data-seed]") as HTMLInputElement;
+  const dialsEl = root.querySelector("[data-dials]") as HTMLElement;
+  const copyBtn = root.querySelector("[data-copy]") as HTMLButtonElement;
+
+  const slug = location.pathname.replace(/^\/|\/$/g, "") || "post";
+  const params: Record<string, number> = {};
+
+  /* auto = untouched server render; pieces and families are overrides */
+  source.innerHTML = [
+    `<option value="">(page default)</option>`,
+    `<optgroup label="pieces">${Object.keys(PIECES)
+      .map((n) => `<option value="piece:${n}">${n}</option>`)
+      .join("")}</optgroup>`,
+    `<optgroup label="families">${FAMILIES.map(
+      (f) => `<option value="family:${f}">${f}</option>`,
+    ).join("")}</optgroup>`,
+  ].join("");
+
+  const selected = () => {
+    const [kind, name] = source.value.split(":");
+    return source.value ? { kind, name } : null;
+  };
+
+  const buildDials = () => {
+    const sel = selected();
+    const piece = sel?.kind === "piece" ? PIECES[sel.name] : null;
+    for (const k of Object.keys(params)) delete params[k];
+    dialsEl.innerHTML = "";
+    if (!piece) return;
+    for (const spec of piece.params) {
+      params[spec.key] = spec.default;
+      const row = document.createElement("label");
+      row.className = "adp-row";
+      row.innerHTML = `<span class="adp-lbl">${spec.label}</span><input type="range" min="${spec.min}" max="${spec.max}" step="${spec.step}" value="${spec.default}" data-key="${spec.key}" /><output>${spec.default}</output>`;
+      const input = row.querySelector("input") as HTMLInputElement;
+      const out = row.querySelector("output") as HTMLOutputElement;
+      input.addEventListener("input", () => {
+        params[spec.key] = Number(input.value);
+        out.textContent = input.value;
+        regen();
+      });
+      dialsEl.append(row);
+    }
+  };
+
+  const regen = () => {
+    if (!holder) return;
+    const sel = selected();
+    holder.innerHTML = artSvg({
+      seedKey: seedEl.value.trim() || slug,
+      piece: sel?.kind === "piece" ? sel.name : undefined,
+      family:
+        sel?.kind === "family"
+          ? (sel.name as (typeof FAMILIES)[number])
+          : undefined,
+      params: { ...params },
+      width: 1600,
+      height: 640,
+      quiet: DEFAULT_QUIET,
+      quietStrength: 0.4,
+    });
+  };
+
+  const frontmatter = () => {
+    const sel = selected();
+    const lines = ["art:"];
+    if (sel?.kind === "piece") lines.push(`  piece: ${sel.name}`);
+    if (sel?.kind === "family") lines.push(`  family: ${sel.name}`);
+    const seed = seedEl.value.trim();
+    if (seed) lines.push(`  seed: ${seed}`);
+    const piece = sel?.kind === "piece" ? PIECES[sel.name] : null;
+    const changed = piece
+      ? piece.params.filter((s) => params[s.key] !== s.default)
+      : [];
+    if (changed.length > 0) {
+      lines.push("  params:");
+      for (const s of changed) lines.push(`    ${s.key}: ${params[s.key]}`);
+    }
+    return `${lines.join("\n")}\n`;
+  };
+
+  toggle.addEventListener("click", () => {
+    panel.hidden = !panel.hidden;
+  });
+  source.addEventListener("input", () => {
+    buildDials();
+    regen();
+  });
+  seedEl.addEventListener("input", regen);
+  (root.querySelector("[data-shuffle]") as HTMLElement).addEventListener(
+    "click",
+    () => {
+      seedEl.value = Math.random().toString(36).slice(2, 8);
+      regen();
+    },
+  );
+  (root.querySelector("[data-reset]") as HTMLElement).addEventListener(
+    "click",
+    () => {
+      source.value = "";
+      seedEl.value = "";
+      buildDials();
+      location.reload();
+    },
+  );
+  copyBtn.addEventListener("click", async () => {
+    await navigator.clipboard.writeText(frontmatter());
+    copyBtn.textContent = "copied";
+    setTimeout(() => {
+      copyBtn.textContent = "copy frontmatter";
+    }, 1200);
+  });
+
+  if (!holder) {
+    toggle.disabled = true;
+    toggle.title = "art picker: this page uses a frontmatter image";
+  }
+</script>
+
+<!-- global because the dial rows are created by the script and would
+     miss Astro's scoped-style attribute; everything nests under the
+     root class so nothing leaks (dev-only anyway) -->
+<style is:global>
+  .art-dev-picker {
+    position: fixed;
+    left: 0.55rem;
+    bottom: 0.55rem;
+    z-index: 90;
+    font-family: var(--font-mono);
+  }
+
+  .art-dev-picker .adp-toggle {
+    width: 2rem;
+    height: 2rem;
+    border-radius: 50%;
+    border: 1px solid var(--border-color);
+    background: var(--bg);
+    color: var(--code-color);
+    box-shadow: var(--float-shadow);
+    cursor: pointer;
+    font-size: 0.85rem;
+  }
+
+  .art-dev-picker .adp-toggle:disabled {
+    opacity: 0.4;
+    cursor: default;
+  }
+
+  .art-dev-picker .adp-panel {
+    position: absolute;
+    left: 0;
+    bottom: 2.5rem;
+    width: 16.5rem;
+    max-height: 70vh;
+    overflow-y: auto;
+    padding: 0.7rem 0.8rem;
+    background: var(--bg);
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    box-shadow: var(--float-shadow);
+    display: flex;
+    flex-direction: column;
+    gap: 0.55rem;
+  }
+
+  .art-dev-picker .adp-row {
+    display: flex;
+    align-items: center;
+    gap: 0.45rem;
+    font-size: 0.6rem;
+  }
+
+  .art-dev-picker .adp-lbl {
+    flex: none;
+    width: 3.6rem;
+    color: var(--date-color);
+    font-size: 0.52rem;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+  }
+
+  .art-dev-picker select,
+  .art-dev-picker input[type="text"],
+  .art-dev-picker button:not(.adp-toggle) {
+    font-family: inherit;
+    font-size: 0.6rem;
+    color: var(--text-color);
+    background: var(--code-background);
+    border: 1px solid var(--border-color);
+    border-radius: 5px;
+    padding: 0.2rem 0.4rem;
+    min-width: 0;
+  }
+
+  .art-dev-picker select {
+    flex: 1;
+  }
+
+  .art-dev-picker input[type="text"] {
+    flex: 1;
+    width: 5rem;
+  }
+
+  .art-dev-picker input[type="range"] {
+    flex: 1;
+    min-width: 0;
+    accent-color: var(--code-color);
+  }
+
+  .art-dev-picker output {
+    min-width: 2.2em;
+    text-align: right;
+    color: var(--heading-color);
+    font-size: 0.58rem;
+  }
+
+  .art-dev-picker button:not(.adp-toggle) {
+    cursor: pointer;
+  }
+
+  .art-dev-picker button:not(.adp-toggle):hover {
+    color: var(--heading-color);
+    border-color: var(--date-color);
+  }
+
+  .art-dev-picker .adp-actions {
+    justify-content: flex-end;
+  }
+</style>

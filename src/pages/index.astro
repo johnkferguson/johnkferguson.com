@@ -32,6 +32,8 @@ function thumbSvg(post: CollectionEntry<"posts">): string {
 	return artSvg({
 		seedKey: post.data.art?.seed ?? post.id,
 		family: post.data.art?.family,
+		piece: post.data.art?.piece,
+		params: post.data.art?.params,
 		width: 800,
 		height: 560,
 	});

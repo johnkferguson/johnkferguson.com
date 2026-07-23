@@ -20,7 +20,9 @@ interface Props {
 	draftBadge?: boolean;
 	art?: {
 		family?: "strata" | "field" | "walk" | "depth";
+		piece?: string;
 		seed?: string;
+		params?: Record<string, number>;
 		image?: string;
 	};
 }
@@ -47,11 +49,21 @@ const formattedDate = pubDate.toLocaleDateString("en-US", {
 
 /* Backdrop art: an explicit image wins; otherwise generate a fixed piece
  * seeded by the slug (stable across builds and visits). */
+/* dev-only in-place art picker; the dynamic import keeps its script and
+ * styles out of production bundles entirely (a static import leaks the
+ * CSS into every post's stylesheet even when the component never
+ * renders) */
+const ArtDevPicker = import.meta.env.DEV
+	? (await import("../components/ArtDevPicker.astro")).default
+	: null;
+
 const backdropSvg = art?.image
 	? null
 	: artSvg({
 			seedKey: art?.seed ?? slug ?? title,
 			family: art?.family,
+			piece: art?.piece,
+			params: art?.params,
 			width: 1600,
 			height: 640,
 			/* thin the art where the overlaid title sits */
@@ -100,6 +112,7 @@ const backdropSvg = art?.image
       </div>
     </div>
     <BackToTop railCoversWide={(headings ?? []).some((h) => h.depth === 2)} />
+    {ArtDevPicker && <ArtDevPicker />}
   </div>
 </BaseLayout>
 
