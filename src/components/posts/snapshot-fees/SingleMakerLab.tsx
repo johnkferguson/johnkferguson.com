@@ -273,28 +273,6 @@ function Param({
 	);
 }
 
-function ZoomIcon({ plus }: { plus?: boolean }) {
-	return (
-		<svg
-			width="13"
-			height="13"
-			viewBox="0 0 24 24"
-			fill="none"
-			stroke="currentColor"
-			strokeWidth="2.2"
-			strokeLinecap="round"
-			strokeLinejoin="round"
-			aria-hidden="true"
-			style={{ display: "block" }}
-		>
-			<circle cx="11" cy="11" r="7" />
-			<line x1="20.5" y1="20.5" x2="16" y2="16" />
-			<line x1="8" y1="11" x2="14" y2="11" />
-			{plus && <line x1="11" y1="8" x2="11" y2="14" />}
-		</svg>
-	);
-}
-
 interface DragState {
 	i: number;
 	y0: number;
@@ -321,10 +299,12 @@ export default function SingleMakerLab() {
 	const [centerSide, setCenterSide] = useState<"bid" | "ask">("bid");
 	const [mHover, setMHover] = useState(false);
 	const [feeHover, setFeeHover] = useState<number | null>(null);
-	const [feePinned, setFeePinned] = useState<number | null>(null);
 	const [zoom, setZoom] = useState(1); // default view: ±7.5bps
 	const lastM = useRef(100);
 	const drag = useRef<DragState | null>(null);
+	const svgRef = useRef<SVGSVGElement | null>(null);
+	const zoneDrag = useRef<0 | 1 | null>(null);
+	const [zoneGrab, setZoneGrab] = useState<0 | 1 | null>(null);
 
 	/* stable identity so the model memo only recomputes on real input
 	 * changes, not on every hover/zoom render */
@@ -352,19 +332,11 @@ export default function SingleMakerLab() {
 		if (model.state === "fresh") lastM.current = model.M;
 	}, [model.M, model.state]);
 
-	useEffect(() => {
-		const onKey = (e: KeyboardEvent) => {
-			if (e.key === "Escape") setFeePinned(null);
-		};
-		window.addEventListener("keydown", onKey);
-		return () => window.removeEventListener("keydown", onKey);
-	}, []);
-
 	// —— chart geometry ——
 	// Top strip (y 0…PT) holds the Mark carriage and band-edge labels; below
 	// the price axis, a key strip and instructions close the frame.
 	const W = 960;
-	const H = 520;
+	const H = 514;
 	const PL = 84;
 	const PR = 884;
 	const PT = 58;
@@ -443,16 +415,45 @@ export default function SingleMakerLab() {
 				});
 		};
 
-	const togglePin = (i: number) => {
-		if (!model.levels[i]?.bk) return;
-		setFeePinned((p) => (p === i ? null : i));
+	const onUp = () => {
+		drag.current = null;
 	};
 
-	const onUp = (_e: PointerEvent, i: number) => {
-		const d = drag.current;
-		drag.current = null;
-		if (d && !d.moved) togglePin(i);
+	// —— zone-edge drag: either side's Zone Edge line retunes Z, as in the
+	// Base Fee lab. Distance is read against the band edge the line hangs off.
+	const priceFromClientX = (clientX: number) => {
+		const r = svgRef.current?.getBoundingClientRect();
+		if (!r) return 100;
+		const sx = ((clientX - r.left) / r.width) * W;
+		return priceAt(loI) + ((sx - PL - PAD) / step) * TICK;
 	};
+	const applyZoneDrag = (e: PointerEvent) => {
+		const side = zoneDrag.current;
+		if (side == null) return;
+		const p = priceFromClientX(e.clientX);
+		const dist =
+			side === 0 ? (model.edgeBid - p) / BP : (p - model.edgeAsk) / BP;
+		const v = Math.max(2, Math.min(20, Math.round(dist * 2) / 2));
+		if (v !== Z) touch("Z", Z, setZ)(v);
+	};
+	const zoneStrip = (side: 0 | 1) => ({
+		onPointerEnter: () => setZoneGrab(side),
+		onPointerLeave: () => setZoneGrab((g) => (g === side ? null : g)),
+		onPointerDown: (e: PointerEvent) => {
+			(e.currentTarget as SVGRectElement).setPointerCapture(e.pointerId);
+			zoneDrag.current = side;
+			applyZoneDrag(e);
+		},
+		onPointerMove: (e: PointerEvent) => {
+			if (zoneDrag.current === side) applyZoneDrag(e);
+		},
+		onPointerUp: () => {
+			zoneDrag.current = null;
+		},
+		onPointerCancel: () => {
+			zoneDrag.current = null;
+		},
+	});
 
 	const btn = (active: boolean) => ({
 		background: active ? "var(--lab-btn-active-bg)" : "var(--lab-btn-bg)",
@@ -467,7 +468,7 @@ export default function SingleMakerLab() {
 
 	// —— partner highlighting: the exact dollars paired with the hovered
 	// level, located inside each partner bar via the spillover order ——
-	const tip = feeHover ?? feePinned;
+	const tip = feeHover;
 	const tipLv = tip != null ? model.levels[tip] : null;
 	const tipBk = tipLv?.bk ?? null;
 	const tipFeeY = tipBk ? yFee(tipBk.final) : null;
@@ -520,209 +521,201 @@ export default function SingleMakerLab() {
 					position: "relative",
 				}}
 			>
-				{/* every dial in one place — no advanced split */}
 				<div
 					style={{
-						display: "grid",
-						gridTemplateColumns: "repeat(3, minmax(0, 1fr))",
-						gap: "10px 16px",
+						fontSize: 12,
+						fontStyle: "italic",
+						color: C.faint,
+						textAlign: "center",
 						margin: "0 10px",
-						padding: "10px 4px 8px",
 						borderTop: `1px solid ${C.line}`,
+						padding: "6px 12px 6px",
+						lineHeight: 1.5,
 					}}
 				>
-					<Param
-						name="Typical demand · D"
-						val={D}
-						set={touch("D", D, setD)}
-						min={1000}
-						max={30000}
-						stp={500}
-						suffix="$"
-						hint="Per side size for measuring M."
-					/>
-					<Param
-						name="Inner Band · B"
-						val={B}
-						set={touch("B", B, setB)}
-						min={1}
-						max={10}
-						stp={0.5}
-						suffix="bps"
-						hint="Width B, drawn M ± B/2."
-					/>
-					<Param
-						name="Maker Zone · Z"
-						val={Z}
-						set={touch("Z", Z, setZ)}
-						min={2}
-						max={20}
-						stp={0.5}
-						suffix="bps"
-						hint="Working radius past the band edge."
-					/>
-					<Param
-						name="Fee Cap · F"
-						val={F}
-						set={touch("F", F, setF)}
-						min={5}
-						max={25}
-						stp={0.5}
-						suffix="bps"
-						hint="Taker rate. Every fee's ceiling."
-					/>
-					<Param
-						name="Zone Slope · k₁"
-						val={slope}
-						set={touch("k", slope, setSlope)}
-						min={0.25}
-						max={3}
-						stp={0.05}
-						suffix="×"
-						warn={slope >= 1}
-						hint="Fee per bps inside the zone."
-					/>
-					<Param
-						name="Far Slope · k₂"
-						val={slope2}
-						set={touch("k2", slope2, setSlope2)}
-						min={0.25}
-						max={3}
-						stp={0.05}
-						suffix="×"
-						hint="Fee per bps beyond the zone."
-					/>
+					Instructions: Hover a bar for its fee and paired liquidity, or{" "}
+					<span style={{ color: C.mark }}>M</span> for the walk that set it.
+					Adjust the market: drag a bar's top edge, double-click 100.000 to flip
+					its side, zoom out for the whole book, and retune the dials. Scenarios
+					below.
 				</div>
+				{/* dials left, readouts right — the readout column absorbs the
+				    width the full-panel grid used to waste on stretched sliders */}
 				<div
 					style={{
 						display: "flex",
 						flexWrap: "wrap",
-						gap: "12px 34px",
+						gap: "4px 24px",
 						alignItems: "flex-start",
-						background: C.inset,
-						border: `1px solid ${C.line}`,
-						borderRadius: 6,
-						margin: "6px 10px 14px",
-						padding: "11px 16px",
+						margin: "0 10px",
 					}}
 				>
 					<div
 						style={{
-							display: "flex",
-							flexDirection: "column",
-							gap: 3,
-							flex: "0 0 auto",
+							flex: "2 1 400px",
+							minWidth: 300,
+							display: "grid",
+							gridTemplateColumns: "repeat(3, minmax(0, 1fr))",
+							gap: "10px 16px",
+							padding: "10px 4px 4px",
 						}}
 					>
-						<span style={label}>Full fee reached</span>
-						<span style={{ fontFamily: mono, fontSize: 12, color: C.text }}>
-							{(B / 2 + fullFeeBps({ F, Z, slope, slope2 })).toFixed(1)}
-							bps from M
-						</span>
+						<Param
+							name="Typical demand · D"
+							val={D}
+							set={touch("D", D, setD)}
+							min={1000}
+							max={30000}
+							stp={500}
+							suffix="$"
+							hint="Per side size for measuring M."
+						/>
+						<Param
+							name="Inner Band · B"
+							val={B}
+							set={touch("B", B, setB)}
+							min={1}
+							max={10}
+							stp={0.5}
+							suffix="bps"
+							hint="Width B, drawn M ± B/2."
+						/>
+						<Param
+							name="Maker Zone · Z"
+							val={Z}
+							set={touch("Z", Z, setZ)}
+							min={2}
+							max={20}
+							stp={0.5}
+							suffix="bps"
+							hint="Working radius past the band edge."
+						/>
+						<Param
+							name="Fee Cap · F"
+							val={F}
+							set={touch("F", F, setF)}
+							min={5}
+							max={25}
+							stp={0.5}
+							suffix="bps"
+							hint="Taker rate. Every fee's ceiling."
+						/>
+						<Param
+							name="Zone Slope · k₁"
+							val={slope}
+							set={touch("k", slope, setSlope)}
+							min={0.25}
+							max={3}
+							stp={0.05}
+							suffix="×"
+							warn={slope >= 1}
+							hint="Fee per bps inside the zone."
+						/>
+						<Param
+							name="Far Slope · k₂"
+							val={slope2}
+							set={touch("k2", slope2, setSlope2)}
+							min={0.25}
+							max={3}
+							stp={0.05}
+							suffix="×"
+							hint="Fee per bps beyond the zone."
+						/>
 					</div>
-					{effect && (
-						<div
-							class="sf-effect"
-							style={{
-								display: "flex",
-								gap: 8,
-								alignItems: "flex-start",
-								flex: "1 1 260px",
-								minWidth: 220,
-							}}
-						>
-							<svg
-								width="14"
-								height="14"
-								viewBox="0 0 24 24"
-								fill="none"
-								stroke="currentColor"
-								strokeWidth="2"
-								strokeLinecap="round"
-								strokeLinejoin="round"
-								aria-hidden="true"
-								style={{
-									display: "inline",
-									color: C.hint,
-									flex: "0 0 auto",
-									marginTop: 2,
-								}}
-							>
-								<path d="M9 18h6" />
-								<path d="M10 22h4" />
-								<path d="M12 2a7 7 0 0 0-4 12.7c.6.5 1 1.4 1 2.3h6c0-.9.4-1.8 1-2.3A7 7 0 0 0 12 2z" />
-							</svg>
-							<span
-								style={{
-									fontSize: 12.5,
-									color: effect.warn ? C.danger : C.text,
-									lineHeight: 1.5,
-								}}
-							>
-								{effect.t}
-							</span>
-						</div>
-					)}
-				</div>
-				<div style={{ position: "relative" }}>
-					{/* zoom control above the right axis: view only — the book and M never change */}
 					<div
 						style={{
-							position: "absolute",
-							top: 0,
-							right: 6,
+							flex: "1 1 200px",
+							minWidth: 190,
 							display: "flex",
-							alignItems: "center",
-							gap: 4,
+							flexDirection: "column",
+							gap: 8,
+							padding: "10px 0 4px",
 						}}
 					>
-						<button
-							type="button"
-							disabled={zoom >= ZOOM_HALVES.length - 1}
-							onClick={() =>
-								setZoom((z) => Math.min(ZOOM_HALVES.length - 1, z + 1))
-							}
-							title="Zoom out: show more of the book"
-							aria-label="Zoom out"
+						<div
 							style={{
-								...btn(false),
-								padding: "4px 7px",
-								boxShadow: "none",
-								opacity: zoom >= ZOOM_HALVES.length - 1 ? 0.35 : 1,
-								cursor: zoom >= ZOOM_HALVES.length - 1 ? "default" : "pointer",
+								display: "flex",
+								flexDirection: "column",
+								alignItems: "center",
+								gap: 3,
+								background: C.inset,
+								border: `1px solid ${C.line}`,
+								borderRadius: 6,
+								padding: "6px 10px",
 							}}
 						>
-							<ZoomIcon />
-						</button>
-						<span
-							style={{
-								fontFamily: mono,
-								fontSize: 10.5,
-								color: C.faint,
-								width: 54,
-								textAlign: "center",
-							}}
-						>
-							±{viewHalf % 2 ? (viewHalf / 2).toFixed(1) : viewHalf / 2}bps
-						</span>
-						<button
-							type="button"
-							disabled={zoom === 0}
-							onClick={() => setZoom((z) => Math.max(0, z - 1))}
-							title="Zoom in"
-							aria-label="Zoom in"
-							style={{
-								...btn(false),
-								padding: "4px 7px",
-								boxShadow: "none",
-								opacity: zoom === 0 ? 0.35 : 1,
-								cursor: zoom === 0 ? "default" : "pointer",
-							}}
-						>
-							<ZoomIcon plus />
-						</button>
+							<span style={{ ...label, fontSize: 9.5, letterSpacing: "0.1em" }}>
+								Full Fee Reached
+							</span>
+							<span
+								style={{
+									fontFamily: mono,
+									fontSize: 11.5,
+									color: C.text,
+									whiteSpace: "nowrap",
+								}}
+							>
+								{(B / 2 + fullFeeBps({ F, Z, slope, slope2 })).toFixed(1)}
+								bps from M
+							</span>
+							<div
+								style={{
+									alignSelf: "stretch",
+									borderTop: `1px solid ${C.line}`,
+									margin: "4px 0 5px",
+								}}
+							/>
+							{/* dial narration: a fixed three-line area inside the box so
+							    tips shift nothing; a faint prompt holds it when idle */}
+							<div style={{ alignSelf: "stretch", minHeight: 58 }}>
+								{effect ? (
+									<div
+										class="sf-effect"
+										style={{
+											display: "flex",
+											gap: 8,
+											alignItems: "flex-start",
+										}}
+									>
+										<svg
+											width="14"
+											height="14"
+											viewBox="0 0 24 24"
+											fill="none"
+											stroke="currentColor"
+											strokeWidth="2"
+											strokeLinecap="round"
+											strokeLinejoin="round"
+											aria-hidden="true"
+											style={{
+												display: "inline",
+												color: C.hint,
+												flex: "0 0 auto",
+												marginTop: 2,
+											}}
+										>
+											<path d="M9 18h6" />
+											<path d="M10 22h4" />
+											<path d="M12 2a7 7 0 0 0-4 12.7c.6.5 1 1.4 1 2.3h6c0-.9.4-1.8 1-2.3A7 7 0 0 0 12 2z" />
+										</svg>
+										<span
+											style={{
+												fontSize: 12.5,
+												color: effect.warn ? C.danger : C.text,
+												lineHeight: 1.5,
+											}}
+										>
+											{effect.t}
+										</span>
+									</div>
+								) : null}
+							</div>
+						</div>
 					</div>
+				</div>
+				<div>
 					<svg
+						ref={svgRef}
 						viewBox={`0 0 ${W} ${H}`}
 						style={{ width: "100%", display: "block", touchAction: "none" }}
 						role="img"
@@ -968,18 +961,17 @@ export default function SingleMakerLab() {
 						{model.levels.map((lv) =>
 							lv.side === "mid" || !inView(lv.i) ? null : (
 								<g key={lv.i}>
-									{/* bar body: hovering reads the level's fee, clicking pins it */}
-									{/* biome-ignore lint/a11y/noStaticElementInteractions: SVG hover surface; the fee dots are the accessible pin control */}
+									{/* bar body: hovering reads the level's fee */}
+									{/* biome-ignore lint/a11y/noStaticElementInteractions: SVG hover surface */}
 									<rect
 										x={xAt(lv.i) - step / 2}
 										y={PT}
 										width={step}
 										height={PB - PT}
 										fill="transparent"
-										style={{ cursor: lv.bk ? "pointer" : "default" }}
+										style={{ cursor: "default" }}
 										onPointerEnter={() => setFeeHover(lv.bk ? lv.i : null)}
 										onPointerLeave={() => setFeeHover(null)}
-										onClick={() => togglePin(lv.i)}
 										onDblClick={() => {
 											if (lv.i === CENTER)
 												setCenterSide((cs) => (cs === "bid" ? "ask" : "bid"));
@@ -999,7 +991,7 @@ export default function SingleMakerLab() {
 										onPointerLeave={() => setFeeHover(null)}
 										onPointerDown={(e) => onDown(e, lv.i)}
 										onPointerMove={onMove}
-										onPointerUp={(e) => onUp(e, lv.i)}
+										onPointerUp={onUp}
 										onPointerCancel={() => {
 											drag.current = null;
 										}}
@@ -1128,7 +1120,7 @@ export default function SingleMakerLab() {
 								key={l.i}
 								cx={xAt(l.i)}
 								cy={yFee(l.bk?.final ?? 0)}
-								r={feeHover === l.i || feePinned === l.i ? 5.5 : 4}
+								r={feeHover === l.i ? 5.5 : 4}
 								strokeWidth={1.5}
 								pointerEvents="none"
 								style={{ fill: C.fee, stroke: C.panel }}
@@ -1136,23 +1128,14 @@ export default function SingleMakerLab() {
 						))}
 						{/* fee hit zones — hover a dot for its breakdown */}
 						{feePts.map((l) => (
-							// biome-ignore lint/a11y/useSemanticElements: SVG hit area — a real <button> cannot exist inside <svg>
 							<circle
 								key={l.i}
 								cx={xAt(l.i)}
 								cy={yFee(l.bk?.final ?? 0)}
 								r={13}
 								fill="transparent"
-								role="button"
-								tabIndex={0}
-								aria-label={`Pin fee details for ${fmtPx(l.price)}`}
 								onPointerEnter={() => setFeeHover(l.i)}
 								onPointerLeave={() => setFeeHover(null)}
-								onClick={() => togglePin(l.i)}
-								onKeyDown={(e) => {
-									if (e.key === "Enter") togglePin(l.i);
-								}}
-								style={{ cursor: "pointer" }}
 							/>
 						))}
 
@@ -1192,9 +1175,11 @@ export default function SingleMakerLab() {
 						)}
 
 						{/* key — its own strip below the price axis */}
+						{/* both rows centered on the plot's midline: the states on top,
+						    the hover highlights beneath */}
 						<g pointerEvents="none" style={{ fontFamily: mono }}>
 							<rect
-								x={212}
+								x={288}
 								y={PB + 46}
 								width={14}
 								height={14}
@@ -1202,7 +1187,7 @@ export default function SingleMakerLab() {
 								style={{ fill: C.bid }}
 							/>
 							<text
-								x={233}
+								x={309}
 								y={PB + 59}
 								fontSize={16}
 								style={{ fill: C.dim, fontFamily: mono }}
@@ -1210,7 +1195,7 @@ export default function SingleMakerLab() {
 								Bids
 							</text>
 							<rect
-								x={301}
+								x={383}
 								y={PB + 46}
 								width={14}
 								height={14}
@@ -1218,16 +1203,31 @@ export default function SingleMakerLab() {
 								style={{ fill: C.ask }}
 							/>
 							<text
-								x={322}
+								x={404}
 								y={PB + 59}
 								fontSize={16}
 								style={{ fill: C.dim, fontFamily: mono }}
 							>
 								Asks
 							</text>
+							<circle
+								cx={485}
+								cy={PB + 53}
+								r={6}
+								strokeWidth={1}
+								style={{ fill: C.fee, stroke: C.panel }}
+							/>
+							<text
+								x={498}
+								y={PB + 59}
+								fontSize={16}
+								style={{ fill: C.dim, fontFamily: mono }}
+							>
+								Fee if Fully Filled
+							</text>
 							<rect
-								x={390}
-								y={PB + 46}
+								x={205}
+								y={PB + 72}
 								width={14}
 								height={14}
 								fill="url(#sf-hatch)"
@@ -1235,40 +1235,250 @@ export default function SingleMakerLab() {
 								style={{ stroke: C.dim }}
 							/>
 							<text
-								x={411}
-								y={PB + 59}
+								x={226}
+								y={PB + 85}
 								fontSize={16}
 								style={{ fill: C.dim, fontFamily: mono }}
 							>
 								Directional
 							</text>
-							<circle
-								cx={553}
-								cy={PB + 53}
-								r={6}
-								strokeWidth={1}
-								style={{ fill: C.fee, stroke: C.panel }}
+							<rect
+								x={368}
+								y={PB + 72}
+								width={14}
+								height={14}
+								rx={1.5}
+								fill="none"
+								strokeWidth={1.75}
+								style={{ stroke: C.text }}
 							/>
 							<text
-								x={566}
-								y={PB + 59}
+								x={389}
+								y={PB + 85}
 								fontSize={16}
 								style={{ fill: C.dim, fontFamily: mono }}
 							>
-								Fee if Fully Filled
+								Paired Liquidity
 							</text>
+							<rect
+								x={579}
+								y={PB + 72}
+								width={14}
+								height={14}
+								rx={2}
+								strokeWidth={1.25}
+								style={{ fill: C.markSlice, stroke: C.mark }}
+							/>
 							<text
-								x={W / 2}
-								y={PB + 90}
-								textAnchor="middle"
-								fontSize={12.5}
-								style={{ fill: C.faint, fontFamily: mono, fontStyle: "italic" }}
+								x={600}
+								y={PB + 85}
+								fontSize={16}
+								style={{ fill: C.dim, fontFamily: mono }}
 							>
-								Instructions: Drag a bar's top edge to resize it. Hover a bar
-								for its fee, <tspan style={{ fill: C.mark }}>M</tspan> for its
-								math. Double-click 100.000 to flip its side.
+								Contributing to M
 							</text>
 						</g>
+
+						{/* zoom rides the key strip's left end as one segmented control
+						    (⊖ | ±bps | ⊕), sized and styled to mirror Clear on the
+						    right. View only — the book and M never change. */}
+						<rect
+							x={26}
+							y={PB + 50}
+							width={138}
+							height={32}
+							rx={6}
+							strokeWidth={1}
+							style={{
+								fill: "var(--lab-chartbtn-bg)",
+								stroke: C.line,
+								filter: "var(--lab-btn-drop)",
+							}}
+						/>
+						<line
+							x1={60}
+							x2={60}
+							y1={PB + 50}
+							y2={PB + 82}
+							strokeWidth={1}
+							style={{ stroke: C.line }}
+						/>
+						<line
+							x1={130}
+							x2={130}
+							y1={PB + 50}
+							y2={PB + 82}
+							strokeWidth={1}
+							style={{ stroke: C.line }}
+						/>
+						<svg
+							x={35}
+							y={PB + 58}
+							width={16}
+							height={16}
+							viewBox="0 0 24 24"
+							fill="none"
+							stroke="currentColor"
+							strokeWidth={2.2}
+							strokeLinecap="round"
+							strokeLinejoin="round"
+							aria-hidden="true"
+							opacity={zoom >= ZOOM_HALVES.length - 1 ? 0.35 : 1}
+							style={{ color: C.dim }}
+						>
+							<circle cx="11" cy="11" r="7" />
+							<line x1="20.5" y1="20.5" x2="16" y2="16" />
+							<line x1="8" y1="11" x2="14" y2="11" />
+						</svg>
+						<text
+							x={95}
+							y={PB + 71}
+							textAnchor="middle"
+							fontSize={14}
+							pointerEvents="none"
+							style={{ fill: C.dim, fontFamily: mono }}
+						>
+							±{viewHalf % 2 ? (viewHalf / 2).toFixed(1) : viewHalf / 2}bps
+						</text>
+						<svg
+							x={139}
+							y={PB + 58}
+							width={16}
+							height={16}
+							viewBox="0 0 24 24"
+							fill="none"
+							stroke="currentColor"
+							strokeWidth={2.2}
+							strokeLinecap="round"
+							strokeLinejoin="round"
+							aria-hidden="true"
+							opacity={zoom === 0 ? 0.35 : 1}
+							style={{ color: C.dim }}
+						>
+							<circle cx="11" cy="11" r="7" />
+							<line x1="20.5" y1="20.5" x2="16" y2="16" />
+							<line x1="8" y1="11" x2="14" y2="11" />
+							<line x1="11" y1="8" x2="11" y2="14" />
+						</svg>
+						{/* biome-ignore lint/a11y/useSemanticElements: SVG hit area — a real <button> cannot exist inside <svg> */}
+						<rect
+							x={26}
+							y={PB + 50}
+							width={34}
+							height={32}
+							fill="transparent"
+							role="button"
+							tabIndex={0}
+							aria-label="Zoom out: show more of the book"
+							onClick={() =>
+								setZoom((z) => Math.min(ZOOM_HALVES.length - 1, z + 1))
+							}
+							onKeyDown={(e) => {
+								if (e.key === "Enter")
+									setZoom((z) => Math.min(ZOOM_HALVES.length - 1, z + 1));
+							}}
+							style={{
+								cursor: zoom >= ZOOM_HALVES.length - 1 ? "default" : "pointer",
+							}}
+						/>
+						{/* biome-ignore lint/a11y/useSemanticElements: SVG hit area — a real <button> cannot exist inside <svg> */}
+						<rect
+							x={130}
+							y={PB + 50}
+							width={34}
+							height={32}
+							fill="transparent"
+							role="button"
+							tabIndex={0}
+							aria-label="Zoom in"
+							onClick={() => setZoom((z) => Math.max(0, z - 1))}
+							onKeyDown={(e) => {
+								if (e.key === "Enter") setZoom((z) => Math.max(0, z - 1));
+							}}
+							style={{ cursor: zoom === 0 ? "default" : "pointer" }}
+						/>
+
+						{/* Clear rides the key strip, right-aligned: empties the book */}
+						{/* biome-ignore lint/a11y/useSemanticElements: SVG hit area — a real <button> cannot exist inside <svg> */}
+						<g
+							role="button"
+							tabIndex={0}
+							aria-label="Clear the book"
+							onClick={() => {
+								setSizes(Array(N).fill(0));
+								setScenario(null);
+							}}
+							onKeyDown={(e) => {
+								if (e.key === "Enter") {
+									setSizes(Array(N).fill(0));
+									setScenario(null);
+								}
+							}}
+							style={{ cursor: "pointer" }}
+						>
+							<rect
+								x={858}
+								y={PB + 50}
+								width={76}
+								height={32}
+								rx={6}
+								strokeWidth={1}
+								style={{
+									fill: "var(--lab-chartbtn-bg)",
+									stroke: C.line,
+									filter: "var(--lab-btn-drop)",
+								}}
+							/>
+							<text
+								x={896}
+								y={PB + 71}
+								textAnchor="middle"
+								fontSize={15.5}
+								style={{ fill: C.dim, fontFamily: mono }}
+							>
+								Clear
+							</text>
+						</g>
+
+						{/* zone-edge drag handles: the triangle-and-label gutter above
+						    the plot drags Z, as in the Base Fee lab. Confined to the
+						    top strip so bar hover and resizing keep the whole plot. */}
+						{[model.edgeBid - Z * BP, model.edgeAsk + Z * BP].map(
+							(zp, side) => {
+								const zx = xOfPrice(zp);
+								if (zx < PL || zx > PR) return null;
+								const s = side as 0 | 1;
+								return (
+									<g key={s}>
+										<rect
+											x={zx - 20}
+											y={PT - 30}
+											width={40}
+											height={30}
+											fill="transparent"
+											style={{ cursor: "ew-resize" }}
+											{...zoneStrip(s)}
+										/>
+										{zoneGrab === s && (
+											<g pointerEvents="none">
+												<path
+													d={`M${zx - 9},${PT + 8} l -5,4 l 5,4`}
+													fill="none"
+													strokeWidth={1.5}
+													style={{ stroke: C.zone }}
+												/>
+												<path
+													d={`M${zx + 9},${PT + 8} l 5,4 l -5,4`}
+													fill="none"
+													strokeWidth={1.5}
+													style={{ stroke: C.zone }}
+												/>
+											</g>
+										)}
+									</g>
+								);
+							},
+						)}
 
 						{/* Mark carriage — the signature. Rides the top strip; hover for
 					    the walk that produced it. */}
@@ -1292,7 +1502,7 @@ export default function SingleMakerLab() {
 							/>
 							<rect
 								x={-58}
-								y={16}
+								y={8}
 								width={116}
 								height={22}
 								rx={4}
@@ -1301,7 +1511,7 @@ export default function SingleMakerLab() {
 							/>
 							<text
 								x={0}
-								y={32}
+								y={24}
 								textAnchor="middle"
 								fontSize={13.5}
 								style={{ fill: C.mark, fontFamily: mono }}
@@ -1312,7 +1522,7 @@ export default function SingleMakerLab() {
 							{/* hover hit zone: the label box and arrow only, not the line */}
 							<rect
 								x={-58}
-								y={14}
+								y={6}
 								width={116}
 								height={PT - 15}
 								fill="transparent"
@@ -1510,10 +1720,10 @@ export default function SingleMakerLab() {
 
 						{/* fee tooltip — itemized receipt in the fixed top-center slot
 					    (shares it with the M tooltip, which takes precedence) */}
-						{(feeHover ?? feePinned) != null &&
+						{feeHover != null &&
 							!mHover &&
 							(() => {
-								const tipI = feeHover ?? feePinned;
+								const tipI = feeHover;
 								if (tipI == null) return null;
 								const lv = model.levels[tipI];
 								const b = lv?.bk;
@@ -1613,13 +1823,6 @@ export default function SingleMakerLab() {
 									c: C.faint,
 									s: 12,
 								});
-								if (feePinned === tipI && feeHover == null)
-									rows.push({
-										t: "pinned. Click the dot again or press Esc",
-										c: C.faint,
-										s: 11.5,
-										gap: 7,
-									});
 								let yAcc = 24;
 								const placed = rows.map((r) => {
 									yAcc += r.gap ?? 0;
@@ -1631,12 +1834,7 @@ export default function SingleMakerLab() {
 								const xT = W / 2;
 								const yT = PT + 8;
 								return (
-									<g
-										pointerEvents={
-											feePinned === tipI && feeHover == null ? "auto" : "none"
-										}
-										style={{ userSelect: "text" }}
-									>
+									<g pointerEvents="none">
 										<rect
 											x={xT - 240}
 											y={yT}
@@ -1711,16 +1909,6 @@ export default function SingleMakerLab() {
 						style={btn(scenario === null)}
 					>
 						Custom
-					</button>
-					<button
-						type="button"
-						onClick={() => {
-							setSizes(Array(N).fill(0));
-							setScenario(null);
-						}}
-						style={{ ...btn(false), background: "transparent", color: C.faint }}
-					>
-						Clear
 					</button>
 				</div>
 				<div class="sf-caption">

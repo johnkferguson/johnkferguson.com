@@ -295,12 +295,27 @@ export default function DemandLab() {
 			>
 				<div
 					style={{
+						fontSize: 12,
+						fontStyle: "italic",
+						color: C.faint,
+						textAlign: "center",
+						margin: "0 10px",
+						borderTop: `1px solid ${C.line}`,
+						padding: "6px 12px 6px",
+						lineHeight: 1.5,
+					}}
+				>
+					Instructions: Drag a day's bar to set its demand, hover a day or a
+					table row to read all three chases, and adjust the dials to
+					recalibrate every line.
+				</div>
+				<div
+					style={{
 						display: "flex",
 						flexWrap: "wrap",
 						gap: "4px 16px",
 						alignItems: "stretch",
 						margin: "0 10px",
-						borderTop: `1px solid ${C.line}`,
 					}}
 				>
 					{/* —— left two-thirds: dials above, the chart below —— */}
@@ -570,19 +585,6 @@ export default function DemandLab() {
 								TEN DAYS OF TRADING
 							</text>
 						</svg>
-						<div
-							style={{
-								fontSize: 12,
-								fontStyle: "italic",
-								color: C.faint,
-								textAlign: "center",
-								padding: "4px 8px 8px",
-								lineHeight: 1.5,
-							}}
-						>
-							Instructions: Drag a day's bar to set its demand. Hover a day, or
-							a table row, to read all three chases. Dials apply to every line.
-						</div>
 					</div>
 
 					{/* —— right third: the run, live —— */}

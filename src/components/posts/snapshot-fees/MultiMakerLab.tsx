@@ -192,7 +192,7 @@ const SCENARIOS: Scenario[] = [
 		key: "incoherent",
 		title: "Rival Books",
 		blurb:
-			"Your two-sided market stands 5.5bps above the makers', too far for either book to lie within the other's measuring reach. The snapshot now holds two candidate eligible books, and M reads the larger one: the makers keep the mark, your book gets no voice, and its receipts are priced against a mark it had no hand in. Clear the makers and your book becomes the only candidate: M jumps to it. Only when two rival books stand at exactly equal eligible size is there no dominant candidate; then M holds its last value (the ❄ in the readout).",
+			"Your two-sided market stands 5.5bps above the makers', too far for either book to lie within the other's measuring reach. The snapshot now holds two candidate eligible books, and M reads the larger one: the makers keep the mark, your book gets no voice, and its receipts are priced against the mark their book set. Clear the makers and your book becomes the only candidate: M jumps to it. Only when two rival books stand at exactly equal eligible size is there no dominant candidate; then M holds its last value (the ❄ in the readout).",
 		you: () =>
 			bookOf({
 				[CENTER + 11]: 20000,
@@ -589,7 +589,7 @@ export default function MultiMakerLab() {
 	const PT = 58;
 	const MID = 298;
 	const PB = 538;
-	const H = 656;
+	const H = 628;
 	const AXIS_Y = PB + 4;
 	const PAD = 16;
 	const viewHalf = ZOOM_HALVES[zoom];
@@ -811,12 +811,27 @@ export default function MultiMakerLab() {
 			>
 				<div
 					style={{
+						fontSize: 12,
+						fontStyle: "italic",
+						color: C.faint,
+						textAlign: "center",
+						margin: "0 10px",
+						borderTop: `1px solid ${C.line}`,
+						padding: "6px 12px 6px",
+						lineHeight: 1.5,
+					}}
+				>
+					Instructions: Drag a bar's outer edge to resize it, hover a bar for
+					its fee or <span style={{ color: C.mark }}>M</span> for the walk, and
+					double-click your half of a level to flip its side.
+				</div>
+				<div
+					style={{
 						display: "grid",
 						gridTemplateColumns: "repeat(3, minmax(0, 1fr))",
 						gap: "10px 16px",
 						margin: "0 10px",
 						padding: "10px 4px 8px",
-						borderTop: `1px solid ${C.line}`,
 					}}
 				>
 					<Param
@@ -1823,17 +1838,6 @@ export default function MultiMakerLab() {
 								style={{ fill: C.dim, fontFamily: mono }}
 							>
 								Makers Fee if Filled
-							</text>
-							<text
-								x={W / 2}
-								y={PB + 104}
-								textAnchor="middle"
-								fontSize={12.5}
-								style={{ fill: C.faint, fontFamily: mono, fontStyle: "italic" }}
-							>
-								Instructions: Drag a bar's outer edge to resize it. Hover a bar
-								for its fee, <tspan style={{ fill: C.mark }}>M</tspan> for the
-								walk. Double-click your half of a level to flip its side.
 							</text>
 						</g>
 

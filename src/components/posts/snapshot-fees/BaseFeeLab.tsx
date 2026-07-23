@@ -124,7 +124,7 @@ const FEE_SCENARIOS: FeeScenario[] = [
 
 The Maker Zone extends 4bps beyond the band's edge. Within it, the fee rises 0.8bps for every 1bps of additional distance, so a maker's net edge still grows by 0.2bps per bps while pricing further out.
 
-The Far Slope raises the fee 0.95bps per 1bps of distance beyond the zone. Net edge still inches upward, 0.05bps per bps, until the Fee Cap is reached at 12.2bps from M.
+The Far Slope raises the fee 0.95bps per 1bps of distance beyond the zone. Net edge still creeps upward, 0.05bps per bps, until the Fee Cap is reached at 12.2bps from M.
 
 The Fee Cap is set to 10bps: past the full-fee point, resting far costs the same as a market order, never more.`,
 		params: { B: 2, Z: 4, F: 10, slope: 0.8, slope2: 0.95 },
@@ -380,12 +380,28 @@ export default function BaseFeeLab() {
 			>
 				<div
 					style={{
+						fontSize: 12,
+						fontStyle: "italic",
+						color: C.faint,
+						textAlign: "center",
+						margin: "0 10px",
+						borderTop: `1px solid ${C.line}`,
+						padding: "6px 12px 6px",
+						lineHeight: 1.5,
+					}}
+				>
+					Instructions: Step through the scenarios along the bottom; each
+					applies a calibration and its caption explains what to notice. Reshape
+					the schedule freely: adjust the dials, hover the chart to read it, or
+					drag the edges and cap by their lines.
+				</div>
+				<div
+					style={{
 						display: "flex",
 						flexWrap: "wrap",
 						gap: "4px 16px",
 						alignItems: "stretch",
 						margin: "0 10px",
-						borderTop: `1px solid ${C.line}`,
 					}}
 				>
 					{/* —— left two-thirds: controls above, the curve below —— */}
@@ -950,19 +966,6 @@ export default function BaseFeeLab() {
 								PLACEMENT · BPS FROM M
 							</text>
 						</svg>
-						<div
-							style={{
-								fontSize: 12,
-								fontStyle: "italic",
-								color: C.faint,
-								textAlign: "center",
-								padding: "4px 8px 8px",
-								lineHeight: 1.5,
-							}}
-						>
-							Instructions: Hover the chart to trace the schedule. Drag the Band
-							Edge, Zone Edge, or CAP by their lines or labels. Dials work too.
-						</div>
 					</div>
 
 					{/* —— right third: the schedule, live —— */}
@@ -1072,7 +1075,7 @@ export default function BaseFeeLab() {
 								lineHeight: 1.45,
 							}}
 						>
-							All values in bps. Rules mark the{" "}
+							All values in bps. Colored lines mark the{" "}
 							<span style={{ color: C.mark }}>Band Edge</span>,{" "}
 							<span style={{ color: C.zone }}>Zone Edge</span>, and{" "}
 							<span style={{ color: C.fee }}>Cap</span>.
