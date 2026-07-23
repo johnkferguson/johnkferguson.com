@@ -10,7 +10,12 @@
 import type { ArtPiece, QuietCtx } from "../core";
 import { quietRectPx, quietSpan } from "../core";
 import { CellGrid, pickShape } from "../primitives/blocks";
-import { HEART, spriteCols, spriteRows, spriteSvg } from "../primitives/sprite";
+import {
+	HEART,
+	spriteBlocks,
+	spriteCols,
+	spriteRows,
+} from "../primitives/sprite";
 
 interface Block {
 	c: number;
@@ -52,16 +57,19 @@ export const refactoringWithLove: ArtPiece = {
 		const rows = Math.ceil(h / cell);
 		const grid = new CellGrid(cols, rows);
 		const quiet = quietRectPx(q);
+		const gap = cell * 0.16;
+		const rx = cell * 0.14;
 
-		/* hearts claim their cells first so blocks pack around them; heart
-		 * pixels are full cells so the heart is built from the same blocks
-		 * as everything around it */
+		/* hearts claim their cells first so blocks pack around them. Each
+		 * heart is "solved": its bitmap is tiled with the same mix of
+		 * block shapes as the surrounding grid, in graded terracotta, so
+		 * it reads as assembled from the material around it */
 		const heartParts: string[] = [];
-		const px = cell;
-		const heartW = spriteCols(HEART) * px;
-		const heartH = spriteRows(HEART) * px;
+		const heartW = spriteCols(HEART) * cell;
+		const heartH = spriteRows(HEART) * cell;
 		const heartCellW = spriteCols(HEART);
 		const heartCellH = spriteRows(HEART);
+		const heartRows = spriteRows(HEART);
 		let placed = 0;
 		for (let attempt = 0; attempt < 220 && placed < p.hearts; attempt++) {
 			const c = Math.floor(r() * (cols - heartCellW + 1));
@@ -80,8 +88,15 @@ export const refactoringWithLove: ArtPiece = {
 			if (!grid.free(c, row, heartCellW, heartCellH)) continue;
 			grid.occupy(c, row, heartCellW, heartCellH);
 			/* one focal heart, the rest quieter */
-			const op = placed === 0 ? 0.7 : 0.3 + r() * 0.25;
-			heartParts.push(spriteSvg(HEART, x, y, px, "var(--code-color)", op));
+			const base = placed === 0 ? 0.75 : 0.35 + r() * 0.25;
+			for (const t of spriteBlocks(HEART, r)) {
+				/* gradation: random tonal steps per tile plus a mild
+				 * lightening toward the point */
+				const shade = (0.6 + r() * 0.4) * (1 - 0.2 * (t.row / (heartRows - 1)));
+				heartParts.push(
+					`<rect x="${(x + t.col * cell + gap / 2).toFixed(1)}" y="${(y + t.row * cell + gap / 2).toFixed(1)}" width="${(t.w * cell - gap).toFixed(1)}" height="${(t.h * cell - gap).toFixed(1)}" rx="${rx.toFixed(1)}" fill="var(--code-color)" opacity="${(base * shade).toFixed(2)}"/>`,
+				);
+			}
 			placed++;
 		}
 
@@ -101,8 +116,6 @@ export const refactoringWithLove: ArtPiece = {
 			usedCells += bw * bh;
 		}
 
-		const gap = cell * 0.16;
-		const rx = cell * 0.14;
 		const ghostParts: string[] = [];
 		const blockParts: string[] = [];
 		/* messy-side blocks eligible to be "mid-move"; spread the picks */
