@@ -42,7 +42,7 @@ export const refactoringWithLove: ArtPiece = {
 			default: 0.55,
 		},
 		{ key: "tidy", label: "tidy", min: 0, max: 1, step: 0.05, default: 0.65 },
-		{ key: "hearts", label: "hearts", min: 0, max: 5, step: 1, default: 3 },
+		{ key: "hearts", label: "hearts", min: 0, max: 5, step: 1, default: 2 },
 		{ key: "ghosts", label: "ghosts", min: 0, max: 4, step: 1, default: 2 },
 	],
 
@@ -53,13 +53,15 @@ export const refactoringWithLove: ArtPiece = {
 		const grid = new CellGrid(cols, rows);
 		const quiet = quietRectPx(q);
 
-		/* hearts claim their cells first so blocks pack around them */
+		/* hearts claim their cells first so blocks pack around them; heart
+		 * pixels are full cells so the heart is built from the same blocks
+		 * as everything around it */
 		const heartParts: string[] = [];
-		const px = cell / 2;
+		const px = cell;
 		const heartW = spriteCols(HEART) * px;
 		const heartH = spriteRows(HEART) * px;
-		const heartCellW = Math.ceil(spriteCols(HEART) / 2);
-		const heartCellH = Math.ceil(spriteRows(HEART) / 2);
+		const heartCellW = spriteCols(HEART);
+		const heartCellH = spriteRows(HEART);
 		let placed = 0;
 		for (let attempt = 0; attempt < 220 && placed < p.hearts; attempt++) {
 			const c = Math.floor(r() * (cols - heartCellW + 1));
