@@ -24,12 +24,19 @@
  * here as --ignore=GHSA-... args.
  */
 
+import { readFileSync } from "node:fs";
+
 interface Advisory {
 	id: number;
 	url: string;
 	title: string;
 	severity: string;
 	vulnerable_versions: string;
+}
+
+interface RegistryDoc {
+	versions: Record<string, unknown>;
+	time: Record<string, string>;
 }
 
 const WINDOW_ARG = process.argv.find((a) => a.startsWith("--window="));
@@ -41,13 +48,13 @@ const IGNORED = new Set(
 
 function cooldownSeconds(): number {
 	if (WINDOW_ARG) return Number(WINDOW_ARG.slice("--window=".length));
-	const bunfig = require("node:fs").readFileSync("bunfig.toml", "utf8");
+	const bunfig = readFileSync("bunfig.toml", "utf8");
 	const m = bunfig.match(/^\s*minimumReleaseAge\s*=\s*(\d+)/m);
 	if (!m) throw new Error("bunfig.toml: minimumReleaseAge not found");
 	return Number(m[1]);
 }
 
-const LOCK = require("node:fs").readFileSync("bun.lock", "utf8");
+const LOCK = readFileSync("bun.lock", "utf8");
 
 /** every version of `name` resolved in the lockfile */
 function installedVersions(name: string): string[] {
@@ -82,10 +89,7 @@ async function main() {
 
 	for (const [pkg, advisories] of Object.entries(report)) {
 		/* registry doc fetched once per package; `time` has publish dates */
-		let registry: {
-			versions: Record<string, unknown>;
-			time: Record<string, string>;
-		} | null = null;
+		let registry: RegistryDoc | null = null;
 
 		for (const adv of advisories) {
 			const id = ghsa(adv);
@@ -105,7 +109,7 @@ async function main() {
 				const res = await fetch(`https://registry.npmjs.org/${pkg}`);
 				if (!res.ok)
 					throw new Error(`registry fetch failed for ${pkg}: ${res.status}`);
-				registry = (await res.json()) as typeof registry;
+				registry = (await res.json()) as RegistryDoc;
 			}
 			const allVersions = Object.keys(registry.versions);
 			const ranges = declaredRanges(pkg);

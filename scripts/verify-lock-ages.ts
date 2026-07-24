@@ -4,6 +4,8 @@
  * plain bun install will accept the lockfile. Run after any lockfile
  * change before pushing: `bun scripts/verify-lock-ages.ts`. */
 
+export {}; /* top-level await needs module context for astro check's tsc */
+
 const diff = await Bun.$`git diff main -- bun.lock`.text();
 const added = new Set<string>();
 for (const line of diff.split("\n")) {
