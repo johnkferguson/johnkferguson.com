@@ -208,13 +208,44 @@
     };
   };
 
+  const inCrop = (f: { x: number; y: number }) =>
+    !!crop &&
+    f.x >= crop.x &&
+    f.x <= crop.x + crop.w &&
+    f.y >= crop.y &&
+    f.y <= crop.y + crop.h;
+
+  /* drawing a new rect, or grabbing the existing one to move it */
   let dragStart: { x: number; y: number } | null = null;
+  let dragMode: "new" | "move" | null = null;
+  let grabOffset = { x: 0, y: 0 };
   prevWrap.addEventListener("mousedown", (e) => {
-    dragStart = dragFrac(e);
+    const f = dragFrac(e);
+    if (crop && inCrop(f)) {
+      dragMode = "move";
+      grabOffset = { x: f.x - crop.x, y: f.y - crop.y };
+    } else {
+      dragMode = "new";
+      dragStart = f;
+    }
     e.preventDefault();
   });
   window.addEventListener("mousemove", (e) => {
-    if (!dragStart) return;
+    /* cursor telegraphs the two modes */
+    if (!dragMode) {
+      prevWrap.style.cursor = inCrop(dragFrac(e)) ? "move" : "crosshair";
+    }
+    if (dragMode === "move" && crop) {
+      const f = dragFrac(e);
+      crop = {
+        ...crop,
+        x: Math.min(Math.max(f.x - grabOffset.x, 0), 1 - crop.w),
+        y: Math.min(Math.max(f.y - grabOffset.y, 0), Math.max(1 - crop.h, 0)),
+      };
+      drawCropBox();
+      return;
+    }
+    if (dragMode !== "new" || !dragStart) return;
     const cur = dragFrac(e);
     /* aspect-locked: width leads, height follows */
     const w = Math.max(
@@ -233,10 +264,12 @@
     drawCropBox();
   });
   window.addEventListener("mouseup", () => {
-    if (!dragStart) return;
+    if (!dragMode) return;
+    const wasNew = dragMode === "new";
+    dragMode = null;
     dragStart = null;
     /* a mere click is not a crop */
-    if (crop && crop.w < 0.03) crop = null;
+    if (wasNew && crop && crop.w < 0.03) crop = null;
     regen();
   });
   prevWrap.addEventListener("dblclick", () => {
