@@ -90,8 +90,9 @@
   const params: Record<string, number> = {};
   let crop: Crop | null = null;
 
-  /* the thumb element's display aspect (7.6rem x 5.2rem); crop rects
-   * are locked to it so the chosen window fills the thumb exactly */
+  /* the thumb element's display aspect; crop rects are locked to it so
+   * the chosen window fills the thumb exactly. SYNC POINT: mirrors the
+   * 7.6rem x 5.2rem .thumb box in index.astro - update both together */
   const THUMB_ASPECT = 7.6 / 5.2;
   /* full composition is 1600x640: fraction-space height per width that
    * preserves THUMB_ASPECT in pixel space */
@@ -154,13 +155,12 @@
   };
 
   const regen = () => {
-    /* the live backdrop, exactly as PostLayout generates it */
-    if (holder) holder.innerHTML = artSvg(artOpts(1600, 640, true));
-    /* full piece, uncropped and unfaded (meet instead of slice) */
-    prevFull.innerHTML = artSvg(artOpts(1600, 640, true)).replace(
-      "xMidYMid slice",
-      "xMidYMid meet",
-    );
+    /* one 1600x640 render serves both the live backdrop (as PostLayout
+     * generates it) and the full preview (uncropped and unfaded: meet
+     * instead of slice) */
+    const backdrop = artSvg(artOpts(1600, 640, true));
+    if (holder) holder.innerHTML = backdrop;
+    prevFull.innerHTML = backdrop.replace("xMidYMid slice", "xMidYMid meet");
     /* the homepage thumb, mirroring index.astro: a crop window into
      * the backdrop composition when one is picked, else a fresh
      * same-seed render at thumb proportions */
@@ -231,6 +231,8 @@
     e.preventDefault();
   });
   window.addEventListener("mousemove", (e) => {
+    /* window-wide listener: bail before any rect math when closed */
+    if (panel.hidden) return;
     /* cursor telegraphs the two modes */
     if (!dragMode) {
       prevWrap.style.cursor = inCrop(dragFrac(e)) ? "move" : "crosshair";

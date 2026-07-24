@@ -78,14 +78,13 @@ export const refactoringWithLove: ArtPiece = {
 		 * block shapes as the surrounding grid, in graded terracotta, so
 		 * it reads as assembled from the material around it */
 		const heartParts: string[] = [];
-		const heartW = spriteCols(HEART) * cell;
-		const heartH = spriteRows(HEART) * cell;
-		const heartCellW = spriteCols(HEART);
-		const heartCellH = spriteRows(HEART);
+		const heartCols = spriteCols(HEART);
 		const heartRows = spriteRows(HEART);
+		const heartW = heartCols * cell;
+		const heartH = heartRows * cell;
 		let placed = 0;
 		const placeHeart = (c: number, row: number, atten: number) => {
-			grid.occupy(c, row, heartCellW, heartCellH);
+			grid.occupy(c, row, heartCols, heartRows);
 			const x = c * cell;
 			const y = row * cell;
 			/* one focal heart, the rest quieter */
@@ -110,8 +109,8 @@ export const refactoringWithLove: ArtPiece = {
 			placed++;
 		};
 		for (let attempt = 0; attempt < 220 && placed < p.hearts; attempt++) {
-			const c = Math.floor(r() * (cols - heartCellW + 1));
-			const row = Math.floor(r() * (rows - heartCellH + 1));
+			const c = Math.floor(r() * (cols - heartCols + 1));
+			const row = Math.floor(r() * (rows - heartRows + 1));
 			const x = c * cell;
 			const y = row * cell;
 			/* a heart behind the title is clutter; skip the zone outright */
@@ -123,7 +122,7 @@ export const refactoringWithLove: ArtPiece = {
 				y <= quiet.y1
 			)
 				continue;
-			if (!grid.free(c, row, heartCellW, heartCellH)) continue;
+			if (!grid.free(c, row, heartCols, heartRows)) continue;
 			placeHeart(c, row, 1);
 		}
 		/* the OG card's quiet zone covers so much canvas that no heart can
@@ -136,15 +135,14 @@ export const refactoringWithLove: ArtPiece = {
 		 * geometry (and the pinned-art snapshot) is untouched */
 		if (placed === 0 && p.hearts > 0) {
 			const atten = Math.max(q.strength, 0.55);
-			const cMin = Math.min(Math.floor(cols * 0.55), cols - heartCellW);
-			const rowMin = Math.min(Math.floor(rows * 0.4), rows - heartCellH);
+			const cMin = Math.min(Math.floor(cols * 0.55), cols - heartCols);
+			const rowMin = Math.min(Math.floor(rows * 0.4), rows - heartRows);
 			for (let attempt = 0; attempt < 220 && placed < 1; attempt++) {
 				const c =
-					cMin + Math.floor(r() * Math.max(1, cols - heartCellW + 1 - cMin));
+					cMin + Math.floor(r() * Math.max(1, cols - heartCols + 1 - cMin));
 				const row =
-					rowMin +
-					Math.floor(r() * Math.max(1, rows - heartCellH + 1 - rowMin));
-				if (!grid.free(c, row, heartCellW, heartCellH)) continue;
+					rowMin + Math.floor(r() * Math.max(1, rows - heartRows + 1 - rowMin));
+				if (!grid.free(c, row, heartCols, heartRows)) continue;
 				placeHeart(c, row, atten);
 			}
 		}
@@ -169,6 +167,7 @@ export const refactoringWithLove: ArtPiece = {
 		const blockParts: string[] = [];
 		/* messy-side blocks eligible to be "mid-move"; spread the picks */
 		const movable = blocks.filter((b) => b.orderT < 0.6);
+		const movableIdx = new Map(movable.map((b, i) => [b, i]));
 		const ghostEvery =
 			p.ghosts > 0 && movable.length > 0
 				? Math.max(1, Math.floor(movable.length / p.ghosts))
@@ -206,11 +205,12 @@ export const refactoringWithLove: ArtPiece = {
 			);
 
 			/* ghost: the dashed outline of where a mid-move block came from */
+			const idx = movableIdx.get(b);
 			const isGhost =
 				ghostEvery > 0 &&
 				ghostsDrawn < p.ghosts &&
-				b.orderT < 0.6 &&
-				movable.indexOf(b) % ghostEvery === 0;
+				idx !== undefined &&
+				idx % ghostEvery === 0;
 			if (isGhost) {
 				ghostsDrawn++;
 				const gdx = (1 + Math.round(r())) * cell * (r() < 0.5 ? -1 : 1);

@@ -130,7 +130,9 @@ const { Content: Blurb } = await render(blurbEntry);
 
 	// thumbs with pinned motion carry SMIL animations that start from
 	// rest: keep them paused (pixel-identical to static art) and run
-	// them only while the card is hovered
+	// them only while the card is hovered. Known trade: SMIL ignores
+	// prefers-reduced-motion natively and this script is the only gate,
+	// so with JS disabled the (gentle, from-rest) drift runs for everyone
 	const reduced = matchMedia("(prefers-reduced-motion: reduce)").matches;
 	for (const card of document.querySelectorAll<HTMLElement>(".post-card")) {
 		const svg = card.querySelector<SVGSVGElement>(".thumb svg");
