@@ -28,6 +28,12 @@ set -euo pipefail
 #     Reached only through @astrojs/check's language server. Runs against our
 #     own source during type checking, never against untrusted input.
 #
+# Advisories whose only fix is still inside bunfig's minimumReleaseAge
+# window need no entry here: audit-gate.ts waives them automatically
+# with the date they become actionable, and starts failing on its own
+# once the fix ages past the window. This list is only for permanent,
+# exposure-justified acceptances.
+#
 #   GHSA-c2c7-rcm5-vvqj  picomatch, ReDoS via extglob quantifiers
 #     Reached only through build-time glob handling, over glob patterns we
 #     author ourselves. No attacker-controlled input reaches it. (picomatch
@@ -54,4 +60,7 @@ IGNORES=(
   --ignore=GHSA-52cp-r559-cp3m
 )
 
-bun audit --audit-level=high "${IGNORES[@]}"
+# bun audit exits nonzero whenever it finds anything; the gate decides
+# what actually fails (see scripts/audit-gate.ts)
+REPORT="$(bun audit --json || true)"
+printf '%s' "$REPORT" | bun scripts/audit-gate.ts "${IGNORES[@]}"
