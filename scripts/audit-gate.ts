@@ -76,6 +76,24 @@ function declaredRanges(name: string): string[] {
 
 const ghsa = (adv: Advisory) => adv.url.split("/").pop() ?? String(adv.id);
 
+/** fetch with retries; still fails closed after them - a security gate
+ * that cannot see the registry should not guess */
+async function fetchRegistry(pkg: string): Promise<RegistryDoc> {
+	const url = `https://registry.npmjs.org/${pkg.replace("/", "%2f")}`;
+	let lastErr: unknown;
+	for (const delayMs of [0, 2000, 5000]) {
+		if (delayMs) await Bun.sleep(delayMs);
+		try {
+			const res = await fetch(url);
+			if (res.ok) return (await res.json()) as RegistryDoc;
+			lastErr = new Error(`status ${res.status}`);
+		} catch (e) {
+			lastErr = e;
+		}
+	}
+	throw new Error(`registry fetch failed for ${pkg}: ${lastErr}`);
+}
+
 async function main() {
 	const raw = await Bun.stdin.text();
 	const report: Record<string, Advisory[]> = raw.trim()
@@ -105,12 +123,7 @@ async function main() {
 			);
 			if (vulnerable.length === 0) continue;
 
-			if (!registry) {
-				const res = await fetch(`https://registry.npmjs.org/${pkg}`);
-				if (!res.ok)
-					throw new Error(`registry fetch failed for ${pkg}: ${res.status}`);
-				registry = (await res.json()) as RegistryDoc;
-			}
+			if (!registry) registry = await fetchRegistry(pkg);
 			const allVersions = Object.keys(registry.versions);
 			const ranges = declaredRanges(pkg);
 
@@ -121,13 +134,26 @@ async function main() {
 				const constraints = ranges.filter((r) =>
 					Bun.semver.satisfies(cur, r),
 				);
-				const fixes = allVersions.filter(
-					(v) =>
-						!v.includes("-") &&
-						Bun.semver.order(v, cur) > 0 &&
-						!Bun.semver.satisfies(v, adv.vulnerable_versions) &&
-						constraints.every((r) => Bun.semver.satisfies(v, r)),
-				);
+				/* an empty constraint set would silently widen the fix search
+				 * to versions no parent can actually resolve; fail loudly
+				 * instead - it means declaredRanges missed the binding range */
+				if (constraints.length === 0) {
+					failures++;
+					console.log(
+						`FAIL   ${label}\n       installed ${cur}, but no declared range in bun.lock matches it - the gate cannot tell which fixes are reachable; inspect manually`,
+					);
+					continue;
+				}
+				/* sorted ascending so reported versions are the minimal jump */
+				const fixes = allVersions
+					.filter(
+						(v) =>
+							!v.includes("-") &&
+							Bun.semver.order(v, cur) > 0 &&
+							!Bun.semver.satisfies(v, adv.vulnerable_versions) &&
+							constraints.every((r) => Bun.semver.satisfies(v, r)),
+					)
+					.sort((a, b) => Bun.semver.order(a, b));
 				if (fixes.length === 0) {
 					failures++;
 					console.log(
@@ -135,10 +161,26 @@ async function main() {
 					);
 					continue;
 				}
-				const ages = fixes.map((v) => ({
+				const dated = fixes.map((v) => ({
 					v,
 					published: Date.parse(registry?.time[v] ?? ""),
 				}));
+				/* a fix missing from the registry's time map would poison the
+				 * date math (NaN survives min/compare into toISOString) */
+				const undated = dated.filter((f) => Number.isNaN(f.published));
+				if (undated.length > 0) {
+					console.log(
+						`NOTE   ${pkg}: no registry publish date for ${undated.map((f) => f.v).join(", ")} - excluded from cooldown math`,
+					);
+				}
+				const ages = dated.filter((f) => !Number.isNaN(f.published));
+				if (ages.length === 0) {
+					failures++;
+					console.log(
+						`FAIL   ${label}\n       installed ${cur}; fixes exist (${fixes.join(", ")}) but none has a registry publish date, so their cooldown age cannot be verified - inspect manually`,
+					);
+					continue;
+				}
 				const eligible = ages.filter(
 					(f) => now - f.published >= windowSec * 1000,
 				);
