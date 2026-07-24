@@ -84,24 +84,12 @@ export const refactoringWithLove: ArtPiece = {
 		const heartCellH = spriteRows(HEART);
 		const heartRows = spriteRows(HEART);
 		let placed = 0;
-		for (let attempt = 0; attempt < 220 && placed < p.hearts; attempt++) {
-			const c = Math.floor(r() * (cols - heartCellW + 1));
-			const row = Math.floor(r() * (rows - heartCellH + 1));
+		const placeHeart = (c: number, row: number, atten: number) => {
+			grid.occupy(c, row, heartCellW, heartCellH);
 			const x = c * cell;
 			const y = row * cell;
-			/* a heart behind the title is clutter; skip the zone outright */
-			if (
-				quiet &&
-				x + heartW >= quiet.x0 &&
-				x <= quiet.x1 &&
-				y + heartH >= quiet.y0 &&
-				y <= quiet.y1
-			)
-				continue;
-			if (!grid.free(c, row, heartCellW, heartCellH)) continue;
-			grid.occupy(c, row, heartCellW, heartCellH);
 			/* one focal heart, the rest quieter */
-			const base = placed === 0 ? 0.75 : 0.35 + r() * 0.25;
+			const base = (placed === 0 ? 0.75 : 0.35 + r() * 0.25) * atten;
 			/* one drift + shimmer cadence per heart: its tiles move as one.
 			 * Amplitudes are sized to read at thumbnail scale, where the
 			 * whole composition is ~120 CSS px wide */
@@ -120,6 +108,45 @@ export const refactoringWithLove: ArtPiece = {
 				);
 			}
 			placed++;
+		};
+		for (let attempt = 0; attempt < 220 && placed < p.hearts; attempt++) {
+			const c = Math.floor(r() * (cols - heartCellW + 1));
+			const row = Math.floor(r() * (rows - heartCellH + 1));
+			const x = c * cell;
+			const y = row * cell;
+			/* a heart behind the title is clutter; skip the zone outright */
+			if (
+				quiet &&
+				x + heartW >= quiet.x0 &&
+				x <= quiet.x1 &&
+				y + heartH >= quiet.y0 &&
+				y <= quiet.y1
+			)
+				continue;
+			if (!grid.free(c, row, heartCellW, heartCellH)) continue;
+			placeHeart(c, row, 1);
+		}
+		/* the OG card's quiet zone covers so much canvas that no heart can
+		 * fit outside it - and a rendering of this piece without a heart
+		 * isn't the piece. Fall back to ONE heart, seeded within the
+		 * lower-right region (clear of the title block and the footer's
+		 * left side), attenuated but floored so the terracotta stays
+		 * legible under the card's own opacity. Never triggers on the
+		 * backdrop or thumbnail, whose zones leave room, so their
+		 * geometry (and the pinned-art snapshot) is untouched */
+		if (placed === 0 && p.hearts > 0) {
+			const atten = Math.max(q.strength, 0.55);
+			const cMin = Math.min(Math.floor(cols * 0.55), cols - heartCellW);
+			const rowMin = Math.min(Math.floor(rows * 0.4), rows - heartCellH);
+			for (let attempt = 0; attempt < 220 && placed < 1; attempt++) {
+				const c =
+					cMin + Math.floor(r() * Math.max(1, cols - heartCellW + 1 - cMin));
+				const row =
+					rowMin +
+					Math.floor(r() * Math.max(1, rows - heartCellH + 1 - rowMin));
+				if (!grid.free(c, row, heartCellW, heartCellH)) continue;
+				placeHeart(c, row, atten);
+			}
 		}
 
 		/* blocks: greedy random placement up to the density target */
