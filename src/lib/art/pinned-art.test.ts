@@ -25,10 +25,19 @@ interface PinnedArt {
 	motion?: boolean;
 }
 
-function coerce(raw: string): string | number | boolean {
+/* top-level art keys are strings or booleans; a quoted numeric seed
+ * ("123456") must STAY a string or hashSeed's charCodeAt explodes */
+function coerceScalar(raw: string): string | boolean {
 	const s = raw.replace(/^["']|["']$/g, "");
 	if (s === "true") return true;
 	if (s === "false") return false;
+	return s;
+}
+
+/* params/thumb values, where numbers are the point */
+function coerceNested(raw: string): string | number | boolean {
+	const s = coerceScalar(raw);
+	if (typeof s === "boolean") return s;
 	const n = Number(s);
 	return Number.isNaN(n) || s === "" ? s : n;
 }
@@ -54,11 +63,11 @@ function parseArt(md: string): PinnedArt | null {
 				art[key] = {};
 				nested = art[key];
 			} else {
-				art[key] = coerce(raw);
+				art[key] = coerceScalar(raw);
 				nested = null;
 			}
 		} else if (nested) {
-			nested[key] = coerce(raw);
+			nested[key] = coerceNested(raw);
 		}
 	}
 	return art.piece ? (art as PinnedArt) : null;
@@ -101,6 +110,17 @@ const pinned = readdirSync(POSTS_DIR, { withFileTypes: true })
 		const slug = e.name.replace(/\.md$/, "");
 		return art ? [{ slug, art }] : [];
 	});
+
+test("a quoted numeric seed parses as a string, not a number", () => {
+	const art = parseArt(
+		'---\ntitle: "x"\nart:\n  piece: refactoring-with-love\n  seed: "123456"\n  motion: true\n  params:\n    cell: 32\n---\nbody',
+	);
+	expect(art?.seed).toBe("123456");
+	expect(art?.motion).toBe(true);
+	expect(art?.params?.cell).toBe(32);
+	/* and the full pipeline must hash it, not throw */
+	expect(() => surfaceHashes("x", art as PinnedArt)).not.toThrow();
+});
 
 test("published pinned art matches its snapshot", () => {
 	const actual = Object.fromEntries(
