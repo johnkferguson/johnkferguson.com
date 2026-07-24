@@ -28,6 +28,12 @@ set -euo pipefail
 #     Reached only through @astrojs/check's language server. Runs against our
 #     own source during type checking, never against untrusted input.
 #
+#   GHSA-v2hh-gcrm-f6hx  fast-uri, host confusion via literal backslash authority
+#     Same language-server-only exposure as the two fast-uri entries above.
+#     Unlike those, this one is TEMPORARY: the fix (3.1.4) is in ajv's range
+#     but was published 2026-07-19, inside the 7-day release-age window. Drop
+#     this entry and re-resolve fast-uri on or after 2026-07-26.
+#
 #   GHSA-c2c7-rcm5-vvqj  picomatch, ReDoS via extglob quantifiers
 #     Reached only through build-time glob handling, over glob patterns we
 #     author ourselves. No attacker-controlled input reaches it. (picomatch
@@ -50,6 +56,7 @@ IGNORES=(
   --ignore=GHSA-5wm8-gmm8-39j9
   --ignore=GHSA-v39h-62p7-jpjc
   --ignore=GHSA-q3j6-qgpj-74h6
+  --ignore=GHSA-v2hh-gcrm-f6hx
   --ignore=GHSA-c2c7-rcm5-vvqj
   --ignore=GHSA-52cp-r559-cp3m
 )
