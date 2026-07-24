@@ -24,6 +24,8 @@ export const palette = {
 		"--date-color": "#98928b",
 		"--code-color": "#d08770",
 		"--accent-green": "#a3be8c",
+		/* block fills in the refactoring-with-love piece */
+		"--border-color": "#3a3533",
 		/* --accent-blue is deliberately absent: nothing in JS reads it, and
 		 * a token here that no code consumes is a sync burden that fails CI
 		 * over a value nobody used. If the art module starts emitting it,

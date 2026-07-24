@@ -34,7 +34,25 @@ const posts = defineCollection({
 		art: z
 			.object({
 				family: z.enum(["strata", "field", "walk", "depth"]).optional(),
+				/** bespoke generator from src/lib/art/pieces; wins over family */
+				piece: z.string().optional(),
 				seed: z.string().optional(),
+				/** dial overrides for the piece, keyed by its param spec */
+				params: z.record(z.string(), z.number()).optional(),
+				/** homepage-thumbnail crop of the backdrop artwork,
+				 * fractions of the composition (picked in the dev picker);
+				 * bounded so a hand-edited value cannot ship a garbage
+				 * viewBox silently */
+				thumb: z
+					.object({
+						x: z.number().min(0).max(1),
+						y: z.number().min(0).max(1),
+						w: z.number().min(0).max(1),
+						h: z.number().min(0).max(1),
+					})
+					.optional(),
+				/** animate the homepage thumbnail (seeded SMIL drift) */
+				motion: z.boolean().optional(),
 				image: z.string().optional(),
 			})
 			.optional(),
