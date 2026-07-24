@@ -95,6 +95,15 @@ export interface ParamSpec {
 	default: number;
 }
 
+/** per-render context beyond the dials */
+export interface PieceCtx {
+	/** emit SMIL motion. animRng is a SEPARATE seeded stream so motion
+	 * parameters never perturb the layout stream: an animated render is
+	 * geometrically identical to the static one */
+	animate?: boolean;
+	animRng?: () => number;
+}
+
 /**
  * A bespoke per-post artwork. Pieces are deterministic programs: the
  * same seed and params always render the same SVG body, so posts pin
@@ -112,6 +121,7 @@ export interface ArtPiece {
 		h: number,
 		q: QuietCtx,
 		p: Record<string, number>,
+		ctx?: PieceCtx,
 	): string;
 }
 

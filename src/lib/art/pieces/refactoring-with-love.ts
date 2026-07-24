@@ -7,7 +7,7 @@
  * through it like other art.
  */
 
-import type { ArtPiece, QuietCtx } from "../core";
+import type { ArtPiece, PieceCtx, QuietCtx } from "../core";
 import { quietRectPx, quietSpan } from "../core";
 import { CellGrid, pickShape } from "../primitives/blocks";
 import {
@@ -16,6 +16,18 @@ import {
 	spriteCols,
 	spriteRows,
 } from "../primitives/sprite";
+
+/* gentle seeded drift, additive so it composes with a rect's own
+ * rotate transform. Starts from rest at t=0 so a paused animation is
+ * pixel-identical to the static render — the homepage keeps thumbs
+ * paused and unpauses on card hover. Varied durations de-phase the
+ * motion once running */
+function driftSmil(ar: () => number, amp: number): string {
+	const dur = (6 + ar() * 6).toFixed(1);
+	const dx = ((ar() - 0.5) * 2 * amp).toFixed(1);
+	const dy = ((ar() - 0.5) * 2 * amp).toFixed(1);
+	return `<animateTransform attributeName="transform" additive="sum" type="translate" values="0 0; ${dx} ${dy}; 0 0" keyTimes="0; 0.5; 1" calcMode="spline" keySplines="0.4 0 0.6 1; 0.4 0 0.6 1" dur="${dur}s" repeatCount="indefinite"/>`;
+}
 
 interface Block {
 	c: number;
@@ -51,7 +63,8 @@ export const refactoringWithLove: ArtPiece = {
 		{ key: "ghosts", label: "ghosts", min: 0, max: 4, step: 1, default: 2 },
 	],
 
-	render(r, w, h, q: QuietCtx, p) {
+	render(r, w, h, q: QuietCtx, p, ctx?: PieceCtx) {
+		const ar = ctx?.animate ? ctx.animRng : undefined;
 		const cell = p.cell;
 		const cols = Math.ceil(w / cell);
 		const rows = Math.ceil(h / cell);
@@ -89,12 +102,19 @@ export const refactoringWithLove: ArtPiece = {
 			grid.occupy(c, row, heartCellW, heartCellH);
 			/* one focal heart, the rest quieter */
 			const base = placed === 0 ? 0.75 : 0.35 + r() * 0.25;
+			/* one drift + shimmer cadence per heart: its tiles move as one */
+			const heartDrift = ar ? driftSmil(ar, cell * 0.12) : "";
+			const shimmerDur = ar ? (7 + ar() * 4).toFixed(1) : "";
 			for (const t of spriteBlocks(HEART, r)) {
 				/* gradation: random tonal steps per tile plus a mild
 				 * lightening toward the point */
 				const shade = (0.6 + r() * 0.4) * (1 - 0.2 * (t.row / (heartRows - 1)));
+				const op = base * shade;
+				const anim = ar
+					? `${heartDrift}<animate attributeName="opacity" values="${op.toFixed(2)}; ${(op * 0.7).toFixed(2)}; ${op.toFixed(2)}" dur="${shimmerDur}s" repeatCount="indefinite"/>`
+					: "";
 				heartParts.push(
-					`<rect x="${(x + t.col * cell + gap / 2).toFixed(1)}" y="${(y + t.row * cell + gap / 2).toFixed(1)}" width="${(t.w * cell - gap).toFixed(1)}" height="${(t.h * cell - gap).toFixed(1)}" rx="${rx.toFixed(1)}" fill="var(--code-color)" opacity="${(base * shade).toFixed(2)}"/>`,
+					`<rect x="${(x + t.col * cell + gap / 2).toFixed(1)}" y="${(y + t.row * cell + gap / 2).toFixed(1)}" width="${(t.w * cell - gap).toFixed(1)}" height="${(t.h * cell - gap).toFixed(1)}" rx="${rx.toFixed(1)}" fill="var(--code-color)" opacity="${op.toFixed(2)}"${anim ? `>${anim}</rect>` : "/>"}`,
 				);
 			}
 			placed++;
@@ -150,8 +170,10 @@ export const refactoringWithLove: ArtPiece = {
 				Math.abs(rot) > 0.3
 					? ` transform="rotate(${rot.toFixed(1)} ${cx.toFixed(1)} ${cy.toFixed(1)})"`
 					: "";
+			/* unsettled blocks drift more than settled ones */
+			const anim = ar ? driftSmil(ar, cell * (0.05 + 0.1 * mess)) : "";
 			blockParts.push(
-				`<rect x="${x.toFixed(1)}" y="${y.toFixed(1)}" width="${bwPx.toFixed(1)}" height="${bhPx.toFixed(1)}" rx="${rx.toFixed(1)}" fill="${color}" opacity="${(op * f).toFixed(2)}"${transform}/>`,
+				`<rect x="${x.toFixed(1)}" y="${y.toFixed(1)}" width="${bwPx.toFixed(1)}" height="${bhPx.toFixed(1)}" rx="${rx.toFixed(1)}" fill="${color}" opacity="${(op * f).toFixed(2)}"${transform}${anim ? `>${anim}</rect>` : "/>"}`,
 			);
 
 			/* ghost: the dashed outline of where a mid-move block came from */

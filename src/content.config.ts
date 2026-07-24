@@ -39,6 +39,18 @@ const posts = defineCollection({
 				seed: z.string().optional(),
 				/** dial overrides for the piece, keyed by its param spec */
 				params: z.record(z.string(), z.number()).optional(),
+				/** homepage-thumbnail crop of the backdrop artwork,
+				 * fractions of the composition (picked in the dev picker) */
+				thumb: z
+					.object({
+						x: z.number(),
+						y: z.number(),
+						w: z.number(),
+						h: z.number(),
+					})
+					.optional(),
+				/** animate the homepage thumbnail (seeded SMIL drift) */
+				motion: z.boolean().optional(),
 				image: z.string().optional(),
 			})
 			.optional(),

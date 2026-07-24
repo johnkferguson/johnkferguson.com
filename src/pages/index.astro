@@ -3,7 +3,7 @@ import { type CollectionEntry, getEntry, render } from "astro:content";
 import ReadingTime from "../components/ReadingTime.astro";
 import { SITE_DESCRIPTION, SITE_NAME } from "../consts";
 import BaseLayout from "../layouts/BaseLayout.astro";
-import { artSvg } from "../lib/art/generate";
+import { artSvg, DEFAULT_QUIET } from "../lib/art/generate";
 import { createExcerpt } from "../lib/excerpt";
 import { getVisiblePosts, IS_DEV } from "../lib/posts";
 import { readingTimeMinutes } from "../lib/reading-time";
@@ -27,16 +27,30 @@ function formatDate(date: Date): string {
 }
 
 /* thumbnail = the same slug-seeded piece the post's backdrop uses, so
- * the list previews the artwork you land inside */
+ * the list previews the artwork you land inside. With a pinned thumb
+ * crop it is literally a window into the backdrop composition
+ * (generated with the same quiet options so geometry matches); without
+ * one it falls back to a fresh same-seed render at thumb proportions */
 function thumbSvg(post: CollectionEntry<"posts">): string {
-	return artSvg({
-		seedKey: post.data.art?.seed ?? post.id,
-		family: post.data.art?.family,
-		piece: post.data.art?.piece,
-		params: post.data.art?.params,
-		width: 800,
-		height: 560,
-	});
+	const art = post.data.art;
+	const common = {
+		seedKey: art?.seed ?? post.id,
+		family: art?.family,
+		piece: art?.piece,
+		params: art?.params,
+		animate: art?.motion,
+	};
+	if (art?.thumb) {
+		return artSvg({
+			...common,
+			width: 1600,
+			height: 640,
+			quiet: DEFAULT_QUIET,
+			quietStrength: 0.4,
+			crop: art.thumb,
+		});
+	}
+	return artSvg({ ...common, width: 800, height: 560 });
 }
 
 /* identity backdrop: fresh piece per visit (client script reseeds);
@@ -111,6 +125,23 @@ const { Content: Blurb } = await render(blurbEntry);
 			family: "field",
 			width: 800,
 			height: 900,
+		});
+	}
+
+	// thumbs with pinned motion carry SMIL animations that start from
+	// rest: keep them paused (pixel-identical to static art) and run
+	// them only while the card is hovered
+	const reduced = matchMedia("(prefers-reduced-motion: reduce)").matches;
+	for (const card of document.querySelectorAll<HTMLElement>(".post-card")) {
+		const svg = card.querySelector<SVGSVGElement>(".thumb svg");
+		if (!svg?.querySelector("animate, animateTransform")) continue;
+		svg.pauseAnimations();
+		svg.setCurrentTime(0);
+		if (reduced) continue;
+		card.addEventListener("mouseenter", () => svg.unpauseAnimations());
+		card.addEventListener("mouseleave", () => {
+			svg.pauseAnimations();
+			svg.setCurrentTime(0);
 		});
 	}
 </script>

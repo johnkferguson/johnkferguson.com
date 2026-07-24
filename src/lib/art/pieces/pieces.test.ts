@@ -45,6 +45,26 @@ describe.each(Object.keys(PIECES))("piece %s", (name) => {
 		}
 	});
 
+	test("motion adds animation without changing geometry", () => {
+		const base = {
+			seedKey: "fixed-seed",
+			piece: name,
+			width: 1600,
+			height: 640,
+			quiet: DEFAULT_QUIET,
+			quietStrength: 0.4,
+		};
+		const still = artSvg(base);
+		const animated = artSvg({ ...base, animate: true });
+		expect(animated).toContain("<animate");
+		/* stripping the animation nodes must recover the static render
+		 * exactly: motion draws from a separate seeded stream */
+		const stripped = animated
+			.replaceAll(/<animate(?:Transform)?\b[^>]*\/>/g, "")
+			.replaceAll("></rect>", "/>");
+		expect(stripped).toBe(still);
+	});
+
 	test("param overrides change the output", () => {
 		const spec = PIECES[name].params[0];
 		const base = { seedKey: "fixed-seed", piece: name };

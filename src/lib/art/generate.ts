@@ -35,6 +35,13 @@ export interface ArtOptions {
 	quiet?: QuietZone;
 	/** opacity multiplier inside the quiet zone, 0..1 (default 0.16) */
 	quietStrength?: number;
+	/** window into the composition (fractions of width/height); the
+	 * emitted viewBox covers only this region. Used by the homepage
+	 * thumbnail so it can show a chosen crop of the same artwork the
+	 * post's backdrop renders */
+	crop?: { x: number; y: number; w: number; h: number };
+	/** emit seeded SMIL motion (pieces only); geometry is unchanged */
+	animate?: boolean;
 }
 
 export function artSvg(opts: ArtOptions): string {
@@ -53,7 +60,11 @@ export function artSvg(opts: ArtOptions): string {
 		const piece = getPiece(opts.piece);
 		/* a frontmatter typo should fail the build, not ship fallback art */
 		if (!piece) throw new Error(`unknown art piece "${opts.piece}"`);
-		body = piece.render(r, w, h, q, resolveParams(piece.params, opts.params));
+		body = piece.render(r, w, h, q, resolveParams(piece.params, opts.params), {
+			animate: opts.animate,
+			/* decorrelated from the layout stream but still seed-stable */
+			animRng: rng(seed ^ 0x5bf03635),
+		});
 	} else {
 		const family = opts.family ?? FAMILIES[seed % FAMILIES.length];
 		body =
@@ -65,8 +76,12 @@ export function artSvg(opts: ArtOptions): string {
 						? depth(r, w, h, q)
 						: walk(r, w, h, q);
 	}
+	const c = opts.crop;
+	const viewBox = c
+		? `${(c.x * w).toFixed(1)} ${(c.y * h).toFixed(1)} ${(c.w * w).toFixed(1)} ${(c.h * h).toFixed(1)}`
+		: `0 0 ${w} ${h}`;
 	return [
-		`<svg viewBox="0 0 ${w} ${h}" xmlns="http://www.w3.org/2000/svg"`,
+		`<svg viewBox="${viewBox}" xmlns="http://www.w3.org/2000/svg"`,
 		` preserveAspectRatio="xMidYMid slice" role="img" aria-hidden="true">`,
 		body,
 		"</svg>",
