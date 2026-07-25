@@ -24,6 +24,8 @@ interface Props {
 	ogImage?: string;
 	type?: "website" | "article";
 	pubDate?: Date;
+	updated?: Date;
+	tags?: string[];
 	author?: string;
 	noindex?: boolean;
 	/* shown in the pinned header bar once the page's h1 scrolls off */
@@ -37,6 +39,8 @@ const {
 	ogImage,
 	type = "website",
 	pubDate,
+	updated,
+	tags,
 	author,
 	noindex,
 	headerContextTitle,
@@ -49,8 +53,8 @@ const {
   <head>
     <link rel="preload" href={newsreaderWoff2} as="font" type="font/woff2" crossorigin />
     <link rel="preload" href={firaCodeWoff2} as="font" type="font/woff2" crossorigin />
-    <Head title={title} description={description} ogImage={ogImage} type={type} pubDate={pubDate} noindex={noindex} />
-    <JsonLd type={type} title={title} description={description} ogImage={ogImage} pubDate={pubDate} author={author} />
+    <Head title={title} description={description} ogImage={ogImage} type={type} pubDate={pubDate} updated={updated} tags={tags} noindex={noindex} />
+    <JsonLd type={type} title={title} description={description} ogImage={ogImage} pubDate={pubDate} updated={updated} tags={tags} author={author} />
     <script define:vars={{ themeColors }}>
       (function() {
         // stored choice wins; else the OS preference; dark if neither.

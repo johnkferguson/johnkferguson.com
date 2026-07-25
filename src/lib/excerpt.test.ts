@@ -13,13 +13,26 @@ describe("createExcerpt", () => {
 	test("links keep their text, images vanish", () => {
 		expect(
 			createExcerpt("See [the paper](https://example.com) ![alt](/img.png) ok"),
-		).toBe("See the paper  ok");
+		).toBe("See the paper ok");
 	});
 
 	test("markdown syntax is stripped", () => {
 		expect(createExcerpt("# Title\n**bold** and `code` > quote")).toBe(
-			" Title\nbold and code  quote",
+			"Title bold and code quote",
 		);
+	});
+
+	test("excerpts are a single line, so meta content never holds a newline", () => {
+		const out = createExcerpt("First paragraph.\n\nSecond paragraph.");
+		expect(out).toBe("First paragraph. Second paragraph.");
+		expect(out).not.toMatch(/\s\s|[\n\r\t]/);
+	});
+
+	test("collapsing happens before the length budget is measured", () => {
+		/* 10 words padded with newlines: the budget must count the words,
+		 * not the whitespace that will never appear in the output */
+		const padded = `${"word\n\n".repeat(10)}end`;
+		expect(createExcerpt(padded, 24)).toBe("word word word word…");
 	});
 
 	test("escaped literal dollars render plain", () => {

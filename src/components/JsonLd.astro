@@ -7,6 +7,8 @@ interface Props {
 	description: string;
 	ogImage?: string;
 	pubDate?: Date;
+	updated?: Date;
+	tags?: string[];
 	author?: string;
 }
 
@@ -16,6 +18,8 @@ const {
 	description,
 	ogImage,
 	pubDate,
+	updated,
+	tags,
 	author = SITE_NAME,
 } = Astro.props;
 
@@ -55,6 +59,11 @@ const pageSchema =
 					name: author,
 				},
 				...(pubDate && { datePublished: pubDate.toISOString() }),
+				/* Google falls back to datePublished when dateModified is
+				 * absent; state it explicitly so an unrevised post is not
+				 * read as one of unknown freshness */
+				dateModified: (updated ?? pubDate)?.toISOString(),
+				...(tags?.length && { keywords: tags.join(", ") }),
 				mainEntityOfPage: { "@id": url },
 			}
 		: {
