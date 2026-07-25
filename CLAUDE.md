@@ -24,7 +24,7 @@ Draft posts (`src/content/posts/drafts/`, `draft: true`) render in dev only; pro
 - `src/pages/` - Astro pages and API routes
 - `src/layouts/` - BaseLayout.astro (all pages), PostLayout.astro (posts)
 - `src/components/` - Astro components (Head, SiteHeader, SiteFooter, JsonLd, icons/)
-- `src/components/labs/` - Interactive Preact islands for posts (theme via `--lab-*` CSS vars)
+- `src/components/posts/{slug}/` - Post-owned components (interactive Preact lab islands, charts; labs theme via `--lab-*` CSS vars). The generic `Lab.astro` frame (title strip, deep-link anchor, TOC discovery via `src/lib/remark-labs.mjs`) lives in `src/components/`
 - `src/lib/` - Pure TS modules (e.g. `snapshot-fees/engine.ts` — mechanism logic, unit-tested; components only render)
 - `src/pages/lab/` - Unpublished playground pages for in-progress interactive work (noindex, excluded from sitemap)
 - `src/styles/global.css` - import index only; the CSS lives in siblings it pulls in, in this order: `reset.css` (vendored preflight, imported into `@layer base`), `colors.css` (`:root` then `.dark` palette), `base.css` (type tokens + element defaults), `layout.css` (prose measures, shell, sticky system), `post-shell.css`, `prose.css` (article body), `print.css`. Order is meaningful — see the header comment before reordering
@@ -43,6 +43,33 @@ Draft posts (`src/content/posts/drafts/`, `draft: true`) render in dev only; pro
 - URL structure: posts at `/{slug}` (root level, not /posts/ or /blog/)
 - Heading hierarchy in posts is enforced by test (`src/lib/heading-structure.test.ts`): levels step down one at a time, never h2 -> h4. The TOC rail nests h2/h3/h4 on this assumption
 - Netlify deployment: static output to `dist/`
+
+## Prose Style (blog posts)
+
+Register varies by post (see the `pace` frontmatter field): technical and
+mechanism pieces are dry, precise, sustained argument; non-technical pieces
+(e.g. Refactoring with Love) are personal and warm, with short sentences,
+single-sentence paragraphs, and fragments used freely as pacing. Constant
+across every register:
+
+- Never use em dashes, in any text.
+- No marketing voice ("unlock", "key benefits"). State consequences as
+  facts, not benefits, and scope claims to what the design guarantees.
+- Avoid LLM tells: "can be viewed as", "as a design", "the right lens",
+  "X, not Y" framing, anthropomorphized subjects ("the schedule stops
+  caring").
+- Concrete specifics over abstractions; sincerity without irony.
+
+Technical pieces additionally:
+
+- Plain declarative sentences; no aphoristic register: no rhetorical
+  fragments, epigrams, mirror constructions, or snap colon payoffs
+  ("the one thing that accumulates: what you traded").
+- Forward references name and link the target section ("covered in
+  [The Dual-Flow Fit](#the-dual-flow-fit)"), never a bare "later".
+- A precise formulation lives in exactly one place; don't repeat the
+  same phrasing in the lede and the body.
+- Coined names (e.g. Snapshot Fees): italic at first use, roman after.
 
 ## Visual Verification
 
