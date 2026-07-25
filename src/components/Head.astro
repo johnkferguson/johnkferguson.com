@@ -11,7 +11,6 @@ interface Props {
 	title: string;
 	description: string;
 	ogImage?: string;
-	ogImageAlt?: string;
 	type?: "website" | "article";
 	pubDate?: Date;
 	updated?: Date;
@@ -23,7 +22,6 @@ const {
 	title,
 	description,
 	ogImage = "/assets/og-image.png",
-	ogImageAlt,
 	type = "website",
 	pubDate,
 	updated,
@@ -38,15 +36,30 @@ const fullTitle =
 		? `${title} | Software Engineer`
 		: `${title} | ${SITE_NAME}`;
 
-/* Dimensions describe OUR generated cards only (both routes render at
- * the shared OG size). A hand-supplied image of unknown size gets no
- * width/height rather than a confident lie, which scrapers trust. */
-const isGeneratedCard = new URL(ogImageURL).pathname.startsWith("/assets/og");
-const cardAlt =
-	ogImageAlt ??
-	(type === "article"
-		? `Title card reading "${title}" over generated artwork`
-		: `Card reading "${SITE_NAME}: ${SITE_TAGLINE}" over generated artwork`);
+/* Both the alt text and the dimensions describe OUR generated cards, so
+ * both are derived from the resolved path and cannot disagree about
+ * which image is in hand. Keying alt off `type` instead would assert a
+ * title card for any custom image an article supplied — the same
+ * confident-wrong-answer the dimensions guard avoids, in the one field
+ * a screen reader actually reads out.
+ *
+ * The two card routes are matched separately rather than by a shared
+ * "/assets/og" prefix, which would also swallow /assets/ogre.png and
+ * any future /assets/og-diagram.png. */
+const cardPath = new URL(ogImageURL).pathname;
+const isPostCard = cardPath.startsWith("/assets/og/");
+const isSiteCard = cardPath === "/assets/og-image.png";
+const isGeneratedCard = isPostCard || isSiteCard;
+
+/* An image we did not draw gets NO alt rather than a guess. Generic alt
+ * ("Card for X") would only repeat the headline the preview already
+ * shows, while implying the image holds nothing else — worse than
+ * silence for the person relying on it. */
+const cardAlt = isPostCard
+	? `Title card reading "${title}" over generated artwork`
+	: isSiteCard
+		? `Card reading "${SITE_NAME}: ${SITE_TAGLINE}" over generated artwork`
+		: null;
 const authorURL = new URL("/about", Astro.site).href;
 ---
 
@@ -68,7 +81,7 @@ const authorURL = new URL("/about", Astro.site).href;
 <meta property="og:title" content={fullTitle} />
 <meta property="og:description" content={description} />
 <meta property="og:image" content={ogImageURL} />
-<meta property="og:image:alt" content={cardAlt} />
+{cardAlt && <meta property="og:image:alt" content={cardAlt} />}
 {isGeneratedCard && (
 	<>
 		<meta property="og:image:type" content="image/png" />
@@ -85,15 +98,21 @@ const authorURL = new URL("/about", Astro.site).href;
 <meta name="twitter:title" content={fullTitle} />
 <meta name="twitter:description" content={description} />
 <meta name="twitter:image" content={ogImageURL} />
-<meta name="twitter:image:alt" content={cardAlt} />
+{cardAlt && <meta name="twitter:image:alt" content={cardAlt} />}
 <meta name="twitter:site" content={TWITTER_HANDLE} />
 <meta name="twitter:creator" content={TWITTER_HANDLE} />
 
-{/* Article-specific */}
-{pubDate && <meta property="article:published_time" content={pubDate.toISOString()} />}
-{updated && <meta property="article:modified_time" content={updated.toISOString()} />}
-{type === "article" && <meta property="article:author" content={authorURL} />}
-{type === "article" && (tags ?? []).map((tag) => <meta property="article:tag" content={tag} />)}
+{/* Article-specific: every article:* tag sits under one type guard, so a
+    non-article page that ever passes a pubDate cannot leak them onto an
+    og:type="website" page. */}
+{type === "article" && (
+	<>
+		{pubDate && <meta property="article:published_time" content={pubDate.toISOString()} />}
+		{updated && <meta property="article:modified_time" content={updated.toISOString()} />}
+		<meta property="article:author" content={authorURL} />
+		{(tags ?? []).map((tag) => <meta property="article:tag" content={tag} />)}
+	</>
+)}
 
 {/* RSS */}
 <link rel="alternate" type="application/rss+xml" href="/rss.xml" title={`${SITE_NAME}'s Blog`} />
