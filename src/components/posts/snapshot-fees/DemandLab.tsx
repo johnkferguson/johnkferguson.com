@@ -166,6 +166,14 @@ export default function DemandLab() {
 	const [hover, setHover] = useState<number | null>(null);
 	const svgRef = useRef<SVGSVGElement | null>(null);
 	const drag = useRef<DragState | null>(null);
+	// the last custom history, remembered when a scenario replaces it;
+	// the Custom button restores it
+	const [customSnap, setCustomSnap] = useState<{
+		flows: number[];
+		L: number;
+		seed: number;
+		floor: number;
+	} | null>(null);
 
 	const days: WindowGroup[][] = useMemo(
 		() => flows.map((f) => [[WINDOWS_PER_DAY, f * K] as WindowGroup]),
@@ -195,6 +203,7 @@ export default function DemandLab() {
 			)
 		: undefined;
 	const applyScenario = (sc: DemandScenario) => {
+		if (!activeScenario) setCustomSnap({ flows, L, seed, floor });
 		setFlows(sc.flows());
 		setL(L_DEFAULT);
 		setSeed(SEED_DEFAULT);
@@ -740,7 +749,22 @@ export default function DemandLab() {
 					))}
 					<button
 						type="button"
-						style={{ ...btn(!activeScenario), flex: "1 1 auto" }}
+						onClick={() => {
+							if (activeScenario && customSnap) {
+								setFlows(customSnap.flows);
+								setL(customSnap.L);
+								setSeed(customSnap.seed);
+								setFloor(customSnap.floor);
+							}
+						}}
+						title="Return to your last custom history"
+						style={{
+							...btn(!activeScenario),
+							flex: "1 1 auto",
+							...(activeScenario && !customSnap
+								? { opacity: 0.45, cursor: "default" }
+								: {}),
+						}}
 					>
 						Custom
 					</button>
@@ -748,7 +772,7 @@ export default function DemandLab() {
 				<div class="sf-caption">
 					{activeScenario
 						? renderBlurb(activeScenario.blurb)
-						: "Custom demand history, yours to shape. Drag the bars and dials freely; pick a scenario to return to a defined state."}
+						: "Custom demand history. Drag the bars and dials freely. Picking a scenario keeps this history in memory, and the Custom button brings it back."}
 				</div>
 			</div>
 		</div>

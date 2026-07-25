@@ -196,6 +196,11 @@ export default function BaseFeeLab() {
 	const svgRef = useRef<SVGSVGElement | null>(null);
 	const edgeDrag = useRef<EdgeDrag>(null);
 	const [grabHover, setGrabHover] = useState<EdgeDrag>(null);
+	// the last custom calibration, remembered when a scenario replaces it;
+	// the Custom button restores it
+	const [customSnap, setCustomSnap] = useState<FeeScenario["params"] | null>(
+		null,
+	);
 
 	// active scenario is derived, never stored: any dial state that exactly
 	// matches a defined calibration lights its button, custom otherwise
@@ -206,6 +211,7 @@ export default function BaseFeeLab() {
 		),
 	);
 	const applyScenario = (sc: FeeScenario) => {
+		if (!activeScenario) setCustomSnap({ B, Z, F, slope, slope2 });
 		setB(sc.params.B);
 		setZ(sc.params.Z);
 		setF(sc.params.F);
@@ -1100,7 +1106,23 @@ export default function BaseFeeLab() {
 					))}
 					<button
 						type="button"
-						style={{ ...btn(!activeScenario), flex: "1 1 auto" }}
+						onClick={() => {
+							if (activeScenario && customSnap) {
+								setB(customSnap.B);
+								setZ(customSnap.Z);
+								setF(customSnap.F);
+								setSlope(customSnap.slope);
+								setSlope2(customSnap.slope2);
+							}
+						}}
+						title="Return to your last custom calibration"
+						style={{
+							...btn(!activeScenario),
+							flex: "1 1 auto",
+							...(activeScenario && !customSnap
+								? { opacity: 0.45, cursor: "default" }
+								: {}),
+						}}
 					>
 						Custom
 					</button>
@@ -1109,7 +1131,7 @@ export default function BaseFeeLab() {
 					{renderBlurb(
 						activeScenario
 							? activeScenario.blurb
-							: "Custom calibration, yours to shape. Drag the edges or dials freely; pick a scenario to return to a defined state.",
+							: "Custom calibration. Drag the edges or dials freely. Picking a scenario keeps this calibration in memory, and the Custom button brings it back.",
 					)}
 				</div>
 			</div>

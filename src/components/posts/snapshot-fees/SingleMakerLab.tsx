@@ -305,6 +305,18 @@ export default function SingleMakerLab() {
 	const svgRef = useRef<SVGSVGElement | null>(null);
 	const zoneDrag = useRef<0 | 1 | null>(null);
 	const [zoneGrab, setZoneGrab] = useState<0 | 1 | null>(null);
+	// the last custom book and dials, remembered when a scenario replaces
+	// them; the Custom button restores them
+	const [customSnap, setCustomSnap] = useState<{
+		sizes: number[];
+		centerSide: "bid" | "ask";
+		B: number;
+		D: number;
+		F: number;
+		Z: number;
+		slope: number;
+		slope2: number;
+	} | null>(null);
 
 	/* stable identity so the model memo only recomputes on real input
 	 * changes, not on every hover/zoom render */
@@ -385,6 +397,8 @@ export default function SingleMakerLab() {
 	// Selecting a scenario resets the dials so its caption stays true;
 	// touching any dial (or dragging a bar) drops you into Custom.
 	const applyScenario = (sc: Scenario) => {
+		if (scenario === null)
+			setCustomSnap({ sizes, centerSide, B, D, F, Z, slope, slope2 });
 		setSizes(sc.book());
 		setCenterSide("bid");
 		setEffect(null);
@@ -1905,8 +1919,27 @@ export default function SingleMakerLab() {
 					))}
 					<button
 						type="button"
-						onClick={() => setScenario(null)}
-						style={btn(scenario === null)}
+						onClick={() => {
+							if (scenario !== null && customSnap) {
+								setSizes(customSnap.sizes);
+								setCenterSide(customSnap.centerSide);
+								setB(customSnap.B);
+								setD(customSnap.D);
+								setF(customSnap.F);
+								setZ(customSnap.Z);
+								setSlope(customSnap.slope);
+								setSlope2(customSnap.slope2);
+								setEffect(null);
+								setScenario(null);
+							}
+						}}
+						title="Return to your last custom book"
+						style={{
+							...btn(scenario === null),
+							...(scenario !== null && !customSnap
+								? { opacity: 0.45, cursor: "default" }
+								: {}),
+						}}
 					>
 						Custom
 					</button>
@@ -1914,7 +1947,7 @@ export default function SingleMakerLab() {
 				<div class="sf-caption">
 					{scenario
 						? SCENARIOS.find((sc) => sc.key === scenario)?.blurb
-						: "Custom setup, yours to shape. Drag bars and dials freely; pick a scenario to reset."}
+						: "Custom setup. Drag bars and dials freely. Picking a scenario keeps this book in memory, and the Custom button brings it back."}
 				</div>
 			</div>
 		</div>

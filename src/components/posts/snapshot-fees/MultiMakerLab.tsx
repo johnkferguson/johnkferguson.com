@@ -423,6 +423,22 @@ export default function MultiMakerLab() {
 	// crossed book. The aggregate book stays positional.
 	const [yourFlips, setYourFlips] = useState<ReadonlySet<number>>(new Set());
 	const [playing, setPlaying] = useState(false);
+	// the last custom market, remembered when a scenario replaces it; the
+	// Custom button restores it
+	const [customSnap, setCustomSnap] = useState<{
+		yourSizes: number[];
+		yourFlips: ReadonlySet<number>;
+		depth: number;
+		lean: number;
+		spread: number;
+		makerSizes: number[];
+		B: number;
+		D: number;
+		F: number;
+		Z: number;
+		slope: number;
+		slope2: number;
+	} | null>(null);
 	const [mHover, setMHover] = useState(false);
 	const [feeHover, setFeeHover] = useState<number | null>(null);
 	const [makerHover, setMakerHover] = useState<number | null>(null);
@@ -675,6 +691,21 @@ export default function MultiMakerLab() {
 		setMakerSizes(aggSizesOf(nd, nl, ns));
 	};
 	const applyScenario = (sc: Scenario) => {
+		if (scenario === null)
+			setCustomSnap({
+				yourSizes,
+				yourFlips,
+				depth,
+				lean,
+				spread,
+				makerSizes,
+				B,
+				D,
+				F,
+				Z,
+				slope,
+				slope2,
+			});
 		setYourSizes(sc.you());
 		setYourFlips(new Set(sc.flips ?? []));
 		setDepth(sc.depth);
@@ -2155,8 +2186,33 @@ export default function MultiMakerLab() {
 					))}
 					<button
 						type="button"
-						onClick={() => setScenario(null)}
-						style={{ ...btn(scenario === null), flex: "1 1 auto" }}
+						onClick={() => {
+							if (scenario !== null && customSnap) {
+								setYourSizes(customSnap.yourSizes);
+								setYourFlips(customSnap.yourFlips);
+								setDepth(customSnap.depth);
+								setLean(customSnap.lean);
+								setSpread(customSnap.spread);
+								setMakerSizes(customSnap.makerSizes);
+								setB(customSnap.B);
+								setD(customSnap.D);
+								setF(customSnap.F);
+								setZ(customSnap.Z);
+								setSlope(customSnap.slope);
+								setSlope2(customSnap.slope2);
+								setEffect(null);
+								setPlaying(false);
+								setScenario(null);
+							}
+						}}
+						title="Return to your last custom market"
+						style={{
+							...btn(scenario === null),
+							flex: "1 1 auto",
+							...(scenario !== null && !customSnap
+								? { opacity: 0.45, cursor: "default" }
+								: {}),
+						}}
 					>
 						Custom
 					</button>
@@ -2164,7 +2220,7 @@ export default function MultiMakerLab() {
 				<div class="sf-caption">
 					{scenario
 						? SCENARIOS.find((sc) => sc.key === scenario)?.blurb
-						: "Custom setup, yours to shape. Drag bars and dials freely; pick a scenario to reset."}
+						: "Custom setup. Drag bars and dials freely. Picking a scenario keeps this market in memory, and the Custom button brings it back."}
 				</div>
 			</div>
 		</div>
