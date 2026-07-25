@@ -185,6 +185,21 @@ article blockquote {
 	font-style: italic;
 }
 
+/* thematic break: a short, muted, pill-shaped bar centered in the
+ * measure rather than a full-width hairline */
+article hr {
+	border: 0;
+	height: 1px;
+	width: 33%;
+	/* the preceding paragraph's 1rem bottom margin collapses into this,
+	 * so the visible gap is 2.5rem on both sides */
+	margin: 2.5rem auto;
+	/* text-muted strength: clearly present in both modes without
+	 * reaching text contrast */
+	background: var(--date-color);
+	border-radius: 999px;
+}
+
 article pre {
 	margin-block: 1rem;
 	padding: 1rem;
