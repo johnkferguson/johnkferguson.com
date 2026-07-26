@@ -695,9 +695,9 @@ The mechanism's byproduct is a reference price. Each window exports $M$
 with its state and the impact spread, all recomputable from published
 data, and a mark that is measured at size and expensive to move is a
 candidate input for services beyond fees: settlement prints, indexes, and
-eventually riskier consumers.
+eventually higher-stakes consumers.
 
-As an example, on the riskier end of the consumer spectrum, a liquidation engine should never consume a single window's mark
+At the highest-stakes end of that spectrum, a liquidation engine should never consume a single window's mark
 directly; it would want machinery built around the mark, smoothing across
 windows, staleness bounds, health gating, so that moving the reference
 would mean sustaining a distortion across the whole lookback rather than

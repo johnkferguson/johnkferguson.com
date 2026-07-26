@@ -68,7 +68,7 @@ const SCENARIOS: Scenario[] = [
 		key: "taker",
 		title: "Directional Maker",
 		blurb:
-			"The same bid ladder, but ask depth grows far more slowly, so pairing runs out on the way to the edge. The inner book is unchanged, so M stays put and near quotes still trade free. The missing ask depth strands the outer bids: whatever has no liquidity paired against it pays like a taker, and the farthest bids hit F in full. Directional size is priced as the taker it is, level by level.",
+			"The same bid ladder, but ask depth grows far more slowly, so pairing runs out on the way to the edge. The inner book is unchanged, so M stays put and near quotes still trade free. The missing ask depth strands the outer bids: whatever has no liquidity paired against it pays the cap, and the farthest bids hit F in full.",
 		book: () => {
 			const a = Array(N).fill(0);
 			for (let k = 0; k < 30; k++) {
@@ -122,7 +122,7 @@ const SCENARIOS: Scenario[] = [
 		key: "spill",
 		title: "Spillover",
 		blurb:
-			"Three equal bids share one ask. The best bid pairs first and trades free; the middle one gets half; the last gets nothing and pays like a taker. Pairing is consumed, never reused. Hover the dots to watch it drain.",
+			"Three equal bids share one ask. The best bid pairs first and trades free; the middle one gets half; the last gets nothing and pays the cap. Pairing is consumed, never reused. Hover the dots to watch it drain.",
 		book: () =>
 			bookOf({
 				[CENTER - 1]: 6000,
@@ -285,7 +285,7 @@ export default function SingleMakerLab() {
 	const [B, setB] = useState(2); // inner band width, bps
 	const [D, setD] = useState(20000); // typical demand, $
 	// —— fee schedule ——
-	const [F, setF] = useState(10); // cap / taker rate, bps
+	const [F, setF] = useState(10); // cap: ceiling of the resting schedule, bps
 	const [Z, setZ] = useState(Z_DEFAULT); // Maker Zone, bps past the band edge
 	const [slope, setSlope] = useState(0.8); // k₁: base-fee bps per bp inside the zone
 	const [slope2, setSlope2] = useState(SLOPE2_DEFAULT); // k₂ beyond the zone
@@ -612,7 +612,7 @@ export default function SingleMakerLab() {
 							max={25}
 							stp={0.5}
 							suffix="bps"
-							hint="Taker rate. Every fee's ceiling."
+							hint="The most any resting order pays."
 						/>
 						<Param
 							name="Zone Slope · k₁"
@@ -1797,7 +1797,7 @@ export default function SingleMakerLab() {
 									const amt = (b.unpaired / b.q) * (F - b.own);
 									items.push({
 										amt,
-										t: `${amt$(amt, "+")} · ${pct}% directional → taker rate`,
+										t: `${amt$(amt, "+")} · ${pct}% directional → cap`,
 										c: C.ask,
 									});
 								}

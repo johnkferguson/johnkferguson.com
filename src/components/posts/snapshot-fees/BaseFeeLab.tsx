@@ -166,7 +166,7 @@ The knee becomes a policy lever: the market discounts the working width it wants
 
 The fee now reaches the cap at 7.3bps from M, inside the zone itself, so the Far Slope never engages. Every placement past the full-fee point prices identically: the schedule can no longer tell 8bps out from 20bps out.
 
-Set too low, the cap erases the distance signal the mechanism runs on. F protects resting orders from paying more than takers, but it has to be tuned together with the slopes and the zone.`,
+Set too low, the cap erases the distance signal the mechanism runs on. F caps what any resting order can pay, but it has to be tuned together with the slopes and the zone.`,
 		params: { B: 2, Z: 8, F: 5, slope: 0.8, slope2: 0.95 },
 	},
 ];
@@ -448,7 +448,7 @@ export default function BaseFeeLab() {
 								max={25}
 								stp={0.5}
 								suffix="bps"
-								hint="Taker rate. Every fee's ceiling."
+								hint="The most any resting order pays."
 							/>
 							<Param
 								name="Zone Slope · k₁"

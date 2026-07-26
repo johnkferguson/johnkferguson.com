@@ -177,7 +177,7 @@ const SCENARIOS: Scenario[] = [
 		key: "crossed",
 		title: "Crossed Market",
 		blurb:
-			"Your bid stands 2.5bps above the makers' best ask, at size, with your own ask behind it. A crossed book is not an error: the walks run per side, the impact prices cross, and M lands inside the overlap, pulled toward the aggressive bid. The crossing bid's own base fee is zero, since aggression is never charged for contesting the price. In a dual-flow venue makers never trade each other, so a cross like this drains through taker flow instead. A cross narrower than about two taker caps is not even an arbitrage, since a round trip pays the cap twice; a small cross is simply a better price for natural flow.",
+			"Your bid stands 2.5bps above the makers' best ask, at size, with your own ask behind it. A crossed book is not an error: the walks run per side, the impact prices cross, and M lands inside the overlap, pulled toward the aggressive bid. The crossing bid's own base fee is zero, since aggression is never charged for contesting the price. In a dual-flow venue makers never trade each other, so a cross like this drains through taker flow instead. A cross narrower than about twice the market-order rate is not even an arbitrage, since a round trip pays that rate twice; a small cross is simply a better price for natural flow.",
 		you: () =>
 			bookOf({
 				[CENTER + 6]: 20000,
@@ -903,7 +903,7 @@ export default function MultiMakerLab() {
 						max={25}
 						stp={0.5}
 						suffix="bps"
-						hint="Taker rate. Every fee's ceiling."
+						hint="The most any resting order pays."
 					/>
 					<Param
 						name="Zone Slope · k₁"
@@ -2054,7 +2054,7 @@ export default function MultiMakerLab() {
 									const amt = (b.unpaired / b.q) * (F - b.own);
 									items.push({
 										amt,
-										t: `${amt$(amt, "+")} · ${pct}% directional → taker rate`,
+										t: `${amt$(amt, "+")} · ${pct}% directional → cap`,
 										c: C.ask,
 									});
 								}
