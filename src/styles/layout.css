@@ -22,7 +22,9 @@
 	 * negative margin; any mismatch becomes scrollable height the body
 	 * does not have, and the footer can then never scroll flush to the
 	 * viewport bottom (a post's footer would sit higher than the
-	 * homepage's). Both sides read this variable so they cannot drift. */
-	--footer-h: 29px;
+	 * homepage's). Both sides read this variable so they cannot drift.
+	 * In rem, like its siblings, so the band scales with the 0.55rem text
+	 * it holds rather than staying fixed while the type grows. */
+	--footer-h: 1.45rem;
 	--anchor-offset: 80px;
 }

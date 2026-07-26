@@ -11,6 +11,12 @@
 
 /** One polite live region per page, not one per button. */
 let live: HTMLElement | null = null;
+/* Bumped on every announcement. Each caller keeps the token it was given
+ * and only clears if it is still the latest, so a button whose 1200ms
+ * timer expires cannot blank a message another button posted since. With
+ * one region shared between the heading anchors and the share strand,
+ * that overlap is a couple of clicks apart. */
+let announcementToken = 0;
 
 function liveRegion(): HTMLElement {
 	if (live?.isConnected) return live;
@@ -22,12 +28,15 @@ function liveRegion(): HTMLElement {
 	return live;
 }
 
-export function announce(message: string): void {
+export function announce(message: string): number {
 	const region = liveRegion();
 	region.textContent = message;
+	announcementToken += 1;
+	return announcementToken;
 }
 
-export function clearAnnouncement(): void {
+export function clearAnnouncement(token: number): void {
+	if (token !== announcementToken) return;
 	if (live?.isConnected) live.textContent = "";
 }
 
@@ -50,37 +59,49 @@ export interface CopyButtonOptions {
 	idle: () => void;
 	/** paint the confirmed state */
 	copied: () => void;
-	announcement?: string;
+	/** Live-region message, or null for a control whose accessible NAME
+	 * already changes to say it (announcing as well makes some screen
+	 * readers report the confirmation twice). The icon-only heading
+	 * anchors keep a static aria-label, so they need this; the strand's
+	 * button renames itself to "Copied", so it does not. */
+	announcement?: string | null;
 	/** how long the confirmed state holds */
 	ms?: number;
 }
 
-/** Wires a button to copy, confirm, and revert. Returns a function that
- * runs the same copy-and-confirm, so another control (the share button
- * falling back) can reuse the identical feedback. */
-export function attachCopyButton(
-	btn: HTMLElement,
-	{
-		url,
-		idle,
-		copied,
-		announcement = "Link copied",
-		ms = 1200,
-	}: CopyButtonOptions,
-): () => Promise<void> {
+/** The copy-confirm-revert cycle, unbound. Split from the click wiring so
+ * a control that is not primarily a copy button (the share button, which
+ * only copies when the sheet fails) can own the same feedback without
+ * also copying on every press. */
+export function copyAction({
+	url,
+	idle,
+	copied,
+	announcement = "Link copied",
+	ms = 1200,
+}: CopyButtonOptions): () => Promise<void> {
 	let timer: number | undefined;
 
 	const run = async () => {
 		if (!(await copyText(url()))) return;
-		announce(announcement);
+		const token = announcement === null ? null : announce(announcement);
 		copied();
 		clearTimeout(timer);
 		timer = window.setTimeout(() => {
 			idle();
-			clearAnnouncement();
+			if (token !== null) clearAnnouncement(token);
 		}, ms);
 	};
 
+	return run;
+}
+
+/** copyAction, wired to the button's own click. */
+export function attachCopyButton(
+	btn: HTMLElement,
+	opts: CopyButtonOptions,
+): () => Promise<void> {
+	const run = copyAction(opts);
 	btn.addEventListener("click", run);
 	return run;
 }

@@ -58,6 +58,7 @@
 
   <button class="share-btn" type="button" data-share-share hidden>
     <svg
+      class="i-share"
       width="11"
       height="11"
       viewBox="0 0 24 24"
@@ -74,12 +75,29 @@
       <line x1="8.59" x2="15.42" y1="13.51" y2="17.49"></line>
       <line x1="15.41" x2="8.59" y1="6.51" y2="10.49"></line>
     </svg>
-    <span>Share</span>
+    <svg
+      class="i-check"
+      width="11"
+      height="11"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      stroke-width="2"
+      stroke-linecap="round"
+      stroke-linejoin="round"
+      aria-hidden="true"
+    >
+      <path d="M20 6 9 17l-5-5"></path>
+    </svg>
+    <span class="share-label">
+      <span class="l-idle">Share</span>
+      <span class="l-done">Copied</span>
+    </span>
   </button>
 </div>
 
 <script>
-	import { attachCopyButton } from "./copy-link";
+	import { attachCopyButton, copyAction } from "./copy-link";
 	import { shareControls } from "../lib/share";
 
 	const strand = document.querySelector<HTMLElement>("[data-share]");
@@ -92,15 +110,25 @@
 		 * truth and the accessible name always matches what is on screen
 		 * (the inactive label is visibility:hidden, so it is out of the
 		 * accessibility tree while still holding its width). */
-		const paint = (done: boolean) => {
-			copyBtn.classList.toggle("copied", done);
+		const paint = (btn: HTMLElement) => (done: boolean) => {
+			btn.classList.toggle("copied", done);
 		};
 
-		const copyNow = attachCopyButton(copyBtn, {
+		/* no live-region message: the button renames itself to "Copied",
+		 * so the accessible name already carries the confirmation */
+		const opts = (btn: HTMLElement) => ({
 			url: () => location.href,
-			idle: () => paint(false),
-			copied: () => paint(true),
+			idle: () => paint(btn)(false),
+			copied: () => paint(btn)(true),
+			announcement: null,
 		});
+
+		attachCopyButton(copyBtn, opts(copyBtn));
+		/* the share button's own copy runner, so a fallback confirms on the
+		 * control that was actually pressed. On touch the copy button is
+		 * hidden, and painting it there left a real copy with no visible
+		 * feedback at all. */
+		const shareCopyNow = copyAction(opts(shareBtn));
 
 		shareBtn.addEventListener("click", async () => {
 			try {
@@ -111,18 +139,28 @@
 				/* dismissing the sheet is a choice, not a failure */
 				if (err instanceof DOMException && err.name === "AbortError") return;
 				/* anything else (share unavailable mid-flight, bad payload)
-				 * degrades to the copy path rather than doing nothing */
-				await copyNow();
+				 * degrades to copying, confirming on this button */
+				await shareCopyNow();
 			}
 		});
 
-		const controls = shareControls({
-			hasShare: typeof navigator.share === "function",
-			coarsePointer: window.matchMedia("(pointer: coarse)").matches,
-		});
-		copyBtn.toggleAttribute("hidden", !controls.includes("copy"));
-		shareBtn.toggleAttribute("hidden", !controls.includes("share"));
-		strand.removeAttribute("hidden");
+		/* Re-evaluated on change, not just at load: attaching a mouse to a
+		 * tablet switches the primary pointer, and BackToTop and the rail
+		 * both already re-arm this way. navigator.share cannot appear at
+		 * runtime, so only the pointer needs watching. Idempotent: it only
+		 * toggles hidden. */
+		const coarse = window.matchMedia("(pointer: coarse)");
+		const applyControls = () => {
+			const controls = shareControls({
+				hasShare: typeof navigator.share === "function",
+				coarsePointer: coarse.matches,
+			});
+			copyBtn.toggleAttribute("hidden", !controls.includes("copy"));
+			shareBtn.toggleAttribute("hidden", !controls.includes("share"));
+			strand.removeAttribute("hidden");
+		};
+		applyControls();
+		coarse.addEventListener("change", applyControls);
 	}
 </script>
 
@@ -198,7 +236,8 @@
     display: none;
   }
 
-  .share-btn.copied .i-copy {
+  .share-btn.copied .i-copy,
+  .share-btn.copied .i-share {
     display: none;
   }
 
@@ -234,8 +273,17 @@
    * copy), so it carries more weight than the desktop control does. Type
    * and glyph both scale up, and min-height is stated outright rather
    * than left to padding: derived from font metrics the target came out
-   * ~15px tall, well under the 44px guideline. */
-  @media (hover: none) {
+   * ~15px tall, well under the 44px guideline.
+   *
+   * (pointer: coarse), NOT (hover: none), because that is the question
+   * the script asks when choosing which controls to show. Sizing is about
+   * whether a target can be hit accurately, which is a pointer question.
+   * Asked differently, the two disagree on devices reporting no hover
+   * with a fine pointer, which got the desktop control set at touch size:
+   * 356px of buttons in a 390px viewport. The heading anchors in
+   * prose.css keep (hover: none) on purpose, since that rule really is
+   * about hover, dropping a tooltip nothing can reveal. */
+  @media (pointer: coarse) {
     .share {
       padding-top: 1.4rem;
     }

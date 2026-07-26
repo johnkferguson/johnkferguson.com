@@ -1,22 +1,16 @@
 ---
-// Floating back-to-top button. Hidden until the page is scrolled well past
-// the first viewport, then fades in bottom-right. Scrolls smoothly unless
-// the user prefers reduced motion.
+// Floating back-to-top button for narrow viewports. Hidden until the page
+// is scrolled well past the first viewport, then fades in bottom-right.
+// Scrolls smoothly unless the user prefers reduced motion.
 //
-// railCoversWide: at >=1020px the TOC rail's own Top link replaces this
-// button, so it hides there. A post with no h2s renders no rail; the
-// layout passes false and the button stays at every width.
-interface Props {
-	railCoversWide?: boolean;
-}
-const { railCoversWide = true } = Astro.props;
+// At >=1020px the TOC rail's own Top chip replaces it unconditionally:
+// the rail renders that chip for every post now, including ones with no
+// headings, so there is no case left where this button is needed at that
+// width. It used to be conditional, which is how it came to overlap the
+// footer's outbound links on a heading-less post.
 ---
 
-<button
-	data-back-to-top
-	class:list={[{ "rail-covers-wide": railCoversWide }]}
-	aria-label="Back to top"
->
+<button data-back-to-top aria-label="Back to top">
 	<span class="btt-arrow" aria-hidden="true">&#8593;</span>
 	<span class="btt-label micro-label">Back to top</span>
 </button>
@@ -113,13 +107,11 @@ const { railCoversWide = true } = Astro.props;
 				requestAnimationFrame(update);
 			}
 		};
-		/* when the rail's Top link covers wide viewports the button is
-		 * display:none at >=1020px; skip the scroll work while invisible.
-		 * Without that class (no-h2 post, no rail) it works at any width. */
-		const coversWide = btn.classList.contains("rail-covers-wide");
+		/* the button is display:none at >=1020px, where the rail's Top chip
+		 * takes over; skip the scroll work entirely while invisible */
 		const wide = window.matchMedia("(min-width: 1020px)");
 		const arm = () => {
-			if (coversWide && wide.matches) {
+			if (wide.matches) {
 				window.removeEventListener("scroll", onScroll);
 			} else {
 				update();
@@ -135,10 +127,9 @@ const { railCoversWide = true } = Astro.props;
 	button {
 		position: fixed;
 		/* tight to the corner: it floats over content and the footer, so
-		 * hug the edge to stay out of the way. Bottom-right at every
-		 * width: below 1020 the footer is a centered strand, and at and
-		 * above it the footer's copyright takes the left gutter, so this
-		 * corner is the one that stays clear either way. */
+		 * hug the edge to stay out of the way. Only ever shown below
+		 * 1020, where the footer is a single centered strand that this
+		 * corner clears (measured at 375 and 390 CSS px). */
 		right: 0.55rem;
 		bottom: 0.55rem;
 		z-index: 40;
@@ -206,9 +197,10 @@ const { railCoversWide = true } = Astro.props;
 		}
 	}
 
-	/* the TOC rail carries its own Top link at wide viewports */
+	/* the TOC rail carries its own Top chip at wide viewports, for every
+	 * post, so this one is never needed there */
 	@media (min-width: 1020px) {
-		button.rail-covers-wide {
+		button {
 			display: none;
 		}
 	}

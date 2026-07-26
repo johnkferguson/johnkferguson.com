@@ -114,8 +114,14 @@ const caretSvg =
 	 * button lives at the END of the .post-rail flex column and sticks to
 	 * the viewport bottom on its own. When the page bottom arrives, only
 	 * the button rides up with the column's end (footer-dodging); the
-	 * rail itself never moves. */
-	!inline && sections.length > 0 && (
+	 * rail itself never moves.
+	 *
+	 * Rendered whether or not there are sections, so a post with no
+	 * headings is still an ordinary post: same Top control, same place,
+	 * just no list above it. Gating this on sections.length left such a
+	 * post with no rail control at all, falling back to the floating
+	 * button, which at >=1020 lands on the footer's outbound links. */
+	!inline && (
 		<button class="toc-top micro-label" data-toc-top type="button">
 			<span class="toc-top-arrow" aria-hidden="true">
 				&#8593;
@@ -168,6 +174,73 @@ const caretSvg =
 		} else {
 			inlineNav.style.display = "none";
 		}
+	}
+
+	/* —— Top chip ——
+	 * Wired independently of the rail. The chip is a SIBLING of the nav,
+	 * and a post with no headings renders the chip but no nav; keeping
+	 * this inside the rail's `if (rail && root)` guard left such a post
+	 * with a chip that never faded in. */
+	const tops = [...document.querySelectorAll<HTMLElement>("[data-toc-top]")];
+	if (tops.length) {
+		const postH1Top = document.querySelector<HTMLElement>(".post-header h1");
+		const siteFooter = document.querySelector<HTMLElement>(".site-footer");
+		/* the same token the chip's sticky offset and cancelling margin
+		 * use, read from the cascade rather than duplicated here */
+		const footerH = () =>
+			parseFloat(
+				getComputedStyle(document.documentElement).getPropertyValue("--footer-h"),
+			) || 0;
+
+		for (const t of tops) {
+			t.addEventListener("click", () => {
+				window.scrollTo({ top: 0, behavior: reduceMotion ? "auto" : "smooth" });
+			});
+		}
+
+		let chipTicking = false;
+		const updateChips = () => {
+			chipTicking = false;
+			// appear in step with the post title merging into the header
+			const showTop = postH1Top
+				? postH1Top.getBoundingClientRect().bottom < 60
+				: window.scrollY > window.innerHeight;
+			/* The chip's resting edge is not measured: it is stuck at
+			 * bottom:var(--footer-h), so its bottom IS innerHeight minus
+			 * that. Reading it back would measure something we set. */
+			const footerTop =
+				siteFooter?.getBoundingClientRect().top ?? Number.POSITIVE_INFINITY;
+			const landed = showTop && footerTop <= window.innerHeight - footerH() + 0.5;
+			for (const t of tops) {
+				t.classList.toggle("visible", showTop);
+				t.classList.toggle("landed", landed);
+			}
+		};
+		const onChipScroll = () => {
+			if (!chipTicking) {
+				chipTicking = true;
+				requestAnimationFrame(updateChips);
+			}
+		};
+		const chipWide = window.matchMedia("(min-width: 1020px)");
+		const armChips = () => {
+			if (chipWide.matches) {
+				updateChips();
+				window.addEventListener("scroll", onChipScroll, { passive: true });
+				/* `landed` encodes a geometric coincidence between the chip
+				 * and the footer, which a viewport change invalidates at
+				 * once: without this, resizing after landing leaves a
+				 * squared-off, open-bottomed chip floating clear of the
+				 * hairline. Shares the rAF guard, so a drag coalesces to
+				 * one measurement per frame. */
+				window.addEventListener("resize", onChipScroll, { passive: true });
+			} else {
+				window.removeEventListener("scroll", onChipScroll);
+				window.removeEventListener("resize", onChipScroll);
+			}
+		};
+		armChips();
+		chipWide.addEventListener("change", armChips);
 	}
 
 	// —— rail variant: attach behavior to the server-rendered tree ——
@@ -378,16 +451,7 @@ const caretSvg =
 			});
 		});
 
-		// —— scrollspy + Top link visibility ——
-		const tops = [...document.querySelectorAll<HTMLElement>("[data-toc-top]")];
-		/* queried once: the scroll pass below asks where its hairline is */
-		const siteFooter = document.querySelector<HTMLElement>(".site-footer");
-		for (const t of tops) {
-			t.addEventListener("click", () => {
-				window.scrollTo({ top: 0, behavior: reduceMotion ? "auto" : "smooth" });
-			});
-		}
-
+		// —— scrollspy ——
 		const THRESH = 130;
 		const postH1 = document.querySelector<HTMLElement>(".post-header h1");
 		let ticking = false;
@@ -436,21 +500,6 @@ const caretSvg =
 			if (changed) {
 				apply();
 				scheduleReveal();
-			}
-			// appear in step with the post title merging into the header
-			const showTop = postH1
-				? postH1.getBoundingClientRect().bottom < 60
-				: window.scrollY > window.innerHeight;
-			/* the chip rides at exactly the footer's height above the
-			 * viewport bottom, so it "lands" the moment the footer's
-			 * hairline reaches it; square its bottom corners there */
-			const footerTop = siteFooter?.getBoundingClientRect().top ?? Number.POSITIVE_INFINITY;
-			for (const t of tops) {
-				t.classList.toggle("visible", showTop);
-				t.classList.toggle(
-					"landed",
-					showTop && footerTop <= t.getBoundingClientRect().bottom + 0.5,
-				);
 			}
 		};
 		const onScroll = () => {
