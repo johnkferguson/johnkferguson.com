@@ -50,7 +50,10 @@
     >
       <path d="M20 6 9 17l-5-5"></path>
     </svg>
-    <span data-share-copy-label>Copy link</span>
+    <span class="share-label">
+      <span class="l-idle">Copy link</span>
+      <span class="l-done">Copied</span>
+    </span>
   </button>
 
   <button class="share-btn" type="button" data-share-share hidden>
@@ -84,14 +87,13 @@
 	const shareBtn = strand?.querySelector<HTMLElement>("[data-share-share]");
 
 	if (strand && copyBtn && shareBtn) {
-		const label = copyBtn.querySelector<HTMLElement>("[data-share-copy-label]");
-
-		/* the accessible name comes from the visible text, so the two can
-		 * never drift apart as the state changes. Which icon shows is a
-		 * CSS consequence of .copied, so there is one source of truth. */
+		/* .copied is the only thing the script sets: which glyph and which
+		 * label show are CSS consequences of it, so there is one source of
+		 * truth and the accessible name always matches what is on screen
+		 * (the inactive label is visibility:hidden, so it is out of the
+		 * accessibility tree while still holding its width). */
 		const paint = (done: boolean) => {
 			copyBtn.classList.toggle("copied", done);
-			if (label) label.textContent = done ? "Copied" : "Copy link";
 		};
 
 		const copyNow = attachCopyButton(copyBtn, {
@@ -202,6 +204,29 @@
 
   .share-btn.copied .i-check {
     display: block;
+  }
+
+  /* Both labels share one grid cell, so the box is always as wide as the
+   * longer of them and confirming cannot resize the button or nudge the
+   * control beside it. visibility rather than display: the inactive
+   * label must keep holding its width, and visibility also takes it out
+   * of the accessibility tree. */
+  .share-label {
+    display: grid;
+    place-items: center;
+  }
+
+  .share-label > span {
+    grid-area: 1 / 1;
+  }
+
+  .share-btn .l-done,
+  .share-btn.copied .l-idle {
+    visibility: hidden;
+  }
+
+  .share-btn.copied .l-done {
+    visibility: visible;
   }
 
   /* Touch. On a phone this is the only control in reach at the end of
