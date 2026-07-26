@@ -1,11 +1,11 @@
 ---
 import {
-	OG_SIZE,
+	SITE_CARD_PATH,
 	SITE_NAME,
-	SITE_TAGLINE,
 	THEME_COLOR,
 	TWITTER_HANDLE,
 } from "../consts";
+import { cardMeta } from "../lib/card-meta";
 
 interface Props {
 	title: string;
@@ -21,7 +21,7 @@ interface Props {
 const {
 	title,
 	description,
-	ogImage = "/assets/og-image.png",
+	ogImage = SITE_CARD_PATH,
 	type = "website",
 	pubDate,
 	updated,
@@ -36,30 +36,13 @@ const fullTitle =
 		? `${title} | Software Engineer`
 		: `${title} | ${SITE_NAME}`;
 
-/* Both the alt text and the dimensions describe OUR generated cards, so
- * both are derived from the resolved path and cannot disagree about
- * which image is in hand. Keying alt off `type` instead would assert a
- * title card for any custom image an article supplied — the same
- * confident-wrong-answer the dimensions guard avoids, in the one field
- * a screen reader actually reads out.
- *
- * The two card routes are matched separately rather than by a shared
- * "/assets/og" prefix, which would also swallow /assets/ogre.png and
- * any future /assets/og-diagram.png. */
-const cardPath = new URL(ogImageURL).pathname;
-const isPostCard = cardPath.startsWith("/assets/og/");
-const isSiteCard = cardPath === "/assets/og-image.png";
-const isGeneratedCard = isPostCard || isSiteCard;
+/* alt text and dimensions come from one classifier, so they cannot
+ * disagree about which image is in hand; null means an image we did not
+ * draw, which gets neither. See lib/card-meta.ts for the reasoning. */
+const card = cardMeta(new URL(ogImageURL).pathname, { title });
 
-/* An image we did not draw gets NO alt rather than a guess. Generic alt
- * ("Card for X") would only repeat the headline the preview already
- * shows, while implying the image holds nothing else — worse than
- * silence for the person relying on it. */
-const cardAlt = isPostCard
-	? `Title card reading "${title}" over generated artwork`
-	: isSiteCard
-		? `Card reading "${SITE_NAME}: ${SITE_TAGLINE}" over generated artwork`
-		: null;
+/* article:author wants a URL, and /about is the profile page this site
+ * has. The author's NAME is stated once, in JsonLd, from SITE_NAME. */
 const authorURL = new URL("/about", Astro.site).href;
 ---
 
@@ -81,12 +64,12 @@ const authorURL = new URL("/about", Astro.site).href;
 <meta property="og:title" content={fullTitle} />
 <meta property="og:description" content={description} />
 <meta property="og:image" content={ogImageURL} />
-{cardAlt && <meta property="og:image:alt" content={cardAlt} />}
-{isGeneratedCard && (
+{card && (
 	<>
+		<meta property="og:image:alt" content={card.alt} />
 		<meta property="og:image:type" content="image/png" />
-		<meta property="og:image:width" content={String(OG_SIZE.width)} />
-		<meta property="og:image:height" content={String(OG_SIZE.height)} />
+		<meta property="og:image:width" content={String(card.width)} />
+		<meta property="og:image:height" content={String(card.height)} />
 	</>
 )}
 <meta property="og:site_name" content={SITE_NAME} />
@@ -98,7 +81,7 @@ const authorURL = new URL("/about", Astro.site).href;
 <meta name="twitter:title" content={fullTitle} />
 <meta name="twitter:description" content={description} />
 <meta name="twitter:image" content={ogImageURL} />
-{cardAlt && <meta name="twitter:image:alt" content={cardAlt} />}
+{card && <meta name="twitter:image:alt" content={card.alt} />}
 <meta name="twitter:site" content={TWITTER_HANDLE} />
 <meta name="twitter:creator" content={TWITTER_HANDLE} />
 

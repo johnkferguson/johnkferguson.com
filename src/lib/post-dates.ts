@@ -21,10 +21,21 @@ export interface PostDateViolation {
 const FRONTMATTER = /^---\r?\n([\s\S]*?)\r?\n---/;
 
 /** Top-level scalar from a frontmatter block. Anchored to column zero so
- * indented keys nested under `art:` can never be mistaken for one. */
+ * indented keys nested under `art:` can never be mistaken for one.
+ *
+ * This validator's job is to fail builds, so a false positive costs more
+ * than a miss: anything legal in YAML has to parse here or it blocks the
+ * gate with a message that reads as nonsense. */
 function topLevelField(frontmatter: string, name: string): string | null {
-	const m = new RegExp(`^${name}:[ \\t]*(.+?)[ \\t]*$`, "m").exec(frontmatter);
-	return m ? m[1].replace(/^["']|["']$/g, "") : null;
+	const m = new RegExp(`^${name}:[ \\t]*(.*)$`, "m").exec(frontmatter);
+	if (!m) return null;
+	const value = m[1].trim();
+	if (!value) return null;
+	/* inside quotes a # is data, so take the quoted span verbatim */
+	const quoted = /^(["'])([\s\S]*?)\1/.exec(value);
+	if (quoted) return quoted[2];
+	/* an unquoted YAML scalar ends at a whitespace-preceded # */
+	return value.replace(/\s+#.*$/, "").trim();
 }
 
 export function validatePostDates(raw: string): PostDateViolation[] {

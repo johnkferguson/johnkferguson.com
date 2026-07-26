@@ -14,3 +14,10 @@ export const TWITTER_HANDLE = "@johnkferguson";
  * (og.ts loads the native resvg binding at module top). lib/og.ts folds
  * this into its OG object, so the two cannot drift. */
 export const OG_SIZE = { width: 1200, height: 630 } as const;
+/* Where the two card routes live, as URL paths. The classifier in
+ * lib/card-meta.ts matches against these rather than repeating the
+ * literals, so renaming a route cannot silently drop a card's alt text
+ * and dimensions. card-meta.test.ts asserts each still resolves to a
+ * real file under src/pages/. */
+export const SITE_CARD_PATH = "/assets/og-image.png";
+export const POST_CARD_PREFIX = "/assets/og/";

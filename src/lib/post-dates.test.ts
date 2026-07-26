@@ -72,6 +72,27 @@ describe("validatePostDates", () => {
 		).toHaveLength(1);
 	});
 
+	test("an inline YAML comment is not part of the date", () => {
+		expect(
+			validatePostDates(
+				post("date: 2026-06-26 # published\nupdated: 2026-07-01 # revised"),
+			),
+		).toEqual([]);
+	});
+
+	test("an inline comment still leaves a bad ordering visible", () => {
+		const v = validatePostDates(
+			post("date: 2026-06-26 # published\nupdated: 2026-01-01 # oops"),
+		);
+		expect(v).toHaveLength(1);
+		expect(v[0].message).toContain("earlier than date");
+	});
+
+	test("a # inside quotes is data, not a comment", () => {
+		const v = validatePostDates(post('date: "2026-06-26 # not a comment"'));
+		expect(v).toEqual([]);
+	});
+
 	test("content without frontmatter is not this validator's problem", () => {
 		expect(validatePostDates("# Just a heading\n")).toEqual([]);
 	});
