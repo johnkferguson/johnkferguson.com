@@ -17,9 +17,33 @@ describe("createExcerpt", () => {
 	});
 
 	test("markdown syntax is stripped", () => {
-		expect(createExcerpt("# Title\n**bold** and `code` > quote")).toBe(
-			"Title bold and code quote",
+		expect(createExcerpt("**bold** and `code` > quote")).toBe(
+			"bold and code quote",
 		);
+	});
+
+	test("heading lines are dropped, not merged into the prose", () => {
+		/* keeping the heading text produced "Some Section Body text..." */
+		expect(createExcerpt("## Some Section\n\nBody text follows here.")).toBe(
+			"Body text follows here.",
+		);
+	});
+
+	test("prose either side of a heading joins cleanly", () => {
+		expect(
+			createExcerpt("Intro sentence.\n\n## A Section\n\nMore prose."),
+		).toBe("Intro sentence. More prose.");
+	});
+
+	test("a # without a space is not a heading", () => {
+		expect(createExcerpt("#hashtag not a heading")).toBe(
+			"hashtag not a heading",
+		);
+	});
+
+	test("a body of nothing but headings still yields a description", () => {
+		/* an empty og:description is worse than a heading in one */
+		expect(createExcerpt("# Only A Title")).toBe("Only A Title");
 	});
 
 	test("excerpts are a single line, so meta content never holds a newline", () => {
