@@ -104,50 +104,56 @@ interface DemandScenario {
 const K = 1000;
 const SCENARIOS: DemandScenario[] = [
 	{
-		key: "growth",
-		title: "Growth",
-		blurb:
-			"Demand climbs tenfold across the run. The three chases follow at their own speeds: α = 3/4 closes the gap in the fewest days, α = 1/2 trails furthest behind but moves the least on any one reading. The spread between the lines is the whole trade-off the exponent controls.",
-		flows: () => [100, 130, 170, 220, 280, 360, 460, 600, 780, 1000],
-		sel: 4,
-	},
-	{
-		key: "step",
-		title: "Step Change",
-		blurb:
-			"Demand jumps fivefold on day two and holds at the new level. How long D takes to settle there is what the chase speed means in days: within one percent of the new level, α = 3/4 is in force by day six, α = 2/3 by day seven, and α = 1/2 not until day ten. Each day closes the same fraction of the remaining gap, so the first days do most of the work and the last percent takes the longest.",
-		flows: () => [100, 500, 500, 500, 500, 500, 500, 500, 500, 500],
-		sel: 3,
-	},
-	{
 		key: "range",
 		title: "Range Bound",
-		blurb:
-			"Most days trade between $200k and $300k, with a few outliers on either side. After the opening climb from the seed, the lines settle near the middle of the range and hold there: each day's wobble moves D by only a fraction of itself, and the outliers barely register. The ranking from [[Step Change]] flips here: the slow chase makes the steadier yardstick, while α = 3/4 inherits the most day-to-day noise.",
+		blurb: `The common case of a market with no trend: in this example, most days trade between $200k and $300k, with a day outside the range on either side. Every chase runs on prior data, so no line ever sits exactly where the day's demand is; D is always a step behind the readings it follows. A faster chase closes that gap harder in every regime, but when demand is choppy, chasing harder means overshooting: α = 3/4 lands past each wobble, while α = 1/2 lets the chop average away. Where demand genuinely moves instead, the speeds separate for real, as in [[Step Change]].
+
+Try dragging the first day to full demand and watch its effect fade: each following reading pulls the lines back toward the range, and by day seven the α = 3/4 line has forgotten it entirely, by day ten all three have.`,
 		flows: () => [230, 280, 210, 340, 250, 190, 300, 260, 220, 270],
 		sel: 3,
 	},
 	{
 		key: "surge",
 		title: "Surge & Decay",
-		blurb:
-			"A choppy baseline, a spike on day four, then a tail that drains back down. Every line climbs while the surge lasts and gives it back as it fades; the faster the chase, the higher it follows the spike and the more it has to return. Nothing needs to declare the surge over: the fills stop reporting it.",
+		blurb: `A surge that passes: demand jumps to $840k on day four, holds at $650k on day five, then falls back to the baseline. Days five to seven are the ones to watch. On day five, one update after the spike, α = 3/4 stands at $511k against α = 1/2's $316k. On day six the surge is over and demand is back to $210k, but every line is still climbing off day five's reading; α = 3/4 peaks at $612k, almost triple the day's demand. One update later it has fallen to $274k and is the closest line again, while α = 1/2 is still at $309k.
+
+Try raising day five toward full demand: the day-six peaks climb with it, α = 3/4's to $845k, and the whole tail runs higher for days after.`,
 		flows: () => [130, 90, 140, 840, 650, 210, 140, 160, 100, 80],
 		sel: 4,
 	},
 	{
+		key: "growth",
+		title: "Growth",
+		blurb: `Demand grows every day, tenfold across the run. Because each update starts from prior data, the lines never catch a moving target: once the climb is underway, each settles a fixed fraction behind the day's demand. On day eight, with demand at $600k, α = 1/2 stands at $360k, 40% behind, and α = 3/4 at $424k, 29% behind, and those fractions hold to the end of the run.
+
+Try flattening the curve into a gentler climb and watch all three lines run closer to demand: the gap shrinks with the growth rate.`,
+		flows: () => [100, 130, 170, 220, 280, 360, 460, 600, 780, 1000],
+		sel: 4,
+	},
+	{
+		key: "step",
+		title: "Step Change",
+		blurb: `A market regime shift, stylized to show the catch-up: demand steps to exactly $500k on day two and holds there, which no real market would do. Watch where each line reaches the new level. Reading down the table, α = 3/4 shows $500k from day eight and α = 2/3 from day nine, while α = 1/2 is still at $497k on day ten. By the looser measure of within 1% of the level, above $495k, the days are six, seven, and ten.
+
+Try dropping day six to half demand: all three lines fall below $340k on day seven, and only α = 3/4 is back within 1% by the end of the run.`,
+		flows: () => [100, 500, 500, 500, 500, 500, 500, 500, 500, 500],
+		sel: 3,
+	},
+	{
 		key: "loud",
 		title: "One Loud Day",
-		blurb:
-			"A single day of demand ten times the rest. The raw steps for the two faster chases exceed the daily limit and are held to L×, while the slowest stays inside it, which is why the yellow and green lines enter the next day at the same value. Lower L and all three flatten toward the same bounded step; the days after walk everything back down.",
+		blurb: `Another contrived case, built to show the daily limit: four flat days at $100k, one day at $1M, flat days after. The loud day asks for steps of 4.6× and 5.6× from the two faster chases; both are held to the 4× limit, so they enter day six at exactly the same $400k. α = 1/2's own step is 3.2×, already inside the limit. No single day, however loud, moves D by more than L×, and the flat days after walk every line back down.
+
+Try lowering L below 3× and all three chases clamp to the identical step. Or stretch the spike across day six as well: a second loud day carries the lines far past where the limit held them, α = 3/4 to nearly $800k.`,
 		flows: () => [100, 100, 100, 100, 1000, 100, 100, 100, 100, 100],
 		sel: 4,
 	},
 	{
 		key: "drain",
 		title: "Draining Away",
-		blurb:
-			"Demand shrinks through the whole run. The lines follow it down until they reach the floor, D_min, and stop: the walk's depth never falls below what the mark needs to stay meaningful, however small the market gets. Raise the floor and the lines level off sooner; lower it and they chase the decline further.",
+		blurb: `Demand shrinks through the whole run, from $100k down to $10k. The lines follow it down until they hit the $50k floor: α = 3/4 is pinned there from day five, the other two from day six, and demand keeps falling underneath them; by the last days D stands at five times what the fills report. The floor exists for the mark's sake: D sets the depth the walk measures at, and a walk measuring too little depth reads only the touch. In a dying market D holds above the reported demand so the walk keeps enough depth to measure.
+
+Try dropping the floor to its minimum and the lines chase the decline down to $25k; raise it and they level off sooner.`,
 		flows: () => [100, 80, 60, 45, 35, 25, 20, 15, 10, 10],
 		sel: 7,
 	},
@@ -726,8 +732,7 @@ export default function DemandLab() {
 							}}
 						>
 							D in force on each day, set at the prior day's close; the end row
-							is where the run finishes. Hover a row to read each line's gap to
-							that day's demand.
+							is where the run finishes.
 						</div>
 					</div>
 				</div>
