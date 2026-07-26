@@ -1,0 +1,214 @@
+---
+/* End-of-post sharing strand.
+ *
+ * Both buttons are rendered server-side and hidden; the script reveals
+ * whichever the visitor's capabilities call for (see lib/share.ts).
+ * Rendering both and hiding keeps the markup declarative and means the
+ * separator can be a real element rather than generated content, which
+ * some screen readers announce.
+ *
+ * Starting hidden also handles the no-JavaScript case: neither control
+ * can function without it, so neither should be visible. Same shape as
+ * BackToTop, which is invisible until its script marks it .visible.
+ * There is no label flash to worry about because the strand sits below
+ * the fold, long read by the time anyone scrolls to it.
+ */
+---
+
+<div class="share" data-share hidden>
+  <button class="share-btn" type="button" data-share-copy hidden>
+    <svg
+      class="i-copy"
+      width="11"
+      height="11"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      stroke-width="2"
+      stroke-linecap="round"
+      stroke-linejoin="round"
+      aria-hidden="true"
+    >
+      <rect width="14" height="14" x="8" y="8" rx="2" ry="2"></rect>
+      <path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"></path>
+    </svg>
+    <svg
+      class="i-check"
+      width="11"
+      height="11"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      stroke-width="2"
+      stroke-linecap="round"
+      stroke-linejoin="round"
+      aria-hidden="true"
+    >
+      <path d="M20 6 9 17l-5-5"></path>
+    </svg>
+    <span data-share-copy-label>Copy link</span>
+  </button>
+
+  <span class="sep" data-share-sep aria-hidden="true" hidden>·</span>
+
+  <button class="share-btn" type="button" data-share-share hidden>
+    <svg
+      width="11"
+      height="11"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      stroke-width="2"
+      stroke-linecap="round"
+      stroke-linejoin="round"
+      aria-hidden="true"
+    >
+      <circle cx="18" cy="5" r="3"></circle>
+      <circle cx="6" cy="12" r="3"></circle>
+      <circle cx="18" cy="19" r="3"></circle>
+      <line x1="8.59" x2="15.42" y1="13.51" y2="17.49"></line>
+      <line x1="15.41" x2="8.59" y1="6.51" y2="10.49"></line>
+    </svg>
+    <span>Share</span>
+  </button>
+</div>
+
+<script>
+	import { attachCopyButton } from "./copy-link";
+	import { shareControls } from "../lib/share";
+
+	const strand = document.querySelector<HTMLElement>("[data-share]");
+	const copyBtn = strand?.querySelector<HTMLElement>("[data-share-copy]");
+	const shareBtn = strand?.querySelector<HTMLElement>("[data-share-share]");
+	const sep = strand?.querySelector<HTMLElement>("[data-share-sep]");
+
+	if (strand && copyBtn && shareBtn && sep) {
+		const label = copyBtn.querySelector<HTMLElement>("[data-share-copy-label]");
+
+		/* the accessible name comes from the visible text, so the two can
+		 * never drift apart as the state changes. Which icon shows is a
+		 * CSS consequence of .copied, so there is one source of truth. */
+		const paint = (done: boolean) => {
+			copyBtn.classList.toggle("copied", done);
+			if (label) label.textContent = done ? "Copied" : "Copy link";
+		};
+
+		const copyNow = attachCopyButton(copyBtn, {
+			url: () => location.href,
+			idle: () => paint(false),
+			copied: () => paint(true),
+		});
+
+		shareBtn.addEventListener("click", async () => {
+			try {
+				/* called first, with nothing awaited before it: the Web Share
+				 * API requires the user gesture to still be active */
+				await navigator.share({ title: document.title, url: location.href });
+			} catch (err) {
+				/* dismissing the sheet is a choice, not a failure */
+				if (err instanceof DOMException && err.name === "AbortError") return;
+				/* anything else (share unavailable mid-flight, bad payload)
+				 * degrades to the copy path rather than doing nothing */
+				await copyNow();
+			}
+		});
+
+		const controls = shareControls({
+			hasShare: typeof navigator.share === "function",
+			coarsePointer: window.matchMedia("(pointer: coarse)").matches,
+		});
+		const showCopy = controls.includes("copy");
+		const showShare = controls.includes("share");
+		copyBtn.toggleAttribute("hidden", !showCopy);
+		shareBtn.toggleAttribute("hidden", !showShare);
+		sep.toggleAttribute("hidden", !(showCopy && showShare));
+		strand.removeAttribute("hidden");
+	}
+</script>
+
+<style>
+  .share {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.55rem;
+    max-width: var(--prose-measure);
+    margin: 2.4rem 0 0;
+    padding-top: 1.1rem;
+    border-top: 1px solid var(--border-color);
+  }
+
+  .share[hidden] {
+    display: none;
+  }
+
+  .share-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    border: 0;
+    padding: 0;
+    background: transparent;
+    color: var(--date-color);
+    cursor: pointer;
+    font-family: var(--font-mono);
+    font-size: 0.55rem;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    transition: color 0.15s ease;
+  }
+
+  .share-btn[hidden] {
+    display: none;
+  }
+
+  .share-btn svg {
+    display: block;
+    /* the mono cap band sits above the line-box middle at this size */
+    transform: translateY(-0.5px);
+  }
+
+  .share-btn:hover {
+    color: var(--heading-color);
+  }
+
+  .share-btn.copied {
+    color: var(--code-color);
+  }
+
+  /* the confirmed state swaps the glyph; .copied is the single source of
+   * truth for it, so the script never touches the icons directly */
+  .share-btn .i-check {
+    display: none;
+  }
+
+  .share-btn.copied .i-copy {
+    display: none;
+  }
+
+  .share-btn.copied .i-check {
+    display: block;
+  }
+
+  .sep {
+    color: var(--date-color);
+    opacity: 0.5;
+    font-family: var(--font-mono);
+    font-size: 0.55rem;
+  }
+
+  .sep[hidden] {
+    display: none;
+  }
+
+  /* Touch targets. Stated as a min-height rather than padding because
+   * the label is 0.55rem mono: derived from font metrics the control
+   * comes out ~15px tall, well under the 44px guideline. The strand is
+   * alone in its row, so growing it disturbs nothing. */
+  @media (hover: none) {
+    .share-btn {
+      min-height: 44px;
+      padding: 0 0.4rem;
+    }
+  }
+</style>
