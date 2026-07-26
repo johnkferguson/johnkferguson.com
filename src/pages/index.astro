@@ -115,6 +115,7 @@ const { Content: Blurb } = await render(blurbEntry);
 
 <script>
 	import { artSvg } from "../lib/art/generate";
+	import { attachThumbMotion } from "../lib/art/thumb-motion";
 
 	// the identity backdrop is the one dynamic piece on the site: a
 	// fresh field every visit
@@ -128,23 +129,10 @@ const { Content: Blurb } = await render(blurbEntry);
 		});
 	}
 
-	// thumbs with pinned motion carry SMIL animations that start from
-	// rest: keep them paused (pixel-identical to static art) and run
-	// them only while the card is hovered. Known trade: SMIL ignores
-	// prefers-reduced-motion natively and this script is the only gate,
-	// so with JS disabled the (gentle, from-rest) drift runs for everyone
-	const reduced = matchMedia("(prefers-reduced-motion: reduce)").matches;
+	// thumbs with pinned motion run only while their card is hovered
 	for (const card of document.querySelectorAll<HTMLElement>(".post-card")) {
 		const svg = card.querySelector<SVGSVGElement>(".thumb svg");
-		if (!svg?.querySelector("animate, animateTransform")) continue;
-		svg.pauseAnimations();
-		svg.setCurrentTime(0);
-		if (reduced) continue;
-		card.addEventListener("mouseenter", () => svg.unpauseAnimations());
-		card.addEventListener("mouseleave", () => {
-			svg.pauseAnimations();
-			svg.setCurrentTime(0);
-		});
+		if (svg) attachThumbMotion(card, svg);
 	}
 </script>
 
