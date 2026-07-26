@@ -150,14 +150,15 @@
      * voice rather than two. */
     border: 1px solid var(--border-color);
     border-radius: 5px;
-    padding: 0.4rem 0.7rem;
+    padding: 0.34rem 0.6rem;
     background: transparent;
     color: var(--date-color);
     cursor: pointer;
     font-family: var(--font-mono);
-    /* a step up from the footer's 0.55rem: this is a control, not
-     * chrome, and at footer size it read as a caption */
-    font-size: 0.7rem;
+    /* a step up from the footer's 0.55rem, since this is a control
+     * rather than chrome, but only a step: it sits under the prose and
+     * should not shout */
+    font-size: 0.65rem;
     letter-spacing: 0.06em;
     text-transform: uppercase;
     transition:
@@ -171,8 +172,8 @@
 
   .share-btn svg {
     display: block;
-    width: 13px;
-    height: 13px;
+    width: 12px;
+    height: 12px;
     /* the mono cap band sits above the line-box middle at this size */
     transform: translateY(-0.5px);
   }
