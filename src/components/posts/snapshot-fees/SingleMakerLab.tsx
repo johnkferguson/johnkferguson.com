@@ -38,6 +38,8 @@ interface Scenario {
 	title: string;
 	blurb: string;
 	book: () => number[];
+	/* zoom index into ZOOM_HALVES this scenario opens at (default 1, ±7.5bps) */
+	zoom?: number;
 }
 
 const bookOf = (fill: Record<number, number>): number[] => {
@@ -51,9 +53,11 @@ const bookOf = (fill: Record<number, number>): number[] => {
 const SCENARIOS: Scenario[] = [
 	{
 		key: "balanced",
-		title: "Balanced Maker",
-		blurb:
-			"A mirrored ladder across the full book (zoom out to see it all). Everything is paired, so each level pays only its placement: zero inside the band, a gentle climb through the Maker Zone, and the cap far beyond it. Past the full-fee point, extra distance costs nothing more.",
+		title: "Balanced",
+		zoom: ZOOM_HALVES.length - 1,
+		blurb: `A mirrored ladder: the same size resting at every distance on both sides, growing toward the edges. Every dollar finds a pair, so each level's receipt is its placement and nothing else. M lands at 100.000, the levels at 0.5 and 1bps out trade free, and the fee climbs with distance: 0.8bps at 2bps out, 3.2bps at the zone's edge, and the 10bps cap from 12.5bps out, where the last six levels all pay the same.
+
+Hover a bar near the mid and one far out and compare receipts: the surcharge line is zero on both. Hover M to see how it is calculated.`,
 		book: () => {
 			const a = Array(N).fill(0);
 			for (let k = 0; k < 30; k++) {
@@ -65,71 +69,76 @@ const SCENARIOS: Scenario[] = [
 		},
 	},
 	{
-		key: "taker",
-		title: "Directional Maker",
-		blurb:
-			"The same bid ladder, but ask depth grows far more slowly, so pairing runs out on the way to the edge. The inner book is unchanged, so M stays put and near quotes still trade free. The missing ask depth strands the outer bids: whatever has no liquidity paired against it pays the cap, and the farthest bids hit F in full.",
+		key: "unbalanced",
+		title: "Unbalanced",
+		zoom: ZOOM_HALVES.length - 1,
+		blurb: `The same $345k on each side as [[Balanced]], arranged differently: the bid ladder runs steep, thin near the mid and heavy far out, while the asks spread more evenly, holding more of their weight close. Weight near the midpoint pushes the mark away from its side: the walk covers its $20,000 in three ask levels but needs five bid levels, and M settles at 99.997, shifted toward the bids. The shift leaves two bid levels inside the band and only one ask level. Pairing follows the same imbalance: with most of the ask notional close in, the asks reach into deeper bid levels to find their pairs, so the surcharges land on the ask side. Past the full-fee point no level pays a surcharge either way: both legs already stand at the cap.
+
+Hover M to compare the two walks, then hover an ask outside the band and read the surcharge in its receipt.`,
 		book: () => {
 			const a = Array(N).fill(0);
 			for (let k = 0; k < 30; k++) {
-				a[CENTER - 1 - k] = Math.round((3000 + (17000 * k) / 29) / 250) * 250;
-				a[CENTER + 1 + k] = Math.round((3000 + (6500 * k) / 29) / 250) * 250;
+				const v = Math.round((3000 + (17000 * k) / 29) / 250) * 250;
+				a[CENTER - 1 - k] = v;
+				a[CENTER + 1 + k] = Math.round((6500 + (10000 * k) / 29) / 250) * 250;
 			}
 			return a;
 		},
 	},
 	{
-		key: "thin",
-		title: "Thin Side, Moving Mark",
-		blurb:
-			"Bids crowd the mid while the asks stay thin through the whole Maker Zone; the real ask depth waits at the zone's edge and beyond. The measuring walk pays up through what it can reach, so M slides toward the heavy side and the band follows, leaving every bid a touch below the new standard. The wall past the zone barely matters. Raise D and watch M lurch as the walk digs into it.",
+		key: "taker",
+		title: "Directional",
+		blurb: `$255k of asks over $82.5k of bids, zoomed in to a smaller range. While [[Unbalanced]] rearranged equal notional, this book is short a side, and that costs more. Only the smaller bid side can pair, consumed best-priced first. On the heavier side, the asks begin to run out of pairs at 100.035, with that level priced as half paired and half directional. Above it, all asks lack any paired liquidity and pay the full cap, even though they stand a relatively short distance from the mark.
+
+Hover any ask from 100.035 outward to see how much the directional surcharge adds to its total fee. Then try dragging any bid taller and watch the fees above 100.035 fall from the cap back toward placement rates.`,
 		book: () => {
 			const a = Array(N).fill(0);
-			// heavy near bids, then a moderate ladder to the far edge
-			for (let k = 0; k < 8; k++) a[CENTER - 1 - k] = 8000;
-			for (let j = 0; j < 22; j++)
-				a[CENTER - 9 - j] = Math.round((9000 + (9000 * j) / 21) / 250) * 250;
-			// asks: thin through the zone, a wall at its reach, taper beyond
-			[1500, 1500, 2000, 2000, 2500, 3000, 3500, 4000].forEach((v, k) => {
-				a[CENTER + 1 + k] = v;
-			});
-			for (let j = 0; j < 7; j++) a[CENTER + 9 + j] = 16000;
-			for (let j = 0; j < 15; j++) a[CENTER + 16 + j] = 12000;
+			for (let k = 0; k < 15; k++) {
+				a[CENTER - 1 - k] = Math.round((4000 + (3000 * k) / 14) / 250) * 250;
+				a[CENTER + 1 + k] = 10000 + 1000 * k;
+			}
 			return a;
 		},
 	},
 	{
-		key: "half",
-		title: "Half-Covered",
-		blurb:
-			"A $10,000 bid against $5,000 of asks: half the bid is paired, half is directional, so its fee lands halfway to F. The small side is fully paired and still trades free.",
-		book: () => bookOf({ [CENTER - 1]: 10000, [CENTER + 1]: 5000 }),
-	},
-	{
 		key: "wide",
 		title: "Quoting Wide",
-		blurb:
-			"Two-sided and fully paired, but placed outside the band, so the only charge is each level's base fee. Widen B and watch the band swallow the quotes and the fees fall away.",
+		blurb: `A maker quoting only wide: two rungs on each side, mirrored, nothing inside 4bps of the mid. Every dollar pairs and no receipt shows a surcharge; the fees are placement alone. The rungs at 100.040 pay 2.4bps and the ones at 100.045 pay 2.8bps, where [[Balanced]]'s near levels trade free. A book this thin also runs the walk short: it wants $20,000 a side and finds $14k, so the M popup prices the missing depth at the boundary, shown as the starred rows.
+
+Try widening B: at 8bps the band swallows the inner rungs, at 10 all four trade free.`,
 		book: () =>
 			bookOf({
 				[CENTER - 9]: 8000,
-				[CENTER - 7]: 6000,
-				[CENTER + 7]: 6000,
+				[CENTER - 8]: 6000,
+				[CENTER + 8]: 6000,
 				[CENTER + 9]: 8000,
 			}),
 	},
 	{
-		key: "spill",
-		title: "Spillover",
-		blurb:
-			"Three equal bids share one ask. The best bid pairs first and trades free; the middle one gets half; the last gets nothing and pays the cap. Pairing is consumed, never reused. Hover the dots to watch it drain.",
-		book: () =>
-			bookOf({
-				[CENTER - 1]: 6000,
-				[CENTER - 2]: 6000,
-				[CENTER - 3]: 6000,
-				[CENTER + 1]: 9000,
-			}),
+		key: "thin",
+		title: "Thin Side, Moving Mark",
+		blurb: `Bids crowd the mid, eight $10k levels deep, while the asks run thin: ten small rungs summing to just $20,000, with the real ask depth waiting beyond 100.055. The walk covers its $20,000 in two bid levels, while the ask side takes all ten. M lands at 100.012, more than a bps above the mid.
+
+Four asks fall inside the band, but no bid stands inside it for them to pair with, so their pairs reach below the band and they pay a surcharge, about 0.5bps despite their placement. The nearest bid at 99.995 sits just outside the band and pays 0.55bps.
+
+Try the D dial in both directions. Raise it and the walk absorbs more of the thin side, pushing M out to 100.014 at $30k. Lower it to $10k and the walk reads less of the book, sees less of the imbalance, and pulls M back in to 100.007.`,
+		book: () => {
+			const a = Array(N).fill(0);
+			// heavy near bids, then a moderate ladder to the far edge
+			for (let k = 0; k < 8; k++) a[CENTER - 1 - k] = 10000;
+			for (let j = 0; j < 22; j++)
+				a[CENTER - 9 - j] = Math.round((9000 + (9000 * j) / 21) / 250) * 250;
+			// asks: thin rungs summing to exactly $20k through the reach, then
+			// a wall just past the walk's stopping point, tapering beyond
+			[1250, 1500, 1750, 1750, 2000, 2000, 2250, 2250, 2500, 2750].forEach(
+				(v, k) => {
+					a[CENTER + 1 + k] = v;
+				},
+			);
+			for (let j = 0; j < 6; j++) a[CENTER + 11 + j] = 16000;
+			for (let j = 0; j < 14; j++) a[CENTER + 17 + j] = 12000;
+			return a;
+		},
 	},
 ];
 
@@ -299,12 +308,16 @@ export default function SingleMakerLab() {
 	const [centerSide, setCenterSide] = useState<"bid" | "ask">("bid");
 	const [mHover, setMHover] = useState(false);
 	const [feeHover, setFeeHover] = useState<number | null>(null);
-	const [zoom, setZoom] = useState(1); // default view: ±7.5bps
+	const [zoom, setZoom] = useState(SCENARIOS[0].zoom ?? 1); // default view: ±7.5bps
 	const lastM = useRef(100);
 	const drag = useRef<DragState | null>(null);
 	const svgRef = useRef<SVGSVGElement | null>(null);
 	const zoneDrag = useRef<0 | 1 | null>(null);
 	const [zoneGrab, setZoneGrab] = useState<0 | 1 | null>(null);
+	// fade the fee receipt while the pointer sits under its box, so the
+	// bars beneath stay visible mid-resize
+	const [underTip, setUnderTip] = useState(false);
+	const tipH = useRef(0);
 	// the last custom book and dials, remembered when a scenario replaces
 	// them; the Custom button restores them
 	const [customSnap, setCustomSnap] = useState<{
@@ -409,7 +422,41 @@ export default function SingleMakerLab() {
 		setSlope(0.8);
 		setSlope2(SLOPE2_DEFAULT);
 		setComp(0);
+		setZoom(sc.zoom ?? 1);
 		setScenario(sc.key);
+	};
+
+	// blurb markup: [[Title]] or [[Title|shown text]] renders as an inline
+	// link that selects that scenario
+	const renderBlurb = (text: string) => {
+		const parts = text.split(/\[\[([^\]]+)\]\]/g);
+		return parts.map((part, i) => {
+			if (i % 2 === 0) return part;
+			const [ref, shown] = part.split("|");
+			const target = SCENARIOS.find((sc) => sc.title === ref.trim());
+			const labelText = (shown ?? ref).trim();
+			if (!target) return labelText;
+			return (
+				<button
+					key={i}
+					type="button"
+					onClick={() => applyScenario(target)}
+					style={{
+						background: "none",
+						border: "none",
+						padding: 0,
+						font: "inherit",
+						color: C.text,
+						textDecoration: "underline",
+						textDecorationStyle: "dotted",
+						textUnderlineOffset: 3,
+						cursor: "pointer",
+					}}
+				>
+					{labelText}
+				</button>
+			);
+		});
 	};
 	const touch =
 		(dial: keyof typeof DIAL_EFFECT, cur: number, fn: (v: number) => void) =>
@@ -732,6 +779,20 @@ export default function SingleMakerLab() {
 						ref={svgRef}
 						viewBox={`0 0 ${W} ${H}`}
 						style={{ width: "100%", display: "block", touchAction: "none" }}
+						onPointerMove={(e) => {
+							const r = svgRef.current?.getBoundingClientRect();
+							if (!r) return;
+							const sx = ((e.clientX - r.left) / r.width) * W;
+							const sy = ((e.clientY - r.top) / r.height) * H;
+							const inside =
+								feeHover != null &&
+								!mHover &&
+								sx >= W / 2 - 240 &&
+								sx <= W / 2 + 240 &&
+								sy >= PT + 8 &&
+								sy <= PT + 8 + tipH.current;
+							setUnderTip((v) => (v === inside ? v : inside));
+						}}
 						role="img"
 						aria-label="Order-book depth chart: drag bars to reshape your quotes; the violet curve shows each level's fee"
 					>
@@ -991,11 +1052,15 @@ export default function SingleMakerLab() {
 												setCenterSide((cs) => (cs === "bid" ? "ask" : "bid"));
 										}}
 									/>
-									{/* grab handle: hugs the bar's top edge, mostly outside it */}
+									{/* grab handle: hugs the bar's top edge, mostly outside it;
+									    allowed to poke 12px above the plot so a full-height bar
+									    stays grabbable on a slight overshoot */}
 									<rect
 										x={xAt(lv.i) - step / 2}
 										y={
-											lv.size > 0 ? Math.max(PT, yDepth(lv.size) - 12) : PB - 14
+											lv.size > 0
+												? Math.max(PT - 12, yDepth(lv.size) - 12)
+												: PB - 14
 										}
 										width={step}
 										height={lv.size > 0 ? 16 : 14}
@@ -1138,18 +1203,6 @@ export default function SingleMakerLab() {
 								strokeWidth={1.5}
 								pointerEvents="none"
 								style={{ fill: C.fee, stroke: C.panel }}
-							/>
-						))}
-						{/* fee hit zones — hover a dot for its breakdown */}
-						{feePts.map((l) => (
-							<circle
-								key={l.i}
-								cx={xAt(l.i)}
-								cy={yFee(l.bk?.final ?? 0)}
-								r={13}
-								fill="transparent"
-								onPointerEnter={() => setFeeHover(l.i)}
-								onPointerLeave={() => setFeeHover(null)}
 							/>
 						))}
 
@@ -1468,7 +1521,7 @@ export default function SingleMakerLab() {
 											x={zx - 20}
 											y={PT - 30}
 											width={40}
-											height={30}
+											height={18}
 											fill="transparent"
 											style={{ cursor: "ew-resize" }}
 											{...zoneStrip(s)}
@@ -1556,7 +1609,7 @@ export default function SingleMakerLab() {
 								const top = PT + 8;
 								if (model.state !== "fresh") {
 									const rows = [
-										{ t: "M held: no valid candidate book", c: C.text },
+										{ t: "M Held: No Valid Candidate Book", c: C.text },
 										{ t: "nothing is eligible to walk;", c: C.dim },
 										{
 											t: `showing last computed M ${fmtPx(model.M)}`,
@@ -1605,15 +1658,20 @@ export default function SingleMakerLab() {
 									const rows = walk(side);
 									const short =
 										side === "bid" ? model.shortBid : model.shortAsk;
-									if (short)
+									if (short) {
+										rows.push({ t: "", c: C.faint });
 										rows.push({
-											t: `${fmt$(short.missing)} @ ${fmtPx(short.price)}`,
+											t: `${fmtPx(short.price)} · ${fmt$(short.missing)} *`,
 											c: C.faint,
 										});
+									}
 									return rows;
 								};
 								const anyShort =
 									model.shortBid != null || model.shortAsk != null;
+								const noteLines = anyShort
+									? ["* missing depth, priced at the", "measurement boundary"]
+									: ["purple slices = the depth each walk consumed"];
 								const L = colOf("bid");
 								const R = colOf("ask");
 								const nRows = Math.max(L.length, R.length, 1);
@@ -1622,7 +1680,7 @@ export default function SingleMakerLab() {
 								const resY = rowY(nRows - 1) + 21;
 								const footY = resY + 23;
 								const noteY = footY + 18;
-								const h = noteY + 10 - top;
+								const h = noteY + 10 + (noteLines.length - 1) * 15 - top;
 								const colL = xT - 168;
 								const colR = xT + 16;
 								return (
@@ -1643,7 +1701,7 @@ export default function SingleMakerLab() {
 											fontSize={14}
 											style={{ fill: C.dim, fontFamily: mono }}
 										>
-											M: the mark price of this snapshot
+											M: Mark Price of this Snapshot
 										</text>
 										<line
 											x1={xT}
@@ -1658,7 +1716,7 @@ export default function SingleMakerLab() {
 											fontSize={13.5}
 											style={{ fill: C.bid, fontFamily: mono }}
 										>
-											sell {fmt$(D)} → bids
+											Sell {fmt$(D)} → Bids
 										</text>
 										<text
 											x={colR}
@@ -1666,7 +1724,7 @@ export default function SingleMakerLab() {
 											fontSize={13.5}
 											style={{ fill: C.ask, fontFamily: mono }}
 										>
-											buy {fmt$(D)} → asks
+											Buy {fmt$(D)} → Asks
 										</text>
 										{L.map((r, k) => (
 											<text
@@ -1696,7 +1754,7 @@ export default function SingleMakerLab() {
 											fontSize={14}
 											style={{ fill: C.bid, fontFamily: mono }}
 										>
-											gets → {model.iBid != null ? fmtPx(model.iBid) : "–"}
+											Gets → {model.iBid != null ? fmtPx(model.iBid) : "–"}
 										</text>
 										<text
 											x={colR}
@@ -1704,7 +1762,7 @@ export default function SingleMakerLab() {
 											fontSize={14}
 											style={{ fill: C.ask, fontFamily: mono }}
 										>
-											pays → {model.iAsk != null ? fmtPx(model.iAsk) : "–"}
+											Pays → {model.iAsk != null ? fmtPx(model.iAsk) : "–"}
 										</text>
 										<text
 											x={xT}
@@ -1717,17 +1775,18 @@ export default function SingleMakerLab() {
 											{model.iAsk != null ? fmtPx(model.iAsk) : "–"}) / 2 ={" "}
 											{fmtPx(model.M)}
 										</text>
-										<text
-											x={xT}
-											y={noteY}
-											textAnchor="middle"
-											fontSize={12}
-											style={{ fill: C.faint, fontFamily: mono }}
-										>
-											{anyShort
-												? "faint rows: missing depth, priced at the measurement boundary"
-												: "purple slices = the depth each walk consumed"}
-										</text>
+										{noteLines.map((t, k) => (
+											<text
+												key={t}
+												x={xT}
+												y={noteY + k * 15}
+												textAnchor="middle"
+												fontSize={12}
+												style={{ fill: C.faint, fontFamily: mono }}
+											>
+												{t}
+											</text>
+										))}
 									</g>
 								);
 							})()}
@@ -1797,7 +1856,7 @@ export default function SingleMakerLab() {
 									const amt = (b.unpaired / b.q) * (F - b.own);
 									items.push({
 										amt,
-										t: `${amt$(amt, "+")} · ${pct}% directional → cap`,
+										t: `${amt$(amt, "+")} · ${pct}% Directional → Cap`,
 										c: C.ask,
 									});
 								}
@@ -1847,8 +1906,13 @@ export default function SingleMakerLab() {
 								const h = yAcc - 2;
 								const xT = W / 2;
 								const yT = PT + 8;
+								tipH.current = h;
 								return (
-									<g pointerEvents="none">
+									<g
+										pointerEvents="none"
+										opacity={underTip ? 0.65 : 1}
+										style={{ transition: "opacity 120ms" }}
+									>
 										<rect
 											x={xT - 240}
 											y={yT}
@@ -1946,7 +2010,9 @@ export default function SingleMakerLab() {
 				</div>
 				<div class="sf-caption">
 					{scenario
-						? SCENARIOS.find((sc) => sc.key === scenario)?.blurb
+						? renderBlurb(
+								SCENARIOS.find((sc) => sc.key === scenario)?.blurb ?? "",
+							)
 						: "Custom setup. Drag bars and dials freely. Picking a scenario keeps this book in memory, and the Custom button brings it back."}
 				</div>
 			</div>

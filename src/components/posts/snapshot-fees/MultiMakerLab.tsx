@@ -2054,7 +2054,7 @@ export default function MultiMakerLab() {
 									const amt = (b.unpaired / b.q) * (F - b.own);
 									items.push({
 										amt,
-										t: `${amt$(amt, "+")} · ${pct}% directional → cap`,
+										t: `${amt$(amt, "+")} · ${pct}% Directional → Cap`,
 										c: C.ask,
 									});
 								}
