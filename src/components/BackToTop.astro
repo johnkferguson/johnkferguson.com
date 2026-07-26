@@ -134,8 +134,11 @@ const { railCoversWide = true } = Astro.props;
 <style>
 	button {
 		position: fixed;
-		/* tight to the corner: it floats over content and the footer's
-		 * centered strand, so hug the edge to stay out of their way */
+		/* tight to the corner: it floats over content and the footer, so
+		 * hug the edge to stay out of the way. Bottom-right at every
+		 * width: below 1020 the footer is a centered strand, and at and
+		 * above it the footer's copyright takes the left gutter, so this
+		 * corner is the one that stays clear either way. */
 		right: 0.55rem;
 		bottom: 0.55rem;
 		z-index: 40;

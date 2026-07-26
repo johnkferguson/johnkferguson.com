@@ -199,9 +199,12 @@ const backdropSvg = art?.image
 
   /* the bottom spacing .post-shell used to carry, moved inside the grid
    * row so it doesn't shrink the sticky rail's travel zone (home/about
-   * shells keep their own padding and no extra spacing here) */
+   * shells keep their own padding and no extra spacing here).
+   * 1rem, not 3rem, so the footer tucks under the content at the same
+   * distance the homepage uses; 3rem left it visibly adrift by
+   * comparison. */
   .post-page :global(.post-main) {
-    padding-bottom: 3rem;
+    padding-bottom: 1rem;
   }
 
   /* title legibility: a soft halo hugging the letterforms (no panel,

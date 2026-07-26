@@ -17,5 +17,12 @@
 	--sticky-top: calc(var(--header-h) + 1.5rem);
 	--sticky-height: calc(100vh - var(--sticky-top) - 2.8rem);
 	--rail-top: calc(var(--header-h) + 1.9rem);
+	/* Footer band height at the rail breakpoint, and the single source
+	 * for it. The TOC rail's Top chip cancels exactly this much with a
+	 * negative margin; any mismatch becomes scrollable height the body
+	 * does not have, and the footer can then never scroll flush to the
+	 * viewport bottom (a post's footer would sit higher than the
+	 * homepage's). Both sides read this variable so they cannot drift. */
+	--footer-h: 29px;
 	--anchor-offset: 80px;
 }

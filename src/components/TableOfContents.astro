@@ -380,6 +380,8 @@ const caretSvg =
 
 		// —— scrollspy + Top link visibility ——
 		const tops = [...document.querySelectorAll<HTMLElement>("[data-toc-top]")];
+		/* queried once: the scroll pass below asks where its hairline is */
+		const siteFooter = document.querySelector<HTMLElement>(".site-footer");
 		for (const t of tops) {
 			t.addEventListener("click", () => {
 				window.scrollTo({ top: 0, behavior: reduceMotion ? "auto" : "smooth" });
@@ -439,8 +441,16 @@ const caretSvg =
 			const showTop = postH1
 				? postH1.getBoundingClientRect().bottom < 60
 				: window.scrollY > window.innerHeight;
+			/* the chip rides at exactly the footer's height above the
+			 * viewport bottom, so it "lands" the moment the footer's
+			 * hairline reaches it; square its bottom corners there */
+			const footerTop = siteFooter?.getBoundingClientRect().top ?? Number.POSITIVE_INFINITY;
 			for (const t of tops) {
 				t.classList.toggle("visible", showTop);
+				t.classList.toggle(
+					"landed",
+					showTop && footerTop <= t.getBoundingClientRect().bottom + 0.5,
+				);
 			}
 		};
 		const onScroll = () => {
@@ -649,14 +659,26 @@ const caretSvg =
 	}
 
 	.toc-top {
-		/* rides 1.25rem above the viewport bottom for the whole read.
-		 * Its natural position (end of the .post-rail column) is pushed
+		/* Rides exactly one footer-height above the viewport bottom for
+		 * the whole read, which means it rides where the footer will
+		 * land. At full scroll it therefore comes to rest sitting ON the
+		 * footer's hairline rather than dipping into the band. Its
+		 * natural position (end of the .post-rail column) is pushed
 		 * below the sticky line by the negative margin, so it never
-		 * un-sticks: at full scroll it stays put and overlays the
-		 * footer's unused left side (the shell's z-index paints it on
-		 * top). The margin absorbs the footer's ~2.05rem height. */
+		 * un-sticks.
+		 *
+		 * The margin must cancel the footer band exactly. Any surplus
+		 * becomes scrollable height the body does not have, one pixel of
+		 * document per pixel of margin, and the page can then never
+		 * scroll its footer flush to the viewport bottom: a post's
+		 * footer sat 5px higher than the homepage's, obvious when
+		 * flipping between the two. Hence --footer-h rather than a
+		 * hand-tuned constant, so changing the footer cannot silently
+		 * reintroduce the gap. Invariant to check: at full scroll,
+		 * documentElement.scrollHeight === body height. */
+		--toc-top-pad-x: 0.55rem;
 		position: sticky;
-		bottom: 1.25rem;
+		bottom: var(--footer-h);
 		flex: none;
 		align-self: flex-start;
 		display: flex;
@@ -665,8 +687,17 @@ const caretSvg =
 		align-items: baseline;
 		gap: 0.4rem;
 		margin-top: auto;
-		margin-bottom: -2rem;
-		padding: 0.34rem 0.55rem 0.26rem;
+		margin-bottom: calc(-1 * var(--footer-h));
+		/* Outdent by exactly the left inset (border + padding) so the
+		 * LABEL joins the column everything else aligns on: the wordmark,
+		 * CONTENTS and the footer's copyright all sit on the same line,
+		 * and a box aligned by its edge instead left its text ~12px
+		 * inside that line, reading as a kink. The border hangs into the
+		 * gutter, which is the usual trade for optical alignment. Both
+		 * read one variable so the outdent cannot drift from the padding
+		 * it is cancelling. */
+		margin-left: calc(-1 * var(--toc-top-pad-x) - 1px);
+		padding: 0.34rem var(--toc-top-pad-x) 0.26rem;
 		line-height: 1;
 		border: 1px solid var(--border-color);
 		border-radius: 6px;
@@ -706,6 +737,21 @@ const caretSvg =
 	.toc-top:hover {
 		color: var(--heading-color);
 		border-color: var(--article-link-hover-border);
+	}
+
+	/* Landed: at full scroll the chip comes to rest on the footer's
+	 * hairline, so its bottom corners square off and the two rules read
+	 * as one join rather than a rounded box perched on a line. Set from
+	 * the rail's existing scroll pass; without JS it simply stays
+	 * rounded, which is the current look. */
+	.toc-top.landed {
+		border-bottom-left-radius: 0;
+		border-bottom-right-radius: 0;
+		/* the chip's own bottom rule would sit a pixel above the footer's,
+		 * reading as one thick line; let the footer's hairline be the
+		 * join. Transparent rather than border-bottom:0, which would
+		 * shorten the box by a pixel and nudge the chip as it lands. */
+		border-bottom-color: transparent;
 	}
 
 	/* —— in-flow contents block —— */
