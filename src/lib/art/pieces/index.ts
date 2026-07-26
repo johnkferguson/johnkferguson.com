@@ -6,9 +6,11 @@
 
 import type { ArtPiece } from "../core";
 import { refactoringWithLove } from "./refactoring-with-love";
+import { snapshotFees } from "./snapshot-fees";
 
 export const PIECES: Record<string, ArtPiece> = {
 	[refactoringWithLove.name]: refactoringWithLove,
+	[snapshotFees.name]: snapshotFees,
 };
 
 export function getPiece(name: string): ArtPiece | undefined {

@@ -95,8 +95,25 @@ export interface ParamSpec {
 	default: number;
 }
 
+/**
+ * What the quiet zone does to art that would otherwise fill it.
+ *
+ * "clip" holds art under the zone's floor and lets it collect there.
+ * "scale" fits the whole composition into the room available instead.
+ * Which one looks right depends on how much of the frame the zone takes:
+ * a small zone can clip invisibly, while a zone covering most of the
+ * canvas turns clipping into a flat mass and needs scaling to keep the
+ * art legible.
+ */
+export type QuietFit = "clip" | "scale";
+
 /** per-render context beyond the dials */
 export interface PieceCtx {
+	/** how to fit art under the quiet zone; defaults to "clip" */
+	fit?: QuietFit;
+	/** the hashed seed, for pieces that need a stream of their own on
+	 * top of the layout one (see animRng for the same idea) */
+	seed?: number;
 	/** emit SMIL motion. animRng is a SEPARATE seeded stream so motion
 	 * parameters never perturb the layout stream: an animated render is
 	 * geometrically identical to the static one */
@@ -115,6 +132,11 @@ export interface ArtPiece {
 	/** registry key; also the frontmatter `art.piece` value */
 	name: string;
 	params: ParamSpec[];
+	/** the share card's quiet zone, when this piece's composition needs
+	 * different room than the card's default. Opt-in per piece: the
+	 * default is shared by every card, so tuning it for one artwork
+	 * silently redraws the rest. */
+	ogQuiet?: { rect: QuietZone; strength: number };
 	render(
 		r: () => number,
 		w: number,
