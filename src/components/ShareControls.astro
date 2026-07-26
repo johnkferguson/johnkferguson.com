@@ -3,9 +3,13 @@
  *
  * Both buttons are rendered server-side and hidden; the script reveals
  * whichever the visitor's capabilities call for (see lib/share.ts).
- * Rendering both and hiding keeps the markup declarative and means the
- * separator can be a real element rather than generated content, which
- * some screen readers announce.
+ * Rendering both and hiding keeps the markup declarative.
+ *
+ * Each is a bordered control rather than a bare label: on touch there is
+ * no hover to reveal that a word is pressable, and this is the one thing
+ * a reader is invited to do at the end of a post. The outline stays
+ * quiet (hairline, no fill) so it reads as a control without competing
+ * with the prose. Being outlined, they need no separator between them.
  *
  * Starting hidden also handles the no-JavaScript case: neither control
  * can function without it, so neither should be visible. Same shape as
@@ -49,8 +53,6 @@
     <span data-share-copy-label>Copy link</span>
   </button>
 
-  <span class="sep" data-share-sep aria-hidden="true" hidden>·</span>
-
   <button class="share-btn" type="button" data-share-share hidden>
     <svg
       width="11"
@@ -80,9 +82,8 @@
 	const strand = document.querySelector<HTMLElement>("[data-share]");
 	const copyBtn = strand?.querySelector<HTMLElement>("[data-share-copy]");
 	const shareBtn = strand?.querySelector<HTMLElement>("[data-share-share]");
-	const sep = strand?.querySelector<HTMLElement>("[data-share-sep]");
 
-	if (strand && copyBtn && shareBtn && sep) {
+	if (strand && copyBtn && shareBtn) {
 		const label = copyBtn.querySelector<HTMLElement>("[data-share-copy-label]");
 
 		/* the accessible name comes from the visible text, so the two can
@@ -117,11 +118,8 @@
 			hasShare: typeof navigator.share === "function",
 			coarsePointer: window.matchMedia("(pointer: coarse)").matches,
 		});
-		const showCopy = controls.includes("copy");
-		const showShare = controls.includes("share");
-		copyBtn.toggleAttribute("hidden", !showCopy);
-		shareBtn.toggleAttribute("hidden", !showShare);
-		sep.toggleAttribute("hidden", !(showCopy && showShare));
+		copyBtn.toggleAttribute("hidden", !controls.includes("copy"));
+		shareBtn.toggleAttribute("hidden", !controls.includes("share"));
 		strand.removeAttribute("hidden");
 	}
 </script>
@@ -131,7 +129,7 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    gap: 0.55rem;
+    gap: 0.7rem;
     max-width: var(--prose-measure);
     margin: 2.4rem 0 0;
     padding-top: 1.1rem;
@@ -145,17 +143,26 @@
   .share-btn {
     display: inline-flex;
     align-items: center;
-    gap: 0.4rem;
-    border: 0;
-    padding: 0;
+    gap: 0.45rem;
+    /* hairline, no fill: enough to read as pressable without becoming
+     * the loudest thing on the page. Same border tokens and hover
+     * treatment as the rail's Top chip, so the site has one button
+     * voice rather than two. */
+    border: 1px solid var(--border-color);
+    border-radius: 5px;
+    padding: 0.4rem 0.7rem;
     background: transparent;
     color: var(--date-color);
     cursor: pointer;
     font-family: var(--font-mono);
-    font-size: 0.55rem;
+    /* a step up from the footer's 0.55rem: this is a control, not
+     * chrome, and at footer size it read as a caption */
+    font-size: 0.7rem;
     letter-spacing: 0.06em;
     text-transform: uppercase;
-    transition: color 0.15s ease;
+    transition:
+      color 0.15s ease,
+      border-color 0.15s ease;
   }
 
   .share-btn[hidden] {
@@ -164,16 +171,22 @@
 
   .share-btn svg {
     display: block;
+    width: 13px;
+    height: 13px;
     /* the mono cap band sits above the line-box middle at this size */
     transform: translateY(-0.5px);
   }
 
   .share-btn:hover {
     color: var(--heading-color);
+    border-color: var(--article-link-hover-border);
   }
 
+  /* the confirmation carries the border too: on an outlined control a
+   * text-colour-only change is easy to miss */
   .share-btn.copied {
     color: var(--code-color);
+    border-color: var(--code-color);
   }
 
   /* the confirmed state swaps the glyph; .copied is the single source of
@@ -190,22 +203,12 @@
     display: block;
   }
 
-  .sep {
-    color: var(--date-color);
-    opacity: 0.5;
-    font-family: var(--font-mono);
-    font-size: 0.55rem;
-  }
-
-  .sep[hidden] {
-    display: none;
-  }
-
-  /* Touch. The desktop size is a quiet marginal note, which is wrong on
-   * a phone: this is the only control in reach at the end of the post,
-   * and it is usually alone (the OS sheet covers copy), so it can carry
-   * real weight. Type and glyph both scale, and min-height is stated
-   * outright because font metrics alone left the target ~15px tall. */
+  /* Touch. On a phone this is the only control in reach at the end of
+   * the post, and usually the only one shown at all (the OS sheet covers
+   * copy), so it carries more weight than the desktop control does. Type
+   * and glyph both scale up, and min-height is stated outright rather
+   * than left to padding: derived from font metrics the target came out
+   * ~15px tall, well under the 44px guideline. */
   @media (hover: none) {
     .share {
       padding-top: 1.4rem;
@@ -214,7 +217,8 @@
     .share-btn {
       min-height: 52px;
       gap: 0.55rem;
-      padding: 0 0.6rem;
+      padding: 0 1rem;
+      border-radius: 6px;
       font-size: 0.9rem;
       letter-spacing: 0.1em;
     }
