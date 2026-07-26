@@ -3,6 +3,10 @@
  * text on white paper is unreadable with backgrounds off), drop the
  * screen chrome and decoration, keep code/math dressing subtle.
  *
+ * Any new interactive affordance belongs in the hidden group below.
+ * Nothing fails when it is forgotten: no test covers print, and the
+ * omission only shows up on paper.
+ *
  * Imported LAST and unlayered on purpose. The :root/.dark override below
  * is a normal declaration at the same specificity as the definitions in
  * colors.css, so it wins by source order alone — put this file in a
@@ -33,6 +37,7 @@
 	.post-rail,
 	article[data-toc-root] .anchor-link,
 	article .block-copy,
+	.share,
 	.post-backdrop,
 	.side-art {
 		/* biome-ignore lint/complexity/noImportantStyles: must beat component-scoped display rules in one shot */

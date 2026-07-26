@@ -12,13 +12,13 @@
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { Resvg } from "@resvg/resvg-js";
+import { OG_SIZE } from "../consts";
 import { palette } from "./palette";
 
 /* cards are always drawn in the dark palette, whatever theme the reader
  * is in — a share preview has no theme to follow */
 export const OG = {
-	width: 1200,
-	height: 630,
+	...OG_SIZE,
 	bg: palette.dark["--bg"],
 	ink: palette.dark["--heading-color"],
 	muted: palette.dark["--date-color"],
@@ -171,7 +171,7 @@ export function pinArtColors(svg: string): string {
 	}
 	/* resvg silently drops attributes it cannot parse, so an unmapped
 	 * variable would ship as an invisible shape; fail the build instead */
-	const leftover = pinned.match(/var\(--[a-z-]+\)/i);
+	const leftover = pinned.match(/var\(--[a-z0-9-]+\)/i);
 	if (leftover) {
 		throw new Error(
 			`OG card art contains an unmapped CSS variable: ${leftover[0]}. Add it to the dark palette in src/lib/palette.ts.`,

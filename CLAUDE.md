@@ -15,7 +15,9 @@ Personal blog at johnkferguson.com. Static site built with Astro 7, styled with 
 
 When previewing changes locally, prefer `bun run dev` over `build + preview` — it watches for file changes and reloads automatically.
 
-Draft posts (`src/content/posts/drafts/`, `draft: true`) render in dev only; production builds glob-exclude them (keyed on `ASTRO_BUILD`, set by the build script) so none of their modules reach the bundle. The build script uses an isolated cache and ends with `astro sync` because builds otherwise clobber the shared `.astro/content-modules.mjs` manifest and 500 draft pages in a running dev server.
+Draft posts (`src/content/posts/drafts/`, `draft: true`) render in dev only; production builds glob-exclude them (keyed on `ASTRO_BUILD`, set by the build script) so none of their modules reach the bundle. The isolated `cacheDir` in `astro.config.mjs` is the thing that stops a build clobbering a running dev server's content store (dev uses `node_modules/.astro`, builds `node_modules/.astro-build`); dropping it does clobber, so keep it.
+
+The build script must not end with `astro sync`: that runs draft-inclusive, so a malformed draft which never ships failed the Netlify deploy (PR #34). Drafts stay schema-validated by `bunx astro check`, which runs before the build in `check.yml`.
 
 ## Architecture
 
@@ -76,6 +78,16 @@ Technical pieces additionally:
 - The `chrome-devtools` MCP server (project `.mcp.json`, drives its own Chrome instance) is the way to verify design and layout work: navigate to the dev server, `take_screenshot` (or `take_snapshot` for structure), and Read the image before calling a visual change done. "The HTML looks right" is not verification.
 - Test at realistic CSS viewport widths with `resize_page`. John's 1920px monitor presents as roughly 1000-1100 CSS px due to zoom/display scaling, so always check ~1000-1100 as well as 390 (mobile) and 1400+. The post TOC rail appears at >= 1020 CSS px.
 - Before publishing changes, `lighthouse_audit` on the affected pages.
+
+## Dependency Management & CI Hardening
+
+- **`bun.lock` is invisible to GitHub's dependency graph** — Dependabot alerts only ever resolve from the `package.json` ranges, so the transitive tree is uncovered. `bun audit` (via `scripts/audit.sh`) is the only thing that sees it. This is why the audit gate carries more weight here than on an npm project.
+- **`scripts/audit.sh` is the single source of truth for accepted advisories** — not the workflows. It pipes `bun audit --json` through `scripts/audit-gate.ts` with an `--ignore` list; each entry documents its exposure class (not dependency paths, which churn). Called from both `check.yml` (PR gate) and `security.yml` (daily scheduled sweep — catches advisories newly published against unchanged deps). Add or drop ignores there; a moderate deliberately left un-ignored is recorded in the same comment so a future re-score to high fails loudly with context.
+- **The audit gate is cooldown-aware** (`scripts/audit-gate.ts`, window read from bunfig's `minimumReleaseAge`): an advisory whose only in-range fix is younger than the window is WAIVED with the date it becomes actionable and starts failing by itself once the fix ages in — no temporary ignore entries. Criticals are never waived (bypass the cooldown via `minimumReleaseAgeExcludes` instead). An advisory with no in-range fix fails and needs a documented ignore. After any lockfile change, `bun scripts/verify-lock-ages.ts` confirms every added version clears the window (what Netlify's plain `bun install` will enforce).
+- **Two cooldown numbers must stay in sync**: `minimumReleaseAge` in `bunfig.toml` (seconds) and `cooldown.default-days` in `.github/dependabot.yml` (both 7 days). `bunfig.toml` also covers manual `bun add`/`bun update` and Netlify's `bun install`, which Dependabot's server-side cooldown does not.
+- **`minimumReleaseAge` failure mode**: a too-new version fails resolution with `No version matching "<pkg>" found for specifier (minimum-release-age: ...)` — it reads like the version doesn't exist but means it's younger than 7 days. Escape hatch: add the package to `minimumReleaseAgeExcludes` in `bunfig.toml`. Consequence to remember: `bun update` grabs newest-compatible and can pull versions younger than the window, which a plain `bun install` (Netlify) then refuses even though CI's `--frozen-lockfile` glosses over it — keep the lockfile within the cooldown.
+- **Actions are tag-pinned (`ref-pin`), deliberately** — `zizmor.yml` overrides zizmor's default `hash-pin`. Dependabot only raises security alerts for actions using semantic versioning, so hash-pinning would trade that alerting away. Bare refs / floating branches are still rejected.
+- **`trustedDependencies` (`package.json`) replaces bun's built-in 368-package allowlist** rather than extending it — so it must list every dependency that needs install scripts. Only `esbuild` and `sharp` declare lifecycle scripts here (verified from a `node_modules`-removed install; a re-run over an existing tree proves nothing). `bun-version` is pinned in both workflows and `BUN_VERSION` in `netlify.toml`.
 
 ## Git Conventions
 

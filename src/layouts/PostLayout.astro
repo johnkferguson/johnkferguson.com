@@ -2,6 +2,7 @@
 import type { MarkdownHeading } from "astro";
 import BackToTop from "../components/BackToTop.astro";
 import ReadingTime from "../components/ReadingTime.astro";
+import ShareControls from "../components/ShareControls.astro";
 import TableOfContents from "../components/TableOfContents.astro";
 import { artSvg, DEFAULT_QUIET } from "../lib/art/generate";
 /* ?raw keeps math.css out of the CSS module graph: Astro ships
@@ -14,7 +15,9 @@ interface Props {
 	title: string;
 	description: string;
 	pubDate: Date;
-	author?: string;
+	/* set only on a substantive revision; metadata-only for now */
+	updated?: Date;
+	tags?: string[];
 	noindex?: boolean;
 	slug?: string;
 	readingMinutes?: number;
@@ -28,7 +31,12 @@ interface Props {
 	draftBadge?: boolean;
 	art?: {
 		family?: "strata" | "field" | "walk" | "depth";
+		piece?: string;
 		seed?: string;
+		params?: Record<string, number>;
+		/** homepage-thumbnail concerns; the backdrop ignores both */
+		thumb?: { x: number; y: number; w: number; h: number };
+		motion?: boolean;
 		image?: string;
 	};
 }
@@ -37,7 +45,8 @@ const {
 	title,
 	description,
 	pubDate,
-	author,
+	updated,
+	tags,
 	noindex,
 	slug,
 	art,
@@ -57,11 +66,21 @@ const formattedDate = pubDate.toLocaleDateString("en-US", {
 
 /* Backdrop art: an explicit image wins; otherwise generate a fixed piece
  * seeded by the slug (stable across builds and visits). */
+/* dev-only in-place art picker; the dynamic import keeps its script and
+ * styles out of production bundles entirely (a static import leaks the
+ * CSS into every post's stylesheet even when the component never
+ * renders) */
+const ArtDevPicker = import.meta.env.DEV
+	? (await import("../components/ArtDevPicker.astro")).default
+	: null;
+
 const backdropSvg = art?.image
 	? null
 	: artSvg({
 			seedKey: art?.seed ?? slug ?? title,
 			family: art?.family,
+			piece: art?.piece,
+			params: art?.params,
 			width: 1600,
 			height: 640,
 			/* thin the art where the overlaid title sits */
@@ -75,7 +94,8 @@ const backdropSvg = art?.image
 	description={description}
 	type="article"
 	pubDate={pubDate}
-	author={author}
+	updated={updated}
+	tags={tags}
 	ogImage={slug ? `/assets/og/${slug}.png` : undefined}
 	headerContextTitle={title}
 	headerContextDate={formattedDate}
@@ -119,14 +139,20 @@ const backdropSvg = art?.image
         <article data-toc-root>
           <slot />
         </article>
+        <ShareControls />
       </div>
     </div>
-    <BackToTop railCoversWide={(headings ?? []).some((h) => h.depth === 2)} />
+    <BackToTop />
+    {ArtDevPicker && <ArtDevPicker />}
   </div>
 </BaseLayout>
 
 <script>
-	// hover anchor: a copy-link button appended to every id'd heading
+	// hover anchor: a copy-link button appended to every id'd heading.
+	// Copy, confirm, revert and the live region come from the shared
+	// helper, so these and the end-of-post controls cannot drift apart.
+	import { attachCopyButton } from "../components/copy-link";
+
 	const root = document.querySelector("[data-toc-root]");
 	if (root) {
 		const linkSvg =
@@ -136,36 +162,22 @@ const backdropSvg = art?.image
 		const headings = root.querySelectorAll<HTMLElement>(
 			":is(h2, h3, h4, h5, h6)[id]",
 		);
-		// screen-reader announcement for successful copies
-		const live = document.createElement("div");
-		live.setAttribute("aria-live", "polite");
-		live.style.cssText =
-			"position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%)";
-		root.append(live);
 		const addAnchor = (host: HTMLElement, id: string, label: string) => {
 			const btn = document.createElement("button");
 			btn.className = "anchor-link";
 			btn.type = "button";
 			btn.setAttribute("aria-label", label);
 			btn.innerHTML = linkSvg;
-			let timer: number | undefined;
-			btn.addEventListener("click", async () => {
-				const url = `${location.origin}${location.pathname}#${id}`;
-				try {
-					await navigator.clipboard.writeText(url);
-				} catch {
-					/* clipboard unavailable: no false confirmation */
-					return;
-				}
-				live.textContent = "Link copied";
-				btn.innerHTML = checkSvg;
-				btn.classList.add("copied");
-				clearTimeout(timer);
-				timer = window.setTimeout(() => {
+			attachCopyButton(btn, {
+				url: () => `${location.origin}${location.pathname}#${id}`,
+				idle: () => {
 					btn.innerHTML = linkSvg;
 					btn.classList.remove("copied");
-					live.textContent = "";
-				}, 1200);
+				},
+				copied: () => {
+					btn.innerHTML = checkSvg;
+					btn.classList.add("copied");
+				},
 			});
 			host.append(btn);
 		};
@@ -210,23 +222,17 @@ const backdropSvg = art?.image
 				isMath ? "Copy this formula's LaTeX source" : "Copy this code block",
 			);
 			btn.innerHTML = copySvg;
-			let timer: number | undefined;
-			btn.addEventListener("click", async () => {
-				try {
-					await navigator.clipboard.writeText(textOf());
-				} catch {
-					/* clipboard unavailable: no false confirmation */
-					return;
-				}
-				live.textContent = "Copied";
-				btn.innerHTML = checkSvg;
-				btn.classList.add("copied");
-				clearTimeout(timer);
-				timer = window.setTimeout(() => {
+			attachCopyButton(btn, {
+				url: textOf,
+				announcement: "Copied",
+				idle: () => {
 					btn.innerHTML = copySvg;
 					btn.classList.remove("copied");
-					live.textContent = "";
-				}, 1200);
+				},
+				copied: () => {
+					btn.innerHTML = checkSvg;
+					btn.classList.add("copied");
+				},
 			});
 			wrap.append(btn);
 		}
@@ -270,9 +276,12 @@ const backdropSvg = art?.image
 
   /* the bottom spacing .post-shell used to carry, moved inside the grid
    * row so it doesn't shrink the sticky rail's travel zone (home/about
-   * shells keep their own padding and no extra spacing here) */
+   * shells keep their own padding and no extra spacing here).
+   * 1rem, not 3rem, so the footer tucks under the content at the same
+   * distance the homepage uses; 3rem left it visibly adrift by
+   * comparison. */
   .post-page :global(.post-main) {
-    padding-bottom: 3rem;
+    padding-bottom: 1rem;
   }
 
   /* title legibility: a soft halo hugging the letterforms (no panel,

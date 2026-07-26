@@ -4,7 +4,14 @@ title: "Refactoring with Love"
 date: 2026-06-26
 pace: "non-technical"
 art:
-  family: "walk"
+  piece: refactoring-with-love
+  seed: jej73c
+  params:
+    cell: 32
+    density: 0.75
+    jitter: 0.75
+    ghosts: 1
+  motion: true
 ---
 
 I started working as a software engineer back in 2013.
