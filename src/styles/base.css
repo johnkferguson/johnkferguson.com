@@ -43,6 +43,16 @@ html {
 	 * (still programmatically scrollable, body left unclipped); with html
 	 * carrying the propagated value, body's clip really clips. */
 	overflow-x: clip;
+	/* Always reserve the vertical scrollbar's gutter, whether or not the
+	 * page scrolls. Two things depend on it. Short pages (the homepage
+	 * especially, whose identity column is sized off 100vh and so lands
+	 * within a few pixels of the viewport height) otherwise sit on the
+	 * scroll threshold, where the scrollbar can appear, narrow the page,
+	 * reflow, and vanish again, which reads as a wobble on load. And
+	 * without it a scrolling page is ~15px narrower than a non-scrolling
+	 * one, so the header and footer land on different right edges from
+	 * page to page. */
+	scrollbar-gutter: stable;
 	font-family: var(--font-serif);
 	/* Newsreader is a variable font with an optical-size axis; let text
 	 * sizes pick the sturdier text cut and headings the display cut. */

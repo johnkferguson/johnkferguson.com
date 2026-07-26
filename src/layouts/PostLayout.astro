@@ -2,6 +2,7 @@
 import type { MarkdownHeading } from "astro";
 import BackToTop from "../components/BackToTop.astro";
 import ReadingTime from "../components/ReadingTime.astro";
+import ShareControls from "../components/ShareControls.astro";
 import TableOfContents from "../components/TableOfContents.astro";
 import { artSvg, DEFAULT_QUIET } from "../lib/art/generate";
 import BaseLayout from "./BaseLayout.astro";
@@ -116,15 +117,20 @@ const backdropSvg = art?.image
         <article data-toc-root>
           <slot />
         </article>
+        <ShareControls />
       </div>
     </div>
-    <BackToTop railCoversWide={(headings ?? []).some((h) => h.depth === 2)} />
+    <BackToTop />
     {ArtDevPicker && <ArtDevPicker />}
   </div>
 </BaseLayout>
 
 <script>
-	// hover anchor: a copy-link button appended to every id'd heading
+	// hover anchor: a copy-link button appended to every id'd heading.
+	// Copy, confirm, revert and the live region come from the shared
+	// helper, so these and the end-of-post controls cannot drift apart.
+	import { attachCopyButton } from "../components/copy-link";
+
 	const root = document.querySelector("[data-toc-root]");
 	if (root) {
 		const linkSvg =
@@ -134,36 +140,22 @@ const backdropSvg = art?.image
 		const headings = root.querySelectorAll<HTMLElement>(
 			":is(h2, h3, h4, h5, h6)[id]",
 		);
-		// screen-reader announcement for successful copies
-		const live = document.createElement("div");
-		live.setAttribute("aria-live", "polite");
-		live.style.cssText =
-			"position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%)";
-		root.append(live);
 		for (const h of headings) {
 			const btn = document.createElement("button");
 			btn.className = "anchor-link";
 			btn.type = "button";
 			btn.setAttribute("aria-label", "Copy link to this section");
 			btn.innerHTML = linkSvg;
-			let timer: number | undefined;
-			btn.addEventListener("click", async () => {
-				const url = `${location.origin}${location.pathname}#${h.id}`;
-				try {
-					await navigator.clipboard.writeText(url);
-				} catch {
-					/* clipboard unavailable: no false confirmation */
-					return;
-				}
-				live.textContent = "Link copied";
-				btn.innerHTML = checkSvg;
-				btn.classList.add("copied");
-				clearTimeout(timer);
-				timer = window.setTimeout(() => {
+			attachCopyButton(btn, {
+				url: () => `${location.origin}${location.pathname}#${h.id}`,
+				idle: () => {
 					btn.innerHTML = linkSvg;
 					btn.classList.remove("copied");
-					live.textContent = "";
-				}, 1200);
+				},
+				copied: () => {
+					btn.innerHTML = checkSvg;
+					btn.classList.add("copied");
+				},
 			});
 			h.append(btn);
 		}
@@ -207,9 +199,12 @@ const backdropSvg = art?.image
 
   /* the bottom spacing .post-shell used to carry, moved inside the grid
    * row so it doesn't shrink the sticky rail's travel zone (home/about
-   * shells keep their own padding and no extra spacing here) */
+   * shells keep their own padding and no extra spacing here).
+   * 1rem, not 3rem, so the footer tucks under the content at the same
+   * distance the homepage uses; 3rem left it visibly adrift by
+   * comparison. */
   .post-page :global(.post-main) {
-    padding-bottom: 3rem;
+    padding-bottom: 1rem;
   }
 
   /* title legibility: a soft halo hugging the letterforms (no panel,

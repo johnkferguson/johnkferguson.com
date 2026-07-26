@@ -1,27 +1,44 @@
 ---
-// Thin single-line footer: centered mono strand with the year and the
-// site's outbound surfaces. No email by design.
+// Thin single-line footer: a mono strand with the year and the site's
+// outbound surfaces. No email by design.
+//
+// One centered strand below 1020px, splitting to the two gutters above
+// it: copyright left, outbound links right. Keyed to the TOC rail's
+// breakpoint because the rail is what makes the difference. In
+// single-column mode .post-shell is margin-inline:auto, so the article
+// is genuinely centered and a centered footer lines up with it. Once
+// the rail appears the grid pushes the content column right of center,
+// and a single centered strand reads as a near miss rather than a
+// choice; split, it frames the column instead of competing with it.
+//
+// The inner wrapper mirrors the header's shell-max constraint so the
+// two ends line up with the wordmark and the nav above them. The
+// border stays full width.
 const year = new Date().getFullYear();
 const githubUsername = "johnkferguson";
 const twitterUsername = "johnkferguson";
 ---
 
 <footer class="site-footer">
-  <span data-year>© {year}</span>
-  <span class="sep">·</span>
-  <a
-    href={`https://github.com/${githubUsername}`}
-    rel="me noopener noreferrer"
-    target="_blank">GitHub</a
-  >
-  <span class="sep">·</span>
-  <a
-    href={`https://x.com/${twitterUsername}`}
-    rel="me noopener noreferrer"
-    target="_blank">X</a
-  >
-  <span class="sep">·</span>
-  <a href="/rss.xml">RSS</a>
+  <div class="site-footer-inner">
+    <span class="footer-copy" data-year>© {year}</span>
+    <span class="sep group-sep">·</span>
+    <span class="footer-links">
+      <a
+        href={`https://github.com/${githubUsername}`}
+        rel="me noopener noreferrer"
+        target="_blank">GitHub</a
+      >
+      <span class="sep">·</span>
+      <a
+        href={`https://x.com/${twitterUsername}`}
+        rel="me noopener noreferrer"
+        target="_blank">X</a
+      >
+      <span class="sep">·</span>
+      <a href="/rss.xml">RSS</a>
+    </span>
+  </div>
 </footer>
 
 <script>
@@ -36,16 +53,57 @@ const twitterUsername = "johnkferguson";
 
 <style>
   .site-footer {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 0.55rem;
     border-top: 1px solid var(--border-color);
-    padding: 0.55rem var(--shell-pad);
+    padding: 0.55rem 0;
     font-family: var(--font-mono);
     font-size: 0.55rem;
     letter-spacing: 0.06em;
     color: var(--date-color);
+  }
+
+  /* mirrors .site-header-inner, so once the strand splits its two ends
+   * land on the same left and right edges as the wordmark and the nav */
+  .site-footer-inner {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.55rem;
+    max-width: var(--shell-max);
+    margin-inline: auto;
+    padding: 0 var(--shell-pad);
+  }
+
+  .footer-links {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.55rem;
+  }
+
+  /* the rail's breakpoint: see the note at the top of this file */
+  @media (min-width: 1020px) {
+    /* A fixed band with the strand centered in it, rather than padding
+     * either side of the text: 0.55rem left the hairline 12px above and
+     * 5px below, reading as if the text hung off the line. Centering
+     * makes the two equal by construction, and the explicit height is
+     * what the rail's Top chip cancels (see --footer-h). Scoped to this
+     * breakpoint; narrower viewports keep the roomier padded default. */
+    .site-footer {
+      height: var(--footer-h);
+      padding-top: 0;
+      padding-bottom: 0;
+    }
+
+    /* copyright to the left gutter, outbound links to the right; DOM
+     * order already reads that way, so nothing needs reordering */
+    .site-footer-inner {
+      height: 100%;
+      justify-content: space-between;
+    }
+
+    /* the strand separator only makes sense while it is one strand */
+    .group-sep {
+      display: none;
+    }
   }
 
   .site-footer a {
