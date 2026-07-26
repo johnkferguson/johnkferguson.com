@@ -201,14 +201,28 @@
     display: none;
   }
 
-  /* Touch targets. Stated as a min-height rather than padding because
-   * the label is 0.55rem mono: derived from font metrics the control
-   * comes out ~15px tall, well under the 44px guideline. The strand is
-   * alone in its row, so growing it disturbs nothing. */
+  /* Touch. The desktop size is a quiet marginal note, which is wrong on
+   * a phone: this is the only control in reach at the end of the post,
+   * and it is usually alone (the OS sheet covers copy), so it can carry
+   * real weight. Type and glyph both scale, and min-height is stated
+   * outright because font metrics alone left the target ~15px tall. */
   @media (hover: none) {
+    .share {
+      padding-top: 1.4rem;
+    }
+
     .share-btn {
-      min-height: 44px;
-      padding: 0 0.4rem;
+      min-height: 52px;
+      gap: 0.55rem;
+      padding: 0 0.6rem;
+      font-size: 0.9rem;
+      letter-spacing: 0.1em;
+    }
+
+    .share-btn svg {
+      width: 17px;
+      height: 17px;
+      transform: none;
     }
   }
 </style>
