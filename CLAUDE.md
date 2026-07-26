@@ -15,7 +15,9 @@ Personal blog at johnkferguson.com. Static site built with Astro 7, styled with 
 
 When previewing changes locally, prefer `bun run dev` over `build + preview` — it watches for file changes and reloads automatically.
 
-Draft posts (`src/content/posts/drafts/`, `draft: true`) render in dev only; production builds glob-exclude them (keyed on `ASTRO_BUILD`, set by the build script) so none of their modules reach the bundle. The build script uses an isolated cache and ends with `astro sync` because builds otherwise clobber the shared `.astro/content-modules.mjs` manifest and 500 draft pages in a running dev server.
+Draft posts (`src/content/posts/drafts/`, `draft: true`) render in dev only; production builds glob-exclude them (keyed on `ASTRO_BUILD`, set by the build script) so none of their modules reach the bundle. What keeps a build from disturbing a running dev server is the isolated `cacheDir` in `astro.config.mjs`: dev's content store lives in `node_modules/.astro`, builds write `node_modules/.astro-build`. Verified by removing the isolation, which does clobber dev's store.
+
+The build script deliberately does **not** end with `astro sync`. It used to, added in the same commit as the `cacheDir` isolation as belt-and-braces, and it was redundant from the start. Because that sync ran without `ASTRO_BUILD` it was draft-inclusive, so it validated drafts the build had just excluded, turning a malformed unpublished draft into a failed Netlify deploy reported *after* the build printed `Complete!`. Drafts are still validated by `bunx astro check` (a separate `check.yml` step that runs first and exits 1 on schema errors) and by the dev server. Do not re-add the sync without re-testing the clobber it was meant to prevent.
 
 ## Architecture
 
