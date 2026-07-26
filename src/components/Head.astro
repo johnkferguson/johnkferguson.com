@@ -1,5 +1,11 @@
 ---
-import { SITE_NAME, THEME_COLOR, TWITTER_HANDLE } from "../consts";
+import {
+	SITE_CARD_PATH,
+	SITE_NAME,
+	THEME_COLOR,
+	TWITTER_HANDLE,
+} from "../consts";
+import { cardMeta } from "../lib/card-meta";
 
 interface Props {
 	title: string;
@@ -7,15 +13,19 @@ interface Props {
 	ogImage?: string;
 	type?: "website" | "article";
 	pubDate?: Date;
+	updated?: Date;
+	tags?: string[];
 	noindex?: boolean;
 }
 
 const {
 	title,
 	description,
-	ogImage = "/assets/og-image.png",
+	ogImage = SITE_CARD_PATH,
 	type = "website",
 	pubDate,
+	updated,
+	tags,
 	noindex,
 } = Astro.props;
 
@@ -25,6 +35,15 @@ const fullTitle =
 	title === SITE_NAME
 		? `${title} | Software Engineer`
 		: `${title} | ${SITE_NAME}`;
+
+/* alt text and dimensions come from one classifier, so they cannot
+ * disagree about which image is in hand; null means an image we did not
+ * draw, which gets neither. See lib/card-meta.ts for the reasoning. */
+const card = cardMeta(new URL(ogImageURL).pathname, { title });
+
+/* article:author wants a URL, and /about is the profile page this site
+ * has. The author's NAME is stated once, in JsonLd, from SITE_NAME. */
+const authorURL = new URL("/about", Astro.site).href;
 ---
 
 <meta charset="utf-8" />
@@ -45,6 +64,14 @@ const fullTitle =
 <meta property="og:title" content={fullTitle} />
 <meta property="og:description" content={description} />
 <meta property="og:image" content={ogImageURL} />
+{card && (
+	<>
+		<meta property="og:image:alt" content={card.alt} />
+		<meta property="og:image:type" content="image/png" />
+		<meta property="og:image:width" content={String(card.width)} />
+		<meta property="og:image:height" content={String(card.height)} />
+	</>
+)}
 <meta property="og:site_name" content={SITE_NAME} />
 <meta property="og:locale" content="en_US" />
 
@@ -54,11 +81,21 @@ const fullTitle =
 <meta name="twitter:title" content={fullTitle} />
 <meta name="twitter:description" content={description} />
 <meta name="twitter:image" content={ogImageURL} />
+{card && <meta name="twitter:image:alt" content={card.alt} />}
 <meta name="twitter:site" content={TWITTER_HANDLE} />
 <meta name="twitter:creator" content={TWITTER_HANDLE} />
 
-{/* Article-specific */}
-{pubDate && <meta property="article:published_time" content={pubDate.toISOString()} />}
+{/* Article-specific: every article:* tag sits under one type guard, so a
+    non-article page that ever passes a pubDate cannot leak them onto an
+    og:type="website" page. */}
+{type === "article" && (
+	<>
+		{pubDate && <meta property="article:published_time" content={pubDate.toISOString()} />}
+		{updated && <meta property="article:modified_time" content={updated.toISOString()} />}
+		<meta property="article:author" content={authorURL} />
+		{(tags ?? []).map((tag) => <meta property="article:tag" content={tag} />)}
+	</>
+)}
 
 {/* RSS */}
 <link rel="alternate" type="application/rss+xml" href="/rss.xml" title={`${SITE_NAME}'s Blog`} />

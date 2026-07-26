@@ -10,7 +10,9 @@ interface Props {
 	title: string;
 	description: string;
 	pubDate: Date;
-	author?: string;
+	/* set only on a substantive revision; metadata-only for now */
+	updated?: Date;
+	tags?: string[];
 	noindex?: boolean;
 	slug?: string;
 	readingMinutes?: number;
@@ -34,7 +36,8 @@ const {
 	title,
 	description,
 	pubDate,
-	author,
+	updated,
+	tags,
 	noindex,
 	slug,
 	art,
@@ -80,7 +83,8 @@ const backdropSvg = art?.image
 	description={description}
 	type="article"
 	pubDate={pubDate}
-	author={author}
+	updated={updated}
+	tags={tags}
 	ogImage={slug ? `/assets/og/${slug}.png` : undefined}
 	headerContextTitle={title}
 	headerContextDate={formattedDate}

@@ -23,6 +23,9 @@ const posts = defineCollection({
 		layout: z.string().optional(),
 		title: z.string(),
 		date: z.coerce.date(),
+		/* set only on a substantive revision; drives article:modified_time
+		 * and schema.org dateModified. Absent means never revised. */
+		updated: z.coerce.date().optional(),
 		tags: z.array(z.string()).optional(),
 		description: z.string().optional(),
 		/* drafts render in dev, excluded from production builds */

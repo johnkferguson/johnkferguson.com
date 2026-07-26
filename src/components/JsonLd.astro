@@ -1,5 +1,5 @@
 ---
-import { SITE_DESCRIPTION, SITE_NAME } from "../consts";
+import { SITE_CARD_PATH, SITE_DESCRIPTION, SITE_NAME } from "../consts";
 
 interface Props {
 	type: "website" | "article";
@@ -7,23 +7,18 @@ interface Props {
 	description: string;
 	ogImage?: string;
 	pubDate?: Date;
-	author?: string;
+	updated?: Date;
+	tags?: string[];
 }
 
-const {
-	type,
-	title,
-	description,
-	ogImage,
-	pubDate,
-	author = SITE_NAME,
-} = Astro.props;
+const { type, title, description, ogImage, pubDate, updated, tags } =
+	Astro.props;
 
 const url = new URL(Astro.url.pathname, Astro.site).href;
 const siteUrl = Astro.site?.href ?? "https://johnkferguson.com";
 const ogImageURL = ogImage
 	? new URL(ogImage, Astro.site).href
-	: new URL("/assets/og-image.png", Astro.site).href;
+	: new URL(SITE_CARD_PATH, Astro.site).href;
 
 const personSchema = {
 	"@type": "Person",
@@ -50,11 +45,22 @@ const pageSchema =
 				description,
 				url,
 				image: ogImageURL,
-				author: {
-					"@type": "Person",
-					name: author,
-				},
+				/* the same Person entity the WebSite points at, by @id, so
+				 * the author's name is stated in exactly one place and an
+				 * article can never attribute someone the site does not
+				 * claim as its author */
+				author: personSchema,
 				...(pubDate && { datePublished: pubDate.toISOString() }),
+				/* Guarded on (updated ?? pubDate), not on updated: an
+				 * unrevised post still states a dateModified, from its
+				 * publish date, rather than reading as one of unknown
+				 * freshness. */
+				...((updated ?? pubDate) && {
+					dateModified: (updated ?? pubDate)?.toISOString(),
+				}),
+				/* an array, not a joined string, so a tag containing a
+				 * comma cannot be re-split into two by a consumer */
+				...(tags?.length && { keywords: tags }),
 				mainEntityOfPage: { "@id": url },
 			}
 		: {

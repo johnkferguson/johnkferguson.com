@@ -12,13 +12,13 @@
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { Resvg } from "@resvg/resvg-js";
+import { OG_SIZE } from "../consts";
 import { palette } from "./palette";
 
 /* cards are always drawn in the dark palette, whatever theme the reader
  * is in — a share preview has no theme to follow */
 export const OG = {
-	width: 1200,
-	height: 630,
+	...OG_SIZE,
 	bg: palette.dark["--bg"],
 	ink: palette.dark["--heading-color"],
 	muted: palette.dark["--date-color"],
