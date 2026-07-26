@@ -55,6 +55,10 @@ function parseArt(md: string): PinnedArt | null {
 	// biome-ignore lint/suspicious/noExplicitAny: transient parse target
 	let nested: any = null;
 	for (let i = start + 1; i < lines.length; i++) {
+		/* comments and blank lines sit inside the art: block (the pinned
+		 * configs carry notes explaining why they were chosen); stopping
+		 * on one would silently drop every key below it */
+		if (/^\s*(#|$)/.test(lines[i])) continue;
 		const m = lines[i].match(/^(\s+)([\w-]+):\s*(.*)$/);
 		if (!m) break;
 		const [, indent, key, raw] = m;
@@ -103,11 +107,17 @@ function surfaceHashes(slug: string, art: PinnedArt): Record<string, string> {
 	return { backdrop: hex(backdrop), thumb: hex(thumb) };
 }
 
-const pinned = readdirSync(POSTS_DIR, { withFileTypes: true })
-	.filter((e) => e.isFile() && e.name.endsWith(".md"))
-	.flatMap((e) => {
-		const art = parseArt(readFileSync(resolve(POSTS_DIR, e.name), "utf8"));
-		const slug = e.name.replace(/\.md$/, "");
+/* Recursive and .mdx-aware on purpose. Posts are authored as .md or
+ * .mdx and drafts live a directory down, so a top-level .md-only scan
+ * silently covered none of either: a draft could be tuned, pinned, and
+ * published without this guard ever having watched it. Slugs mirror the
+ * collection's generateId (src/content.config.ts), which strips the
+ * drafts/ prefix, so a post keeps its snapshot key when it publishes. */
+const pinned = readdirSync(POSTS_DIR, { recursive: true })
+	.filter((f): f is string => typeof f === "string" && /\.mdx?$/.test(f))
+	.flatMap((file) => {
+		const art = parseArt(readFileSync(resolve(POSTS_DIR, file), "utf8"));
+		const slug = file.replace(/^drafts\//, "").replace(/\.mdx?$/, "");
 		return art ? [{ slug, art }] : [];
 	});
 
