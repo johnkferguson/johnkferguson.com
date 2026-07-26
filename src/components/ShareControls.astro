@@ -150,15 +150,15 @@
      * voice rather than two. */
     border: 1px solid var(--border-color);
     border-radius: 5px;
-    padding: 0.34rem 0.6rem;
+    padding: 0.3rem 0.55rem;
     background: transparent;
     color: var(--date-color);
     cursor: pointer;
     font-family: var(--font-mono);
-    /* a step up from the footer's 0.55rem, since this is a control
-     * rather than chrome, but only a step: it sits under the prose and
-     * should not shout */
-    font-size: 0.65rem;
+    /* barely above the footer's 0.55rem: the outline already says this
+     * is pressable, so the type does not have to, and it sits under the
+     * prose where anything larger pulls focus */
+    font-size: 0.6rem;
     letter-spacing: 0.06em;
     text-transform: uppercase;
     transition:
@@ -172,8 +172,8 @@
 
   .share-btn svg {
     display: block;
-    width: 12px;
-    height: 12px;
+    width: 11px;
+    height: 11px;
     /* the mono cap band sits above the line-box middle at this size */
     transform: translateY(-0.5px);
   }
