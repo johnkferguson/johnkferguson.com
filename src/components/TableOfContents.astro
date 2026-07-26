@@ -185,12 +185,6 @@ const caretSvg =
 	if (tops.length) {
 		const postH1Top = document.querySelector<HTMLElement>(".post-header h1");
 		const siteFooter = document.querySelector<HTMLElement>(".site-footer");
-		/* the same token the chip's sticky offset and cancelling margin
-		 * use, read from the cascade rather than duplicated here */
-		const footerH = () =>
-			parseFloat(
-				getComputedStyle(document.documentElement).getPropertyValue("--footer-h"),
-			) || 0;
 
 		for (const t of tops) {
 			t.addEventListener("click", () => {
@@ -205,12 +199,17 @@ const caretSvg =
 			const showTop = postH1Top
 				? postH1Top.getBoundingClientRect().bottom < 60
 				: window.scrollY > window.innerHeight;
-			/* The chip's resting edge is not measured: it is stuck at
-			 * bottom:var(--footer-h), so its bottom IS innerHeight minus
-			 * that. Reading it back would measure something we set. */
-			const footerTop =
-				siteFooter?.getBoundingClientRect().top ?? Number.POSITIVE_INFINITY;
-			const landed = showTop && footerTop <= window.innerHeight - footerH() + 0.5;
+			/* The chip's resting edge is derived, not measured: it is stuck
+			 * at bottom:calc(var(--footer-h) + 1px), so its bottom is the
+			 * viewport bottom less the footer band and that pixel. The band
+			 * comes from the footer's OWN rect, which is already being read
+			 * here for its top: --footer-h is a rem token, and parsing it
+			 * as a number yields 1.45 rather than 29px, which landed the
+			 * chip some 28px early, squared off while still floating. */
+			const footerBox = siteFooter?.getBoundingClientRect();
+			const footerTop = footerBox?.top ?? Number.POSITIVE_INFINITY;
+			const chipBottom = window.innerHeight - (footerBox?.height ?? 0) - 1;
+			const landed = showTop && footerTop <= chipBottom + 1.5;
 			for (const t of tops) {
 				t.classList.toggle("visible", showTop);
 				t.classList.toggle("landed", landed);
@@ -727,7 +726,14 @@ const caretSvg =
 		 * documentElement.scrollHeight === body height. */
 		--toc-top-pad-x: 0.55rem;
 		position: sticky;
-		bottom: var(--footer-h);
+		/* One pixel clear of the footer band, not flush with it. Flush,
+		 * the chip's opaque box overlapped the top of the footer's
+		 * hairline and painted over it, leaving a sub-pixel sliver that
+		 * antialiased to nothing: under the chip BOTH rules disappeared.
+		 * Held clear, the footer's own line renders in full and the chip
+		 * simply rests on it. Constant rather than applied on landing, so
+		 * there is no 1px hop at the moment of contact. */
+		bottom: calc(var(--footer-h) + 1px);
 		flex: none;
 		align-self: flex-start;
 		display: flex;
@@ -796,10 +802,11 @@ const caretSvg =
 	.toc-top.landed {
 		border-bottom-left-radius: 0;
 		border-bottom-right-radius: 0;
-		/* the chip's own bottom rule would sit a pixel above the footer's,
-		 * reading as one thick line; let the footer's hairline be the
-		 * join. Transparent rather than border-bottom:0, which would
-		 * shorten the box by a pixel and nudge the chip as it lands. */
+		/* the chip contributes no rule of its own here: the footer's
+		 * hairline directly below is the single line at the join, and a
+		 * second one a pixel above it read as one thick smear.
+		 * Transparent rather than border-bottom:0, which would shorten
+		 * the box by a pixel and nudge the chip as it lands. */
 		border-bottom-color: transparent;
 	}
 
