@@ -120,54 +120,50 @@ const FEE_SCENARIOS: FeeScenario[] = [
 	{
 		key: "default",
 		title: "Default",
-		blurb: `The Inner Band is set to 2bps, giving a 1bps region on each side of M where the base fee is zero.
+		blurb: `This is the default calibration used throughout the piece, and each dial has a reason. The band is kept narrow, 2bps, so the zero-fee region is something makers compete into rather than park in. The zone charges a moderate 0.8bps per bps, enough that tightness always pays while width is still worth quoting, and the far slope rises only slightly steeper, 0.95: the schedule stops discounting distance, but it never turns punitive. The fee meets the 10bps cap at 12.2bps from M; past that point every placement pays the cap, however far it rests.
 
-The Maker Zone extends 4bps beyond the band's edge. Within it, the fee rises 0.8bps for every 1bps of additional distance, so a maker's net edge still grows by 0.2bps per bps while pricing further out.
+A calibration this tight suits a deep, high-volume market, where quoting is dense near the mid and a narrow band is genuinely contestable. A smaller or more volatile market would run a wider band and gentler slopes, as in [[Volatile Market]].
 
-The Far Slope raises the fee 0.95bps per 1bps of distance beyond the zone. Net edge still creeps upward, 0.05bps per bps, until the Fee Cap is reached at 12.2bps from M.
-
-The Fee Cap is set to 10bps: past the full-fee point, resting far costs the same as a market order, never more.`,
+Hover the chart to read the schedule row by row, then compare the two ways a calibration fails: [[Flat Slopes]] and [[Steep Slopes]].`,
 		params: { B: 2, Z: 4, F: 10, slope: 0.8, slope2: 0.95 },
 	},
 	{
 		key: "flat",
 		title: "Flat Slopes",
-		blurb: `Both slopes are cut to 0.25bps of fee per 1bps of distance, the dials' floor. The band, zone, and cap stay at their [[Default]] settings.
+		blurb: `Compared to [[Default]], both slopes are cut to 0.25bps of fee per 1bps of distance, the dials' floor, while the rest of the settings remain the same.
 
-With so gentle a climb, the full fee is not reached until roughly 41bps from M, far off the chart (see the Full Fee readout). Between 2bps and 20bps out, the fee moves only about 4.5bps.
+With so gentle a climb the full fee is not reached until roughly 41bps from M, far off the chart (see the Full Fee Reached readout), and between 2bps and 20bps out the fee moves only about 4.5bps. Tight and wide placement pay nearly the same, so the schedule stops rewarding tight quotes.
 
-The consequence: tight and wide placement pay nearly the same, so the schedule stops rewarding tight quotes. This is close to today's flat maker fee, expressed in this mechanism's terms.`,
+Watch the Net Edge column climb almost one-for-one with distance, then compare the opposite failure in [[Steep Slopes]].`,
 		params: { B: 2, Z: 4, F: 10, slope: 0.25, slope2: 0.25 },
 	},
 	{
 		key: "steep",
 		title: "Steep Slopes",
-		blurb: `Both slopes are raised above 1, to 1.1.
+		blurb: `Both slopes are raised above 1, to 1.1. Each bps of added distance now costs 1.1bps of fee, so net edge falls as placement widens; the Net Edge curve slopes downward everywhere outside the band, and the cap arrives at 10.1bps from M.
 
-Each 1bps of additional distance now adds 1.1bps of fee, so net edge falls by 0.1bps per bps as placement widens; the Net Edge curve slopes downward everywhere outside the band. Quoting wider is a net loss at every distance.
+A slope above 1 taxes width instead of discounting it: quoting wider loses edge at every distance, and depth beyond the band's edge is irrational. [[Flat Slopes]] fails in the opposite direction; a working calibration sits between the two, as in [[Default]].
 
-The Fee Cap is reached at 10.1bps from M. The schedule taxes width instead of discounting it, pinning makers to the band's edge and making depth beyond it irrational.`,
+Nudge k₁ back below 1 and watch the Net Edge curve turn upward again.`,
 		params: { B: 2, Z: 4, F: 10, slope: 1.1, slope2: 1.1 },
 	},
 	{
 		key: "cliff",
-		title: "Cliff at the Zone Edge",
-		blurb: `The Zone Slope is cut to 0.3 while the Far Slope jumps to 2.5.
+		title: "Worst of Both",
+		blurb: `A calibration that makes no sense to run, combining the failures of [[Flat Slopes]] and [[Steep Slopes]] in one schedule. The Zone Slope is cut to 0.3 while the Far Slope jumps to 2.5: a nearly free zone ending in a wall. The whole 4bps zone costs 1.2bps, and past its edge the fee runs to the cap by 8.5bps from M.
 
-Inside the zone, width is nearly free: the fee grows just 0.3bps per 1bps of distance, net edge grows 0.7bps per bps, and the entire 4bps zone costs only 1.2bps. Past the zone edge the fee sprints upward, reaching the cap at 8.5bps from M.
-
-The knee becomes a policy lever: the market discounts the working width it wants makers to use, and punishes parking liquidity beyond it.`,
+Both halves are flaws. Inside the zone, tightness barely matters exactly where quoting happens. And at the knee, a placement 1bps past the zone edge pays 2.5bps more than one at it, so a 1bps drift in M reprices a quote near the edge by that much between windows. The knee should be a bend, not a wall.`,
 		params: { B: 2, Z: 4, F: 10, slope: 0.3, slope2: 2.5 },
 	},
 	{
-		key: "earlycap",
-		title: "Early Cap",
-		blurb: `The Fee Cap is lowered to 5bps and the Maker Zone widened to 8bps; both slopes stay at their defaults.
+		key: "volatile",
+		title: "Volatile Market",
+		blurb: `A calibration for a smaller or more volatile market. Every dial is gentler: the band widens to 5bps, so a fair price that wanders between windows is not judged as imprecision; the zone stretches to 6bps and charges 0.75bps per bps; the far slope eases to 0.85. The fee does not reach the cap until 15.0bps from M.
 
-The fee now reaches the cap at 7.3bps from M, inside the zone itself, so the Far Slope never engages. Every placement past the full-fee point prices identically: the schedule can no longer tell 8bps out from 20bps out.
+Placement that a deep market's schedule would price as far stands inside everyday quoting width here, and the schedule discounts it accordingly.
 
-Set too low, the cap erases the distance signal the mechanism runs on. F caps what any resting order can pay, but it has to be tuned together with the slopes and the zone.`,
-		params: { B: 2, Z: 8, F: 5, slope: 0.8, slope2: 0.95 },
+Flip between this and [[Default]] to see the same schedule fitted to two different markets.`,
+		params: { B: 5, Z: 6, F: 10, slope: 0.75, slope2: 0.85 },
 	},
 ];
 
