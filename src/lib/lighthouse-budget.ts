@@ -199,6 +199,50 @@ export function diffAssets(
 }
 
 /**
+ * How many Lighthouse runs to have in flight at once.
+ *
+ * Safe to parallelise at all because nothing the gate asserts on is
+ * timing-sensitive: accessibility, SEO and best-practices are DOM-based, and
+ * transfer bytes are fixed. Contention only adds noise to the performance
+ * score, which is printed and never asserted.
+ *
+ * Floored at 2 because even the 2-core runner gains (a single run does not
+ * saturate both cores, and each invocation spends 1-2s launching Chrome).
+ * Capped at 4 because past that the runs contend for CPU more than they
+ * overlap, and every concurrent Chrome costs a few hundred MB.
+ */
+export function lighthouseConcurrency(cpuCount: number): number {
+	return Math.max(2, Math.min(4, cpuCount));
+}
+
+/**
+ * Run `fn` over `items` with at most `limit` in flight, returning results in
+ * INPUT order regardless of completion order. The ordering matters: it is
+ * what keeps the gate's output a stable, diffable table once the runs stop
+ * being sequential.
+ */
+export async function mapWithConcurrency<T, R>(
+	items: T[],
+	limit: number,
+	fn: (item: T, index: number) => Promise<R>,
+): Promise<R[]> {
+	const results = new Array<R>(items.length);
+	let next = 0;
+	const workers = Array.from(
+		{ length: Math.max(1, Math.min(limit, items.length)) },
+		async () => {
+			while (true) {
+				const index = next++;
+				if (index >= items.length) return;
+				results[index] = await fn(items[index], index);
+			}
+		},
+	);
+	await Promise.all(workers);
+	return results;
+}
+
+/**
  * Median of a sample. Compare mode runs each page several times because the
  * metrics it reports (LCP, CLS) are the nondeterministic ones; the gate runs
  * once because nothing it asserts on varies between runs.

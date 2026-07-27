@@ -27,6 +27,10 @@
  * bytes are identical run to run - so gate mode runs once. Compare mode
  * reports LCP and CLS, which do vary, so it takes a median.
  *
+ * That same determinism is why the audits run concurrently rather than one
+ * after another, and why the results are printed in task order once they all
+ * land instead of streaming as they finish.
+ *
  * The performance score is printed but never asserted on. A warn-only gate
  * is noise nobody reads; the byte budgets are the real performance gate.
  * For reference when someone does read it: every page scores 0 on
@@ -36,6 +40,7 @@
  */
 
 import { existsSync, mkdirSync, readdirSync } from "node:fs";
+import { cpus } from "node:os";
 import { join } from "node:path";
 import {
 	type AssetSizes,
@@ -48,6 +53,8 @@ import {
 	formatKib,
 	formatKibDelta,
 	htmlFileToUrl,
+	lighthouseConcurrency,
+	mapWithConcurrency,
 	median,
 	normalizeAssetUrl,
 } from "../src/lib/lighthouse-budget";
@@ -311,21 +318,41 @@ async function runLighthouseMedian(
  * Collection
  * ------------------------------------------------------------------ */
 
-async function collect(urls: string[], runs: number): Promise<Snapshot["pages"]> {
+async function collect(
+	urls: string[],
+	runs: number,
+): Promise<Snapshot["pages"]> {
+	/* Page x preset is one flat work list so both dimensions parallelise.
+	 * The `runs` within a single audit stay sequential on purpose: they exist
+	 * to median out metric noise, and overlapping them would feed contention
+	 * into the very numbers being medianed. */
+	const tasks = urls.flatMap((url) =>
+		PRESETS.map((preset) => ({ url, preset })),
+	);
+	const limit = lighthouseConcurrency(cpus().length);
+	console.log(`  ${tasks.length} audits, ${limit} at a time\n`);
+
+	const results = await mapWithConcurrency(tasks, limit, (task) =>
+		runLighthouseMedian(task.url, task.preset, runs),
+	);
+
 	const pages: Snapshot["pages"] = {};
-	for (const url of urls) {
-		pages[url] = {};
-		for (const preset of PRESETS) {
-			const result = await runLighthouseMedian(url, preset, runs);
-			pages[url][preset] = result;
-			const c = result.categories;
-			const score = (id: string) => (c[id] ?? Number.NaN).toFixed(2);
-			console.log(
-				`  ${preset.padEnd(8)} ${url.padEnd(24)} perf ${score("performance")}  a11y ${score("accessibility")}  bp ${score("best-practices")}  seo ${score("seo")}  ${formatKib(
-					result.resourceSummary.total?.transferSize ?? 0,
-				)}`,
-			);
-		}
+	tasks.forEach((task, i) => {
+		(pages[task.url] ??= {})[task.preset] = results[i];
+	});
+
+	/* Printed after the fact, in task order rather than completion order, so
+	 * the log stays a stable table instead of interleaving. */
+	for (const { url, preset } of tasks) {
+		const result = pages[url][preset];
+		if (!result) continue;
+		const score = (id: string) =>
+			(result.categories[id] ?? Number.NaN).toFixed(2);
+		console.log(
+			`  ${preset.padEnd(8)} ${url.padEnd(24)} perf ${score("performance")}  a11y ${score("accessibility")}  bp ${score("best-practices")}  seo ${score("seo")}  ${formatKib(
+				result.resourceSummary.total?.transferSize ?? 0,
+			)}`,
+		);
 	}
 	return pages;
 }

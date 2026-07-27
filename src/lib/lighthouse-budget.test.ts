@@ -6,6 +6,8 @@ import {
 	diffAssets,
 	formatKibDelta,
 	htmlFileToUrl,
+	lighthouseConcurrency,
+	mapWithConcurrency,
 	median,
 	normalizeAssetUrl,
 } from "./lighthouse-budget";
@@ -255,6 +257,71 @@ describe("formatKibDelta", () => {
 
 	test("has no sign at zero", () => {
 		expect(formatKibDelta(0)).toBe("0 B");
+	});
+});
+
+describe("lighthouseConcurrency", () => {
+	test("still parallelises on the 2-core private runner", () => {
+		expect(lighthouseConcurrency(2)).toBe(2);
+	});
+
+	test("uses 4 on the public runner", () => {
+		expect(lighthouseConcurrency(4)).toBe(4);
+	});
+
+	test("caps at 4 on a big local machine", () => {
+		expect(lighthouseConcurrency(32)).toBe(4);
+	});
+
+	test("floors at 2 rather than serialising on a single core", () => {
+		expect(lighthouseConcurrency(1)).toBe(2);
+	});
+});
+
+describe("mapWithConcurrency", () => {
+	test("returns results in input order, not completion order", async () => {
+		/* delays are deliberately inverted, so completion order is the
+		 * reverse of input order */
+		const out = await mapWithConcurrency([30, 20, 10], 3, async (ms) => {
+			await Bun.sleep(ms);
+			return ms;
+		});
+		expect(out).toEqual([30, 20, 10]);
+	});
+
+	test("never exceeds the limit in flight", async () => {
+		let inFlight = 0;
+		let peak = 0;
+		await mapWithConcurrency(Array.from({ length: 12 }), 3, async () => {
+			inFlight++;
+			peak = Math.max(peak, inFlight);
+			await Bun.sleep(5);
+			inFlight--;
+			return null;
+		});
+		expect(peak).toBe(3);
+	});
+
+	test("runs every item exactly once", async () => {
+		const seen: number[] = [];
+		await mapWithConcurrency([0, 1, 2, 3, 4, 5, 6], 3, async (n) => {
+			seen.push(n);
+			return n;
+		});
+		expect(seen.sort((a, b) => a - b)).toEqual([0, 1, 2, 3, 4, 5, 6]);
+	});
+
+	test("handles an empty list without hanging", async () => {
+		expect(await mapWithConcurrency([], 4, async () => 1)).toEqual([]);
+	});
+
+	test("propagates a failure rather than silently dropping it", async () => {
+		expect(
+			mapWithConcurrency([1, 2], 2, async (n) => {
+				if (n === 2) throw new Error("lighthouse failed");
+				return n;
+			}),
+		).rejects.toThrow("lighthouse failed");
 	});
 });
 
