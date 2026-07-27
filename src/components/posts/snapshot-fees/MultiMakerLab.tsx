@@ -372,6 +372,10 @@ export default function MultiMakerLab() {
 	// fade the fee receipt while the pointer sits under its box, so the
 	// bars beneath stay visible mid-resize
 	const [underTip, setUnderTip] = useState(false);
+	// visibility toggles: a hidden book leaves the auction entirely (M and
+	// every fee recompute without it); its bars stay as faint ghosts
+	const [showYou, setShowYou] = useState(true);
+	const [showAgg, setShowAgg] = useState(true);
 	const tipH = useRef(0);
 	const tipY = useRef(0);
 	const svgRef = useRef<SVGSVGElement | null>(null);
@@ -396,13 +400,13 @@ export default function MultiMakerLab() {
 			i,
 			price: priceAt(i),
 			side: yourSideOf(i),
-			size,
+			size: showYou ? size : 0,
 		}));
 		const makerBook: BookLevel[] = makerSizes.map((size, i) => ({
 			i,
 			price: priceAt(i),
 			side: sideAt(i),
-			size,
+			size: showAgg ? size : 0,
 		}));
 		// the lab always carries a prior mark (lastM starts at 100), so the
 		// no-mark state is unreachable here and M / the band edges are numbers
@@ -419,7 +423,19 @@ export default function MultiMakerLab() {
 		const fees = computeAccountFees(yourBook, p, mm.M) as Fees;
 		const makerFees = computeAccountFees(makerBook, p, mm.M) as Fees;
 		return { mm, fees, makerFees };
-	}, [yourSizes, makerSizes, B, D, F, Z, slope, slope2, yourFlips]);
+	}, [
+		yourSizes,
+		makerSizes,
+		B,
+		D,
+		F,
+		Z,
+		slope,
+		slope2,
+		yourFlips,
+		showYou,
+		showAgg,
+	]);
 
 	const { mm, fees, makerFees } = model;
 
@@ -630,6 +646,8 @@ export default function MultiMakerLab() {
 		setSlope(0.8);
 		setSlope2(SLOPE2_DEFAULT);
 		setPlaying(false);
+		setShowYou(true);
+		setShowAgg(true);
 		setScenario(sc.key);
 	};
 	const touch =
@@ -949,6 +967,84 @@ export default function MultiMakerLab() {
 							hint="How far from mid their ladder starts."
 						/>
 					</div>
+				</div>
+
+				{/* visibility switches: either book can leave the auction; M and
+				    every fee recompute without it, its bars staying as ghosts */}
+				<div
+					style={{
+						display: "flex",
+						justifyContent: "flex-end",
+						alignItems: "center",
+						gap: 20,
+						margin: "10px 4px 2px",
+					}}
+				>
+					<span
+						style={{
+							fontFamily: mono,
+							fontSize: 11,
+							letterSpacing: "0.08em",
+							color: C.faint,
+						}}
+					>
+						IN AUCTION
+					</span>
+					{(
+						[
+							["Your Book", showYou, setShowYou],
+							["Aggregate Makers", showAgg, setShowAgg],
+						] as const
+					).map(([lbl, on, set]) => (
+						<button
+							key={lbl}
+							type="button"
+							role="switch"
+							aria-checked={on}
+							onClick={() => set((v) => !v)}
+							style={{
+								display: "flex",
+								alignItems: "center",
+								gap: 8,
+								background: "none",
+								border: "none",
+								padding: 0,
+								cursor: "pointer",
+								color: on ? C.dim : C.faint,
+								fontFamily: mono,
+								fontSize: 12.5,
+							}}
+						>
+							<span
+								style={{
+									width: 30,
+									height: 17,
+									borderRadius: 999,
+									position: "relative",
+									flexShrink: 0,
+									background: on
+										? "var(--lab-btn-active-bg)"
+										: "var(--lab-inset)",
+									border: `1px solid ${on ? "var(--lab-btn-active-bg)" : C.line}`,
+									transition: "background 150ms, border-color 150ms",
+								}}
+							>
+								<span
+									style={{
+										position: "absolute",
+										top: 1.5,
+										left: on ? 14.5 : 1.5,
+										width: 12,
+										height: 12,
+										borderRadius: "50%",
+										background: on ? C.panel2 : C.dim,
+										transition: "left 150ms, background 150ms",
+									}}
+								/>
+							</span>
+							{lbl}
+						</button>
+					))}
 				</div>
 
 				<div style={{ position: "relative" }}>
@@ -1333,7 +1429,7 @@ export default function MultiMakerLab() {
 											y={yUp(yv)}
 											width={barW}
 											height={MID - yUp(yv)}
-											opacity={0.85 * dimIf(i)}
+											opacity={(showYou ? 0.85 : 0.18) * dimIf(i)}
 											rx={2}
 											pointerEvents="none"
 											style={{
@@ -1373,7 +1469,7 @@ export default function MultiMakerLab() {
 											y={MID + 1}
 											width={barW}
 											height={Math.max(0, yDn(av) - MID - 1)}
-											opacity={0.45 * dimIfM(i)}
+											opacity={(showAgg ? 0.45 : 0.14) * dimIfM(i)}
 											rx={2}
 											pointerEvents="none"
 											style={{
@@ -1437,32 +1533,38 @@ export default function MultiMakerLab() {
 
 						{/* hovered-bar outlines, above the walk overlays so they never
 						    sink beneath the consumed-slice fill */}
-						{tip != null && inView(tip) && (yourSizes[tip] ?? 0) > 0 && (
-							<rect
-								x={xAt(tip) - barW / 2}
-								y={yUp(yourSizes[tip])}
-								width={barW}
-								height={Math.max(0, MID - yUp(yourSizes[tip]))}
-								fill="none"
-								strokeWidth={1.75}
-								rx={2}
-								pointerEvents="none"
-								style={{ stroke: C.text }}
-							/>
-						)}
-						{tip != null && inView(tip) && (makerSizes[tip] ?? 0) > 0 && (
-							<rect
-								x={xAt(tip) - barW / 2}
-								y={MID + 1}
-								width={barW}
-								height={Math.max(0, yDn(makerSizes[tip]) - MID - 1)}
-								fill="none"
-								strokeWidth={1.75}
-								rx={2}
-								pointerEvents="none"
-								style={{ stroke: C.text }}
-							/>
-						)}
+						{showYou &&
+							tip != null &&
+							inView(tip) &&
+							(yourSizes[tip] ?? 0) > 0 && (
+								<rect
+									x={xAt(tip) - barW / 2}
+									y={yUp(yourSizes[tip])}
+									width={barW}
+									height={Math.max(0, MID - yUp(yourSizes[tip]))}
+									fill="none"
+									strokeWidth={1.75}
+									rx={2}
+									pointerEvents="none"
+									style={{ stroke: C.text }}
+								/>
+							)}
+						{showAgg &&
+							tip != null &&
+							inView(tip) &&
+							(makerSizes[tip] ?? 0) > 0 && (
+								<rect
+									x={xAt(tip) - barW / 2}
+									y={MID + 1}
+									width={barW}
+									height={Math.max(0, yDn(makerSizes[tip]) - MID - 1)}
+									fill="none"
+									strokeWidth={1.75}
+									rx={2}
+									pointerEvents="none"
+									style={{ stroke: C.text }}
+								/>
+							)}
 
 						{/* hovered/pinned-fee reference line, your half */}
 						{tipLv && tipBk && (
@@ -1600,96 +1702,101 @@ export default function MultiMakerLab() {
 							),
 						)}
 
-						{/* key — both rows centered on the plot's midline */}
+						{/* key — both rows centered on the plot's midline; each book's
+						    entries dim while its switch holds it out of the auction */}
 						<g pointerEvents="none" style={{ fontFamily: mono }}>
-							<rect
-								x={220}
-								y={PB + 40}
-								width={14}
-								height={14}
-								rx={2}
-								style={{ fill: C.bid }}
-							/>
-							<text
-								x={241}
-								y={PB + 53}
-								fontSize={16}
-								style={{ fill: C.dim, fontFamily: mono }}
-							>
-								Your Bids ↑
-							</text>
-							<rect
-								x={383}
-								y={PB + 40}
-								width={14}
-								height={14}
-								rx={2}
-								style={{ fill: C.ask }}
-							/>
-							<text
-								x={404}
-								y={PB + 53}
-								fontSize={16}
-								style={{ fill: C.dim, fontFamily: mono }}
-							>
-								Your Asks ↑
-							</text>
-							<rect
-								x={546}
-								y={PB + 40}
-								width={14}
-								height={14}
-								rx={2}
-								opacity={0.45}
-								style={{ fill: C.bid }}
-							/>
-							<rect
-								x={553}
-								y={PB + 40}
-								width={14}
-								height={14}
-								rx={2}
-								opacity={0.45}
-								style={{ fill: C.ask }}
-							/>
-							<text
-								x={574}
-								y={PB + 53}
-								fontSize={16}
-								style={{ fill: C.dim, fontFamily: mono }}
-							>
-								Aggregate Makers ↓
-							</text>
-							<circle
-								cx={270}
-								cy={PB + 72}
-								r={6}
-								strokeWidth={1}
-								style={{ fill: C.fee, stroke: C.panel }}
-							/>
-							<text
-								x={283}
-								y={PB + 78}
-								fontSize={16}
-								style={{ fill: C.dim, fontFamily: mono }}
-							>
-								Your Fee if Filled
-							</text>
-							<circle
-								cx={498}
-								cy={PB + 72}
-								r={6}
-								strokeWidth={1.5}
-								style={{ fill: C.panel, stroke: C.fee }}
-							/>
-							<text
-								x={511}
-								y={PB + 78}
-								fontSize={16}
-								style={{ fill: C.dim, fontFamily: mono }}
-							>
-								Makers Fee if Filled
-							</text>
+							<g opacity={showYou ? 1 : 0.4}>
+								<rect
+									x={220}
+									y={PB + 40}
+									width={14}
+									height={14}
+									rx={2}
+									style={{ fill: C.bid }}
+								/>
+								<text
+									x={241}
+									y={PB + 53}
+									fontSize={16}
+									style={{ fill: C.dim, fontFamily: mono }}
+								>
+									Your Bids ↑
+								</text>
+								<rect
+									x={383}
+									y={PB + 40}
+									width={14}
+									height={14}
+									rx={2}
+									style={{ fill: C.ask }}
+								/>
+								<text
+									x={404}
+									y={PB + 53}
+									fontSize={16}
+									style={{ fill: C.dim, fontFamily: mono }}
+								>
+									Your Asks ↑
+								</text>
+								<circle
+									cx={270}
+									cy={PB + 72}
+									r={6}
+									strokeWidth={1}
+									style={{ fill: C.fee, stroke: C.panel }}
+								/>
+								<text
+									x={283}
+									y={PB + 78}
+									fontSize={16}
+									style={{ fill: C.dim, fontFamily: mono }}
+								>
+									Your Fee if Filled
+								</text>
+							</g>
+							<g opacity={showAgg ? 1 : 0.4}>
+								<rect
+									x={546}
+									y={PB + 40}
+									width={14}
+									height={14}
+									rx={2}
+									opacity={0.45}
+									style={{ fill: C.bid }}
+								/>
+								<rect
+									x={553}
+									y={PB + 40}
+									width={14}
+									height={14}
+									rx={2}
+									opacity={0.45}
+									style={{ fill: C.ask }}
+								/>
+								<text
+									x={574}
+									y={PB + 53}
+									fontSize={16}
+									style={{ fill: C.dim, fontFamily: mono }}
+								>
+									Aggregate Makers ↓
+								</text>
+								<circle
+									cx={498}
+									cy={PB + 72}
+									r={6}
+									strokeWidth={1.5}
+									style={{ fill: C.panel, stroke: C.fee }}
+								/>
+								<text
+									x={511}
+									y={PB + 78}
+									fontSize={16}
+									style={{ fill: C.dim, fontFamily: mono }}
+								>
+									Makers Fee if Filled
+								</text>
+							</g>
 						</g>
 
 						{/* zoom rides the key strip's left end as one segmented control
@@ -2114,8 +2221,12 @@ export default function MultiMakerLab() {
 								} else {
 									rows.push({
 										span: bY
-											? "The makers have no size at this level."
-											: "You have no size at this level.",
+											? showAgg
+												? "The makers have no size at this level."
+												: "The makers' book is toggled off."
+											: showYou
+												? "You have no size at this level."
+												: "Your book is toggled off.",
 										spanC: C.tipFaint,
 										s: 12.5,
 										gap: 2,
