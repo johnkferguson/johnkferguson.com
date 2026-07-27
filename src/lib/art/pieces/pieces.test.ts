@@ -68,6 +68,10 @@ describe.each(Object.keys(PIECES))("piece %s", (name) => {
 			.replaceAll(/<animate(?:Transform)?\b[^>]*\/>/g, "")
 			.replaceAll("></rect>", "/>");
 		const body = still.slice(still.indexOf(">") + 1, -"</svg>".length);
+		/* toContain is satisfied by the empty string, which toBe never
+		 * was: a piece that rendered nothing at all would otherwise pass
+		 * this and every test beside it */
+		expect(body.length).toBeGreaterThan(0);
 		expect(stripped).toContain(body);
 	});
 

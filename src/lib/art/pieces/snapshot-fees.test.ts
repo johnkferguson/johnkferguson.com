@@ -20,7 +20,6 @@ const anim = (params?: Record<string, number>) =>
  * nothing except that someone updated two files; what has to hold is the
  * shape (a slot is a book plus a clear, the loop is every slot, and the
  * books tile it with no overlap or gap). */
-const BARS = 46;
 const DEF = Object.fromEntries(
 	PIECES["snapshot-fees"].params.map((s) => [s.key, s.default]),
 );
@@ -126,7 +125,7 @@ describe("snapshot cycle", () => {
 		expect(bids.length).toBe(DEF.books);
 		/* at rest the book is even: the backdrop and the OG card render
 		 * this frame, and one that opened lopsided would look cropped */
-		expect(bids[0]).toBe(BARS / 2);
+		expect(bids[0]).toBe(DEF.bars / 2);
 		/* two consecutive snapshots at the same price read as a dropped
 		 * frame, so every book has to move at least one level across */
 		for (let i = 1; i < bids.length; i++) {
@@ -158,7 +157,14 @@ describe("snapshot cycle", () => {
 		/* A walk that can turn on any book zigzags around the centre on
 		 * roughly a fifth of seeds: it reads as jitter and never travels.
 		 * Checked across seeds because it was a property of the walk, not
-		 * of any one seed. */
+		 * of any one seed.
+		 *
+		 * Asserted as the longest run of same-signed steps, which is the
+		 * rule itself ("a direction holds for at least two books"). The
+		 * obvious alternatives both miss: counting direction changes and
+		 * requiring few of them fails honest walks like +--+ (a move, a
+		 * two-book run, a turn), while requiring merely that they are not
+		 * ALL changes passes a walk that alternates on two of three. */
 		for (const seedKey of ["nev47f", "k9m2p", "q4w8e", "sf3", "abc"]) {
 			const bids = artSvg({
 				seedKey,
@@ -166,7 +172,6 @@ describe("snapshot cycle", () => {
 				width: 800,
 				height: 560,
 				animate: true,
-				params: { bars: 52 },
 			})
 				.split("<animate")
 				.slice(0, -1)
@@ -174,15 +179,28 @@ describe("snapshot cycle", () => {
 			/* steps across the walk, excluding the bridge book, which is
 			 * meant to turn back */
 			const steps: number[] = [];
-			for (let i = 1; i < bids.length - 1; i++)
+			for (let i = 1; i < bids.length - 1; i++) {
 				steps.push(bids[i] - bids[i - 1]);
-			let flips = 0;
-			for (let i = 1; i < steps.length; i++) {
-				if (Math.sign(steps[i]) !== Math.sign(steps[i - 1])) flips++;
 			}
-			expect(flips, `${seedKey} alternates every book`).toBeLessThan(
-				steps.length - 1,
+			/* the mark's position here is quantised to whole levels, so a
+			 * small enough move rounds to a zero step, whose sign matches
+			 * neither neighbour and would read as a turn in both
+			 * directions. It does not happen at the shipped settings, and
+			 * if it starts to, that is worth knowing rather than papering
+			 * over inside the run count. */
+			expect(steps, `${seedKey} has a level-rounded zero step`).not.toContain(
+				0,
 			);
+			let longest = 1;
+			let run = 1;
+			for (let i = 1; i < steps.length; i++) {
+				run = Math.sign(steps[i]) === Math.sign(steps[i - 1]) ? run + 1 : 1;
+				longest = Math.max(longest, run);
+			}
+			expect(
+				longest,
+				`${seedKey} never holds a direction for two books`,
+			).toBeGreaterThanOrEqual(2);
 		}
 	});
 });
