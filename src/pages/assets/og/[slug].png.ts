@@ -1,12 +1,12 @@
 import type { APIContext } from "astro";
 import { artSvg } from "../../../lib/art/generate";
-import { getPiece } from "../../../lib/art/pieces";
 import {
 	escapeXml,
 	layoutTitle,
 	missingGlyphs,
 	OG,
 	OG_FAMILY,
+	ogArtOptions,
 	pinArtColors,
 	renderPng,
 } from "../../../lib/og";
@@ -50,28 +50,7 @@ export function GET({ props }: APIContext) {
 	const { lines, size, lineHeight } = layoutTitle(title, TITLE_WIDTH);
 	const blockTop = 300 - ((lines.length - 1) * lineHeight) / 2;
 
-	/* a piece may ask for its own room on the card; everything else keeps
-	 * the shared default, so one artwork's tuning cannot redraw the rest */
-	const pieceQuiet = post.data.art?.piece
-		? getPiece(post.data.art.piece)?.ogQuiet
-		: undefined;
-
-	const art = pinArtColors(
-		artSvg({
-			seedKey: post.data.art?.seed ?? post.id,
-			family: post.data.art?.family,
-			piece: post.data.art?.piece,
-			params: post.data.art?.params,
-			width: OG.width,
-			height: OG.height,
-			quiet: pieceQuiet?.rect ?? { x: 0.04, y: 0.22, w: 0.92, h: 0.56 },
-			quietStrength: pieceQuiet?.strength ?? 0.28,
-			/* the card's zone is big enough that clipping under it turns
-			 * art into a flat mass; scale it to fit instead. Pieces that
-			 * ignore the hint are unaffected. */
-			quietFit: "scale",
-		}),
-	);
+	const art = pinArtColors(artSvg(ogArtOptions(post.data.art, post.id)));
 
 	const titleText = lines
 		.map(

@@ -13,6 +13,8 @@ import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { Resvg } from "@resvg/resvg-js";
 import { OG_SIZE } from "../consts";
+import type { ArtFamily, ArtOptions } from "./art/generate";
+import { getPiece } from "./art/pieces";
 import { palette } from "./palette";
 
 /* cards are always drawn in the dark palette, whatever theme the reader
@@ -28,6 +30,45 @@ export const OG = {
 /** Family name written into the instances by build-og-fonts.py. The card
  * SVGs select fonts by this string; og.test.ts asserts the files agree. */
 export const OG_FAMILY = "Newsreader OG";
+
+/**
+ * How the card asks for its art. Shared with the drift guard
+ * (pinned-art.test.ts) rather than restated there: a guard that keeps
+ * its own copy of these numbers can silently stop describing the card
+ * it is supposed to be watching, which is the failure it exists to
+ * catch.
+ *
+ * A piece may narrow the zone for its own card; everything else keeps
+ * the shared default, so tuning one artwork cannot redraw the rest.
+ */
+export function ogArtOptions(
+	art:
+		| {
+				seed?: string;
+				family?: string;
+				piece?: string;
+				params?: Record<string, number>;
+		  }
+		| undefined,
+	/** seed to fall back to when the post pins none; the post's id */
+	fallbackSeed: string,
+): ArtOptions {
+	const pieceQuiet = art?.piece ? getPiece(art.piece)?.ogQuiet : undefined;
+	return {
+		seedKey: art?.seed ?? fallbackSeed,
+		family: art?.family as ArtFamily | undefined,
+		piece: art?.piece,
+		params: art?.params,
+		width: OG.width,
+		height: OG.height,
+		quiet: pieceQuiet?.rect ?? { x: 0.04, y: 0.22, w: 0.92, h: 0.56 },
+		quietStrength: pieceQuiet?.strength ?? 0.28,
+		/* the card's zone is big enough that clipping under it turns art
+		 * into a flat mass; scale it to fit instead. Pieces that ignore
+		 * the hint are unaffected. */
+		quietFit: "scale",
+	};
+}
 
 /* cwd-relative ON PURPOSE. An import.meta.url-relative path looks
  * sturdier but breaks the production build: Astro bundles endpoint
