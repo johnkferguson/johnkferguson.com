@@ -187,8 +187,34 @@ describe("checkBudgets", () => {
 		expect(v[0].message).toContain("7.0 KiB over a 5 KiB budget");
 	});
 
-	test("treats a missing resource type as zero rather than a failure", () => {
-		expect(checkBudgets("/", summary, { image: 100 })).toEqual([]);
+	test("fails closed on a budget key the summary never reported", () => {
+		/* Lighthouse emits all nine resource types on every page, zeros
+		 * included, so absent means a typo'd key or a changed audit shape.
+		 * Treating it as zero would make the budget a permanent no-op. */
+		const v = checkBudgets("/", summary, { stylesheets: 30 });
+		expect(v).toHaveLength(1);
+		expect(v[0].message).toContain("no such type");
+	});
+
+	test("passes a legitimately zero resource type", () => {
+		const withImage = {
+			...summary,
+			image: { transferSize: 0, requestCount: 0 },
+		};
+		expect(checkBudgets("/", withImage, { image: 100 })).toEqual([]);
+	});
+
+	test("an empty summary fails loudly instead of reporting clean", () => {
+		/* The shape-change scenario: extract() yields {} and every budget
+		 * silently passes. Each budgeted key must raise. */
+		const v = checkBudgets("/", {}, { total: 250, script: 30, font: 160 });
+		expect(v).toHaveLength(3);
+	});
+
+	test("fails closed on a missing count-budget type too", () => {
+		const v = checkBudgets("/", {}, {}, { "third-party": 0 });
+		expect(v).toHaveLength(1);
+		expect(v[0].message).toContain("no such type");
 	});
 
 	test("flags third-party requests appearing", () => {

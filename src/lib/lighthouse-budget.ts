@@ -137,6 +137,25 @@ export function checkUnusedOverrides(
 		}));
 }
 
+/**
+ * A budgeted resource type that `resource-summary` never reported.
+ *
+ * Absent is not the same as zero, and treating it as zero would fail open:
+ * the budget would pass unconditionally and forever. Lighthouse emits a
+ * fixed set of nine resource types on every page, zeros included, so a page
+ * with no images reports `image: 0` rather than omitting it. Absent
+ * therefore means a typo in the budget keys, or a Lighthouse release that
+ * changed the audit's shape - both of which should be loud, since both
+ * otherwise leave the gate asserting nothing while reporting clean.
+ */
+function missingType(subject: string, resourceType: string): Violation {
+	return {
+		subject: `${subject} ${resourceType}`,
+		message:
+			"resource-summary reported no such type - a budget key typo, or the audit shape changed; either way this budget is asserting nothing",
+	};
+}
+
 /** Transfer sizes over budget, plus any request-count ceilings. */
 export function checkBudgets(
 	subject: string,
@@ -146,21 +165,29 @@ export function checkBudgets(
 ): Violation[] {
 	const violations: Violation[] = [];
 	for (const [resourceType, budgetKib] of Object.entries(sizeBudgetsKib)) {
-		const actual = summary[resourceType]?.transferSize ?? 0;
+		const entry = summary[resourceType];
+		if (entry === undefined) {
+			violations.push(missingType(subject, resourceType));
+			continue;
+		}
 		const budget = budgetKib * KIB;
-		if (actual > budget) {
+		if (entry.transferSize > budget) {
 			violations.push({
 				subject: `${subject} ${resourceType} bytes`,
-				message: `${formatKib(actual)} over a ${budgetKib} KiB budget (+${formatKib(actual - budget)})`,
+				message: `${formatKib(entry.transferSize)} over a ${budgetKib} KiB budget (+${formatKib(entry.transferSize - budget)})`,
 			});
 		}
 	}
 	for (const [resourceType, maxCount] of Object.entries(countBudgets)) {
-		const actual = summary[resourceType]?.requestCount ?? 0;
-		if (actual > maxCount) {
+		const entry = summary[resourceType];
+		if (entry === undefined) {
+			violations.push(missingType(subject, resourceType));
+			continue;
+		}
+		if (entry.requestCount > maxCount) {
 			violations.push({
 				subject: `${subject} ${resourceType} requests`,
-				message: `${actual} requests, budget is ${maxCount}`,
+				message: `${entry.requestCount} requests, budget is ${maxCount}`,
 			});
 		}
 	}
