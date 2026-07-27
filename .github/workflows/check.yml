@@ -63,3 +63,32 @@ jobs:
         with:
           args: "--config .lychee.toml --root-dir ./dist --remap 'https://johnkferguson\\.com file://${{ github.workspace }}/dist' --cache --max-cache-age 1d --no-progress './dist/**/*.html'"
           fail: true
+
+  # Separate from `check` rather than appended to it: this job drives a real
+  # Chrome over every built page, and a browser that hangs should not hold up
+  # lint and test feedback. It runs concurrently, so it costs no wall clock.
+  lighthouse:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: 1.3.13
+      - run: bun install --frozen-lockfile
+      - run: bun run build
+      # Chrome is preinstalled on the runner image; CHROME_PATH stops
+      # chrome-launcher guessing and keeps a failure here legible.
+      - run: bun run lighthouse
+        env:
+          CHROME_PATH: /usr/bin/google-chrome
+      # A failing category assertion names the category, not the element
+      # behind it. The full reports are what make that diagnosable.
+      - uses: actions/upload-artifact@v7
+        if: failure()
+        with:
+          name: lighthouse-reports
+          path: .lighthouse/reports/
+          retention-days: 7
