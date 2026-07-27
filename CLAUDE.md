@@ -12,6 +12,7 @@ Personal blog at johnkferguson.com. Static site built with Astro 7, styled with 
 - `bun test` - Run unit tests (bun:test, `src/**/*.test.ts`)
 - `bun run check` - Lint with Biome
 - `bun run check:fix` - Auto-fix lint issues
+- `bun run lighthouse` - Lighthouse gate over `dist/` (needs a build first)
 
 When previewing changes locally, prefer `bun run dev` over `build + preview` — it watches for file changes and reloads automatically.
 
@@ -51,6 +52,17 @@ The build script must not end with `astro sync`: that runs draft-inclusive, so a
 - The `chrome-devtools` MCP server (project `.mcp.json`, drives its own Chrome instance) is the way to verify design and layout work: navigate to the dev server, `take_screenshot` (or `take_snapshot` for structure), and Read the image before calling a visual change done. "The HTML looks right" is not verification.
 - Test at realistic CSS viewport widths with `resize_page`. John's 1920px monitor presents as roughly 1000-1100 CSS px due to zoom/display scaling, so always check ~1000-1100 as well as 390 (mobile) and 1400+. The post TOC rail appears at >= 1020 CSS px.
 - Before publishing changes, `lighthouse_audit` on the affected pages.
+
+## Lighthouse Gate (`scripts/lighthouse.ts`)
+
+- Runs over **every** `dist/**/*.html` under **both** presets, in its own `check.yml` job. Pages are globbed, not listed, so a new post is covered the moment it builds; `dist/sitemap-0.xml` is not used because it omits `404.html`.
+- Gates accessibility, best-practices and SEO at >= 0.95, plus per-resource-type transfer budgets. The **performance score is printed but never asserted** — it flakes on shared runners, and the byte budgets are the real performance gate. Every page scores 0 on `render-blocking-insight` and `network-dependency-tree-insight` (fonts and CSS in `<head>`); that is the standing baseline, not a regression.
+- **Budgets are enforced in-repo, not by Lighthouse.** Lighthouse 13 removed budgets outright — no `performance-budget` audit, and `--budget-path` is accepted and silently ignored. The checks read the still-present `resource-summary` audit instead. This is also why `@lhci/cli` is not used: it is 13 months stale, carries 7 high advisories with no fix path, and its budget support only works via its pinned Lighthouse 12.
+- **Both presets run because some audits exist on only one.** `list`/`listitem` score on desktop and are not applicable on mobile, since the TOC rail is desktop-only DOM (>= 1020px). Transfer bytes are identical across presets, so budgets are asserted on the mobile run alone.
+- **`/404.html` is an override that asserts in both directions**: its SEO threshold drops to 0.60 for the intentional `noindex`, *and* `is-crawlable` is asserted to still score 0, so the `noindex` cannot silently vanish. New per-page exceptions go in `URL_OVERRIDES` with the same discipline — a raise to the shared budgets is the wrong fix for one heavy page.
+- **Local before/after for asset work**: `bun run lighthouse --save baseline`, change fonts or CSS, rebuild, then `bun run lighthouse --compare baseline` for a per-file byte delta. Snapshots land in gitignored `.lighthouse/`. Save and compare take a 3-run median because they report LCP/CLS; the gate runs once, since nothing it asserts on varies between runs.
+- Astro preview is started with `--host 127.0.0.1` deliberately: it otherwise binds IPv6-only, so 127.0.0.1 is refused and connectivity depends on how `localhost` happens to resolve, for the readiness poll and for Chrome alike.
+- Drafts are invisible to this gate — `getVisiblePosts` filters on `import.meta.env.DEV`, so no build of any kind emits them. The manual MCP `lighthouse_audit` above stays the pre-publish gate for drafts.
 
 ## Dependency Management & CI Hardening
 

@@ -4,6 +4,9 @@ dist/
 # Astro generated types
 .astro/
 
+# Local Lighthouse snapshots (scripts/lighthouse.ts --save)
+.lighthouse/
+
 # Dependencies
 node_modules/
 

@@ -1,0 +1,213 @@
+/**
+ * Pure helpers behind `scripts/lighthouse.ts`. Everything here is a plain
+ * function over already-collected Lighthouse JSON so it can be unit-tested
+ * without driving Chrome; the script owns the browser, the server, and the
+ * config.
+ *
+ * Budgets are enforced here rather than by Lighthouse because Lighthouse 13
+ * removed budgets entirely: there is no `performance-budget` audit, no
+ * budget file in `core/audits/`, and `--budget-path` is accepted and
+ * silently ignored. The `resource-summary` audit still reports per-type
+ * transfer sizes and request counts, which is what these checks read.
+ */
+
+/** One assertion failure, rendered by the script as a FAIL line. */
+export interface Violation {
+	/** what was checked, e.g. `/about [mobile] seo` */
+	subject: string;
+	/** the specific overage or shortfall */
+	message: string;
+}
+
+/** `resource-summary` rows, keyed by resourceType. */
+export type ResourceSummary = Record<
+	string,
+	{ transferSize: number; requestCount: number }
+>;
+
+/** Per-file sizes pulled from `network-requests`, keyed by normalised name. */
+export type AssetSizes = Record<
+	string,
+	{ transferSize: number; resourceSize: number; resourceType: string }
+>;
+
+const KIB = 1024;
+
+/**
+ * Map a built HTML file, relative to `dist/`, onto the URL path that serves
+ * it. Astro emits directory-style pages (`about/index.html`) plus a
+ * top-level `404.html`, which has no pretty URL and is requested as-is.
+ */
+export function htmlFileToUrl(relPath: string): string {
+	const p = relPath.replaceAll("\\", "/");
+	if (p === "index.html") return "/";
+	if (p.endsWith("/index.html")) return `/${p.slice(0, -"/index.html".length)}`;
+	return `/${p}`;
+}
+
+/**
+ * Strip the origin and Astro's content hash from an asset URL so the same
+ * logical file compares equal across builds. Without this every asset reads
+ * as removed-plus-added in a diff, because any content change rewrites the
+ * hash (`newsreader-latin-opsz-normal.DQOr0nmD.woff2`).
+ */
+export function normalizeAssetUrl(url: string): string {
+	let path: string;
+	try {
+		path = new URL(url).pathname;
+	} catch {
+		path = url;
+	}
+	return path.replace(
+		/\.[A-Za-z0-9_-]{8}\.(woff2|woff|css|js|svg|png|jpg|jpeg|webp|avif)$/,
+		".$1",
+	);
+}
+
+/** Category scores below their threshold. */
+export function checkCategories(
+	subject: string,
+	scores: Record<string, number | null>,
+	thresholds: Record<string, number>,
+): Violation[] {
+	const violations: Violation[] = [];
+	for (const [category, min] of Object.entries(thresholds)) {
+		const score = scores[category];
+		if (score === null || score === undefined) {
+			violations.push({
+				subject: `${subject} ${category}`,
+				message: `no score reported - the category did not run`,
+			});
+			continue;
+		}
+		if (score < min) {
+			violations.push({
+				subject: `${subject} ${category}`,
+				message: `scored ${score.toFixed(2)}, below the ${min.toFixed(2)} threshold`,
+			});
+		}
+	}
+	return violations;
+}
+
+/**
+ * Individual audits asserted to hold a specific score. Used for the `/404.html`
+ * `noindex`: rather than only relaxing that page's SEO threshold, assert the
+ * `is-crawlable` failure is still there, so the `noindex` cannot silently
+ * disappear.
+ */
+export function checkExpectedAudits(
+	subject: string,
+	auditScores: Record<string, number | null>,
+	expected: Record<string, number>,
+): Violation[] {
+	const violations: Violation[] = [];
+	for (const [id, want] of Object.entries(expected)) {
+		const got = auditScores[id];
+		if (got === want) continue;
+		violations.push({
+			subject: `${subject} ${id}`,
+			message: `scored ${got === null || got === undefined ? "n/a" : got} but ${want} is expected here`,
+		});
+	}
+	return violations;
+}
+
+/** Transfer sizes over budget, plus any request-count ceilings. */
+export function checkBudgets(
+	subject: string,
+	summary: ResourceSummary,
+	sizeBudgetsKib: Record<string, number>,
+	countBudgets: Record<string, number> = {},
+): Violation[] {
+	const violations: Violation[] = [];
+	for (const [resourceType, budgetKib] of Object.entries(sizeBudgetsKib)) {
+		const actual = summary[resourceType]?.transferSize ?? 0;
+		const budget = budgetKib * KIB;
+		if (actual > budget) {
+			violations.push({
+				subject: `${subject} ${resourceType} bytes`,
+				message: `${formatKib(actual)} over a ${budgetKib} KiB budget (+${formatKib(actual - budget)})`,
+			});
+		}
+	}
+	for (const [resourceType, maxCount] of Object.entries(countBudgets)) {
+		const actual = summary[resourceType]?.requestCount ?? 0;
+		if (actual > maxCount) {
+			violations.push({
+				subject: `${subject} ${resourceType} requests`,
+				message: `${actual} requests, budget is ${maxCount}`,
+			});
+		}
+	}
+	return violations;
+}
+
+export function formatKib(bytes: number): string {
+	return `${(bytes / KIB).toFixed(1)} KiB`;
+}
+
+/**
+ * Signed size change. Sub-KiB deltas render in bytes: rewriting a hashed
+ * asset reference shifts a document by a few bytes, and rounding that to
+ * "+0.0 KiB" reads as a change too small to have a size, rather than one
+ * too small to matter.
+ */
+export function formatKibDelta(bytes: number): string {
+	const sign = bytes > 0 ? "+" : bytes < 0 ? "-" : "";
+	const magnitude = Math.abs(bytes);
+	return magnitude < KIB
+		? `${sign}${magnitude} B`
+		: `${sign}${(magnitude / KIB).toFixed(1)} KiB`;
+}
+
+export interface AssetDelta {
+	name: string;
+	status: "added" | "removed" | "changed";
+	before: number;
+	after: number;
+	delta: number;
+}
+
+/**
+ * Per-file transfer-size changes between two snapshots, largest absolute
+ * change first. Unchanged files are dropped; the caller reports the total.
+ */
+export function diffAssets(
+	before: AssetSizes,
+	after: AssetSizes,
+): AssetDelta[] {
+	const names = new Set([...Object.keys(before), ...Object.keys(after)]);
+	const deltas: AssetDelta[] = [];
+	for (const name of names) {
+		const b = before[name]?.transferSize ?? 0;
+		const a = after[name]?.transferSize ?? 0;
+		if (b === a) continue;
+		deltas.push({
+			name,
+			status: !(name in before)
+				? "added"
+				: !(name in after)
+					? "removed"
+					: "changed",
+			before: b,
+			after: a,
+			delta: a - b,
+		});
+	}
+	return deltas.sort((x, y) => Math.abs(y.delta) - Math.abs(x.delta));
+}
+
+/**
+ * Median of a sample. Compare mode runs each page several times because the
+ * metrics it reports (LCP, CLS) are the nondeterministic ones; the gate runs
+ * once because nothing it asserts on varies between runs.
+ */
+export function median(values: number[]): number {
+	if (values.length === 0) return Number.NaN;
+	const sorted = [...values].sort((a, b) => a - b);
+	const mid = Math.floor(sorted.length / 2);
+	return sorted.length % 2 === 0
+		? (sorted[mid - 1] + sorted[mid]) / 2
+		: sorted[mid];
+}
