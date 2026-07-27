@@ -49,6 +49,7 @@ import {
 	checkBudgets,
 	checkCategories,
 	checkExpectedAudits,
+	checkUnusedOverrides,
 	diffAssets,
 	formatKib,
 	formatKibDelta,
@@ -362,7 +363,9 @@ async function collect(
  * ------------------------------------------------------------------ */
 
 function gate(pages: Snapshot["pages"]): number {
-	const violations: Violation[] = [];
+	const violations: Violation[] = [
+		...checkUnusedOverrides(Object.keys(URL_OVERRIDES), Object.keys(pages)),
+	];
 
 	for (const [url, byPreset] of Object.entries(pages)) {
 		const override = URL_OVERRIDES[url] ?? {};

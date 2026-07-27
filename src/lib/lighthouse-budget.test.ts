@@ -3,6 +3,7 @@ import {
 	checkBudgets,
 	checkCategories,
 	checkExpectedAudits,
+	checkUnusedOverrides,
 	diffAssets,
 	formatKibDelta,
 	htmlFileToUrl,
@@ -130,6 +131,36 @@ describe("checkExpectedAudits", () => {
 		);
 		expect(v).toHaveLength(1);
 		expect(v[0].message).toContain("but 0 is expected");
+	});
+});
+
+describe("checkUnusedOverrides", () => {
+	const audited = ["/", "/404.html", "/about", "/refactoring-with-love"];
+
+	test("passes when every override names a real page", () => {
+		expect(checkUnusedOverrides(["/404.html"], audited)).toEqual([]);
+	});
+
+	test("passes when there are no overrides at all", () => {
+		expect(checkUnusedOverrides([], audited)).toEqual([]);
+	});
+
+	test("flags an override left behind by a renamed page", () => {
+		const v = checkUnusedOverrides(["/404.html", "/old-slug"], audited);
+		expect(v).toHaveLength(1);
+		expect(v[0].subject).toBe('URL_OVERRIDES["/old-slug"]');
+		expect(v[0].message).toContain("stale");
+	});
+
+	test("flags every stale key, not just the first", () => {
+		expect(checkUnusedOverrides(["/gone-a", "/gone-b"], audited)).toHaveLength(
+			2,
+		);
+	});
+
+	test("matches exactly, so a near-miss key is caught", () => {
+		/* pretty URLs have no trailing slash; a key with one matches nothing */
+		expect(checkUnusedOverrides(["/about/"], audited)).toHaveLength(1);
 	});
 });
 

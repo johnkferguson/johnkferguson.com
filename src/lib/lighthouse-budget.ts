@@ -113,6 +113,30 @@ export function checkExpectedAudits(
 	return violations;
 }
 
+/**
+ * Override keys that match no audited page.
+ *
+ * A per-page exception outliving its page is silent otherwise: the page is
+ * gone or renamed, so nothing consults the entry, and it sits in config
+ * looking authoritative while describing something that no longer exists.
+ * The same reasoning as pairing the `/404.html` SEO exception with a
+ * positive `is-crawlable` assertion, an exception should never quietly stop
+ * meaning anything.
+ */
+export function checkUnusedOverrides(
+	overrideKeys: string[],
+	auditedUrls: string[],
+): Violation[] {
+	const audited = new Set(auditedUrls);
+	return overrideKeys
+		.filter((key) => !audited.has(key))
+		.map((key) => ({
+			subject: `URL_OVERRIDES["${key}"]`,
+			message:
+				"no page at this URL was audited - the entry is stale (renamed or removed page?); fix the key or delete it",
+		}));
+}
+
 /** Transfer sizes over budget, plus any request-count ceilings. */
 export function checkBudgets(
 	subject: string,
