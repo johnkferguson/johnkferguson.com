@@ -161,6 +161,7 @@ const C = {
 	markSlice: "var(--lab-mark-slice)",
 	hatch: "var(--lab-hatch)",
 	danger: "var(--lab-danger)",
+	warn: "var(--lab-warn)",
 	inset: "var(--lab-inset)",
 	hint: "var(--lab-hint)",
 	onAccent: "var(--lab-on-accent)",
@@ -171,30 +172,51 @@ const mono = "var(--lab-mono)";
 // What each dial does, narrated as you move it
 const DIAL_EFFECT: Record<string, { up: string; down: string }> = {
 	B: {
-		up: "Wider inner band: more placement gets a zero base fee.",
-		down: "Tighter inner band: precision is judged more strictly.",
+		up: "Wider band: more room to trade free, lower base fees outside it; fee cap reached later.",
+		down: "Tighter band: less room to trade free, higher base fees outside it; fee cap reached sooner.",
 	},
 	F: {
-		up: "Higher cap: directional fills pay more, and the cap line rises.",
-		down: "Lower cap: even fully directional fills pay less.",
+		up: "Higher cap: fee cap reached later, there is more room for pairing liquidity; directional trades pay more.",
+		down: "Lower cap: fee cap reached sooner, there is less room for pairing liquidity; directional trades pay less.",
 	},
 	D: {
-		up: "Bigger typical demand: it takes more size near the touch to move M.",
-		down: "Smaller typical demand: less size near the touch moves M.",
+		up: "Larger size: more of the order book used to calculate M; more size needed to move it.",
+		down: "Smaller size: less of the order book used to calculate M; less size needed to move it.",
 	},
 	Z: {
-		up: "Wider zone: more of the book votes on M, and the gentle slope reaches further out.",
-		down: "Tighter zone: only nearer size votes on M, and the far slope starts sooner.",
+		up: "Wider zone: more of the book counts toward M; k₂ takes over further out.",
+		down: "Tighter zone: less of the book counts toward M; k₂ takes over sooner.",
 	},
 	k: {
-		up: "Steeper zone slope: each bps outside the band costs more; full fee arrives closer to M.",
-		down: "Gentler zone slope: width is taxed less; full fee moves further out.",
+		up: "Steeper zone slope: each bps outside the band costs more; fee cap reached sooner.",
+		down: "Gentler zone slope: each bps outside the band costs less; fee cap reached later.",
 	},
 	k2: {
-		up: "Steeper far slope: past the zone edge the fee runs to the cap faster.",
-		down: "Gentler far slope: the cap arrives further out.",
+		up: "Steeper far slope: each bps past the zone edge costs more; fee cap reached sooner.",
+		down: "Gentler far slope: each bps past the zone edge costs less; fee cap reached later.",
 	},
 };
+
+// k₁ at or above 1 is a regime rather than a change, so it replaces the
+// up/down narration in either direction.
+const K1_WARNING =
+	"k₁ ≥ 1: the fee grows as fast as the distance; quoting wider adds no net edge.";
+
+// Holds the narration area before any dial has been touched, captioning the
+// Full Fee Reached readout above it.
+const IDLE_EFFECT =
+	"The distance from M where paired liquidity first pays the full cap. Move a dial to see what changes it.";
+
+// Reserves the narration box's height (rendered invisibly, see below). Longest
+// string wins: every line shares one font size and text width, so the longest
+// wraps to at least as many lines as any other. IDLE_EFFECT rides along in the
+// comparison even though it renders italic, Newsreader's italic being the
+// narrower face of the two.
+const LONGEST_EFFECT = [
+	...Object.values(DIAL_EFFECT).flatMap((e) => [e.up, e.down]),
+	K1_WARNING,
+	IDLE_EFFECT,
+].reduce((a, b) => (b.length > a.length ? b : a));
 
 const fmt$ = (v: number) => `$${Math.round(v).toLocaleString()}`;
 const fmtBp = (v: number, d = 2) => `${v.toFixed(d)}bps`;
@@ -256,14 +278,14 @@ function Param({
 					style={{
 						flex: "1 1 auto",
 						minWidth: 0,
-						accentColor: warn ? C.danger : "var(--lab-slider)",
+						accentColor: warn ? C.warn : "var(--lab-slider)",
 					}}
 				/>
 				<span
 					style={{
 						fontFamily: mono,
 						fontSize: 11.5,
-						color: warn ? C.danger : C.text,
+						color: warn ? C.warn : C.text,
 						whiteSpace: "nowrap",
 						width: "7ch",
 						textAlign: "right",
@@ -464,11 +486,7 @@ export default function SingleMakerLab() {
 			fn(v);
 			setScenario(null);
 			if (v === cur) return;
-			if (dial === "k" && v >= 1)
-				setEffect({
-					t: "k ≥ 1×: width beyond the band no longer pays.",
-					warn: true,
-				});
+			if (dial === "k" && v >= 1) setEffect({ t: K1_WARNING, warn: true });
 			else
 				setEffect({
 					t: DIAL_EFFECT[dial][v > cur ? "up" : "down"],
@@ -726,16 +744,35 @@ export default function SingleMakerLab() {
 									margin: "4px 0 5px",
 								}}
 							/>
-							{/* dial narration: a fixed three-line area inside the box so
-							    tips shift nothing; a faint prompt holds it when idle */}
-							<div style={{ alignSelf: "stretch", minHeight: 58 }}>
+							{/* dial narration. The area is sized by an invisible copy of
+							    the longest tip, so the box holds one height and no tip can
+							    shift the chart below it. A pixel height would not do:
+							    this column is flexible, so the same string wraps to more
+							    lines as the viewport narrows. */}
+							<div style={{ alignSelf: "stretch", position: "relative" }}>
+								<div
+									aria-hidden="true"
+									style={{
+										display: "flex",
+										gap: 8,
+										visibility: "hidden",
+										pointerEvents: "none",
+									}}
+								>
+									<span style={{ width: 14, flex: "0 0 auto" }} />
+									<span style={{ fontSize: 12.5, lineHeight: 1.5 }}>
+										{LONGEST_EFFECT}
+									</span>
+								</div>
 								{effect ? (
 									<div
 										class="sf-effect"
 										style={{
+											position: "absolute",
+											inset: 0,
 											display: "flex",
 											gap: 8,
-											alignItems: "flex-start",
+											alignItems: "center",
 										}}
 									>
 										<svg
@@ -752,7 +789,6 @@ export default function SingleMakerLab() {
 												display: "inline",
 												color: C.hint,
 												flex: "0 0 auto",
-												marginTop: 2,
 											}}
 										>
 											<path d="M9 18h6" />
@@ -762,14 +798,39 @@ export default function SingleMakerLab() {
 										<span
 											style={{
 												fontSize: 12.5,
-												color: effect.warn ? C.danger : C.text,
+												color: effect.warn ? C.warn : C.text,
 												lineHeight: 1.5,
 											}}
 										>
 											{effect.t}
 										</span>
 									</div>
-								) : null}
+								) : (
+									/* idle: a caption for the readout above, which four of the
+									   six tips end by referring to. Indented past the bulb's
+									   width and gap so the text holds its x when a tip
+									   replaces it, and no bulb: nothing has been caused yet. */
+									<div
+										style={{
+											position: "absolute",
+											inset: 0,
+											display: "flex",
+											alignItems: "center",
+											paddingLeft: 22,
+										}}
+									>
+										<span
+											style={{
+												fontSize: 12.5,
+												color: C.faint,
+												lineHeight: 1.5,
+												fontStyle: "italic",
+											}}
+										>
+											{IDLE_EFFECT}
+										</span>
+									</div>
+								)}
 							</div>
 						</div>
 					</div>

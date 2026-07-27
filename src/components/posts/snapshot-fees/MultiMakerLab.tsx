@@ -227,7 +227,7 @@ const C = {
 	zone: "var(--lab-zone)",
 	markSlice: "var(--lab-mark-slice)",
 	hatch: "var(--lab-hatch)",
-	danger: "var(--lab-danger)",
+	warn: "var(--lab-warn)",
 	inset: "var(--lab-inset)",
 	hint: "var(--lab-hint)",
 };
@@ -294,14 +294,14 @@ function Param({
 					style={{
 						flex: "1 1 auto",
 						minWidth: 0,
-						accentColor: warn ? C.danger : "var(--lab-slider)",
+						accentColor: warn ? C.warn : "var(--lab-slider)",
 					}}
 				/>
 				<span
 					style={{
 						fontFamily: mono,
 						fontSize: 11.5,
-						color: warn ? C.danger : C.text,
+						color: warn ? C.warn : C.text,
 						whiteSpace: "nowrap",
 						width: "8ch",
 						textAlign: "right",
