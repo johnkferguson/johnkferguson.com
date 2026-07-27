@@ -37,6 +37,13 @@
 	--lab-faint: var(--date-color);
 	--lab-mono: var(--font-mono);
 
+	/* fee-contrast popup text: the popup group renders at 0.88 opacity, which
+	 * washes dark-on-light text; these run darker than the page palette so
+	 * the diluted result lands back on it (dark mode aliases the normal set) */
+	--lab-tip-text: #121110;
+	--lab-tip-dim: #2a2724;
+	--lab-tip-faint: #56514a;
+
 	/* buttons (scenario pills, zoom, play): active tracks the slider gray in
 	 * light mode rather than the near-black heading color; idle buttons take
 	 * the inset stone so they stand off the page background */
@@ -77,6 +84,9 @@
 	--lab-slider: #f0ebe5;
 	--lab-btn-active-bg: var(--lab-text);
 	--lab-btn-bg: var(--lab-panel2);
+	--lab-tip-text: var(--lab-text);
+	--lab-tip-dim: var(--lab-dim);
+	--lab-tip-faint: var(--lab-faint);
 	--lab-weave-tile: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='4' height='4'%3E%3Cpath d='M0 .5h4M.5 0v4' stroke='rgba(255,255,255,0.028)'/%3E%3C/svg%3E");
 	--lab-caption: #2f2a26;
 	--lab-btn-shadow: 0 1px 3px rgba(0, 0, 0, 0.5);

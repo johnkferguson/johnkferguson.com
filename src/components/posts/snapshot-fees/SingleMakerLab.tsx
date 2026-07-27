@@ -1084,10 +1084,8 @@ export default function SingleMakerLab() {
 											opacity={0.85 * dimIf(lv.i)}
 											rx={2}
 											pointerEvents="none"
-											strokeWidth={tip === lv.i ? 1.5 : 0}
 											style={{
 												fill: lv.side === "bid" ? C.bid : C.ask,
-												stroke: tip === lv.i ? C.text : "none",
 											}}
 										/>
 									)}
@@ -1155,6 +1153,22 @@ export default function SingleMakerLab() {
 									style={{ stroke: C.text }}
 								/>
 							))}
+
+						{/* hovered-bar outline, above the walk overlay so it never
+						    sinks beneath the consumed-slice fill */}
+						{tipLv && tipLv.size > 0 && inView(tipLv.i) && (
+							<rect
+								x={xAt(tipLv.i) - barW / 2}
+								y={yDepth(tipLv.size)}
+								width={barW}
+								height={Math.max(0, PB - yDepth(tipLv.size))}
+								fill="none"
+								strokeWidth={1.75}
+								rx={2}
+								pointerEvents="none"
+								style={{ stroke: C.text }}
+							/>
+						)}
 
 						{/* hovered/pinned-fee reference line across the whole plot */}
 						{tipLv && tipBk && (

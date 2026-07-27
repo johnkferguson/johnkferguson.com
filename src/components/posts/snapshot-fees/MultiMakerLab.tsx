@@ -215,6 +215,9 @@ const C = {
 	text: "var(--lab-text)",
 	dim: "var(--lab-dim)",
 	faint: "var(--lab-faint)",
+	tipText: "var(--lab-tip-text)",
+	tipDim: "var(--lab-tip-dim)",
+	tipFaint: "var(--lab-tip-faint)",
 	bid: "var(--lab-bid)",
 	ask: "var(--lab-ask)",
 	fee: "var(--lab-fee)",
@@ -230,7 +233,6 @@ const C = {
 };
 
 const mono = "var(--lab-mono)";
-const fmtBp = (v: number, d = 2) => `${v.toFixed(d)}bps`;
 const fmtPx = (v: number) => v.toFixed(3);
 
 const label = {
@@ -583,11 +585,14 @@ export default function MultiMakerLab() {
 		return viewY < MID ? "you" : "makers";
 	};
 	const onBodyMove = (e: PointerEvent, i: number) => {
+		/* a column is inspectable when either book stands size at it, from
+		   whichever half the pointer is in */
+		const any = fees.levels[i]?.bk || makerFees.levels[i]?.bk;
 		if (halfAt(e) === "you") {
-			setFeeHover(fees.levels[i]?.bk ? i : null);
+			setFeeHover(any ? i : null);
 			setMakerHover(null);
 		} else {
-			setMakerHover(makerFees.levels[i]?.bk ? i : null);
+			setMakerHover(any ? i : null);
 			setFeeHover(null);
 		}
 	};
@@ -662,29 +667,33 @@ export default function MultiMakerLab() {
 	const yourShareBid = (mm.shareBid.get("you") ?? 0) * 100;
 	const yourShareAsk = (mm.shareAsk.get("you") ?? 0) * 100;
 	// —— partner highlighting: dollars paired within your book ——
-	const tip = feeHover;
+	const tip = feeHover ?? makerHover;
 	const tipLv = tip != null ? feeLevels[tip] : null;
 	const tipBk = tipLv?.bk ?? null;
 	const tipFeeY = tipBk ? yFeeUp(tipBk.final) : null;
-	const makerTipBk =
-		makerHover != null ? (makerFees.levels[makerHover]?.bk ?? null) : null;
-	let pairSlices: { i: number; from: number; to: number }[] = [];
-	if (tipLv && tipBk && tipLv.side !== "mid") {
+	const makerTipBk = tip != null ? (makerFees.levels[tip]?.bk ?? null) : null;
+	const slicesFor = (
+		levels: typeof feeLevels,
+		hov: number | null,
+	): { i: number; from: number; to: number }[] => {
+		const lv = hov != null ? levels[hov] : null;
+		const b = lv?.bk ?? null;
+		if (!lv || !b || lv.side === "mid") return [];
 		const offset = new Map<number, number>();
-		const sameSide = feeLevels
-			.filter((l) => l.side === tipLv.side && l.size > 0 && l.bk)
-			.sort((a, b) =>
-				tipLv.side === "bid" ? b.price - a.price : a.price - b.price,
+		const sameSide = levels
+			.filter((l) => l.side === lv.side && l.size > 0 && l.bk)
+			.sort((a, b2) =>
+				lv.side === "bid" ? b2.price - a.price : a.price - b2.price,
 			);
 		for (const l of sameSide) {
-			if (l.i === tipLv.i) break;
+			if (l.i === lv.i) break;
 			for (const pr of l.bk?.pairs ?? [])
 				offset.set(pr.price, (offset.get(pr.price) ?? 0) + pr.paired);
 		}
-		pairSlices = tipBk.pairs.flatMap((pr) => {
-			const partner = feeLevels.find(
+		return b.pairs.flatMap((pr) => {
+			const partner = levels.find(
 				(l) =>
-					l.side !== tipLv.side &&
+					l.side !== lv.side &&
 					l.side !== "mid" &&
 					Math.abs(l.price - pr.price) < 1e-9,
 			);
@@ -692,10 +701,18 @@ export default function MultiMakerLab() {
 			const from = offset.get(pr.price) ?? 0;
 			return [{ i: partner.i, from, to: from + pr.paired }];
 		});
-	}
+	};
+	/* both books highlight their pairing at the hovered level, whichever
+	   half the pointer is in */
+	const pairSlices = slicesFor(feeLevels, tip);
+	const makerPairSlices = slicesFor(makerFees.levels, tip);
 	const involved = new Set(pairSlices.map((sl) => sl.i));
 	if (tip != null) involved.add(tip);
 	const dimIf = (i: number) => (tip != null && !involved.has(i) ? 0.35 : 1);
+	const makerInvolved = new Set(makerPairSlices.map((sl) => sl.i));
+	if (tip != null) makerInvolved.add(tip);
+	const dimIfM = (i: number) =>
+		tip != null && !makerInvolved.has(i) ? 0.35 : 1;
 
 	const barTrans = playing
 		? { transition: "y 380ms ease-out, height 380ms ease-out" }
@@ -945,7 +962,7 @@ export default function MultiMakerLab() {
 							const sx = ((e.clientX - r.left) / r.width) * W;
 							const sy = ((e.clientY - r.top) / r.height) * H;
 							const inside =
-								feeHover != null &&
+								(feeHover != null || makerHover != null) &&
 								!mHover &&
 								sx >= W / 2 - 240 &&
 								sx <= W / 2 + 240 &&
@@ -1277,7 +1294,9 @@ export default function MultiMakerLab() {
 										height={yv > 0 ? 16 : 14}
 										fill="transparent"
 										style={{ cursor: "ns-resize" }}
-										onPointerEnter={() => setFeeHover(lv?.bk ? i : null)}
+										onPointerEnter={() =>
+											setFeeHover(lv?.bk || makerFees.levels[i]?.bk ? i : null)
+										}
 										onPointerLeave={() => setFeeHover(null)}
 										onPointerDown={(e) => onDown(e, i, "you")}
 										onPointerMove={onMove}
@@ -1294,7 +1313,11 @@ export default function MultiMakerLab() {
 										fill="transparent"
 										style={{ cursor: "ns-resize" }}
 										onPointerEnter={() =>
-											setMakerHover(makerFees.levels[i]?.bk ? i : null)
+											setMakerHover(
+												makerFees.levels[i]?.bk || fees.levels[i]?.bk
+													? i
+													: null,
+											)
 										}
 										onPointerLeave={() => setMakerHover(null)}
 										onPointerDown={(e) => onDown(e, i, "makers")}
@@ -1313,10 +1336,8 @@ export default function MultiMakerLab() {
 											opacity={0.85 * dimIf(i)}
 											rx={2}
 											pointerEvents="none"
-											strokeWidth={tip === i ? 1.5 : 0}
 											style={{
 												fill: sideYou === "bid" ? C.bid : C.ask,
-												stroke: tip === i ? C.text : "none",
 												...barTrans,
 											}}
 										/>
@@ -1352,7 +1373,7 @@ export default function MultiMakerLab() {
 											y={MID + 1}
 											width={barW}
 											height={Math.max(0, yDn(av) - MID - 1)}
-											opacity={0.45}
+											opacity={0.45 * dimIfM(i)}
 											rx={2}
 											pointerEvents="none"
 											style={{
@@ -1369,6 +1390,7 @@ export default function MultiMakerLab() {
 											height={Math.max(0, yDn(usedAgg) - MID - 1)}
 											strokeWidth={1.25}
 											rx={2}
+											opacity={dimIfM(i)}
 											pointerEvents="none"
 											style={{ fill: C.markSlice, stroke: C.mark, ...barTrans }}
 										/>
@@ -1394,6 +1416,53 @@ export default function MultiMakerLab() {
 									style={{ stroke: C.text }}
 								/>
 							))}
+
+						{/* partner highlight within the makers' book */}
+						{makerPairSlices
+							.filter((sl) => inView(sl.i))
+							.map((sl) => (
+								<rect
+									key={sl.i}
+									x={xAt(sl.i) - barW / 2}
+									y={yDn(sl.from)}
+									width={barW}
+									height={Math.max(0, yDn(sl.to) - yDn(sl.from))}
+									fill="none"
+									strokeWidth={1.75}
+									rx={1.5}
+									pointerEvents="none"
+									style={{ stroke: C.text }}
+								/>
+							))}
+
+						{/* hovered-bar outlines, above the walk overlays so they never
+						    sink beneath the consumed-slice fill */}
+						{tip != null && inView(tip) && (yourSizes[tip] ?? 0) > 0 && (
+							<rect
+								x={xAt(tip) - barW / 2}
+								y={yUp(yourSizes[tip])}
+								width={barW}
+								height={Math.max(0, MID - yUp(yourSizes[tip]))}
+								fill="none"
+								strokeWidth={1.75}
+								rx={2}
+								pointerEvents="none"
+								style={{ stroke: C.text }}
+							/>
+						)}
+						{tip != null && inView(tip) && (makerSizes[tip] ?? 0) > 0 && (
+							<rect
+								x={xAt(tip) - barW / 2}
+								y={MID + 1}
+								width={barW}
+								height={Math.max(0, yDn(makerSizes[tip]) - MID - 1)}
+								fill="none"
+								strokeWidth={1.75}
+								rx={2}
+								pointerEvents="none"
+								style={{ stroke: C.text }}
+							/>
+						)}
 
 						{/* hovered/pinned-fee reference line, your half */}
 						{tipLv && tipBk && (
@@ -1467,7 +1536,7 @@ export default function MultiMakerLab() {
 								key={l.i}
 								cx={xAt(l.i)}
 								cy={yFeeDn(l.bk?.final ?? 0)}
-								r={makerHover === l.i ? 4.5 : 3}
+								r={tip === l.i ? 4.5 : 3}
 								strokeWidth={1.5}
 								pointerEvents="none"
 								style={{ fill: C.panel, stroke: C.fee }}
@@ -1489,7 +1558,7 @@ export default function MultiMakerLab() {
 								key={l.i}
 								cx={xAt(l.i)}
 								cy={yFeeUp(l.bk?.final ?? 0)}
-								r={feeHover === l.i ? 5.5 : 4}
+								r={tip === l.i ? 5.5 : 4}
 								strokeWidth={1.5}
 								pointerEvents="none"
 								style={{ fill: C.fee, stroke: C.panel }}
@@ -1904,108 +1973,154 @@ export default function MultiMakerLab() {
 								);
 							})()}
 
-						{/* fee receipt: rendered in the makers' half, opposite what
-					    it inspects */}
-						{feeHover != null &&
+						{/* fee contrast popup: your receipt and the makers', side by
+					    side at the hovered price level, rendered in the half
+					    opposite the hovered bar */}
+						{(feeHover != null || makerHover != null) &&
 							!mHover &&
 							(() => {
-								const tipI = feeHover;
+								const hoveredHalf = feeHover != null ? "you" : "makers";
+								const tipI = feeHover ?? makerHover;
 								if (tipI == null) return null;
-								const lv = feeLevels[tipI];
-								const b = lv?.bk;
-								if (!lv || !b || lv.side === "mid") return null;
-								const d = Math.max(
-									0,
-									(lv.side === "bid"
-										? fees.edgeBid - lv.price
-										: lv.price - fees.edgeAsk) / BP,
-								);
-								const dist = Math.abs(lv.price - mm.M) / BP;
-								const net = dist - b.final;
-								interface TipRow {
-									label?: string;
-									t?: string;
+								const lvY = fees.levels[tipI];
+								const lvM = makerFees.levels[tipI];
+								const bY =
+									lvY && lvY.size > 0 && lvY.side !== "mid" ? lvY.bk : null;
+								const bM =
+									lvM && lvM.size > 0 && lvM.side !== "mid" ? lvM.bk : null;
+								if (!bY && !bM) return null;
+								const price = (lvY ?? lvM)?.price ?? 0;
+								const amt = (v: number) => `${v.toFixed(2)}bps`;
+								const cap = (s: string) => (s === "bid" ? "Bid" : "Ask");
+								const surLines = (
+									b: NonNullable<typeof bY>,
+								): { a: string; why: string; c: string }[] => {
+									const out: { a: string; why: string; c: string }[] = [];
+									const atOrInside = b.pairs
+										.filter((pr) => pr.baseFee <= b.own)
+										.reduce((s, pr) => s + pr.paired, 0);
+									if (atOrInside > 0)
+										out.push({
+											a: "+0.00",
+											why: `${Math.round((atOrInside / b.q) * 100)}% ≤ base`,
+											c: C.tipDim,
+										});
+									for (const pr of b.pairs) {
+										const extra = Math.max(0, pr.baseFee - b.own);
+										if (extra <= 0) continue;
+										out.push({
+											a: `+${((pr.paired / b.q) * extra).toFixed(2)}`,
+											why: `${Math.round((pr.paired / b.q) * 100)}% @ +${extra.toFixed(2)}`,
+											c: C.tipText,
+										});
+									}
+									if (b.unpaired > 0)
+										out.push({
+											a: `+${((b.unpaired / b.q) * (F - b.own)).toFixed(2)}`,
+											why: `${Math.round((b.unpaired / b.q) * 100)}% → Cap`,
+											c: C.ask,
+										});
+									if (!out.length)
+										out.push({ a: "+0.00", why: "", c: C.tipDim });
+									return out;
+								};
+								const sY = bY ? surLines(bY) : [];
+								const sM = bM ? surLines(bM) : [];
+								const nSur = Math.max(sY.length, sM.length, 1);
+								interface Trip {
+									l?: string;
+									lc?: string;
 									c?: string;
+									cc?: string;
+									r?: string;
+									rc?: string;
+									/* aligned value rows: amount columns hug the center label,
+								    right-aligned on both sides so decimals stack; the
+								    parenthetical context sits in the outer column */
+									lA?: string;
+									lW?: string;
+									rA?: string;
+									rW?: string;
+									span?: string;
+									spanC?: string;
+									spanParts?: { t: string; c: string }[];
 									s?: number;
 									gap?: number;
-									indent?: number;
 									rule?: boolean;
 								}
-								const rows: TipRow[] = [];
-								const amt$ = (v: number, sign = "") =>
-									`${(sign + v.toFixed(2)).padStart(6)}bps`;
+								const rows: Trip[] = [];
 								rows.push({
-									label: "BASE FEE",
-									t:
-										b.own > 0
-											? `${amt$(b.own)} · ${d.toFixed(2)}bps Outside the Band`
-											: `${amt$(0)} · Inside the Band`,
-									c: C.text,
+									l: bY ? `Your ${cap(lvY?.side ?? "")}` : "—",
+									lc: C.tipDim,
+									c: fmtPx(price),
+									cc: C.tipText,
+									r: bM ? `Makers' ${cap(lvM?.side ?? "")}` : "—",
+									rc: C.tipDim,
 								});
-								const items: { amt: number; t: string; c: string }[] = [];
-								const atOrInside = b.pairs
-									.filter((pr) => pr.baseFee <= b.own)
-									.reduce((sum, pr) => sum + pr.paired, 0);
-								if (atOrInside > 0)
-									items.push({
-										amt: 0,
-										t: `${amt$(0, "+")} · ${Math.round((atOrInside / b.q) * 100)}% ≤ Base Fee`,
-										c: C.dim,
-									});
-								for (const pr of b.pairs) {
-									const extra = Math.max(0, pr.baseFee - b.own);
-									if (extra <= 0) continue;
-									const pct = Math.round((pr.paired / b.q) * 100);
-									const amt = (pr.paired / b.q) * extra;
-									items.push({
-										amt,
-										t: `${amt$(amt, "+")} · ${pct}% @ ${extra.toFixed(2)}bps > Base Fee`,
-										c: C.text,
-									});
-								}
-								if (b.unpaired > 0) {
-									const pct = Math.round((b.unpaired / b.q) * 100);
-									const amt = (b.unpaired / b.q) * (F - b.own);
-									items.push({
-										amt,
-										t: `${amt$(amt, "+")} · ${pct}% Directional → Cap`,
-										c: C.ask,
-									});
-								}
-								items.forEach((it, kk) => {
-									rows.push({
-										label: kk === 0 ? "SURCHARGES" : "",
-										t: it.t,
-										c: it.c,
-									});
+								rows.push({ rule: true, gap: 6 });
+								rows.push({
+									lA: bY ? amt(bY.own) : "—",
+									lc: bY ? C.tipText : C.tipFaint,
+									c: "BASE FEE",
+									rA: bM ? amt(bM.own) : "—",
+									rc: bM ? C.tipText : C.tipFaint,
+									gap: 4,
 								});
-								if (b.claimedBefore > 0 && b.unpaired > 0)
+								for (let k = 0; k < nSur; k++)
 									rows.push({
-										label: "",
-										t: "(better-priced bars claimed the pairing first)",
-										c: C.faint,
-										s: 12.5,
+										lA: sY[k] ? `${sY[k].a}bps` : k === 0 && !bY ? "—" : "",
+										lW: sY[k]?.why ? `(${sY[k].why})` : "",
+										lc: sY[k]?.c ?? C.tipFaint,
+										c: k === 0 ? "SURCHARGES" : "",
+										rA: sM[k] ? `${sM[k].a}bps` : k === 0 && !bM ? "—" : "",
+										rW: sM[k]?.why ? `(${sM[k].why})` : "",
+										rc: sM[k]?.c ?? C.tipFaint,
 									});
 								rows.push({
-									label: "TOTAL FEE",
-									t: amt$(b.final),
-									c: C.fee,
-									gap: 6,
+									lA: bY ? amt(bY.final) : "—",
+									lc: bY ? C.fee : C.tipFaint,
+									c: "TOTAL FEE",
+									rA: bM ? amt(bM.final) : "—",
+									rc: bM ? C.fee : C.tipFaint,
+									gap: 4,
 								});
 								rows.push({ rule: true, gap: 8 });
-								rows.push({
-									label: "NET EDGE",
-									t: `${amt$(Math.abs(net), net >= 0 ? "+" : "−")} = ${dist.toFixed(2)}bps − ${fmtBp(b.final)}`,
-									c: C.text,
-									gap: 2,
-								});
-								rows.push({
-									label: "",
-									indent: 101,
-									t: "(M Distance − Total Fee)",
-									c: C.faint,
-									s: 12,
-								});
+								if (bY && bM) {
+									const diff = bY.final - bM.final;
+									if (Math.abs(diff) < 0.005) {
+										rows.push({
+											span: "You and the makers pay the same in fees at this level.",
+											spanC: C.tipDim,
+											s: 12.5,
+											gap: 2,
+										});
+									} else {
+										rows.push({
+											spanParts: [
+												{ t: "You pay ", c: C.tipText },
+												{
+													t: `${Math.abs(diff).toFixed(2)}bps ${diff > 0 ? "more" : "less"}`,
+													c: diff > 0 ? C.fee : C.bid,
+												},
+												{
+													t: " in fees than the makers at this level.",
+													c: C.tipText,
+												},
+											],
+											s: 12.5,
+											gap: 2,
+										});
+									}
+								} else {
+									rows.push({
+										span: bY
+											? "The makers have no size at this level."
+											: "You have no size at this level.",
+										spanC: C.tipFaint,
+										s: 12.5,
+										gap: 2,
+									});
+								}
 								let yAcc = 24;
 								const placed = rows.map((r) => {
 									yAcc += r.gap ?? 0;
@@ -2015,13 +2130,13 @@ export default function MultiMakerLab() {
 								});
 								const h = yAcc - 2;
 								const xT = W / 2;
-								const yT = PB - h - 10;
+								const yT = hoveredHalf === "you" ? PB - h - 10 : PT + 8;
 								tipH.current = h;
 								tipY.current = yT;
 								return (
 									<g
 										pointerEvents="none"
-										opacity={underTip ? 0.65 : 1}
+										opacity={underTip ? 0.65 : 0.88}
 										style={{ transition: "opacity 120ms" }}
 									>
 										<rect
@@ -2043,34 +2158,106 @@ export default function MultiMakerLab() {
 													y2={yT + r.y - 11}
 													style={{ stroke: C.line }}
 												/>
+											) : r.span || r.spanParts ? (
+												<text
+													key={`s${r.y}`}
+													x={xT}
+													y={yT + r.y}
+													textAnchor="middle"
+													fontSize={r.s ?? 13}
+													style={{ fill: r.spanC, fontFamily: mono }}
+												>
+													{r.spanParts
+														? r.spanParts.map((p) => (
+																<tspan key={p.t} style={{ fill: p.c }}>
+																	{p.t}
+																</tspan>
+															))
+														: r.span}
+												</text>
 											) : (
-												<g key={`${r.t}${r.y}`}>
-													{r.label ? (
+												<g key={`r${r.y}`}>
+													{r.l ? (
 														<text
-															x={xT - 228}
+															x={xT - 56}
 															y={yT + r.y}
-															fontSize={12}
-															letterSpacing="0.08em"
-															style={{ fill: C.faint, fontFamily: mono }}
+															textAnchor="end"
+															fontSize={13}
+															style={{ fill: r.lc, fontFamily: mono }}
 														>
-															{r.label}
+															{r.l}
 														</text>
 													) : null}
-													<text
-														x={
-															(r.label !== undefined ? xT - 124 : xT - 228) +
-															(r.indent ?? 0)
-														}
-														y={yT + r.y}
-														fontSize={r.s ?? 14}
-														style={{
-															fill: r.c,
-															fontFamily: mono,
-															whiteSpace: "pre",
-														}}
-													>
-														{r.t}
-													</text>
+													{r.lA ? (
+														<text
+															x={xT - 56}
+															y={yT + r.y}
+															textAnchor="end"
+															fontSize={13}
+															style={{ fill: r.lc, fontFamily: mono }}
+														>
+															{r.lA}
+														</text>
+													) : null}
+													{r.lW ? (
+														<text
+															x={xT - 140}
+															y={yT + r.y}
+															textAnchor="end"
+															fontSize={11}
+															style={{ fill: C.tipFaint, fontFamily: mono }}
+														>
+															{r.lW}
+														</text>
+													) : null}
+													{r.c ? (
+														<text
+															x={xT}
+															y={yT + r.y}
+															textAnchor="middle"
+															fontSize={12}
+															letterSpacing="0.06em"
+															style={{
+																fill: r.cc ?? C.tipFaint,
+																fontFamily: mono,
+															}}
+														>
+															{r.c}
+														</text>
+													) : null}
+													{r.r ? (
+														<text
+															x={xT + 56}
+															y={yT + r.y}
+															textAnchor="start"
+															fontSize={13}
+															style={{ fill: r.rc, fontFamily: mono }}
+														>
+															{r.r}
+														</text>
+													) : null}
+													{r.rA ? (
+														<text
+															x={xT + 124}
+															y={yT + r.y}
+															textAnchor="end"
+															fontSize={13}
+															style={{ fill: r.rc, fontFamily: mono }}
+														>
+															{r.rA}
+														</text>
+													) : null}
+													{r.rW ? (
+														<text
+															x={xT + 132}
+															y={yT + r.y}
+															textAnchor="start"
+															fontSize={11}
+															style={{ fill: C.tipFaint, fontFamily: mono }}
+														>
+															{r.rW}
+														</text>
+													) : null}
 												</g>
 											),
 										)}
