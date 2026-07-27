@@ -234,6 +234,7 @@ const C = {
 
 const mono = "var(--lab-mono)";
 const fmtPx = (v: number) => v.toFixed(3);
+const fmt$ = (v: number) => `$${Math.round(v).toLocaleString()}`;
 
 const label = {
 	fontFamily: mono,
@@ -2012,70 +2013,266 @@ export default function MultiMakerLab() {
 							/>
 						</g>
 
-						{/* M tooltip */}
+						{/* M tooltip — headline influence, then the walk that
+						    produced M itemized level by level */}
 						{mHover &&
 							(() => {
 								const xT = Math.min(
-									Math.max(xOfPrice(mm.M), PL + 175),
-									PR - 175,
+									Math.max(xOfPrice(mm.M), PL + 245),
+									PR - 245,
 								);
 								const top = PT + 8;
-								const rows =
-									mm.state !== "fresh"
-										? [
-												{ t: "M Held: No Dominant Candidate Book", c: C.text },
-												{
-													t: `showing last computed M ${fmtPx(mm.M)}`,
-													c: C.dim,
-												},
-											]
-										: [
-												{ t: "M: The Communal Mark", c: C.dim },
-												{
-													t: `Sell Walk → ${mm.iBid != null ? fmtPx(mm.iBid) : "–"} · You ${yourShareBid.toFixed(0)}%`,
-													c: C.bid,
-												},
-												{
-													t: `Buy Walk → ${mm.iAsk != null ? fmtPx(mm.iAsk) : "–"} · You ${yourShareAsk.toFixed(0)}%`,
-													c: C.ask,
-												},
-												{ t: `M = Midpoint = ${fmtPx(mm.M)}`, c: C.mark },
-												{
-													t: `Impact Spread ${
-														mm.impactSpread != null
-															? (mm.impactSpread / BP).toFixed(1)
-															: "–"
-													}bps · B = ${B}bps`,
-													c: C.faint,
-												},
-												{
-													t: "only two-sided size near the touch votes",
-													c: C.faint,
-												},
-											];
-								const h = 16 + rows.length * 19;
+								if (mm.state !== "fresh") {
+									const rows = [
+										{ t: "M Held: No Dominant Candidate Book", c: C.text },
+										{
+											t: `showing last computed M ${fmtPx(mm.M)}`,
+											c: C.dim,
+										},
+									];
+									return (
+										<g pointerEvents="none">
+											<rect
+												x={xT - 170}
+												y={top}
+												width={340}
+												height={16 + rows.length * 19}
+												rx={6}
+												strokeWidth={0.75}
+												style={{ fill: C.panel2, stroke: C.mark }}
+											/>
+											{rows.map((r, kk) => (
+												<text
+													key={r.t}
+													x={xT - 156}
+													y={top + 24 + kk * 19}
+													fontSize={13.5}
+													style={{ fill: r.c, fontFamily: mono }}
+												>
+													{r.t}
+												</text>
+											))}
+										</g>
+									);
+								}
+								/* each walk itemized: level price, dollars the walk
+								   consumed there, and your share of that slice */
+								const colOf = (side: Side) => {
+									const levels = new Set<number>();
+									for (const id of ["you", "agg"])
+										for (const [i, v] of mm.used.get(id) ?? new Map())
+											if (v > 0) {
+												const sd = id === "you" ? yourSideOf(i) : sideAt(i);
+												if (sd === side) levels.add(i);
+											}
+									const sorted = [...levels].sort((a, b) =>
+										side === "bid"
+											? priceAt(b) - priceAt(a)
+											: priceAt(a) - priceAt(b),
+									);
+									const rows = sorted.map((i) => {
+										const you = mm.used.get("you")?.get(i) ?? 0;
+										const tot = you + (mm.used.get("agg")?.get(i) ?? 0);
+										return {
+											l: fmtPx(priceAt(i)),
+											d: fmt$(tot),
+											dot: "·",
+											p: `${Math.round((you / tot) * 100)}%`,
+											c: C.text,
+										};
+									});
+									const short = side === "bid" ? mm.shortBid : mm.shortAsk;
+									if (short)
+										rows.push({
+											l: fmtPx(short.price),
+											d: fmt$(short.missing),
+											dot: "",
+											p: "*",
+											c: C.faint,
+										});
+									return rows;
+								};
+								const L = colOf("bid");
+								const R = colOf("ask");
+								const anyShort = mm.shortBid != null || mm.shortAsk != null;
+								const influence = Math.round((yourShareBid + yourShareAsk) / 2);
+								const nRows = Math.max(L.length, R.length, 1);
+								const headY = top + 42;
+								const rowY = (k: number) => top + 62 + k * 17;
+								const resY = rowY(nRows - 1) + 21;
+								const mY = resY + 34;
+								const noteY = mY + 18;
+								const h = noteY + (anyShort ? 15 : 0) + 12 - top;
+								const colL = xT - 210;
+								const colR = xT + 30;
 								return (
-									<g pointerEvents="none">
+									<g pointerEvents="none" style={{ fontFamily: mono }}>
 										<rect
-											x={xT - 170}
+											x={xT - 230}
 											y={top}
-											width={340}
+											width={460}
 											height={h}
 											rx={6}
 											strokeWidth={0.75}
 											style={{ fill: C.panel2, stroke: C.mark }}
 										/>
-										{rows.map((r, kk) => (
-											<text
-												key={r.t}
-												x={xT - 156}
-												y={top + 24 + kk * 19}
-												fontSize={13.5}
-												style={{ fill: r.c, fontFamily: mono }}
-											>
-												{r.t}
-											</text>
+										<text
+											x={xT}
+											y={top + 22}
+											textAnchor="middle"
+											fontSize={13.5}
+											style={{ fill: C.text, fontFamily: mono }}
+										>
+											Your Total Influence · {influence}%
+										</text>
+										<line
+											x1={xT}
+											x2={xT}
+											y1={top + 32}
+											y2={resY + 4}
+											style={{ stroke: C.line }}
+										/>
+										<text
+											x={colL}
+											y={headY}
+											fontSize={13.5}
+											style={{ fill: C.bid, fontFamily: mono }}
+										>
+											Sell {fmt$(D)} → Bids
+										</text>
+										<text
+											x={colR}
+											y={headY}
+											fontSize={13.5}
+											style={{ fill: C.ask, fontFamily: mono }}
+										>
+											Buy {fmt$(D)} → Asks
+										</text>
+										{L.map((r, k) => (
+											<g key={`L${r.l}`}>
+												<text
+													x={colL + 60}
+													y={rowY(k)}
+													textAnchor="end"
+													fontSize={13.5}
+													style={{ fill: r.c, fontFamily: mono }}
+												>
+													{r.l}
+												</text>
+												<text
+													x={xT - 80}
+													y={rowY(k)}
+													textAnchor="end"
+													fontSize={13.5}
+													style={{ fill: r.c, fontFamily: mono }}
+												>
+													{r.d}
+												</text>
+												<text
+													x={xT - 72}
+													y={rowY(k)}
+													fontSize={13.5}
+													style={{ fill: r.c, fontFamily: mono }}
+												>
+													{r.dot}
+												</text>
+												<text
+													x={xT - 28}
+													y={rowY(k)}
+													textAnchor="end"
+													fontSize={13.5}
+													style={{ fill: r.c, fontFamily: mono }}
+												>
+													{r.p}
+												</text>
+											</g>
 										))}
+										{R.map((r, k) => (
+											<g key={`R${r.l}`}>
+												<text
+													x={colR + 60}
+													y={rowY(k)}
+													textAnchor="end"
+													fontSize={13.5}
+													style={{ fill: r.c, fontFamily: mono }}
+												>
+													{r.l}
+												</text>
+												<text
+													x={xT + 160}
+													y={rowY(k)}
+													textAnchor="end"
+													fontSize={13.5}
+													style={{ fill: r.c, fontFamily: mono }}
+												>
+													{r.d}
+												</text>
+												<text
+													x={xT + 168}
+													y={rowY(k)}
+													fontSize={13.5}
+													style={{ fill: r.c, fontFamily: mono }}
+												>
+													{r.dot}
+												</text>
+												<text
+													x={xT + 212}
+													y={rowY(k)}
+													textAnchor="end"
+													fontSize={13.5}
+													style={{ fill: r.c, fontFamily: mono }}
+												>
+													{r.p}
+												</text>
+											</g>
+										))}
+										<text
+											x={colL}
+											y={resY}
+											fontSize={14}
+											style={{ fill: C.bid, fontFamily: mono }}
+										>
+											Gets → {mm.iBid != null ? fmtPx(mm.iBid) : "–"}
+										</text>
+										<text
+											x={colR}
+											y={resY}
+											fontSize={14}
+											style={{ fill: C.ask, fontFamily: mono }}
+										>
+											Pays → {mm.iAsk != null ? fmtPx(mm.iAsk) : "–"}
+										</text>
+										<text
+											x={xT}
+											y={mY}
+											textAnchor="middle"
+											fontSize={14}
+											style={{ fill: C.mark, fontFamily: mono }}
+										>
+											M = ({mm.iBid != null ? fmtPx(mm.iBid) : "–"} +{" "}
+											{mm.iAsk != null ? fmtPx(mm.iAsk) : "–"}) / 2 ={" "}
+											{fmtPx(mm.M)}
+										</text>
+										<text
+											x={xT}
+											y={noteY}
+											textAnchor="middle"
+											fontSize={12}
+											style={{ fill: C.faint, fontFamily: mono }}
+										>
+											% = your share of each slice
+										</text>
+										{anyShort && (
+											<text
+												x={xT}
+												y={noteY + 15}
+												textAnchor="middle"
+												fontSize={12}
+												style={{ fill: C.faint, fontFamily: mono }}
+											>
+												* missing depth, priced at the measurement boundary
+											</text>
+										)}
 									</g>
 								);
 							})()}
