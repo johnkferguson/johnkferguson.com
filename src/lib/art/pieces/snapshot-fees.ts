@@ -67,9 +67,25 @@ export const snapshotFees: ArtPiece = {
 	name: "snapshot-fees",
 	/* The card default runs 4% to 96%, wider than any title line ever
 	 * gets, which leaves a book no full-height room at all on a card
-	 * whose right third carries nothing. Narrower and weaker here only:
-	 * the default is shared, and other pieces compose around it. */
-	ogQuiet: { rect: { x: 0.05, y: 0.22, w: 0.7, h: 0.52 }, strength: 0.4 },
+	 * whose right third carries nothing. Narrower here only: the default
+	 * is shared, and other pieces compose around it.
+	 *
+	 * The right edge is chosen BY EYE, not derived. Titles lay out to
+	 * 1110px on a 1200px card, so a long one runs past this zone and its
+	 * tail sits over taller art; the current title already overhangs by
+	 * 25px. That was rendered on a deliberately long title and accepted:
+	 * the art is at half opacity and the levels near the edge are short,
+	 * so it reads fine. If a future card ever does read badly, widening
+	 * this one number is the fix.
+	 *
+	 * That number lives on the PIECE, so it moves every post using it.
+	 * Safe because pieces are one per post here, which ogQuiet-per-post
+	 * is not built for and pieces.test.ts enforces.
+	 *
+	 * No strength: this piece reads q.strength only as an on/off gate
+	 * (see zoneBottom below), so any value under 0.99 renders the same
+	 * picture. The endpoint's default applies. */
+	ogQuiet: { rect: { x: 0.05, y: 0.22, w: 0.7, h: 0.52 } },
 	params: [
 		{ key: "bars", label: "bars", min: 20, max: 72, step: 2, default: 46 },
 		{
@@ -139,6 +155,11 @@ export const snapshotFees: ArtPiece = {
 		 * art composes around the overlaid title instead of ghosting
 		 * behind it (inherited from the depth family, which is what this
 		 * piece replaces) */
+		/* strength is read as a SWITCH, not a dial: this piece holds art
+		 * under the zone rather than fading it through, so every value
+		 * below the threshold renders identically and only crossing 0.99
+		 * turns the zone off. Anyone reaching for it as an attenuation
+		 * factor will find it does nothing. */
 		const zoneBottom =
 			q.rect && q.strength < 0.99 ? (q.rect.y + q.rect.h) * h : 0;
 		const zx0 = q.rect ? q.rect.x * w : 0;
