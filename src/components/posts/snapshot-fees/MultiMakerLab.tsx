@@ -113,6 +113,8 @@ interface Scenario {
 	spread: number;
 	/** Levels of YOUR book flipped from the positional side default. */
 	flips?: number[];
+	/** zoom index into ZOOM_HALVES this scenario opens at (default 1, ±7.5bps) */
+	zoom?: number;
 }
 
 const SCENARIOS: Scenario[] = [
@@ -205,46 +207,6 @@ const SCENARIOS: Scenario[] = [
 	},
 ];
 
-// What each dial does, narrated as you move it
-const DIAL_EFFECT: Record<string, { up: string; down: string }> = {
-	B: {
-		up: "Wider inner band: more placement gets a zero base fee.",
-		down: "Tighter inner band: precision is judged more strictly.",
-	},
-	F: {
-		up: "Higher cap: directional fills pay more, and the cap tick rises.",
-		down: "Lower cap: even fully directional fills pay less.",
-	},
-	D: {
-		up: "Bigger typical demand: the walk reaches deeper, so more of the book gets a vote.",
-		down: "Smaller typical demand: only the nearest size votes on M.",
-	},
-	Z: {
-		up: "Wider zone: more of the book votes on M, and the gentle slope reaches further out.",
-		down: "Tighter zone: only nearer size votes on M, and the far slope starts sooner.",
-	},
-	k: {
-		up: "Steeper zone slope: each bps outside the band costs more; full fee arrives closer to M.",
-		down: "Gentler zone slope: width is taxed less; full fee moves further out.",
-	},
-	k2: {
-		up: "Steeper far slope: past the zone edge the fee runs to the cap faster.",
-		down: "Gentler far slope: the cap arrives further out.",
-	},
-	depth: {
-		up: "Deeper aggregate book: your dollars are a smaller share of the walk, so M listens to you less.",
-		down: "Thinner aggregate book: your dollars carry more of the walk, so M listens to you more.",
-	},
-	lean: {
-		up: "Makers lean to bids: their thin ask side walks farther, pulling M up and the band with it.",
-		down: "Makers lean to asks: their thin bid side walks farther, pulling M down and the band with it.",
-	},
-	spread: {
-		up: "Makers quote farther out: your near quotes feed the walk first and your voice grows.",
-		down: "Makers quote tight to the mid: they eat the walk early and their vote dominates.",
-	},
-};
-
 const C = {
 	panel: "var(--lab-panel)",
 	panel2: "var(--lab-panel2)",
@@ -279,19 +241,6 @@ const label = {
 	textTransform: "uppercase",
 	whiteSpace: "nowrap",
 } as const;
-
-const avgFee = (
-	levels: { size: number; bk: { final: number } | null }[],
-): number | null => {
-	let fee = 0;
-	let q = 0;
-	for (const l of levels) {
-		if (!l.bk || l.size <= 0) continue;
-		fee += l.bk.final * l.size;
-		q += l.size;
-	}
-	return q > 0 ? fee / q : null;
-};
 
 interface ParamProps {
 	name: string;
@@ -368,28 +317,6 @@ function Param({
 	);
 }
 
-function ZoomIcon({ plus }: { plus?: boolean }) {
-	return (
-		<svg
-			width="13"
-			height="13"
-			viewBox="0 0 24 24"
-			fill="none"
-			stroke="currentColor"
-			strokeWidth="2.2"
-			strokeLinecap="round"
-			strokeLinejoin="round"
-			aria-hidden="true"
-			style={{ display: "block" }}
-		>
-			<circle cx="11" cy="11" r="7" />
-			<line x1="20.5" y1="20.5" x2="16" y2="16" />
-			<line x1="8" y1="11" x2="14" y2="11" />
-			{plus && <line x1="11" y1="8" x2="11" y2="14" />}
-		</svg>
-	);
-}
-
 interface DragState {
 	i: number;
 	who: "you" | "makers";
@@ -415,9 +342,6 @@ export default function MultiMakerLab() {
 		aggSizesOf(SCENARIOS[0].depth, SCENARIOS[0].lean, SCENARIOS[0].spread),
 	);
 	const [scenario, setScenario] = useState<string | null>(SCENARIOS[0].key);
-	const [effect, setEffect] = useState<{ t: string; warn: boolean } | null>(
-		null,
-	);
 	// levels of YOUR book whose side is flipped from the positional default;
 	// flipping a right-of-center level to bid (or vice versa) builds a
 	// crossed book. The aggregate book stays positional.
@@ -442,9 +366,13 @@ export default function MultiMakerLab() {
 	const [mHover, setMHover] = useState(false);
 	const [feeHover, setFeeHover] = useState<number | null>(null);
 	const [makerHover, setMakerHover] = useState<number | null>(null);
-	const [feePinned, setFeePinned] = useState<number | null>(null);
-	const [zoom, setZoom] = useState(1); // default view: ±7.5bps
-	const [mHist, setMHist] = useState<number[]>([]);
+	const [zoom, setZoom] = useState(SCENARIOS[0].zoom ?? 1); // default view: ±7.5bps
+	// fade the fee receipt while the pointer sits under its box, so the
+	// bars beneath stay visible mid-resize
+	const [underTip, setUnderTip] = useState(false);
+	const tipH = useRef(0);
+	const tipY = useRef(0);
+	const svgRef = useRef<SVGSVGElement | null>(null);
 	const lastM = useRef(100);
 	const drag = useRef<DragState | null>(null);
 	const playCenter = useRef(0); // makers' private fair value, in ticks off mid
@@ -496,22 +424,6 @@ export default function MultiMakerLab() {
 	useEffect(() => {
 		if (mm.state === "fresh") lastM.current = mm.M;
 	}, [mm.M, mm.state]);
-
-	useEffect(() => {
-		setMHist((h) => {
-			if (h.length && Math.abs(h[h.length - 1] - mm.M) < 1e-9) return h;
-			const nx = [...h, mm.M];
-			return nx.length > 80 ? nx.slice(nx.length - 80) : nx;
-		});
-	}, [mm.M]);
-
-	useEffect(() => {
-		const onKey = (e: KeyboardEvent) => {
-			if (e.key === "Escape") setFeePinned(null);
-		};
-		window.addEventListener("keydown", onKey);
-		return () => window.removeEventListener("keydown", onKey);
-	}, []);
 
 	// —— play: the makers re-price around a wandering private fair value.
 	// Their center, lean, and depth each take slow random walks; level
@@ -659,18 +571,11 @@ export default function MultiMakerLab() {
 				s[d.i] === v ? s : s.map((x, k) => (k === d.i ? v : x)),
 			);
 	};
-	const togglePin = (i: number) => {
-		if (!fees.levels[i]?.bk) return;
-		setFeePinned((p) => (p === i ? null : i));
-	};
-
-	const onUp = (_e: PointerEvent, i: number) => {
-		const d = drag.current;
+	const onUp = () => {
 		drag.current = null;
-		if (d && !d.moved && d.who === "you") togglePin(i);
 	};
 
-	// hover on a bar body reads that half's fee; clicking pins yours
+	// hover on a bar body reads that half's fee
 	const halfAt = (e: PointerEvent | MouseEvent) => {
 		const el = e.currentTarget as SVGRectElement;
 		const r = el.getBoundingClientRect();
@@ -712,33 +617,21 @@ export default function MultiMakerLab() {
 		setLean(sc.lean);
 		setSpread(sc.spread);
 		regenMakers(sc.depth, sc.lean, sc.spread);
+		setZoom(sc.zoom ?? 1);
 		setB(2);
 		setD(20000);
 		setF(10);
 		setZ(Z_DEFAULT);
 		setSlope(0.8);
 		setSlope2(SLOPE2_DEFAULT);
-		setEffect(null);
 		setPlaying(false);
 		setScenario(sc.key);
 	};
 	const touch =
-		(dial: keyof typeof DIAL_EFFECT, cur: number, fn: (v: number) => void) =>
-		(v: number) => {
+		(_dial: string, _cur: number, fn: (v: number) => void) => (v: number) => {
 			fn(v);
 			setScenario(null);
 			setPlaying(false);
-			if (v === cur) return;
-			if (dial === "k" && v >= 1)
-				setEffect({
-					t: "k ≥ 1×: width beyond the band no longer pays.",
-					warn: true,
-				});
-			else
-				setEffect({
-					t: DIAL_EFFECT[dial][v > cur ? "up" : "down"],
-					warn: false,
-				});
 		};
 
 	const btn = (active: boolean) => ({
@@ -768,13 +661,8 @@ export default function MultiMakerLab() {
 
 	const yourShareBid = (mm.shareBid.get("you") ?? 0) * 100;
 	const yourShareAsk = (mm.shareAsk.get("you") ?? 0) * 100;
-	const yourAvg = avgFee(feeLevels);
-	const makerAvg = avgFee(makerFees.levels);
-	const prevM = mHist.length > 1 ? mHist[mHist.length - 2] : mm.M;
-	const mArrow = mm.M > prevM + 1e-9 ? "↑" : mm.M < prevM - 1e-9 ? "↓" : "·";
-
 	// —— partner highlighting: dollars paired within your book ——
-	const tip = feeHover ?? feePinned;
+	const tip = feeHover;
 	const tipLv = tip != null ? feeLevels[tip] : null;
 	const tipBk = tipLv?.bk ?? null;
 	const tipFeeY = tipBk ? yFeeUp(tipBk.final) : null;
@@ -813,20 +701,6 @@ export default function MultiMakerLab() {
 		? { transition: "y 380ms ease-out, height 380ms ease-out" }
 		: {};
 
-	// M sparkline
-	const sparkPts = (() => {
-		if (mHist.length < 2) return "";
-		const lo = Math.min(...mHist);
-		const hi = Math.max(...mHist);
-		const span = Math.max(hi - lo, 0.00001);
-		return mHist
-			.map(
-				(v, k) =>
-					`${(k / (mHist.length - 1)) * 110},${22 - ((v - lo) / span) * 20}`,
-			)
-			.join(" ");
-	})();
-
 	return (
 		<div class="sf-lab" style={{ color: C.text }}>
 			{/* chart panel */}
@@ -858,135 +732,137 @@ export default function MultiMakerLab() {
 				</div>
 				<div
 					style={{
-						display: "grid",
-						gridTemplateColumns: "repeat(3, minmax(0, 1fr))",
-						gap: "10px 16px",
-						margin: "0 10px",
-						padding: "10px 4px 8px",
-					}}
-				>
-					<Param
-						name="Typical demand · D"
-						val={D}
-						set={touch("D", D, setD)}
-						min={1000}
-						max={30000}
-						stp={500}
-						fmt={(v) => `$${Math.round(v).toLocaleString()}`}
-						hint="Per side size for measuring M."
-					/>
-					<Param
-						name="Inner Band · B"
-						val={B}
-						set={touch("B", B, setB)}
-						min={1}
-						max={10}
-						stp={0.5}
-						suffix="bps"
-						hint="Width B, drawn M ± B/2."
-					/>
-					<Param
-						name="Maker Zone · Z"
-						val={Z}
-						set={touch("Z", Z, setZ)}
-						min={2}
-						max={20}
-						stp={0.5}
-						suffix="bps"
-						hint="Working radius past the band edge."
-					/>
-					<Param
-						name="Fee Cap · F"
-						val={F}
-						set={touch("F", F, setF)}
-						min={5}
-						max={25}
-						stp={0.5}
-						suffix="bps"
-						hint="The most any resting order pays."
-					/>
-					<Param
-						name="Zone Slope · k₁"
-						val={slope}
-						set={touch("k", slope, setSlope)}
-						min={0.25}
-						max={3}
-						stp={0.05}
-						suffix="×"
-						warn={slope >= 1}
-						hint="Fee per bps inside the zone."
-					/>
-					<Param
-						name="Far Slope · k₂"
-						val={slope2}
-						set={touch("k2", slope2, setSlope2)}
-						min={0.25}
-						max={3}
-						stp={0.05}
-						suffix="×"
-						hint="Fee per bps beyond the zone."
-					/>
-				</div>
-				<div
-					style={{
 						display: "flex",
 						flexWrap: "wrap",
-						gap: "10px 14px",
+						gap: "4px 24px",
 						alignItems: "flex-start",
-						justifyContent: "space-between",
 						margin: "0 10px",
-						padding: "6px 4px 6px",
-						borderTop: `1px solid ${C.line}`,
 					}}
 				>
-					<Param
-						name="Makers depth"
-						val={depth}
-						set={(v) => {
-							touch("depth", depth, setDepth)(v);
-							regenMakers(v, lean, spread);
+					<div
+						style={{
+							flex: "2 1 400px",
+							minWidth: 300,
+							display: "grid",
+							gridTemplateColumns: "repeat(3, minmax(0, 1fr))",
+							gap: "10px 16px",
+							padding: "10px 4px 4px",
 						}}
-						min={0}
-						max={3}
-						stp={0.1}
-						suffix="×"
-						hint="How much size they stand."
-					/>
-					<Param
-						name="Makers lean"
-						val={lean}
-						set={(v) => {
-							touch("lean", lean, setLean)(v);
-							regenMakers(depth, v, spread);
+					>
+						<Param
+							name="Typical demand · D"
+							val={D}
+							set={touch("D", D, setD)}
+							min={1000}
+							max={30000}
+							stp={500}
+							fmt={(v) => `$${Math.round(v).toLocaleString()}`}
+							hint="Per side size for measuring M."
+						/>
+						<Param
+							name="Inner Band · B"
+							val={B}
+							set={touch("B", B, setB)}
+							min={1}
+							max={10}
+							stp={0.5}
+							suffix="bps"
+							hint="Width B, drawn M ± B/2."
+						/>
+						<Param
+							name="Maker Zone · Z"
+							val={Z}
+							set={touch("Z", Z, setZ)}
+							min={2}
+							max={20}
+							stp={0.5}
+							suffix="bps"
+							hint="Working radius past the band edge."
+						/>
+						<Param
+							name="Fee Cap · F"
+							val={F}
+							set={touch("F", F, setF)}
+							min={5}
+							max={25}
+							stp={0.5}
+							suffix="bps"
+							hint="The most any resting order pays."
+						/>
+						<Param
+							name="Zone Slope · k₁"
+							val={slope}
+							set={touch("k", slope, setSlope)}
+							min={0.25}
+							max={3}
+							stp={0.05}
+							suffix="×"
+							warn={slope >= 1}
+							hint="Fee per bps inside the zone."
+						/>
+						<Param
+							name="Far Slope · k₂"
+							val={slope2}
+							set={touch("k2", slope2, setSlope2)}
+							min={0.25}
+							max={3}
+							stp={0.05}
+							suffix="×"
+							hint="Fee per bps beyond the zone."
+						/>
+					</div>
+					<div
+						style={{
+							flex: "1 1 200px",
+							minWidth: 190,
+							display: "flex",
+							flexDirection: "column",
+							gap: 8,
+							padding: "10px 0 4px",
 						}}
-						min={-90}
-						max={90}
-						stp={5}
-						fmt={(v) => `${v > 0 ? "+" : ""}${v}%`}
-						hint="Their bid/ask imbalance."
-					/>
-					<Param
-						name="Makers spread"
-						val={spread}
-						set={(v) => {
-							touch("spread", spread, setSpread)(v);
-							regenMakers(depth, lean, v);
-						}}
-						min={1}
-						max={6}
-						stp={1}
-						fmt={(v) => `${v} tick${v > 1 ? "s" : ""}`}
-						hint="How far from mid their ladder starts."
-					/>
+					>
+						<div
+							style={{
+								display: "flex",
+								flexDirection: "column",
+								alignItems: "center",
+								gap: 3,
+								background: C.inset,
+								border: `1px solid ${C.line}`,
+								borderRadius: 6,
+								padding: "6px 10px",
+							}}
+						>
+							<span style={{ ...label, fontSize: 9.5, letterSpacing: "0.1em" }}>
+								Your Voice in M
+							</span>
+							<span style={{ fontFamily: mono, fontSize: 11.5, color: C.text }}>
+								bid {yourShareBid.toFixed(0)}% · ask {yourShareAsk.toFixed(0)}%
+							</span>
+						</div>
+					</div>
+				</div>
+
+				{/* the aggregate makers: their dials and book controls, one group */}
+				<div
+					style={{
+						border: `1px solid ${C.line}`,
+						borderRadius: 6,
+						margin: "0 10px 6px",
+						padding: "8px 12px 10px",
+					}}
+				>
 					<div
 						style={{
 							display: "flex",
-							flexDirection: "column",
-							gap: 4,
-							minWidth: 150,
+							alignItems: "center",
+							justifyContent: "space-between",
+							flexWrap: "wrap",
+							gap: "4px 10px",
+							marginBottom: 6,
 						}}
 					>
-						<span style={label}>Makers book</span>
+						<span style={label}>Aggregate Makers</span>
 						<div style={{ display: "flex", gap: 5, flexWrap: "wrap" }}>
 							<button
 								type="button"
@@ -1001,184 +877,82 @@ export default function MultiMakerLab() {
 							</button>
 							<button
 								type="button"
-								onClick={() => {
-									setMakerSizes(Array(N).fill(0));
-									setYourSizes(Array(N).fill(0));
-									setYourFlips(new Set());
-									setScenario(null);
-									setPlaying(false);
-								}}
-								style={{
-									...btn(false),
-									background: "transparent",
-									color: C.faint,
-								}}
+								onClick={startStop}
+								title="Play lets their book wander; watch M drift."
+								style={btn(playing)}
 							>
-								Clear
-							</button>
-							<button type="button" onClick={startStop} style={btn(playing)}>
 								{playing ? "❚❚ Pause" : "▶ Play"}
 							</button>
 						</div>
-						<span style={{ fontSize: 11, color: C.faint, lineHeight: 1.45 }}>
-							Play lets their book wander; watch M drift.
-						</span>
 					</div>
-				</div>
-
-				{/* market readout */}
-				<div
-					style={{
-						display: "flex",
-						flexWrap: "wrap",
-						gap: "12px 30px",
-						alignItems: "flex-start",
-						background: C.inset,
-						border: `1px solid ${C.line}`,
-						borderRadius: 6,
-						margin: "6px 10px 14px",
-						padding: "11px 16px",
-					}}
-				>
-					<div style={{ display: "flex", flexDirection: "column", gap: 3 }}>
-						<span style={label}>Mark</span>
-						<span style={{ fontFamily: mono, fontSize: 12, color: C.mark }}>
-							M {fmtPx(mm.M)} {mArrow}
-						</span>
-					</div>
-					<div style={{ display: "flex", flexDirection: "column", gap: 3 }}>
-						<span style={label}>M drift</span>
-						<svg width="110" height="24" aria-hidden="true">
-							<title>Recent M history</title>
-							{sparkPts && (
-								<polyline
-									points={sparkPts}
-									fill="none"
-									strokeWidth="1.5"
-									style={{ stroke: C.mark }}
-								/>
-							)}
-						</svg>
-					</div>
-					<div style={{ display: "flex", flexDirection: "column", gap: 3 }}>
-						<span style={label}>Your voice in M</span>
-						<span style={{ fontFamily: mono, fontSize: 12, color: C.text }}>
-							bid {yourShareBid.toFixed(0)}% · ask {yourShareAsk.toFixed(0)}%
-						</span>
-					</div>
-					<div style={{ display: "flex", flexDirection: "column", gap: 3 }}>
-						<span style={label}>Avg fee if swept</span>
-						<span style={{ fontFamily: mono, fontSize: 12, color: C.text }}>
-							you {yourAvg != null ? fmtBp(yourAvg, 1) : "–"} · makers{" "}
-							{makerAvg != null ? fmtBp(makerAvg, 1) : "–"}
-						</span>
-					</div>
-					{effect && (
-						<div
-							class="sf-effect"
-							style={{
-								display: "flex",
-								gap: 8,
-								alignItems: "flex-start",
-								flex: "1 1 240px",
-								minWidth: 200,
+					<div
+						style={{
+							display: "grid",
+							gridTemplateColumns: "repeat(3, minmax(0, 1fr))",
+							gap: "10px 16px",
+						}}
+					>
+						<Param
+							name="Depth"
+							val={depth}
+							set={(v) => {
+								touch("depth", depth, setDepth)(v);
+								regenMakers(v, lean, spread);
 							}}
-						>
-							<svg
-								width="14"
-								height="14"
-								viewBox="0 0 24 24"
-								fill="none"
-								stroke="currentColor"
-								strokeWidth="2"
-								strokeLinecap="round"
-								strokeLinejoin="round"
-								aria-hidden="true"
-								style={{
-									display: "inline",
-									color: C.hint,
-									flex: "0 0 auto",
-									marginTop: 2,
-								}}
-							>
-								<path d="M9 18h6" />
-								<path d="M10 22h4" />
-								<path d="M12 2a7 7 0 0 0-4 12.7c.6.5 1 1.4 1 2.3h6c0-.9.4-1.8 1-2.3A7 7 0 0 0 12 2z" />
-							</svg>
-							<span
-								style={{
-									fontSize: 12.5,
-									color: effect.warn ? C.danger : C.text,
-									lineHeight: 1.5,
-								}}
-							>
-								{effect.t}
-							</span>
-						</div>
-					)}
+							min={0}
+							max={3}
+							stp={0.1}
+							suffix="×"
+							hint="How much size they stand."
+						/>
+						<Param
+							name="Lean"
+							val={lean}
+							set={(v) => {
+								touch("lean", lean, setLean)(v);
+								regenMakers(depth, v, spread);
+							}}
+							min={-90}
+							max={90}
+							stp={5}
+							fmt={(v) => `${v > 0 ? "+" : ""}${v}%`}
+							hint="Their bid/ask imbalance."
+						/>
+						<Param
+							name="Spread"
+							val={spread}
+							set={(v) => {
+								touch("spread", spread, setSpread)(v);
+								regenMakers(depth, lean, v);
+							}}
+							min={1}
+							max={6}
+							stp={1}
+							fmt={(v) => `${v} tick${v > 1 ? "s" : ""}`}
+							hint="How far from mid their ladder starts."
+						/>
+					</div>
 				</div>
 
 				<div style={{ position: "relative" }}>
-					{/* zoom control above the right axis: view only — the books and M never change */}
-					<div
-						style={{
-							position: "absolute",
-							top: 0,
-							right: 6,
-							display: "flex",
-							alignItems: "center",
-							gap: 4,
-						}}
-					>
-						<button
-							type="button"
-							disabled={zoom >= ZOOM_HALVES.length - 1}
-							onClick={() =>
-								setZoom((z) => Math.min(ZOOM_HALVES.length - 1, z + 1))
-							}
-							title="Zoom out: show more of the book"
-							aria-label="Zoom out"
-							style={{
-								...btn(false),
-								padding: "4px 7px",
-								boxShadow: "none",
-								opacity: zoom >= ZOOM_HALVES.length - 1 ? 0.35 : 1,
-								cursor: zoom >= ZOOM_HALVES.length - 1 ? "default" : "pointer",
-							}}
-						>
-							<ZoomIcon />
-						</button>
-						<span
-							style={{
-								fontFamily: mono,
-								fontSize: 10.5,
-								color: C.faint,
-								width: 54,
-								textAlign: "center",
-							}}
-						>
-							±{viewHalf % 2 ? (viewHalf / 2).toFixed(1) : viewHalf / 2}bps
-						</span>
-						<button
-							type="button"
-							disabled={zoom === 0}
-							onClick={() => setZoom((z) => Math.max(0, z - 1))}
-							title="Zoom in"
-							aria-label="Zoom in"
-							style={{
-								...btn(false),
-								padding: "4px 7px",
-								boxShadow: "none",
-								opacity: zoom === 0 ? 0.35 : 1,
-								cursor: zoom === 0 ? "default" : "pointer",
-							}}
-						>
-							<ZoomIcon plus />
-						</button>
-					</div>
 					<svg
+						ref={svgRef}
 						viewBox={`0 0 ${W} ${H}`}
 						style={{ width: "100%", display: "block", touchAction: "none" }}
+						onPointerMove={(e) => {
+							const r = svgRef.current?.getBoundingClientRect();
+							if (!r) return;
+							const sx = ((e.clientX - r.left) / r.width) * W;
+							const sy = ((e.clientY - r.top) / r.height) * H;
+							const inside =
+								feeHover != null &&
+								!mHover &&
+								sx >= W / 2 - 240 &&
+								sx <= W / 2 + 240 &&
+								sy >= tipY.current &&
+								sy <= tipY.current + tipH.current;
+							setUnderTip((v) => (v === inside ? v : inside));
+						}}
 						role="img"
 						aria-label="Mirrored order book: your quotes grow up from the midline, the aggregate makers grow down, with the communal Mark spanning both"
 					>
@@ -1485,14 +1259,11 @@ export default function MultiMakerLab() {
 										width={step}
 										height={PB - PT}
 										fill="transparent"
-										style={{ cursor: "pointer" }}
+										style={{ cursor: "default" }}
 										onPointerMove={(e) => onBodyMove(e, i)}
 										onPointerLeave={() => {
 											setFeeHover(null);
 											setMakerHover(null);
-										}}
-										onClick={(e) => {
-											if (halfAt(e) === "you") togglePin(i);
 										}}
 										onDblClick={(e) => {
 											if (halfAt(e) === "you") flipLevel(i);
@@ -1510,7 +1281,7 @@ export default function MultiMakerLab() {
 										onPointerLeave={() => setFeeHover(null)}
 										onPointerDown={(e) => onDown(e, i, "you")}
 										onPointerMove={onMove}
-										onPointerUp={(e) => onUp(e, i)}
+										onPointerUp={onUp}
 										onPointerCancel={() => {
 											drag.current = null;
 										}}
@@ -1528,7 +1299,7 @@ export default function MultiMakerLab() {
 										onPointerLeave={() => setMakerHover(null)}
 										onPointerDown={(e) => onDown(e, i, "makers")}
 										onPointerMove={onMove}
-										onPointerUp={(e) => onUp(e, i)}
+										onPointerUp={onUp}
 										onPointerCancel={() => {
 											drag.current = null;
 										}}
@@ -1718,30 +1489,10 @@ export default function MultiMakerLab() {
 								key={l.i}
 								cx={xAt(l.i)}
 								cy={yFeeUp(l.bk?.final ?? 0)}
-								r={feeHover === l.i || feePinned === l.i ? 5.5 : 4}
+								r={feeHover === l.i ? 5.5 : 4}
 								strokeWidth={1.5}
 								pointerEvents="none"
 								style={{ fill: C.fee, stroke: C.panel }}
-							/>
-						))}
-						{feePts.map((l) => (
-							// biome-ignore lint/a11y/useSemanticElements: SVG hit area, a real <button> cannot exist inside <svg>
-							<circle
-								key={l.i}
-								cx={xAt(l.i)}
-								cy={yFeeUp(l.bk?.final ?? 0)}
-								r={13}
-								fill="transparent"
-								role="button"
-								tabIndex={0}
-								aria-label={`Pin fee details for ${fmtPx(l.price)}`}
-								onPointerEnter={() => setFeeHover(l.i)}
-								onPointerLeave={() => setFeeHover(null)}
-								onClick={() => togglePin(l.i)}
-								onKeyDown={(e) => {
-									if (e.key === "Enter") togglePin(l.i);
-								}}
-								style={{ cursor: "pointer" }}
 							/>
 						))}
 
@@ -1780,10 +1531,10 @@ export default function MultiMakerLab() {
 							),
 						)}
 
-						{/* key */}
+						{/* key — both rows centered on the plot's midline */}
 						<g pointerEvents="none" style={{ fontFamily: mono }}>
 							<rect
-								x={150}
+								x={220}
 								y={PB + 40}
 								width={14}
 								height={14}
@@ -1791,7 +1542,7 @@ export default function MultiMakerLab() {
 								style={{ fill: C.bid }}
 							/>
 							<text
-								x={171}
+								x={241}
 								y={PB + 53}
 								fontSize={16}
 								style={{ fill: C.dim, fontFamily: mono }}
@@ -1799,7 +1550,7 @@ export default function MultiMakerLab() {
 								Your Bids ↑
 							</text>
 							<rect
-								x={318}
+								x={383}
 								y={PB + 40}
 								width={14}
 								height={14}
@@ -1807,7 +1558,7 @@ export default function MultiMakerLab() {
 								style={{ fill: C.ask }}
 							/>
 							<text
-								x={339}
+								x={404}
 								y={PB + 53}
 								fontSize={16}
 								style={{ fill: C.dim, fontFamily: mono }}
@@ -1815,7 +1566,7 @@ export default function MultiMakerLab() {
 								Your Asks ↑
 							</text>
 							<rect
-								x={486}
+								x={546}
 								y={PB + 40}
 								width={14}
 								height={14}
@@ -1824,7 +1575,7 @@ export default function MultiMakerLab() {
 								style={{ fill: C.bid }}
 							/>
 							<rect
-								x={493}
+								x={553}
 								y={PB + 40}
 								width={14}
 								height={14}
@@ -1833,7 +1584,7 @@ export default function MultiMakerLab() {
 								style={{ fill: C.ask }}
 							/>
 							<text
-								x={514}
+								x={574}
 								y={PB + 53}
 								fontSize={16}
 								style={{ fill: C.dim, fontFamily: mono }}
@@ -1841,14 +1592,14 @@ export default function MultiMakerLab() {
 								Aggregate Makers ↓
 							</text>
 							<circle
-								cx={157}
+								cx={270}
 								cy={PB + 72}
 								r={6}
 								strokeWidth={1}
 								style={{ fill: C.fee, stroke: C.panel }}
 							/>
 							<text
-								x={170}
+								x={283}
 								y={PB + 78}
 								fontSize={16}
 								style={{ fill: C.dim, fontFamily: mono }}
@@ -1856,19 +1607,182 @@ export default function MultiMakerLab() {
 								Your Fee if Filled
 							</text>
 							<circle
-								cx={420}
+								cx={498}
 								cy={PB + 72}
 								r={6}
 								strokeWidth={1.5}
 								style={{ fill: C.panel, stroke: C.fee }}
 							/>
 							<text
-								x={433}
+								x={511}
 								y={PB + 78}
 								fontSize={16}
 								style={{ fill: C.dim, fontFamily: mono }}
 							>
 								Makers Fee if Filled
+							</text>
+						</g>
+
+						{/* zoom rides the key strip's left end as one segmented control
+						    (⊖ | ±bps | ⊕), mirroring Clear on the right. View only —
+						    the books and M never change. */}
+						<rect
+							x={26}
+							y={PB + 50}
+							width={138}
+							height={32}
+							rx={6}
+							strokeWidth={1}
+							style={{
+								fill: "var(--lab-chartbtn-bg)",
+								stroke: C.line,
+								filter: "var(--lab-btn-drop)",
+							}}
+						/>
+						<line
+							x1={60}
+							x2={60}
+							y1={PB + 50}
+							y2={PB + 82}
+							strokeWidth={1}
+							style={{ stroke: C.line }}
+						/>
+						<line
+							x1={130}
+							x2={130}
+							y1={PB + 50}
+							y2={PB + 82}
+							strokeWidth={1}
+							style={{ stroke: C.line }}
+						/>
+						<svg
+							x={35}
+							y={PB + 58}
+							width={16}
+							height={16}
+							viewBox="0 0 24 24"
+							fill="none"
+							stroke="currentColor"
+							strokeWidth={2.2}
+							strokeLinecap="round"
+							strokeLinejoin="round"
+							aria-hidden="true"
+							opacity={zoom >= ZOOM_HALVES.length - 1 ? 0.35 : 1}
+							style={{ color: C.dim }}
+						>
+							<circle cx="11" cy="11" r="7" />
+							<line x1="20.5" y1="20.5" x2="16" y2="16" />
+							<line x1="8" y1="11" x2="14" y2="11" />
+						</svg>
+						<text
+							x={95}
+							y={PB + 71}
+							textAnchor="middle"
+							fontSize={14}
+							pointerEvents="none"
+							style={{ fill: C.dim, fontFamily: mono }}
+						>
+							±{viewHalf % 2 ? (viewHalf / 2).toFixed(1) : viewHalf / 2}bps
+						</text>
+						<svg
+							x={139}
+							y={PB + 58}
+							width={16}
+							height={16}
+							viewBox="0 0 24 24"
+							fill="none"
+							stroke="currentColor"
+							strokeWidth={2.2}
+							strokeLinecap="round"
+							strokeLinejoin="round"
+							aria-hidden="true"
+							opacity={zoom === 0 ? 0.35 : 1}
+							style={{ color: C.dim }}
+						>
+							<circle cx="11" cy="11" r="7" />
+							<line x1="20.5" y1="20.5" x2="16" y2="16" />
+							<line x1="8" y1="11" x2="14" y2="11" />
+							<line x1="11" y1="8" x2="11" y2="14" />
+						</svg>
+						{/* biome-ignore lint/a11y/useSemanticElements: SVG hit area — a real <button> cannot exist inside <svg> */}
+						<rect
+							x={26}
+							y={PB + 50}
+							width={34}
+							height={32}
+							fill="transparent"
+							role="button"
+							tabIndex={0}
+							aria-label="Zoom out: show more of the book"
+							onClick={() =>
+								setZoom((z) => Math.min(ZOOM_HALVES.length - 1, z + 1))
+							}
+							onKeyDown={(e) => {
+								if (e.key === "Enter")
+									setZoom((z) => Math.min(ZOOM_HALVES.length - 1, z + 1));
+							}}
+							style={{
+								cursor: zoom >= ZOOM_HALVES.length - 1 ? "default" : "pointer",
+							}}
+						/>
+						{/* biome-ignore lint/a11y/useSemanticElements: SVG hit area — a real <button> cannot exist inside <svg> */}
+						<rect
+							x={130}
+							y={PB + 50}
+							width={34}
+							height={32}
+							fill="transparent"
+							role="button"
+							tabIndex={0}
+							aria-label="Zoom in"
+							onClick={() => setZoom((z) => Math.max(0, z - 1))}
+							onKeyDown={(e) => {
+								if (e.key === "Enter") setZoom((z) => Math.max(0, z - 1));
+							}}
+							style={{ cursor: zoom === 0 ? "default" : "pointer" }}
+						/>
+
+						{/* Clear rides the key strip, right-aligned: empties your book */}
+						{/* biome-ignore lint/a11y/useSemanticElements: SVG hit area — a real <button> cannot exist inside <svg> */}
+						<g
+							role="button"
+							tabIndex={0}
+							aria-label="Clear your book"
+							onClick={() => {
+								setYourSizes(Array(N).fill(0));
+								setYourFlips(new Set());
+								setScenario(null);
+							}}
+							onKeyDown={(e) => {
+								if (e.key === "Enter") {
+									setYourSizes(Array(N).fill(0));
+									setYourFlips(new Set());
+									setScenario(null);
+								}
+							}}
+							style={{ cursor: "pointer" }}
+						>
+							<rect
+								x={858}
+								y={PB + 50}
+								width={76}
+								height={32}
+								rx={6}
+								strokeWidth={1}
+								style={{
+									fill: "var(--lab-chartbtn-bg)",
+									stroke: C.line,
+									filter: "var(--lab-btn-drop)",
+								}}
+							/>
+							<text
+								x={896}
+								y={PB + 71}
+								textAnchor="middle"
+								fontSize={15.5}
+								style={{ fill: C.dim, fontFamily: mono }}
+							>
+								Clear
 							</text>
 						</g>
 
@@ -1933,25 +1847,25 @@ export default function MultiMakerLab() {
 								const rows =
 									mm.state !== "fresh"
 										? [
-												{ t: "M held: no dominant candidate book", c: C.text },
+												{ t: "M Held: No Dominant Candidate Book", c: C.text },
 												{
 													t: `showing last computed M ${fmtPx(mm.M)}`,
 													c: C.dim,
 												},
 											]
 										: [
-												{ t: "M: the communal mark", c: C.dim },
+												{ t: "M: The Communal Mark", c: C.dim },
 												{
-													t: `sell walk → ${mm.iBid != null ? fmtPx(mm.iBid) : "–"} · you ${yourShareBid.toFixed(0)}%`,
+													t: `Sell Walk → ${mm.iBid != null ? fmtPx(mm.iBid) : "–"} · You ${yourShareBid.toFixed(0)}%`,
 													c: C.bid,
 												},
 												{
-													t: `buy walk → ${mm.iAsk != null ? fmtPx(mm.iAsk) : "–"} · you ${yourShareAsk.toFixed(0)}%`,
+													t: `Buy Walk → ${mm.iAsk != null ? fmtPx(mm.iAsk) : "–"} · You ${yourShareAsk.toFixed(0)}%`,
 													c: C.ask,
 												},
-												{ t: `M = midpoint = ${fmtPx(mm.M)}`, c: C.mark },
+												{ t: `M = Midpoint = ${fmtPx(mm.M)}`, c: C.mark },
 												{
-													t: `impact spread ${
+													t: `Impact Spread ${
 														mm.impactSpread != null
 															? (mm.impactSpread / BP).toFixed(1)
 															: "–"
@@ -1992,10 +1906,10 @@ export default function MultiMakerLab() {
 
 						{/* fee receipt: rendered in the makers' half, opposite what
 					    it inspects */}
-						{(feeHover ?? feePinned) != null &&
+						{feeHover != null &&
 							!mHover &&
 							(() => {
-								const tipI = feeHover ?? feePinned;
+								const tipI = feeHover;
 								if (tipI == null) return null;
 								const lv = feeLevels[tipI];
 								const b = lv?.bk;
@@ -2092,13 +2006,6 @@ export default function MultiMakerLab() {
 									c: C.faint,
 									s: 12,
 								});
-								if (feePinned === tipI && feeHover == null)
-									rows.push({
-										t: "pinned. Click the dot again or press Esc",
-										c: C.faint,
-										s: 11.5,
-										gap: 7,
-									});
 								let yAcc = 24;
 								const placed = rows.map((r) => {
 									yAcc += r.gap ?? 0;
@@ -2109,12 +2016,13 @@ export default function MultiMakerLab() {
 								const h = yAcc - 2;
 								const xT = W / 2;
 								const yT = PB - h - 10;
+								tipH.current = h;
+								tipY.current = yT;
 								return (
 									<g
-										pointerEvents={
-											feePinned === tipI && feeHover == null ? "auto" : "none"
-										}
-										style={{ userSelect: "text" }}
+										pointerEvents="none"
+										opacity={underTip ? 0.65 : 1}
+										style={{ transition: "opacity 120ms" }}
 									>
 										<rect
 											x={xT - 240}
@@ -2200,7 +2108,6 @@ export default function MultiMakerLab() {
 								setZ(customSnap.Z);
 								setSlope(customSnap.slope);
 								setSlope2(customSnap.slope2);
-								setEffect(null);
 								setPlaying(false);
 								setScenario(null);
 							}
