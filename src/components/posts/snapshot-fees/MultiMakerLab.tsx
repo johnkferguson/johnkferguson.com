@@ -119,16 +119,6 @@ interface Scenario {
 
 const SCENARIOS: Scenario[] = [
 	{
-		key: "alone",
-		title: "On Your Own",
-		blurb:
-			"The other makers are gone: your book is the whole market, exactly as in the first lab. Every dollar of the walk is yours, so M answers to you alone. Drag a side thin and watch it move.",
-		you: YOUR_DEFAULT,
-		depth: 0,
-		lean: 0,
-		spread: 1,
-	},
-	{
 		key: "smallfish",
 		title: "Small Fish",
 		blurb:
@@ -519,6 +509,41 @@ export default function MultiMakerLab() {
 		}
 		set(nx);
 	};
+	/**
+	 * The side a level takes when it first gains size. A book's bids run
+	 * below its asks, so a level standing under an existing bid is another
+	 * bid however far right of the mid it sits, and one standing over an
+	 * existing ask is another ask. Only a level that falls inside the book's
+	 * own spread keeps the positional default.
+	 */
+	const impliedSide = (
+		i: number,
+		sizes: number[],
+		fl: ReadonlySet<number>,
+	): Side => {
+		let above: Side | null = null;
+		let below: Side | null = null;
+		for (let k = i + 1; k < N && above === null; k++)
+			if (sizes[k] > 0) above = flipped(k, fl);
+		for (let k = i - 1; k >= 0 && below === null; k--)
+			if (sizes[k] > 0) below = flipped(k, fl);
+		if (above === "bid") return "bid";
+		if (below === "ask") return "ask";
+		return sideAt(i);
+	};
+	const adoptSide = (
+		i: number,
+		sizes: number[],
+		set: (fn: (fl: ReadonlySet<number>) => ReadonlySet<number>) => void,
+	) =>
+		set((fl) => {
+			const want = impliedSide(i, sizes, fl);
+			if (want === "mid" || flipped(i, fl) === want) return fl;
+			const nx = new Set(fl);
+			if (nx.has(i)) nx.delete(i);
+			else nx.add(i);
+			return nx;
+		});
 	const flipYours = (i: number) =>
 		flipFrontier(i, yourSizes, yourFlips, setYourFlips);
 	const flipMakers = (i: number) =>
@@ -709,14 +734,19 @@ export default function MultiMakerLab() {
 		const dv = d.who === "you" ? -dy * perPx : dy * perPx;
 		const cap = d.who === "you" ? YOUR_MAX : MAKER_MAX;
 		const v = Math.min(cap, round$(d.v0 + dv));
-		if (d.who === "you")
+		// a level given size for the first time joins the side its neighbours
+		// imply, rather than the side its position would have given it
+		if (d.who === "you") {
+			if (d.v0 <= 0 && v > 0) adoptSide(d.i, yourSizes, setYourFlips);
 			setYourSizes((s) =>
 				s[d.i] === v ? s : s.map((x, k) => (k === d.i ? v : x)),
 			);
-		else
+		} else {
+			if (d.v0 <= 0 && v > 0) adoptSide(d.i, makerSizes, setMakerFlips);
 			setMakerSizes((s) =>
 				s[d.i] === v ? s : s.map((x, k) => (k === d.i ? v : x)),
 			);
+		}
 	};
 	const onUp = () => {
 		drag.current = null;
