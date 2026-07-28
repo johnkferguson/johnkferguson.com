@@ -245,6 +245,60 @@ const label = {
 	whiteSpace: "nowrap",
 } as const;
 
+// control-grid cells that are not dials (buttons, switches, readouts) take
+// the dial's own three-part shape — label, control row, hint — so a row of
+// mixed controls still lines up
+const cell = {
+	display: "flex",
+	flexDirection: "column",
+	gap: 3,
+	minWidth: 0,
+} as const;
+const cellLabel = { ...label, fontSize: 9.5, letterSpacing: "0.1em" } as const;
+const headRow = {
+	display: "flex",
+	alignItems: "baseline",
+	justifyContent: "space-between",
+	gap: 6,
+	height: 15,
+} as const;
+const cellRow = {
+	display: "flex",
+	alignItems: "center",
+	gap: 5,
+	// one height for every cell's control row — switches, readout, button —
+	// so the hint lines beneath them share a baseline across the columns
+	height: 38,
+} as const;
+const cellHint = {
+	fontSize: 10.5,
+	color: C.faint,
+	lineHeight: 1.35,
+} as const;
+
+// a delineated control group: tinted and boxed, so the dials that drive the
+// makers' ladder never read as controls over your own book
+const group = {
+	border: `1px solid ${C.line}`,
+	borderRadius: 6,
+	background: C.inset,
+	padding: "8px 12px 10px",
+	margin: "0 8px 8px",
+} as const;
+const groupHead = {
+	display: "flex",
+	alignItems: "center",
+	justifyContent: "space-between",
+	flexWrap: "wrap",
+	gap: "4px 10px",
+	marginBottom: 7,
+} as const;
+const grid3 = {
+	display: "grid",
+	gridTemplateColumns: "repeat(3, minmax(0, 1fr))",
+	gap: "10px 14px",
+} as const;
+
 interface ParamProps {
 	name: string;
 	val: number;
@@ -270,6 +324,9 @@ function Param({
 	fmt,
 	warn,
 }: ParamProps) {
+	// the value rides the label line rather than the slider's, so every
+	// slider spans its whole column and no row reads ragged because its
+	// readout happens to be short
 	return (
 		<div
 			style={{
@@ -280,43 +337,75 @@ function Param({
 				overflow: "hidden",
 			}}
 		>
-			<span style={{ ...label, fontSize: 9.5, letterSpacing: "0.1em" }}>
-				{name}
-			</span>
-			<div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-				<input
-					type="range"
-					min={min}
-					max={max}
-					step={stp}
-					value={val}
-					onChange={(e) => set(+(e.currentTarget as HTMLInputElement).value)}
-					style={{
-						flex: "1 1 auto",
-						minWidth: 0,
-						accentColor: warn ? C.warn : "var(--lab-slider)",
-					}}
-				/>
+			<div style={headRow}>
+				<span style={{ ...label, fontSize: 9.5, letterSpacing: "0.1em" }}>
+					{name}
+				</span>
 				<span
 					style={{
 						fontFamily: mono,
 						fontSize: 11.5,
 						color: warn ? C.warn : C.text,
 						whiteSpace: "nowrap",
-						width: "8ch",
-						textAlign: "right",
-						flexShrink: 0,
 					}}
 				>
 					{fmt ? fmt(val) : val + (suffix || "")}
 				</span>
 			</div>
+			<input
+				type="range"
+				min={min}
+				max={max}
+				step={stp}
+				value={val}
+				onChange={(e) => set(+(e.currentTarget as HTMLInputElement).value)}
+				style={{
+					width: "100%",
+					minWidth: 0,
+					accentColor: warn ? C.warn : "var(--lab-slider)",
+				}}
+			/>
 			{hint && (
 				<span style={{ fontSize: 10.5, color: C.faint, lineHeight: 1.35 }}>
 					{hint}
 				</span>
 			)}
 		</div>
+	);
+}
+
+/**
+ * A shut or open eye, flanking a visibility switch. `lit` marks the side the
+ * switch currently stands on; the other greys back to the rule color.
+ */
+function Eye({ open, lit }: { open: boolean; lit: boolean }) {
+	return (
+		<svg
+			width={14}
+			height={14}
+			viewBox="0 0 24 24"
+			fill="none"
+			stroke="currentColor"
+			strokeWidth={2}
+			strokeLinecap="round"
+			strokeLinejoin="round"
+			aria-hidden="true"
+			style={{ color: lit ? C.dim : C.line, flexShrink: 0 }}
+		>
+			{open ? (
+				<>
+					<path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7Z" />
+					<circle cx="12" cy="12" r="3" />
+				</>
+			) : (
+				<>
+					<path d="M2 9s3.5 7 10 7 10-7 10-7" />
+					<line x1="5" y1="14.5" x2="3.5" y2="17" />
+					<line x1="12" y1="16" x2="12" y2="19" />
+					<line x1="19" y1="14.5" x2="20.5" y2="17" />
+				</>
+			)}
+		</svg>
 	);
 }
 
@@ -377,6 +466,9 @@ export default function MultiMakerLab() {
 	// every fee recompute without it); its bars stay as faint ghosts
 	const [showYou, setShowYou] = useState(true);
 	const [showAgg, setShowAgg] = useState(true);
+	// the fee-schedule dials are prior-lab material here: folded away by
+	// default so this lab opens on the controls its own lesson needs
+	const [showSettings, setShowSettings] = useState(false);
 	const tipH = useRef(0);
 	const tipY = useRef(0);
 	const svgRef = useRef<SVGSVGElement | null>(null);
@@ -685,6 +777,9 @@ export default function MultiMakerLab() {
 
 	const yourShareBid = (mm.shareBid.get("you") ?? 0) * 100;
 	const yourShareAsk = (mm.shareAsk.get("you") ?? 0) * 100;
+	// one headline number for the readout and the M popup alike: the midpoint
+	// of your share of the two walks
+	const influence = Math.round((yourShareBid + yourShareAsk) / 2);
 	// —— partner highlighting: dollars paired within your book ——
 	const tip = feeHover ?? makerHover;
 	const tipLv = tip != null ? feeLevels[tip] : null;
@@ -766,138 +861,10 @@ export default function MultiMakerLab() {
 					its fee or <span style={{ color: C.measure }}>M</span> for the walk,
 					and double-click your half of a level to flip its side.
 				</div>
-				<div
-					style={{
-						display: "flex",
-						flexWrap: "wrap",
-						gap: "4px 24px",
-						alignItems: "flex-start",
-						margin: "0 10px",
-					}}
-				>
-					<div
-						style={{
-							flex: "2 1 400px",
-							minWidth: 300,
-							display: "grid",
-							gridTemplateColumns: "repeat(3, minmax(0, 1fr))",
-							gap: "10px 16px",
-							padding: "10px 4px 4px",
-						}}
-					>
-						<Param
-							name="Typical demand · D"
-							val={D}
-							set={touch("D", D, setD)}
-							min={1000}
-							max={30000}
-							stp={500}
-							fmt={(v) => `$${Math.round(v).toLocaleString()}`}
-							hint="Per side size for measuring M."
-						/>
-						<Param
-							name="Inner Band · B"
-							val={B}
-							set={touch("B", B, setB)}
-							min={1}
-							max={10}
-							stp={0.5}
-							suffix="bps"
-							hint="Width B, drawn M ± B/2."
-						/>
-						<Param
-							name="Maker Zone · Z"
-							val={Z}
-							set={touch("Z", Z, setZ)}
-							min={2}
-							max={20}
-							stp={0.5}
-							suffix="bps"
-							hint="Working radius past the band edge."
-						/>
-						<Param
-							name="Fee Cap · F"
-							val={F}
-							set={touch("F", F, setF)}
-							min={5}
-							max={25}
-							stp={0.5}
-							suffix="bps"
-							hint="The most any resting order pays."
-						/>
-						<Param
-							name="Zone Slope · k₁"
-							val={slope}
-							set={touch("k", slope, setSlope)}
-							min={0.25}
-							max={3}
-							stp={0.05}
-							suffix="×"
-							warn={slope >= 1}
-							hint="Fee per bps inside the zone."
-						/>
-						<Param
-							name="Far Slope · k₂"
-							val={slope2}
-							set={touch("k2", slope2, setSlope2)}
-							min={0.25}
-							max={3}
-							stp={0.05}
-							suffix="×"
-							hint="Fee per bps beyond the zone."
-						/>
-					</div>
-					<div
-						style={{
-							flex: "1 1 200px",
-							minWidth: 190,
-							display: "flex",
-							flexDirection: "column",
-							gap: 8,
-							padding: "10px 0 4px",
-						}}
-					>
-						<div
-							style={{
-								display: "flex",
-								flexDirection: "column",
-								alignItems: "center",
-								gap: 3,
-								background: C.inset,
-								border: `1px solid ${C.line}`,
-								borderRadius: 6,
-								padding: "6px 10px",
-							}}
-						>
-							<span style={{ ...label, fontSize: 9.5, letterSpacing: "0.1em" }}>
-								Your Voice in M
-							</span>
-							<span style={{ fontFamily: mono, fontSize: 11.5, color: C.text }}>
-								bid {yourShareBid.toFixed(0)}% · ask {yourShareAsk.toFixed(0)}%
-							</span>
-						</div>
-					</div>
-				</div>
-
-				{/* the aggregate makers: their dials and book controls, one group */}
-				<div
-					style={{
-						border: `1px solid ${C.line}`,
-						borderRadius: 6,
-						margin: "0 10px 6px",
-						padding: "8px 12px 10px",
-					}}
-				>
-					<div
-						style={{
-							display: "flex",
-							alignItems: "center",
-							justifyContent: "space-between",
-							flexWrap: "wrap",
-							gap: "4px 10px",
-							marginBottom: 6,
-						}}
-					>
+				{/* the makers' book: a tinted, bordered group, so the dials that
+				    generate their ladder never read as controls over your own */}
+				<div style={group}>
+					<div style={groupHead}>
 						<span style={label}>Aggregate Makers</span>
 						<div style={{ display: "flex", gap: 5, flexWrap: "wrap" }}>
 							<button
@@ -907,6 +874,7 @@ export default function MultiMakerLab() {
 									setScenario(null);
 									setPlaying(false);
 								}}
+								title="Randomize deals the makers a fresh ladder; watch where M lands."
 								style={btn(false)}
 							>
 								Randomize
@@ -921,13 +889,7 @@ export default function MultiMakerLab() {
 							</button>
 						</div>
 					</div>
-					<div
-						style={{
-							display: "grid",
-							gridTemplateColumns: "repeat(3, minmax(0, 1fr))",
-							gap: "10px 16px",
-						}}
-					>
+					<div style={grid3}>
 						<Param
 							name="Depth"
 							val={depth}
@@ -970,83 +932,218 @@ export default function MultiMakerLab() {
 					</div>
 				</div>
 
-				{/* visibility switches: either book can leave the auction; M and
-				    every fee recompute without it, its bars staying as ghosts */}
-				<div
-					style={{
-						display: "flex",
-						justifyContent: "flex-end",
-						alignItems: "center",
-						gap: 20,
-						margin: "10px 4px 2px",
-					}}
-				>
-					<span
-						style={{
-							fontFamily: mono,
-							fontSize: 11,
-							letterSpacing: "0.08em",
-							color: C.faint,
-						}}
-					>
-						IN AUCTION
-					</span>
-					{(
-						[
-							["Your Book", showYou, setShowYou],
-							["Aggregate Makers", showAgg, setShowAgg],
-						] as const
-					).map(([lbl, on, set]) => (
-						<button
-							key={lbl}
-							type="button"
-							role="switch"
-							aria-checked={on}
-							onClick={() => set((v) => !v)}
+				{/* participation, influence, and the disclosure for the schedule
+				    dials the earlier labs already taught */}
+				<div style={{ ...grid3, margin: "0 21px 8px" }}>
+					{/* one switch per book, each flanked by a shut eye and an open
+					    one so the direction of the toggle is legible; the inactive
+					    side greys out */}
+					<div style={cell}>
+						<div style={headRow}>
+							<span style={cellLabel}>Order Book Visibility</span>
+						</div>
+						<div
 							style={{
-								display: "flex",
-								alignItems: "center",
-								gap: 8,
-								background: "none",
-								border: "none",
-								padding: 0,
-								cursor: "pointer",
-								color: on ? C.dim : C.faint,
-								fontFamily: mono,
-								fontSize: 12.5,
+								...cellRow,
+								flexDirection: "column",
+								alignItems: "stretch",
+								justifyContent: "center",
+								gap: 4,
 							}}
 						>
+							{(
+								[
+									["You", showYou, setShowYou],
+									["Makers", showAgg, setShowAgg],
+								] as const
+							).map(([lbl, on, set]) => (
+								<button
+									key={lbl}
+									type="button"
+									role="switch"
+									aria-checked={on}
+									aria-label={`${lbl === "You" ? "Your book" : "The aggregate makers"} in the auction`}
+									onClick={() => set((v) => !v)}
+									style={{
+										display: "flex",
+										alignItems: "center",
+										gap: 6,
+										background: "none",
+										border: "none",
+										padding: 0,
+										cursor: "pointer",
+										color: on ? C.text : C.faint,
+										fontFamily: mono,
+										fontSize: 11.5,
+									}}
+								>
+									<span style={{ width: "10ch", textAlign: "left" }}>
+										{lbl}
+									</span>
+									<Eye open={false} lit={!on} />
+									<span
+										style={{
+											width: 26,
+											height: 15,
+											borderRadius: 999,
+											position: "relative",
+											flexShrink: 0,
+											background: on
+												? "var(--lab-btn-active-bg)"
+												: "var(--lab-panel2)",
+											border: `1px solid ${on ? "var(--lab-btn-active-bg)" : C.line}`,
+											transition: "background 150ms, border-color 150ms",
+										}}
+									>
+										<span
+											style={{
+												position: "absolute",
+												top: 1.5,
+												left: on ? 12.5 : 1.5,
+												width: 10,
+												height: 10,
+												borderRadius: "50%",
+												background: on ? C.panel2 : C.dim,
+												transition: "left 150ms, background 150ms",
+											}}
+										/>
+									</span>
+									<Eye open lit={on} />
+								</button>
+							))}
+						</div>
+						<span style={cellHint}>Toggle to remove from the auction.</span>
+					</div>
+
+					{/* the readout takes a dial's shape: value on the label line,
+					    a share bar where the slider would sit, split beneath */}
+					<div style={cell}>
+						<div style={headRow}>
+							<span style={cellLabel}>Your Total Influence</span>
 							<span
 								style={{
-									width: 30,
-									height: 17,
-									borderRadius: 999,
-									position: "relative",
-									flexShrink: 0,
-									background: on
-										? "var(--lab-btn-active-bg)"
-										: "var(--lab-inset)",
-									border: `1px solid ${on ? "var(--lab-btn-active-bg)" : C.line}`,
-									transition: "background 150ms, border-color 150ms",
+									fontFamily: mono,
+									fontSize: 11.5,
+									color: C.measure,
 								}}
 							>
-								<span
+								{influence}%
+							</span>
+						</div>
+						<div style={cellRow}>
+							<div
+								style={{
+									width: "100%",
+									height: 8,
+									borderRadius: 999,
+									background: C.inset,
+									border: `1px solid ${C.line}`,
+									overflow: "hidden",
+								}}
+							>
+								<div
 									style={{
-										position: "absolute",
-										top: 1.5,
-										left: on ? 14.5 : 1.5,
-										width: 12,
-										height: 12,
-										borderRadius: "50%",
-										background: on ? C.panel2 : C.dim,
-										transition: "left 150ms, background 150ms",
+										width: `${influence}%`,
+										height: "100%",
+										background: C.measure,
+										transition: "width 200ms ease",
 									}}
 								/>
-							</span>
-							{lbl}
-						</button>
-					))}
+							</div>
+						</div>
+						<span style={cellHint}>
+							bid {yourShareBid.toFixed(0)}% · ask {yourShareAsk.toFixed(0)}% of
+							each walk
+						</span>
+					</div>
+					<div style={cell}>
+						<div style={headRow}>
+							<span style={cellLabel}>Market Settings</span>
+						</div>
+						<div style={cellRow}>
+							<button
+								type="button"
+								aria-expanded={showSettings}
+								onClick={() => setShowSettings((v) => !v)}
+								style={btn(showSettings)}
+							>
+								{showSettings ? "▾ Hide" : "▸ Show"}
+							</button>
+						</div>
+						<span style={cellHint}>The schedule set in the earlier labs.</span>
+					</div>
 				</div>
+
+				{showSettings && (
+					<div style={group}>
+						<div style={groupHead}>
+							<span style={label}>Market Settings</span>
+						</div>
+						<div style={grid3}>
+							<Param
+								name="Fee Cap · F"
+								val={F}
+								set={touch("F", F, setF)}
+								min={5}
+								max={25}
+								stp={0.5}
+								suffix="bps"
+								hint="The most any resting order pays."
+							/>
+							<Param
+								name="Typical demand · D"
+								val={D}
+								set={touch("D", D, setD)}
+								min={1000}
+								max={30000}
+								stp={500}
+								fmt={(v) => `$${Math.round(v).toLocaleString()}`}
+								hint="Per side size for measuring M."
+							/>
+							<Param
+								name="Inner Band · B"
+								val={B}
+								set={touch("B", B, setB)}
+								min={1}
+								max={10}
+								stp={0.5}
+								suffix="bps"
+								hint="Width B, drawn M ± B/2."
+							/>
+							<Param
+								name="Maker Zone · Z"
+								val={Z}
+								set={touch("Z", Z, setZ)}
+								min={2}
+								max={20}
+								stp={0.5}
+								suffix="bps"
+								hint="Working radius past the band edge."
+							/>
+							<Param
+								name="Zone Slope · k₁"
+								val={slope}
+								set={touch("k", slope, setSlope)}
+								min={0.25}
+								max={3}
+								stp={0.05}
+								suffix="×"
+								warn={slope >= 1}
+								hint="Fee per bps inside the zone."
+							/>
+							<Param
+								name="Far Slope · k₂"
+								val={slope2}
+								set={touch("k2", slope2, setSlope2)}
+								min={0.25}
+								max={3}
+								stp={0.05}
+								suffix="×"
+								hint="Fee per bps beyond the zone."
+							/>
+						</div>
+					</div>
+				)}
 
 				<div style={{ position: "relative" }}>
 					<svg
@@ -2103,7 +2200,6 @@ export default function MultiMakerLab() {
 								const L = colOf("bid");
 								const R = colOf("ask");
 								const anyShort = mm.shortBid != null || mm.shortAsk != null;
-								const influence = Math.round((yourShareBid + yourShareAsk) / 2);
 								const nRows = Math.max(L.length, R.length, 1);
 								const headY = top + 42;
 								const rowY = (k: number) => top + 62 + k * 17;
