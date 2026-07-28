@@ -3,7 +3,7 @@ import {
 	type BookLevel,
 	BP,
 	computeAccountFees,
-	computeMark,
+	computeMeasure,
 	computeModel,
 	type FeeParams,
 	fullFeeBps,
@@ -52,7 +52,7 @@ describe("spec reference computation (worse-of)", () => {
 		expect(m.iAsk).toBeCloseTo(100.018, 10);
 	});
 
-	test("Mark and band edges", () => {
+	test("M and band edges", () => {
 		expect(m.M).toBeCloseTo(100.0, 10);
 		expect(m.edgeBid).toBeCloseTo(99.98, 10);
 		expect(m.edgeAsk).toBeCloseTo(100.02, 10);
@@ -91,7 +91,7 @@ describe("spec reference computation (worse-of)", () => {
 	});
 });
 
-describe("Mark pipeline: eligibility, candidates, boundary fill", () => {
+describe("M pipeline: eligibility, candidates, boundary fill", () => {
 	test("dollar-symmetry lemma: raw size imbalance never tilts M (corrected spec vector 2)", () => {
 		// Asks shrunk to $3k + $1k against $6k of bids. The overlap gate makes
 		// the eligible book $4k per side, so BOTH walks are $1k short and the
@@ -158,9 +158,9 @@ describe("Mark pipeline: eligibility, candidates, boundary fill", () => {
 		// P: 100.00 / 100.50; Q: 99.60 / 100.02; reach 22bp, span 44bp.
 		// P's own quotes stand 50bp apart — wider than the span — so P's
 		// candidate is incoherent and dropped. Q's (42bp) is a valid market:
-		// the mark computes from Q alone. (Under the pre-candidate pipeline
+		// M computes from Q alone. (Under the pre-candidate pipeline
 		// this vector emptied both sides and held; the span check re-pins it.)
-		const m = computeMark(
+		const m = computeMeasure(
 			[
 				{
 					id: "P",
@@ -207,12 +207,12 @@ describe("Mark pipeline: eligibility, candidates, boundary fill", () => {
 				],
 			},
 		];
-		const held = computeMark(books, { B: 4, D: 5000, Z: 20 }, 100.123);
+		const held = computeMeasure(books, { B: 4, D: 5000, Z: 20 }, 100.123);
 		expect(held.state).toBe("held");
 		expect(held.M).toBe(100.123);
 		expect(held.impactSpread).toBeNull();
-		// at launch there is no mark to carry: the no-mark state
-		const none = computeMark(books, { B: 4, D: 5000, Z: 20 }, null);
+		// at launch there is no M to carry: the no-M state
+		const none = computeMeasure(books, { B: 4, D: 5000, Z: 20 }, null);
 		expect(none.state).toBe("none");
 		expect(none.M).toBeNull();
 	});
@@ -221,7 +221,7 @@ describe("Mark pipeline: eligibility, candidates, boundary fill", () => {
 		// Two separate two-sided markets, 300bp apart, eligible sizes tied
 		// exactly. Account X straddles both with tiny paired books — which
 		// makes X self-crossed (own bid 102.995 above own ask 100.005).
-		// The coherence gate drops X from mark participation entirely, the
+		// The coherence gate drops X from M participation entirely, the
 		// real markets tie as disjoint candidates, and the tie resolves to
 		// held. (Pre-gate, X hijacked anchoring and minted M = 101.5.)
 		const books = [
@@ -249,15 +249,15 @@ describe("Mark pipeline: eligibility, candidates, boundary fill", () => {
 				],
 			},
 		];
-		const held = computeMark(books, { B: 4, D: 5000, Z: 20 }, 100.5);
+		const held = computeMeasure(books, { B: 4, D: 5000, Z: 20 }, 100.5);
 		expect(held.state).toBe("held");
 		expect(held.M).toBe(100.5);
 		expect(held.shareBid.get("X")).toBe(0);
-		const none = computeMark(books, { B: 4, D: 5000, Z: 20 }, null);
+		const none = computeMeasure(books, { B: 4, D: 5000, Z: 20 }, null);
 		expect(none.state).toBe("none");
 	});
 
-	test("self-crossed account alone cannot form a mark", () => {
+	test("self-crossed account alone cannot form an M", () => {
 		const books = [
 			{
 				id: "X",
@@ -267,10 +267,10 @@ describe("Mark pipeline: eligibility, candidates, boundary fill", () => {
 				],
 			},
 		];
-		expect(computeMark(books, { B: 4, D: 5000, Z: 20 }, null).state).toBe(
+		expect(computeMeasure(books, { B: 4, D: 5000, Z: 20 }, null).state).toBe(
 			"none",
 		);
-		expect(computeMark(books, { B: 4, D: 5000, Z: 20 }, 100).state).toBe(
+		expect(computeMeasure(books, { B: 4, D: 5000, Z: 20 }, 100).state).toBe(
 			"held",
 		);
 	});
@@ -285,7 +285,7 @@ describe("Mark pipeline: eligibility, candidates, boundary fill", () => {
 				],
 			},
 		];
-		expect(computeMark(books, { B: 4, D: 5000, Z: 20 }, null).state).toBe(
+		expect(computeMeasure(books, { B: 4, D: 5000, Z: 20 }, null).state).toBe(
 			"none",
 		);
 	});
@@ -310,8 +310,8 @@ describe("Mark pipeline: eligibility, candidates, boundary fill", () => {
 				],
 			},
 		];
-		const a = computeMark(healthy, { B: 4, D: 5000, Z: 20 }, null);
-		const b = computeMark(withCrossed, { B: 4, D: 5000, Z: 20 }, null);
+		const a = computeMeasure(healthy, { B: 4, D: 5000, Z: 20 }, null);
+		const b = computeMeasure(withCrossed, { B: 4, D: 5000, Z: 20 }, null);
 		expect(b.state).toBe("fresh");
 		expect(b.M).toBeCloseTo(a.M ?? Number.NaN, 12);
 		expect(b.iBid).toBeCloseTo(a.iBid ?? Number.NaN, 12);
@@ -322,7 +322,7 @@ describe("Mark pipeline: eligibility, candidates, boundary fill", () => {
 
 	test("crossing BETWEEN accounts is normal and unaffected by the gate", () => {
 		// A's bid stands above B's ask (batch crossing) but each account is
-		// internally coherent — both participate, a mark forms.
+		// internally coherent — both participate, an M forms.
 		const books = [
 			{
 				id: "A",
@@ -339,7 +339,7 @@ describe("Mark pipeline: eligibility, candidates, boundary fill", () => {
 				],
 			},
 		];
-		const m = computeMark(books, { B: 4, D: 5000, Z: 20 }, null);
+		const m = computeMeasure(books, { B: 4, D: 5000, Z: 20 }, null);
 		expect(m.state).toBe("fresh");
 		expect(m.M).not.toBeNull();
 		expect((m.shareBid.get("A") ?? 0) + (m.shareBid.get("B") ?? 0)).toBeCloseTo(
@@ -348,7 +348,7 @@ describe("Mark pipeline: eligibility, candidates, boundary fill", () => {
 		);
 	});
 
-	test("non-positive D cannot mint a mark (guards the 0/0 walk)", () => {
+	test("non-positive D cannot mint an M (guards the 0/0 walk)", () => {
 		const books = [
 			{
 				id: "P",
@@ -358,13 +358,13 @@ describe("Mark pipeline: eligibility, candidates, boundary fill", () => {
 				],
 			},
 		];
-		const zero = computeMark(books, { B: 4, D: 0, Z: 20 }, null);
+		const zero = computeMeasure(books, { B: 4, D: 0, Z: 20 }, null);
 		expect(zero.state).toBe("none");
 		expect(zero.M).toBeNull();
-		const zeroHeld = computeMark(books, { B: 4, D: 0, Z: 20 }, 100.05);
+		const zeroHeld = computeMeasure(books, { B: 4, D: 0, Z: 20 }, 100.05);
 		expect(zeroHeld.state).toBe("held");
 		expect(zeroHeld.M).toBe(100.05);
-		const negative = computeMark(books, { B: 4, D: -100, Z: 20 }, null);
+		const negative = computeMeasure(books, { B: 4, D: -100, Z: 20 }, null);
 		expect(negative.state).toBe("none");
 	});
 
@@ -372,7 +372,7 @@ describe("Mark pipeline: eligibility, candidates, boundary fill", () => {
 		// A voiceless aggressive bid at 100.00 far above a real maker's book.
 		// One-sided accounts propose no seed, so the maker's own candidate is
 		// the only one and M computes fresh from its quotes.
-		const m = computeMark(
+		const m = computeMeasure(
 			[
 				{
 					id: "silencer",
@@ -402,7 +402,7 @@ describe("candidate selection: seeds, span, largest book wins", () => {
 		// grabbed the bid anchor and emptied eligibility on both sides,
 		// freezing M. Under candidate selection the honest book ($5k/side)
 		// dwarfs the dust candidate ($2/side): M computes at 100.
-		const m = computeMark(
+		const m = computeMeasure(
 			[
 				{
 					id: "honest",
@@ -434,7 +434,7 @@ describe("candidate selection: seeds, span, largest book wins", () => {
 		// so its SEED window swallows everything. Pass 2 re-anchors at the
 		// best eligible quotes and the far ask falls out of reach, zeroing
 		// the attacker's overlap: the surviving candidate is honest-only.
-		const m = computeMark(
+		const m = computeMeasure(
 			[
 				{
 					id: "honest",
@@ -465,7 +465,7 @@ describe("candidate selection: seeds, span, largest book wins", () => {
 		// each other. Two overlapping candidates form, {A,B} $35k and {B,C}
 		// $25k, sharing B. Overlap is ambiguity, not disagreement: the larger
 		// wins, C gets no voice, and M never holds.
-		const m = computeMark(
+		const m = computeMeasure(
 			[
 				{
 					id: "A",
@@ -508,7 +508,7 @@ describe("candidate selection: seeds, span, largest book wins", () => {
 		// this is one region read twice, not two markets disputing the price:
 		// the tiebreak (tighter anchor spread, then higher bid anchor) picks
 		// {B,C} and M stays fresh.
-		const m = computeMark(
+		const m = computeMeasure(
 			[
 				{
 					id: "A",
@@ -583,7 +583,7 @@ describe("anchors and invariants", () => {
 		expect(b?.final).toBe(P.F);
 	});
 
-	test("one side empty → M held at the carried mark", () => {
+	test("one side empty → M held at the carried value", () => {
 		const m = computeModel(
 			[{ i: 0, price: 99.99, side: "bid", size: 5000 }],
 			P,
@@ -593,7 +593,7 @@ describe("anchors and invariants", () => {
 		expect(m.M).toBe(100.005);
 	});
 
-	test("no-mark state: no mark has ever formed → M null, every dollar pays the cap", () => {
+	test("no-M state: no M has ever formed → M null, every dollar pays the cap", () => {
 		const m = computeModel(
 			[{ i: 0, price: 99.99, side: "bid", size: 5000 }],
 			P,
@@ -603,7 +603,7 @@ describe("anchors and invariants", () => {
 		expect(m.M).toBeNull();
 		expect(m.edgeBid).toBeNull();
 		expect(m.levels[0].bk?.final).toBe(P.F);
-		// paired-at-any-width dollars are equally unpriceable without a mark
+		// paired-at-any-width dollars are equally unpriceable without an M
 		const af = computeAccountFees(book, P, null);
 		for (const lv of af.levels) {
 			if (!lv.bk) continue;
@@ -722,13 +722,13 @@ describe("anchors and invariants", () => {
 	});
 });
 
-describe("multi-maker Mark", () => {
+describe("multi-maker M", () => {
 	const MP = { B: 2, D: 20000, Z: 8 };
 	const you = (levels: BookLevel[]) => ({ id: "you", levels });
 	const agg = (levels: BookLevel[]) => ({ id: "agg", levels });
 
 	test("pro-rata attribution and walk shares", () => {
-		const m = computeMark(
+		const m = computeMeasure(
 			[
 				you([
 					{ i: 9, price: 99.995, side: "bid", size: 5000 },
@@ -751,7 +751,7 @@ describe("multi-maker Mark", () => {
 	});
 
 	test("one-sided size has no vote", () => {
-		const m = computeMark(
+		const m = computeMeasure(
 			[
 				you([{ i: 8, price: 99.99, side: "bid", size: 5000 }]),
 				agg([
@@ -774,7 +774,7 @@ describe("multi-maker Mark", () => {
 	});
 
 	test("size beyond the reach (Z + B/2) of the side's anchor has no vote and burns no overlap", () => {
-		const m = computeMark(
+		const m = computeMeasure(
 			[
 				you([
 					{ i: 9, price: 99.995, side: "bid", size: 5000 },
@@ -809,7 +809,7 @@ describe("multi-maker Mark", () => {
 			{ i: 9, price: 99.995, side: "bid", size: 5000 },
 			{ i: 11, price: 100.005, side: "ask", size: 5000 },
 		];
-		const balanced = computeMark(
+		const balanced = computeMeasure(
 			[
 				you(yourBook),
 				agg([
@@ -824,7 +824,7 @@ describe("multi-maker Mark", () => {
 		const feesBefore = computeAccountFees(yourBook, P, balanced.M);
 		expect(feesBefore.levels[0].bk?.final).toBeCloseTo(0, 10);
 
-		const leaning = computeMark(
+		const leaning = computeMeasure(
 			[
 				you(yourBook),
 				agg([
@@ -893,7 +893,7 @@ describe("invariant fuzz (deterministic seeds)", () => {
 		};
 	}
 
-	test("2000 random markets: no NaN marks, sane states, shares in range", () => {
+	test("2000 random markets: no NaN values, sane states, shares in range", () => {
 		for (let iter = 0; iter < 2000; iter++) {
 			const r = fuzzRng(iter + 1);
 			const books = Array.from({ length: 1 + Math.floor(r() * 4) }, (_, b) => {
@@ -911,7 +911,7 @@ describe("invariant fuzz (deterministic seeds)", () => {
 			});
 			const lastM = r() < 0.3 ? null : 99 + r() * 2;
 			const D = r() < 0.05 ? 0 : Math.floor(r() * 30000);
-			const m = computeMark(books, { B: 4, D, Z: 20 }, lastM);
+			const m = computeMeasure(books, { B: 4, D, Z: 20 }, lastM);
 			if (m.state === "fresh") {
 				expect(Number.isFinite(m.M as number)).toBe(true);
 				expect(Number.isFinite(m.iBid as number)).toBe(true);

@@ -13,7 +13,9 @@ describe("countProseWords", () => {
 	});
 
 	test("ignores display and inline math", () => {
-		expect(countProseWords("the mark $M$ and $$x = y + z$$ done")).toBe(4);
+		expect(
+			countProseWords("the Measured Price $M$ and $$x = y + z$$ done"),
+		).toBe(5);
 	});
 
 	test("keeps link text, drops urls", () => {
@@ -30,7 +32,7 @@ describe("countProseWords", () => {
 
 	test("escaped literal dollars count as words, math does not", () => {
 		expect(countProseWords("it costs \\$5 and \\$10 total")).toBe(6);
-		expect(countProseWords("the mark $M$ moved")).toBe(3);
+		expect(countProseWords("the Measured Price $M$ moved")).toBe(4);
 	});
 
 	test("markdown syntax is not words", () => {

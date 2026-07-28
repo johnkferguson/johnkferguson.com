@@ -4,8 +4,8 @@ import {
 	type BookLevel,
 	BP,
 	computeAccountFees,
-	computeMark,
-	type MultiMark,
+	computeMeasure,
+	type MultiMeasure,
 	type Side,
 } from "../../../lib/snapshot-fees/engine";
 import "./lab-theme.css";
@@ -25,7 +25,7 @@ const DMAX = 40000; // $ per level, per half
 const YOUR_MAX = 25000;
 const MAKER_MAX = 40000;
 const STEP_DOLLARS = 250;
-// Defaults for the Maker Zone Z (the Mark's working radius: eligibility
+// Defaults for the Maker Zone Z (M's working radius: eligibility
 // range, walk truncation, boundary-fill price, and the base-fee knee) and the
 // far slope k₂ beyond the zone edge.
 const Z_DEFAULT = 4;
@@ -142,7 +142,7 @@ const SCENARIOS: Scenario[] = [
 		key: "equal",
 		title: "Equal Voice",
 		blurb:
-			"You and the aggregate makers stand comparable size near the touch, so the walk consumes from both of you pro-rata and the Mark splits the difference. Check your share of each walk in the readout.",
+			"You and the aggregate makers stand comparable size near the touch, so the walk consumes from both of you pro-rata and M splits the difference. Check your share of each walk in the readout.",
 		you: YOUR_DEFAULT,
 		depth: 0.55,
 		lean: 0,
@@ -194,7 +194,7 @@ const SCENARIOS: Scenario[] = [
 		key: "incoherent",
 		title: "Rival Books",
 		blurb:
-			"Your two-sided market stands 5.5bps above the makers', too far for either book to lie within the other's measuring reach. The snapshot now holds two candidate eligible books, and M reads the larger one: the makers keep the mark, your book gets no voice, and its receipts are priced against the mark their book set. Clear the makers and your book becomes the only candidate: M jumps to it. Only when two rival books stand at exactly equal eligible size is there no dominant candidate; then M holds its last value (the ❄ in the readout).",
+			"Your two-sided market stands 5.5bps above the makers', too far for either book to lie within the other's measuring reach. The snapshot now holds two candidate eligible books, and M reads the larger one: the makers keep M, your book gets no voice, and its receipts are priced against the M their book set. Clear the makers and your book becomes the only candidate: M jumps to it. Only when two rival books stand at exactly equal eligible size is there no dominant candidate; then M holds its last value (the ❄ in the readout).",
 		you: () =>
 			bookOf({
 				[CENTER + 11]: 20000,
@@ -221,11 +221,11 @@ const C = {
 	bid: "var(--lab-bid)",
 	ask: "var(--lab-ask)",
 	fee: "var(--lab-fee)",
-	mark: "var(--lab-mark)",
+	measure: "var(--lab-measure)",
 	band: "var(--lab-band)",
 	bandEdge: "var(--lab-band-edge)",
 	zone: "var(--lab-zone)",
-	markSlice: "var(--lab-mark-slice)",
+	measureSlice: "var(--lab-measure-slice)",
 	hatch: "var(--lab-hatch)",
 	warn: "var(--lab-warn)",
 	inset: "var(--lab-inset)",
@@ -409,16 +409,16 @@ export default function MultiMakerLab() {
 			side: sideAt(i),
 			size: showAgg ? size : 0,
 		}));
-		// the lab always carries a prior mark (lastM starts at 100), so the
-		// no-mark state is unreachable here and M / the band edges are numbers
-		const mm = computeMark(
+		// the lab always carries a prior M (lastM starts at 100), so the
+		// no-M state is unreachable here and M / the band edges are numbers
+		const mm = computeMeasure(
 			[
 				{ id: "you", levels: yourBook },
 				{ id: "agg", levels: makerBook },
 			],
 			{ B, D, Z },
 			lastM.current,
-		) as MultiMark & { M: number; edgeBid: number; edgeAsk: number };
+		) as MultiMeasure & { M: number; edgeBid: number; edgeAsk: number };
 		const p = { B, D, F, Z, slope, slope2, comp: 0 };
 		type Fees = AccountFees & { edgeBid: number; edgeAsk: number };
 		const fees = computeAccountFees(yourBook, p, mm.M) as Fees;
@@ -763,8 +763,8 @@ export default function MultiMakerLab() {
 					}}
 				>
 					Instructions: Drag a bar's outer edge to resize it, hover a bar for
-					its fee or <span style={{ color: C.mark }}>M</span> for the walk, and
-					double-click your half of a level to flip its side.
+					its fee or <span style={{ color: C.measure }}>M</span> for the walk,
+					and double-click your half of a level to flip its side.
 				</div>
 				<div
 					style={{
@@ -1068,7 +1068,7 @@ export default function MultiMakerLab() {
 							setUnderTip((v) => (v === inside ? v : inside));
 						}}
 						role="img"
-						aria-label="Mirrored order book: your quotes grow up from the midline, the aggregate makers grow down, with the communal Mark spanning both"
+						aria-label="Mirrored order book: your quotes grow up from the midline, the aggregate makers grow down, with the communal M spanning both"
 					>
 						<defs>
 							<pattern
@@ -1271,7 +1271,7 @@ export default function MultiMakerLab() {
 									textAnchor="middle"
 									fontSize={12}
 									style={{
-										fill: C.mark,
+										fill: C.measure,
 										fontFamily: mono,
 										transition: "all 220ms ease",
 									}}
@@ -1284,7 +1284,7 @@ export default function MultiMakerLab() {
 									textAnchor="middle"
 									fontSize={12}
 									style={{
-										fill: C.mark,
+										fill: C.measure,
 										fontFamily: mono,
 										transition: "all 220ms ease",
 									}}
@@ -1449,7 +1449,11 @@ export default function MultiMakerLab() {
 											rx={2}
 											opacity={dimIf(i)}
 											pointerEvents="none"
-											style={{ fill: C.markSlice, stroke: C.mark, ...barTrans }}
+											style={{
+												fill: C.measureSlice,
+												stroke: C.measure,
+												...barTrans,
+											}}
 										/>
 									)}
 									{yv > 0 && lv?.bk && lv.bk.unpaired > 0 && (
@@ -1489,7 +1493,11 @@ export default function MultiMakerLab() {
 											rx={2}
 											opacity={dimIfM(i)}
 											pointerEvents="none"
-											style={{ fill: C.markSlice, stroke: C.mark, ...barTrans }}
+											style={{
+												fill: C.measureSlice,
+												stroke: C.measure,
+												...barTrans,
+											}}
 										/>
 									)}
 								</g>
@@ -1963,7 +1971,7 @@ export default function MultiMakerLab() {
 							</text>
 						</g>
 
-						{/* Mark carriage */}
+						{/* M carriage */}
 						<g
 							style={{ transition: "transform 220ms ease" }}
 							transform={`translate(${xOfPrice(mm.M)},0)`}
@@ -1976,11 +1984,11 @@ export default function MultiMakerLab() {
 								strokeWidth={1}
 								opacity={0.5}
 								pointerEvents="none"
-								style={{ stroke: C.mark }}
+								style={{ stroke: C.measure }}
 							/>
 							<path
 								d={`M0,${PT - 3} l -6,-10 l 12,0 z`}
-								style={{ fill: C.mark }}
+								style={{ fill: C.measure }}
 							/>
 							<rect
 								x={-58}
@@ -1989,14 +1997,14 @@ export default function MultiMakerLab() {
 								height={22}
 								rx={4}
 								strokeWidth={0.75}
-								style={{ fill: C.panel2, stroke: C.mark }}
+								style={{ fill: C.panel2, stroke: C.measure }}
 							/>
 							<text
 								x={0}
 								y={32}
 								textAnchor="middle"
 								fontSize={13.5}
-								style={{ fill: C.mark, fontFamily: mono }}
+								style={{ fill: C.measure, fontFamily: mono }}
 							>
 								M {fmtPx(mm.M)}
 								{mm.state !== "fresh" ? " ❄" : ""}
@@ -2039,7 +2047,7 @@ export default function MultiMakerLab() {
 												height={16 + rows.length * 19}
 												rx={6}
 												strokeWidth={0.75}
-												style={{ fill: C.panel2, stroke: C.mark }}
+												style={{ fill: C.panel2, stroke: C.measure }}
 											/>
 											{rows.map((r, kk) => (
 												<text
@@ -2114,7 +2122,7 @@ export default function MultiMakerLab() {
 											height={h}
 											rx={6}
 											strokeWidth={0.75}
-											style={{ fill: C.panel2, stroke: C.mark }}
+											style={{ fill: C.panel2, stroke: C.measure }}
 										/>
 										<text
 											x={xT}
@@ -2247,7 +2255,7 @@ export default function MultiMakerLab() {
 											y={mY}
 											textAnchor="middle"
 											fontSize={14}
-											style={{ fill: C.mark, fontFamily: mono }}
+											style={{ fill: C.measure, fontFamily: mono }}
 										>
 											M = ({mm.iBid != null ? fmtPx(mm.iBid) : "–"} +{" "}
 											{mm.iAsk != null ? fmtPx(mm.iAsk) : "–"}) / 2 ={" "}

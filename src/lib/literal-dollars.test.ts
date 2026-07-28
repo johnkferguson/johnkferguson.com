@@ -7,7 +7,7 @@ describe("validateLiteralDollars", () => {
 	test("accepts real inline math", () => {
 		expect(
 			validateLiteralDollars(
-				"The mark $M$ moves by $B/2$ when $q_i$ crosses $M \\pm B/2$.",
+				"The Measured Price $M$ moves by $B/2$ when $q_i$ crosses $M \\pm B/2$.",
 			),
 		).toEqual([]);
 	});
@@ -50,7 +50,9 @@ describe("validateLiteralDollars", () => {
 	});
 
 	test("flags money corrupting real math in the same paragraph", () => {
-		const v = validateLiteralDollars("It costs $5 but the mark $M$ moves.");
+		const v = validateLiteralDollars(
+			"It costs $5 but the Measured Price $M$ moves.",
+		);
 		expect(v.length).toBeGreaterThan(0);
 	});
 
@@ -87,7 +89,7 @@ describe("validateLiteralDollars", () => {
 
 describe("containsMath", () => {
 	test("detects an inline math span", () => {
-		expect(containsMath("The mark $M$ moves.")).toBe(true);
+		expect(containsMath("The Measured Price $M$ moves.")).toBe(true);
 	});
 
 	test("detects a display math block", () => {

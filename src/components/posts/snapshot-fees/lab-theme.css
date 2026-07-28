@@ -7,7 +7,7 @@
  *   dark  "#199e70,#d95926,#256abf,#9085e9" both pass the palette validator
  *   (all-pairs CVD ≥ 16 light / ≥ 13 dark on deutan+protan).
  * Semantics: green/orange = your book · blue = fees · purple = everything
- * the Mark defines (M, band edges, walk slices) · band fill is neutral gray.
+ * M defines (the Measured Price, band edges, walk slices) · band fill is neutral gray.
  * Chrome colors reference the site's theme variables so they switch with the
  * .dark class automatically.
  */
@@ -15,7 +15,7 @@
 	--lab-bid: #199e70;
 	--lab-ask: #d95926;
 	--lab-fee: #e34948;
-	--lab-mark: #4a3aa7;
+	--lab-measure: #4a3aa7;
 	--lab-zone: #2a78d6;
 	--lab-zone-soft: rgba(42, 120, 214, 0.07);
 	--lab-danger: #d03b3b;
@@ -26,7 +26,7 @@
 	--lab-warn: #a8442f;
 	--lab-band: rgba(120, 120, 120, 0.12);
 	--lab-band-edge: rgba(74, 58, 167, 0.55);
-	--lab-mark-slice: rgba(74, 58, 167, 0.09);
+	--lab-measure-slice: rgba(74, 58, 167, 0.09);
 	--lab-hatch: rgba(0, 0, 0, 0.45);
 	--lab-grid: #efefef;
 	--lab-inset: #eeeae4;
@@ -76,12 +76,12 @@
 
 .dark .sf-lab {
 	--lab-fee: #e66767;
-	--lab-mark: #9085e9;
+	--lab-measure: #9085e9;
 	--lab-zone: #4b8fdd;
 	--lab-zone-soft: rgba(75, 143, 221, 0.09);
 	--lab-band: rgba(255, 255, 255, 0.06);
 	--lab-band-edge: rgba(144, 133, 233, 0.6);
-	--lab-mark-slice: rgba(144, 133, 233, 0.14);
+	--lab-measure-slice: rgba(144, 133, 233, 0.14);
 	--lab-warn: #e59080;
 	--lab-hatch: rgba(255, 255, 255, 0.55);
 	--lab-grid: #2e2a27;

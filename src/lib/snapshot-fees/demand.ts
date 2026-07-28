@@ -1,7 +1,7 @@
 /**
  * Snapshot fees — the Typical Demand machine (D).
  *
- * D is the Mark's measuring size: the market's typical per-auction demand,
+ * D is M's measuring size: the market's typical per-auction demand,
  * measured from fills and rebased once per epoch (a day, throughout). Per
  * window, two running sums and nothing else:
  *
@@ -18,7 +18,7 @@
  * if the epoch carried at least m·D of flow (the minimum sample), D steps by
  * (reading/D)^α bounded to [1/L, L] (one day, whatever it contains, moves
  * the yardstick at most L×); otherwise D freezes for the epoch, no decay.
- * D never falls below the configured floor D_min, which is a mark-validity
+ * D never falls below the configured floor D_min, which is an M-validity
  * bound (a walk too small reads only the best quotes) and is separate from
  * the launch seed D₀, which initializes D and constrains nothing afterward.
  *

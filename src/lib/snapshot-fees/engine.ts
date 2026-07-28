@@ -5,7 +5,7 @@
  * mechanism, and so the engine can be unit-tested against the spec's
  * reference computation (see engine.test.ts).
  *
- * The Mark pipeline (computeMark) is shared by every lab: every two-sided
+ * The Measured Price pipeline (computeMeasure) is shared by every lab: every two-sided
  * account seeds a candidate eligible book (two anchoring passes each), a
  * span check drops incoherent candidates, the largest candidate wins, and
  * the impact walks run on the winner with boundary fill at the window edge.
@@ -29,13 +29,13 @@ export interface BookLevel {
 export interface FeeParams {
 	/** Inner band width B, in bps — the band is drawn M ± B/2. */
 	B: number;
-	/** Typical demand D — the measuring size for the Mark walk, in $. */
+	/** Typical demand D — the measuring size for the M walk, in $. */
 	D: number;
 	/** Fee cap / taker rate, in bps. */
 	F: number;
 	/**
 	 * Maker Zone Z — working radius past the band edge, in bps. The base-fee
-	 * knee sits Z beyond the band edge; the Mark's eligibility range, walk
+	 * knee sits Z beyond the band edge; M's eligibility range, walk
 	 * truncation, and boundary-fill price all reach Z + B/2 from the
 	 * anchors, so both layers cover the same working width (span B + 2Z).
 	 */
@@ -87,10 +87,10 @@ export interface FeeLevel extends BookLevel {
 	bk: FeeBreakdown | null;
 }
 
-/** Fees for one account's book, judged against a given Mark. */
+/** Fees for one account's book, judged against a given M. */
 export interface AccountFees {
 	levels: FeeLevel[];
-	/** Band edges; null in the no-mark state. */
+	/** Band edges; null in the no-M state. */
 	edgeBid: number | null;
 	edgeAsk: number | null;
 	baseFeeOf: (price: number, side: "bid" | "ask") => number;
@@ -98,9 +98,9 @@ export interface AccountFees {
 
 /**
  * Base fees, joint pairing allocation (spillover), and per-dollar worse-of fees
- * for one account's book against a given M. The Mark may be communal (multi
- * maker) or the account's own (single-maker lab). With no mark (M null — the
- * pre-first-mark state) there is nothing to measure placement against, so
+ * for one account's book against a given M. M may be communal (multi
+ * maker) or the account's own (single-maker lab). With no M (null — the
+ * pre-first-M state) there is nothing to measure placement against, so
  * every base fee is the cap and every dollar pays F.
  */
 export function computeAccountFees(
@@ -121,7 +121,7 @@ export function computeAccountFees(
 	const edgeAsk = M == null ? null : M + half;
 
 	// Bracketed base fee via the shared curve: distance beyond the band edge
-	// plus B/2 is distance from M. No mark → no distance to measure → F.
+	// plus B/2 is distance from M. No M → no distance to measure → F.
 	const baseFeeOf = (price: number, side: "bid" | "ask"): number => {
 		if (edgeBid == null || edgeAsk == null) return F;
 		const d = side === "ask" ? price - edgeAsk : edgeBid - price;
@@ -211,7 +211,7 @@ export function computeAccountFees(
 }
 
 // ————————————————————————————————————————————————————————————————
-// The Mark
+// The Measured Price
 // ————————————————————————————————————————————————————————————————
 
 export interface MakerBook {
@@ -221,25 +221,25 @@ export interface MakerBook {
 
 /**
  * fresh — a candidate eligible book won this window and M was measured from it.
- * held  — a mark existed, but this window produced no winner (no valid
+ * held  — an M existed, but this window produced no winner (no valid
  *         candidate, or a strict tie between disjoint candidates); the last
  *         M carries with this flag.
- * none  — no mark has ever formed (launch): nothing to measure, nothing to
+ * none  — no M has ever formed (launch): nothing to measure, nothing to
  *         carry. Every base fee is the cap until the first candidate appears.
  */
-export type MarkState = "fresh" | "held" | "none";
+export type MeasureState = "fresh" | "held" | "none";
 
-export interface MarkShort {
+export interface MeasureShort {
 	/** Dollars the walk could not source from eligible size. */
 	missing: number;
 	/** Where those dollars were priced: the side's anchor ± (Z + B/2). */
 	price: number;
 }
 
-export interface MultiMark {
-	/** The mark; null only in the no-mark ("none") state. */
+export interface MultiMeasure {
+	/** The Measured Price; null only in the no-M ("none") state. */
 	M: number | null;
-	state: MarkState;
+	state: MeasureState;
 	iBid: number | null;
 	iAsk: number | null;
 	edgeBid: number | null;
@@ -247,19 +247,19 @@ export interface MultiMark {
 	/** iAsk − iBid, the thinness thermometer. Null unless fresh. */
 	impactSpread: number | null;
 	/** Boundary fill per side, when the eligible ladder held less than D. */
-	shortBid: MarkShort | null;
-	shortAsk: MarkShort | null;
+	shortBid: MeasureShort | null;
+	shortAsk: MeasureShort | null;
 	/** Walk consumption per account: id -> (level i -> $). */
 	used: Map<string, Map<number, number>>;
 	/** Each account's share of the walked dollars, per side (0..1). */
 	shareBid: Map<string, number>;
 	shareAsk: Map<string, number>;
-	/** Mark-eligible size per account (the winning candidate): id -> (level i -> $). */
+	/** M-eligible size per account (the winning candidate): id -> (level i -> $). */
 	eligible: Map<string, Map<number, number>>;
 }
 
 /**
- * The Mark. Only paired (demonstrated two-sided) size votes: per account
+ * The Measured Price. Only paired (demonstrated two-sided) size votes: per account
  * and side, quotes count up to the account's overlap — min(in-range bid $,
  * in-range ask $) — allocated best-first, where in range means within
  * Z + B/2 of that side's anchor (the same working width the fee schedule
@@ -279,8 +279,8 @@ export interface MultiMark {
  * position a window nor vote; junk far from the market converges to a tiny
  * candidate and loses to the real book's size.
  *
- * With no winner: held (carry the last M) if a mark has ever existed, else
- * none (launch — no mark until a valid candidate forms).
+ * With no winner: held (carry the last M) if an M has ever existed, else
+ * none (launch — no M until a valid candidate forms).
  *
  * The D-walk consumes the winning ladder best-first, pro-rata across
  * accounts at equal prices; if the ladder holds less than D, the missing
@@ -291,15 +291,15 @@ export interface MultiMark {
  * M = c·(walked mid) + (1−c)·(anchor mid), c = eligible/D — and inflates
  * the exported impact spread, the health signal. Placement is the only vote.
  */
-export function computeMark(
+export function computeMeasure(
 	books: MakerBook[],
 	p: { B: number; D: number; Z: number },
 	lastM: number | null,
-): MultiMark {
+): MultiMeasure {
 	const { B, D, Z } = p;
 	const half = (B / 2) * BP;
 	// The measurement reach: Z past the band's half-width, per side, so the
-	// mark reads over exactly the working width the fee schedule discounts
+	// M reads over exactly the working width the fee schedule discounts
 	// (total span B + 2Z). Quote-anchored: measured from the anchors, never
 	// from M or the band.
 	const reachD = (Z + B / 2) * BP;
@@ -312,7 +312,7 @@ export function computeMark(
 		for (const b of books) m.set(b.id, mk());
 		return m;
 	};
-	const noMark = (): MultiMark => ({
+	const noMeasure = (): MultiMeasure => ({
 		M: lastM,
 		state: lastM == null ? "none" : "held",
 		iBid: null,
@@ -331,15 +331,15 @@ export function computeMark(
 	// A non-positive walk size cannot measure anything: without this guard
 	// the walk's cost / D divides by zero and every downstream fee is NaN
 	// while the state still claims "fresh".
-	if (!(D > 0)) return noMark();
+	if (!(D > 0)) return noMeasure();
 
 	// —— Coherence gate: a self-crossed account (own best bid at or above
 	// its own best ask) would trade with itself — wash-trading posture,
-	// not a view of the market. It gets no voice in the mark this window:
+	// not a view of the market. It gets no voice in M this window:
 	// no seed, no eligibility contribution. (Its orders still match and
-	// pay fees; only mark participation is withheld.) Without this gate a
+	// pay fees; only M participation is withheld.) Without this gate a
 	// $20 self-crossed straddle across two far-apart markets hijacks
-	// anchor convergence and mints a mark between them — the one-sided
+	// anchor convergence and mints an M between them — the one-sided
 	// reach filters admit its far quote via its near pair, and every
 	// seed converges to a widely-crossed anchor key. Crossing BETWEEN
 	// accounts remains normal batch behavior and is unaffected. ——
@@ -422,7 +422,7 @@ export function computeMark(
 		if (bb !== Number.NEGATIVE_INFINITY && ba !== Number.POSITIVE_INFINITY)
 			seeds.set(`${bb}|${ba}`, { bb, ba });
 	}
-	if (!seeds.size) return noMark();
+	if (!seeds.size) return noMeasure();
 
 	// —— Converge each seed (exactly two passes), keep distinct valid candidates ——
 	interface Candidate {
@@ -462,7 +462,7 @@ export function computeMark(
 			size,
 		});
 	}
-	if (!candidates.length) return noMark();
+	if (!candidates.length) return noMeasure();
 
 	// —— Selection: the largest candidate eligible book wins. A strict tie
 	// between disjoint candidates is disagreement (no dominant market → no
@@ -490,7 +490,7 @@ export function computeMark(
 	if (top.length > 1) {
 		for (let i = 0; i < top.length; i++)
 			for (let j = i + 1; j < top.length; j++)
-				if (!sharesSize(top[i], top[j])) return noMark();
+				if (!sharesSize(top[i], top[j])) return noMeasure();
 		top.sort((x, y) => x.aAsk - x.aBid - (y.aAsk - y.aBid) || y.aBid - x.aBid);
 	}
 	const win = top[0];
@@ -530,7 +530,7 @@ export function computeMark(
 			rem -= take;
 			k = j;
 		}
-		let short: MarkShort | null = null;
+		let short: MeasureShort | null = null;
 		if (rem > 1e-9) {
 			cost += rem * boundary;
 			short = { missing: rem, price: boundary };
@@ -568,9 +568,9 @@ export function computeMark(
 
 export interface MarketModel {
 	levels: FeeLevel[];
-	/** The mark; null only in the no-mark ("none") state. */
+	/** The Measured Price; null only in the no-M ("none") state. */
 	M: number | null;
-	state: MarkState;
+	state: MeasureState;
 	iBid: number | null;
 	iAsk: number | null;
 	edgeBid: number | null;
@@ -578,20 +578,20 @@ export interface MarketModel {
 	/** iAsk − iBid, the thinness thermometer. Null unless fresh. */
 	impactSpread: number | null;
 	/** Boundary fill per side, when the eligible ladder held less than D. */
-	shortBid: MarkShort | null;
-	shortAsk: MarkShort | null;
+	shortBid: MeasureShort | null;
+	shortAsk: MeasureShort | null;
 	bidTotal: number;
 	askTotal: number;
-	/** Size the Mark walk consumed, keyed by level identity. */
-	markUsed: Map<number, number>;
+	/** Size the M walk consumed, keyed by level identity. */
+	measureUsed: Map<number, number>;
 	baseFeeOf: (price: number, side: "bid" | "ask") => number;
 }
 
 /**
  * Run the full window pipeline on one account's book, as a one-book market:
  * seed → candidate → impact walks with boundary fill → M → band → base fees →
- * joint pairing allocation (spillover) → combined fee. `lastM` is the mark
- * carried from prior windows (null at launch — the no-mark state, where
+ * joint pairing allocation (spillover) → combined fee. `lastM` is the M
+ * carried from prior windows (null at launch — the no-M state, where
  * everything pays the cap).
  *
  * Every level's breakdown answers: if the sweep reached this level and it
@@ -603,7 +603,7 @@ export function computeModel(
 	lastM: number | null,
 ): MarketModel {
 	const { B, D, Z } = p;
-	const mm = computeMark([{ id: "solo", levels: book }], { B, D, Z }, lastM);
+	const mm = computeMeasure([{ id: "solo", levels: book }], { B, D, Z }, lastM);
 	const af = computeAccountFees(book, p, mm.M);
 	const bidTotal = book.reduce(
 		(s, l) => s + (l.side === "bid" ? l.size : 0),
@@ -626,7 +626,7 @@ export function computeModel(
 		shortAsk: mm.shortAsk,
 		bidTotal,
 		askTotal,
-		markUsed: mm.used.get("solo") ?? new Map(),
+		measureUsed: mm.used.get("solo") ?? new Map(),
 		baseFeeOf: af.baseFeeOf,
 	};
 }
@@ -643,7 +643,7 @@ export function fullFeeBps(p: {
 }
 
 /**
- * The base-fee curve as a pure function of distance from the mark in
+ * The base-fee curve as a pure function of distance from M in
  * bps: free inside the band, k₁ through the zone, k₂ beyond, capped at
  * F. The single source of the base-fee curve — labs must render this
  * rather than re-implement it.

@@ -44,7 +44,7 @@ const C = {
 	faint: "var(--lab-faint)",
 	bid: "var(--lab-bid)",
 	ask: "var(--lab-ask)",
-	mark: "var(--lab-mark)",
+	measure: "var(--lab-measure)",
 	zone: "var(--lab-zone)",
 	inset: "var(--lab-inset)",
 	danger: "var(--lab-danger)",
@@ -151,7 +151,7 @@ Try lowering L below 3× and all three chases clamp to the identical step. Or st
 	{
 		key: "drain",
 		title: "Draining Away",
-		blurb: `Demand shrinks through the whole run, from $100k down to $10k. The lines follow it down until they hit the $50k floor: α = 3/4 is pinned there from day five, the other two from day six, and demand keeps falling underneath them; by the last days D stands at five times what the fills report. The floor exists for the mark's sake: D sets the depth the walk measures at, and a walk measuring too little depth reads only the touch. In a dying market D holds above the reported demand so the walk keeps enough depth to measure.
+		blurb: `Demand shrinks through the whole run, from $100k down to $10k. The lines follow it down until they hit the $50k floor: α = 3/4 is pinned there from day five, the other two from day six, and demand keeps falling underneath them; by the last days D stands at five times what the fills report. The floor exists for the reading's sake: D sets the depth the walk measures at, and a walk measuring too little depth reads only the touch. In a dying market D holds above the reported demand so the walk keeps enough depth to measure.
 
 Try dropping the floor to its minimum and the lines chase the decline down to $25k; raise it and they level off sooner.`,
 		flows: () => [100, 80, 60, 45, 35, 25, 20, 15, 10, 10],

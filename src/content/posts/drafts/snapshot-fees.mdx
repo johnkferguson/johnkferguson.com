@@ -124,12 +124,13 @@ version, each with its own lab.
 
 For liquidity nearest the mid to pay the least, distance from the mid has to
 carry a price. The base fee is the first leg of that price: it sets the
-lowest rate a resting order can be charged given its distance from the market's midpoint, referred to as the mark price,
-$M$, which is calculated from the sealed book. Whether an order
-actually gets that rate is the rest of the mechanism's job.
+lowest rate a resting order can be charged given its distance from the
+market's midpoint, the Measured Price, $M$, which is calculated from the
+sealed book. Whether an order actually gets that rate is the rest of the
+mechanism's job.
 
-The schedule around the mark takes a simple shape. Nearest to $M$ sits a band
-with a fee level of its own, zero in everything this piece shows. Beyond the
+The schedule around the Measured Price takes a simple shape. Nearest to $M$
+sits a band with a fee level of its own, zero in everything this piece shows. Beyond the
 band's edge the fee grows with distance, at rates the market configures; under the
 default calibration used here it grows gently through the zone where makers do much of their
 everyday quoting, then more steeply past it. The fee never exceeds the
@@ -142,9 +143,10 @@ three groups.
 
 The first value is dynamic and recomputed every window:
 
-- $M$, the Mark Price: the market's midpoint, calculated from the sealed book.
-  Its formula is introduced in [Calculating the Mark](#calculating-the-mark)
-  below, and the sections after it refine how the measurement works.
+- $M$, the Measured Price: the market's midpoint, calculated from the sealed
+  book. Its formula is introduced in
+  [The Measured Price](#the-measured-price) below, and the
+  sections after it refine how the reading works.
 
 The market's configuration settings, fixed from window to window, though the
 regions they define all sit relative to $M$:
@@ -175,10 +177,10 @@ beyond it at $k_2$, and the total is clipped at $F$. Inside the band, $d$ is
 zero, so the fee is zero.
 
 Alongside the fee, the lab below plots a second curve: the net edge, an
-order's distance from the mark minus the fee charged at that distance.
-Distance is roughly the edge an order is asking for: if it fills, it earns
-that many bps of price improvement relative to $M$, and the net edge is
-what remains of that improvement after the fee. The measure ignores fill
+order's distance from $M$ minus the fee charged at that
+distance. Distance is roughly the edge an order is asking for: if it fills,
+it earns that many bps of price improvement relative to $M$, and the net edge
+is what remains of that improvement after the fee. The curve ignores fill
 probability, adverse selection, and inventory, so it is not a profit model,
 but it does show what the schedule rewards. With $k_1$ below 1, a wider
 quote still nets more edge per fill, just less per bps. And once the fee
@@ -199,7 +201,7 @@ What an order actually pays comes down to one rule:
 > legs' base fees. An unpaired dollar pays the cap.
 
 A market functions when there is something to trade against at any
-moment, in either direction. Measured against that need, orders fall into
+moment, in either direction. Judged against that need, orders fall into
 three classes. Non-directional resting liquidity, quotes standing on both
 sides of the book at once, serves both directions at the same time; it is
 what lets a market function continuously. Directional resting liquidity, a
@@ -235,20 +237,20 @@ where:
 - $u$: the notional left unpaired.
 - $q$: the order's total size, $q = \sum_i q_i + u$.
 
-The formula is the combination of the base fee and the pairing rule. For a maker to lower its fee rate, it should place orders closer to the mark, where the
+The formula is the combination of the base fee and the pairing rule. For a maker to lower its fee rate, it should place orders closer to $M$, where the
 base fee $b$ is smaller, and size them to what the other side of the book can
 pair, so nothing lands in $u$ paying the cap.
 
-## Calculating the Mark
+## The Measured Price
 
-Every fee in the schedule is measured as a distance from a single reference
-point: the mark, $M$, recomputed each window from the sealed book.
+Every fee in the schedule is priced as a distance from a single reference
+point: the Measured Price, $M$, recomputed each window from the sealed book.
 
 Whatever form the calculation takes, the reference has two criteria to
 meet:
 
-1. The mark should reflect the real cost of trading.
-2. The mark should be influenced only by those who bear its cost.
+1. The Measured Price should reflect the real cost of trading.
+2. The Measured Price should be influenced only by those who directly bear its cost.
 
 Two familiar references both fail:
 
@@ -261,76 +263,77 @@ Two familiar references both fail:
   the first criterion: depth now enters the number, and it moves closer to
   what trading at size would cost. It fails the second, and not in a way
   any range restriction could repair. A directional order's rate is the
-  cap wherever the mark sits, so it bears none of the mark's cost and has
-  no incentive to place it well; size piled on one side just below the
-  touch would drag the average toward itself, and being wrong would cost
-  it nothing.
+  cap wherever $M$ sits, so it bears none of that cost and has no
+  incentive to place it well; size piled on one side just below the touch
+  would drag the average toward itself, and being wrong would cost it
+  nothing.
 
-The mark keeps the depth-weighting but restricts it to the liquidity for
-which being wrong is expensive: a trader quoting both sides is stating
-where they believe the price stands, their fees hang on the mark through
-both legs, and a mispriced leg stands to be traded against.
+The Measured Price keeps the depth-weighting but restricts it to the
+liquidity for which being wrong is expensive: a trader quoting both sides
+is stating where they believe the price stands, their fees hang on $M$
+through both legs, and a mispriced leg stands to be traded against.
 
 Within that liquidity, weight comes from size and placement: more notional
 is a larger claim about where the asset trades, and notional standing
 closer to the mid is a more confident one. The whole calculation can be
 thought of as an election held each auction: standing paired, fillable size
-is how a trader votes on the mark, and size and proximity set the weight of
+is how a trader votes on $M$, and size and proximity set the weight of
 each vote.
 
 The calculation has boundaries. Quotes count only within $B/2 + Z$ of
 each side's best quote, half the Inner Band plus the Maker Zone: the same
-working width the fee schedule discounts is the width the mark reads, which
-is where the zone gets its name. The pairing must also happen inside that
+working width the fee schedule discounts is the width $M$ reads, which is
+where the zone gets its name. The pairing must also happen inside that
 area, on both sides. A tight bid whose only ask stands beyond the zone gets
-no voice, even though the two still pair for fees; the fee's pairing accepts
-any distance and prices it, while the mark's requires both legs to stand
-within the area it measures.
+no voice, even though the two still pair for fees; the fee's pairing
+accepts any distance and prices it, while the reading requires both legs to
+stand within the area it covers.
 
 The same width bounds the market itself. The best bid and best ask being
-measured must stand within $B + 2Z$ of each other, the full working span.
+read must stand within $B + 2Z$ of each other, the full working span.
 Two quotes farther apart than that are not a market with a wide spread;
 they are two claims about the price with no working region between them,
-and the mark does not average them. A book that wide produces no
-measurement at all.
+and $M$ does not average them. A book that wide produces no reading at
+all.
 
-The mark, then, is not calculated from the raw book but from a filtered
-one. Per trader, keep only the two-sided size that pairs within the area,
+The Measured Price, then, is not calculated from the raw book but from a
+filtered one. Per trader, keep only the two-sided size that pairs within the area,
 and pool what survives by price level. The ladder that remains is the
-eligible book, the only book the mark ever reads. Comparing prices across it requires a common size
-to evaluate them at. $D$, the market's typical demand, is that basis (how
+eligible book, the only book $M$ ever reads. Comparing prices across it
+requires a common size to evaluate them at. $D$, the market's typical
+demand, is that basis (how
 $D$ is derived from the market's own activity, rather than set by hand,
-comes in [Measuring Typical Demand](#measuring-typical-demand)). The
-measurement walks $D$ dollars of notional into the eligible bids, best
-prices first, and takes the volume-weighted average of everything it
-consumed. That is the bid-side impact price, the price a seller of $D$
-dollars would actually receive against the eligible liquidity. The ask side
-gives its mirror, and the mark is their midpoint:
+comes in [Tracking Typical Demand](#tracking-typical-demand)). The walk
+takes $D$ dollars of notional into the eligible bids, best prices first,
+and averages everything it consumed by volume. That is the bid-side impact
+price, the price a seller of $D$ dollars would actually receive against the
+eligible liquidity. The ask side gives its mirror, and the Measured Price
+is the midpoint of the two:
 
 $$
 M = \frac{\text{impactBid}(D) + \text{impactAsk}(D)}{2}
 $$
 
 Both impact prices are read from the eligible book alone; the rest of the
-book never enters the formula. Measuring at size is what makes the mark
+book never enters the formula. Measuring at size is what makes $M$
 expensive to move. A tiny order
 absorbs almost none of a $D$-dollar walk, so it barely moves the average;
 shifting $M$ requires real size near the mid. If paired depth within the
-measured area runs out before $D$ dollars, the missing dollars are priced at
-the area's boundary; the measurement never reaches for size beyond it.
+area runs out before $D$ dollars, the missing dollars are priced at the
+area's boundary; the walk never reaches for size beyond it.
 
 The lab below runs everything so far on a single maker's book: the walk,
-the mark, and a fee receipt for every level.
+the Measured Price, and a fee receipt for every level.
 
 <Lab title="Running One Maker's Book">
   <SingleMakerLab client:visible />
 </Lab>
 
-## Many Makers, One Mark
+## Many Makers, One Price
 
 Everything so far ran on a single maker's book. In a real market the eligible
 book pools every trader's paired, in-area size at once: the same filter and
-the same walk, producing one mark for the whole market.
+the same walk, producing one $M$ for the whole market.
 
 Within the pooled walk, a trader's voice is their share of the dollars it
 consumed. Better-priced quotes are consumed first, and quotes at the same
@@ -339,40 +342,40 @@ no seniority and no minimum.
 
 This produces a property worth stating plainly, because no existing fee
 schedule has it: a maker does not set their fee. They set their book. The
-formula is identical for everyone, but the mark inside it is calculated from
+formula is identical for everyone, but the $M$ inside it is calculated from
 every maker's quotes at once, so the rate a given book pays depends on where
 the rest of the market stands. The dependence shrinks with weight, and weight
 comes from the same actions the schedule already rewards: a maker quoting
-larger and tighter pulls the mark toward the center of their own quotes,
+larger and tighter pulls $M$ toward the center of their own quotes,
 which is where their rate is most predictable.
 
 Pooling has one more consequence. Makers usually cluster, everyone's quotes
 within reach of everyone else's, and the filter produces a single eligible
 book. But books can also stand so far apart that neither lies within the
-other's measuring reach. Each region then forms its own candidate eligible
-book, and the mark reads the largest one. The smaller candidate gets no
-voice: its quotes are priced against the larger book's mark. Moving the
-mark away from the market therefore has a single price: standing more
+other's reading reach. Each region then forms its own candidate eligible
+book, and $M$ reads the largest one. The smaller candidate gets no
+voice: its quotes are priced against the larger book's $M$. Moving $M$
+away from the market therefore has a single price: standing more
 paired, fillable size than everyone else combined, within one working span.
 
-Two situations produce no new mark. If no valid candidate stands anywhere,
+Two situations produce no new reading. If no valid candidate stands anywhere,
 or two candidates that share nothing stand at exactly equal size, the market
-holds the last mark, flagged as held, until a dominant book returns. And a
-market that has never had a mark holds nothing: from launch until the first
-candidate forms there is no mark, and every fill pays the cap. The first
-account to stand a real two-sided book within the span creates the mark, and
-with it the first access to a discount.
+holds the last $M$, flagged as held, until a dominant book returns. And a
+market that has never had one holds nothing: from launch until the first
+candidate forms there is no $M$, and every fill pays the cap. The first
+account to stand a real two-sided book within the span sets the first
+Measured Price, and with it the first access to a discount.
 
 The lab below is that market: your book on top, the aggregate of every other
 maker mirrored beneath it, both feeding one walk.
 
-<Lab title="Sharing the Mark">
+<Lab title="Measuring the Makers">
   <MultiMakerLab client:visible />
 </Lab>
 
-## Measuring Typical Demand
+## Tracking Typical Demand
 
-To calculate the mark, the eligible book must be walked on both sides up to size $D$, the typical demand for that market. What remains is how that typical demand is determined.
+To calculate $M$, the eligible book must be walked on both sides up to size $D$, the typical demand for that market. What remains is how that typical demand is determined.
 
 Within any market, demand continuously changes. Therefore, $D$ should not be based upon some generic constant. Instead, it needs to reflect the market's conditions as they actually are.
 
@@ -385,9 +388,9 @@ Doing that well means satisfying two criteria:
    predictable and verifiable like every other number in the design.
 
 What follows is one mechanism that satisfies both. Unlike the fee rule and
-the mark, it is not settled design: it is a demonstration of one possible solution. If preferred, other mechanisms could serve in its place.
+the Measured Price, it is not settled design: it is a demonstration of one possible solution. If preferred, other mechanisms could serve in its place.
 
-### A Proposed Mechanism for Measuring Demand
+### A Proposed Mechanism for Tracking Demand
 
 The mechanism runs on two clocks:
 
@@ -483,10 +486,10 @@ update from it, and nothing decays while it waits. The daily limit caps how
 far any single day can move $D$, however strange that day's trading was, a
 single enormous window included.
 
-**The floor.** The floor exists for the mark's sake rather than for the
-tracking. $D$ sets the depth the mark's walk measures at, and a walk that
+**The floor.** The floor exists for the reading's sake rather than for the
+tracking. $D$ sets the depth the walk measures at, and a walk that
 has shrunk too far reads only the quotes at the touch, which is the
-size-blind midpoint the mark was designed to avoid in the first place.
+size-blind midpoint $M$ was designed to avoid in the first place.
 
 ---
 
@@ -503,7 +506,7 @@ choices a venue would fit to its own market.
 
 Every part of the mechanism has now been introduced in its own section.
 This section runs a single auction from start to finish. Once the window
-seals, calculating the mark and matching the orders are independent of
+seals, measuring the book and matching the orders are independent of
 each other, both reading only the sealed snapshot, so a venue can run the
 two in parallel or simply perform everything top to bottom. Pricing the
 fills needs them both, and finalizing the window books the results. The
@@ -527,11 +530,11 @@ Everything after is computed from this snapshot and published history;
 nothing else enters. Cost: $O(1)$, the snapshot is the book the venue
 already holds, kept price-sorted as the orders arrived.
 
-### Calculate the Mark
+### Measure the Book
 
 This branch turns the sealed book into the window's reference price. It is
 also the branch a venue can omit: a window with no fills and no consumer
-asking for $M$ has nothing to price, and the mark keeps no state that
+asking for $M$ has nothing to price, and the reading keeps no state that
 needs maintaining, since it is recomputed from each window's own book. A
 venue with downstream consumers of $M$, health series or reference prices,
 will compute it every window regardless.
@@ -545,8 +548,8 @@ will compute it every window regardless.
    within its reach; $O(a \cdot n)$ in the worst case, $O(n)$ in the
    common one, where every account's view converges to the same candidate.
 2. **Select the market.** The largest candidate by eligible size wins, and
-   the mark reads only it. If no valid candidate exists, or two candidates
-   that share nothing tie exactly, no fresh mark is possible this window.
+   $M$ reads only it. If no valid candidate exists, or two candidates
+   that share nothing tie exactly, no fresh $M$ is possible this window.
    Cost: comparing at most $a$ candidate sizes, plus one $O(n)$
    disjointness check in the exact-tie case.
 3. **Walk both sides.** Consume $D$ dollars of the winning book on each
@@ -554,7 +557,7 @@ will compute it every window regardless.
    not hold is priced at the edge of the measured area. The two
    volume-weighted prices are the impact prices. Cost: $O(\ell)$, only the
    winning book's levels.
-4. **Set the mark and the band.** $M$ is the midpoint of the two impact
+4. **Set $M$ and the band.** $M$ is the midpoint of the two impact
    prices, and the band is $M \pm B/2$. The venue also records the impact
    spread, the gap between the two impact prices: tight when the walk was
    fed by real depth, wide when the book ran thin and the boundary fill had
@@ -589,7 +592,7 @@ untouched by the books of everyone who did not trade.
 
 The window's executed volume adds to the demand sums $S_1$ and $S_2$, at
 $O(1)$. This is later used at the daily close when $D$ takes its one bounded step toward what they read.
-The mark's state carries across windows: fresh when a candidate won, held
+The state of $M$ carries across windows: fresh when a candidate won, held
 at its last value when none did, and absent entirely before a market's
 first candidate forms, where every fill pays the cap. The venue publishes
 the sealed book, the fills, $M$ with its state, and the impact spread, and
@@ -598,7 +601,7 @@ land together. From what is published, any participant can reproduce every
 base fee, every pairing, and every final rate; no step
 depends on operator judgment or on data the venue holds privately.
 
-Summed, the mechanism's marginal cost is the mark branch and the pricing
+Summed, the mechanism's marginal cost is the measuring branch and the pricing
 of fills: $O(a \cdot n)$ in the worst case, $O(n)$ in the common one, and
 nothing at all in a window where nothing traded and nothing asked. There
 are no convergence loops anywhere; every step touches each order a bounded
@@ -611,7 +614,7 @@ so fixed-point integers must be sized for $S_2$.
 
 These notes cover where the market-order rate stands and what its distance
 from the cap can fund, how Snapshot Fees composes with existing practice,
-what it leaves flexible, what it costs, what the mark could serve beyond
+what it leaves flexible, what it costs, what $M$ could serve beyond
 fees, and which auction design fits it best.
 
 ### The Market-Order Rate
@@ -639,16 +642,16 @@ market-order rate against a resting schedule running from 3bps of rebate
 at the center to 1bps at the cap, the venue nets 2bps to 4bps per trade.
 If the schedule instead ran down to a 5bps charge at the cap, the take
 would run 2bps to 10bps. In whichever fee schedule used, any rebates settle in-window from the same window's
-market-order fees, and none are paid before a market's first mark forms;
+market-order fees, and none are paid before a market's first $M$ forms;
 until placement can be measured, everything rests at the cap.
 
 Rebates also require knowing which side of a fill was resting. A batch
 has no aggressor, so the venue must classify, by declaring order classes
 at entry or by seniority, an order counting as resting once it has stood
 through a seal without filling. Any scheme must satisfy one requirement:
-no fill collects a rebate on both sides. The mark carries no seniority in
+no fill collects a rebate on both sides. The reading carries no seniority in
 any of this; a two-sided book standing at the seal votes on that window's
-mark in full.
+that window's $M$ in full.
 
 ### Volume-Based Discounts Compose
 
@@ -680,34 +683,34 @@ deep markets running tight bands and strict precision pricing, volatile
 ones running wider bands and gentler slopes.
 
 Extending this further, a market could shift its profile as conditions
-change, by governance or by an automated rule: the mark already recomputes
+change, by governance or by an automated rule: $M$ already recomputes
 per window and $D$ per day, so the band, the zone, and the rest could
 follow slower metrics of the market's own volume and volatility. All of it
 stays market state.
 
 ### Maker Fee Uncertainty
 
-On every venue running today, a maker knows their rate before they quote. Here the rate is known only up to the mark: the schedule is fixed, but where a quote falls on it depends on where $M$ lands, so the fee is an interval rather than a number until the window seals. That is a real cost, one more variable to model alongside fill probability and adverse selection. Its bounds are also real: the schedule and formula are fully public, the worst case is the cap $F$, and the interval narrows with the same size and tightness the schedule already rewards.
+On every venue running today, a maker knows their rate before they quote. Here the rate is known only up to the Measured Price: the schedule is fixed, but where a quote falls on it depends on where $M$ lands, so the fee is an interval rather than a number until the window seals. That is a real cost, one more variable to model alongside fill probability and adverse selection. Its bounds are also real: the schedule and formula are fully public, the worst case is the cap $F$, and the interval narrows with the same size and tightness the schedule already rewards.
 
-### Consuming the Mark
+### Consuming the Measured Price
 
 The mechanism's byproduct is a reference price. Each window exports $M$
 with its state and the impact spread, all recomputable from published
-data, and a mark that is measured at size and expensive to move is a
+data, and a price that is measured at size and expensive to move is a
 candidate input for services beyond fees: settlement prints, indexes, and
 eventually higher-stakes consumers.
 
-At the highest-stakes end of that spectrum, a liquidation engine should never consume a single window's mark
-directly; it would want machinery built around the mark, smoothing across
+At the highest-stakes end of that spectrum, a liquidation engine should never consume a single window's $M$
+directly; it would want machinery built around $M$, smoothing across
 windows, staleness bounds, health gating, so that moving the reference
 would mean sustaining a distortion across the whole lookback rather than
-winning one window. All of these are extensions around the mark, not changes to it; the per-window measurement stays exactly as described.
+winning one window. All of these are extensions around $M$, not changes to it; the per-window measurement stays exactly as described.
 
 ### The Dual-Flow Fit
 
 The mechanism runs on any batch auction, but a dual-flow venue fits it
 naturally. Its flows are declared rather than inferred, so the standing
-book is an explicit, labeled object and the mark reads only it. Its fills
+book is an explicit, labeled object and $M$ reads only it. Its fills
 split pro-rata with no seniority carried across windows, which is already
 how the walk shares and how the fees judge. And its takers always trade
 against the standing book rather than netting against each other, so

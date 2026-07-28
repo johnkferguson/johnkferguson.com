@@ -19,7 +19,7 @@ const C = {
 	dim: "var(--lab-dim)",
 	faint: "var(--lab-faint)",
 	fee: "var(--lab-fee)",
-	mark: "var(--lab-mark)",
+	measure: "var(--lab-measure)",
 	band: "var(--lab-band)",
 	bandEdge: "var(--lab-band-edge)",
 	zone: "var(--lab-zone)",
@@ -350,7 +350,7 @@ export default function BaseFeeLab() {
 	const hoverRow = hover != null ? Math.round(hover * 2) / 2 : null;
 	const sepColor = (d: number, next: number | undefined): string | null => {
 		if (next == null) return null;
-		if (d <= B / 2 + 1e-9 && next > B / 2 + 1e-9) return C.mark;
+		if (d <= B / 2 + 1e-9 && next > B / 2 + 1e-9) return C.measure;
 		if (d <= dKnee + 1e-9 && next > dKnee + 1e-9) return C.zone;
 		if (feeAt(d) < F - 1e-9 && feeAt(next) >= F - 1e-9) return C.fee;
 		return null;
@@ -502,7 +502,7 @@ export default function BaseFeeLab() {
 							viewBox={`0 0 ${W} ${H}`}
 							style={{ width: "100%", display: "block", touchAction: "none" }}
 							role="img"
-							aria-label="Base fee curve with draggable Band Edge, Zone Edge, and Cap; fee in bps against placement distance from the Mark"
+							aria-label="Base fee curve with draggable Band Edge, Zone Edge, and Cap; fee in bps against placement distance from M"
 						>
 							<defs>
 								<clipPath id="bf-plot">
@@ -638,7 +638,7 @@ export default function BaseFeeLab() {
 								fontSize={12}
 								pointerEvents="none"
 								style={{
-									fill: C.mark,
+									fill: C.measure,
 									fontFamily: mono,
 									transition: "all 220ms ease",
 								}}
@@ -660,13 +660,13 @@ export default function BaseFeeLab() {
 										d={`M${xAt(B / 2) - 9},${PT + 8} l -5,4 l 5,4`}
 										fill="none"
 										strokeWidth={1.5}
-										style={{ stroke: C.mark }}
+										style={{ stroke: C.measure }}
 									/>
 									<path
 										d={`M${xAt(B / 2) + 9},${PT + 8} l 5,4 l -5,4`}
 										fill="none"
 										strokeWidth={1.5}
-										style={{ stroke: C.mark }}
+										style={{ stroke: C.measure }}
 									/>
 								</g>
 							)}
@@ -1078,7 +1078,7 @@ export default function BaseFeeLab() {
 							}}
 						>
 							All values in bps. Colored lines mark the{" "}
-							<span style={{ color: C.mark }}>Band Edge</span>,{" "}
+							<span style={{ color: C.measure }}>Band Edge</span>,{" "}
 							<span style={{ color: C.zone }}>Zone Edge</span>, and{" "}
 							<span style={{ color: C.fee }}>Cap</span>.
 						</div>

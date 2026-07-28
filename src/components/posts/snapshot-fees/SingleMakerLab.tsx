@@ -12,7 +12,7 @@ import "./lab-theme.css";
 // ————————————————————————————————————————————————————————————————
 // Snapshot Fees — single-maker laboratory
 // Levels: 100.00 ± 0.005 steps. 1bp = $0.01 (price ≈ $100 reference).
-// Bid side left of center, ask side right. Mark M floats; center is fixed.
+// Bid side left of center, ask side right. M floats; center is fixed.
 // Mechanism lives in src/lib/snapshot-fees/engine.ts — this file only renders.
 // ————————————————————————————————————————————————————————————————
 
@@ -23,7 +23,7 @@ const ZOOM_HALVES = [10, 15, 20, 25, 30];
 const TICK = 0.005; // $ per level
 const MAX_DEPTH = 25000; // $ per level
 const STEP_DOLLARS = 250;
-// Defaults for the Maker Zone Z (the Mark's working radius: eligibility
+// Defaults for the Maker Zone Z (M's working radius: eligibility
 // range, walk truncation, boundary-fill price, and the base-fee knee) and the
 // far slope k₂ beyond the zone edge.
 const Z_DEFAULT = 4;
@@ -72,7 +72,7 @@ Hover a bar near the mid and one far out and compare receipts: the surcharge lin
 		key: "unbalanced",
 		title: "Unbalanced",
 		zoom: ZOOM_HALVES.length - 1,
-		blurb: `The same $345k on each side as [[Balanced]], arranged differently: the bid ladder runs steep, thin near the mid and heavy far out, while the asks spread more evenly, holding more of their weight close. Weight near the midpoint pushes the mark away from its side: the walk covers its $20,000 in three ask levels but needs five bid levels, and M settles at 99.997, shifted toward the bids. The shift leaves two bid levels inside the band and only one ask level. Pairing follows the same imbalance: with most of the ask notional close in, the asks reach into deeper bid levels to find their pairs, so the surcharges land on the ask side. Past the full-fee point no level pays a surcharge either way: both legs already stand at the cap.
+		blurb: `The same $345k on each side as [[Balanced]], arranged differently: the bid ladder runs steep, thin near the mid and heavy far out, while the asks spread more evenly, holding more of their weight close. Weight near the midpoint pushes M away from its side: the walk covers its $20,000 in three ask levels but needs five bid levels, and M settles at 99.997, shifted toward the bids. The shift leaves two bid levels inside the band and only one ask level. Pairing follows the same imbalance: with most of the ask notional close in, the asks reach into deeper bid levels to find their pairs, so the surcharges land on the ask side. Past the full-fee point no level pays a surcharge either way: both legs already stand at the cap.
 
 Hover M to compare the two walks, then hover an ask outside the band and read the surcharge in its receipt.`,
 		book: () => {
@@ -88,7 +88,7 @@ Hover M to compare the two walks, then hover an ask outside the band and read th
 	{
 		key: "taker",
 		title: "Directional",
-		blurb: `$255k of asks over $82.5k of bids, zoomed in to a smaller range. While [[Unbalanced]] rearranged equal notional, this book is short a side, and that costs more. Only the smaller bid side can pair, consumed best-priced first. On the heavier side, the asks begin to run out of pairs at 100.035, with that level priced as half paired and half directional. Above it, all asks lack any paired liquidity and pay the full cap, even though they stand a relatively short distance from the mark.
+		blurb: `$255k of asks over $82.5k of bids, zoomed in to a smaller range. While [[Unbalanced]] rearranged equal notional, this book is short a side, and that costs more. Only the smaller bid side can pair, consumed best-priced first. On the heavier side, the asks begin to run out of pairs at 100.035, with that level priced as half paired and half directional. Above it, all asks lack any paired liquidity and pay the full cap, even though they stand a relatively short distance from M.
 
 Hover any ask from 100.035 outward to see how much the directional surcharge adds to its total fee. Then try dragging any bid taller and watch the fees above 100.035 fall from the cap back toward placement rates.`,
 		book: () => {
@@ -116,7 +116,7 @@ Try widening B: at 8bps the band swallows the inner rungs, at 10 all four trade 
 	},
 	{
 		key: "thin",
-		title: "Thin Side, Moving Mark",
+		title: "Thin Side, Moving M",
 		blurb: `Bids crowd the mid, eight $10k levels deep, while the asks run thin: ten small rungs summing to just $20,000, with the real ask depth waiting beyond 100.055. The walk covers its $20,000 in two bid levels, while the ask side takes all ten. M lands at 100.012, more than a bps above the mid.
 
 Four asks fall inside the band, but no bid stands inside it for them to pair with, so their pairs reach below the band and they pay a surcharge, about 0.5bps despite their placement. The nearest bid at 99.995 sits just outside the band and pays 0.55bps.
@@ -154,11 +154,11 @@ const C = {
 	bid: "var(--lab-bid)",
 	ask: "var(--lab-ask)",
 	fee: "var(--lab-fee)",
-	mark: "var(--lab-mark)",
+	measure: "var(--lab-measure)",
 	band: "var(--lab-band)",
 	bandEdge: "var(--lab-band-edge)",
 	zone: "var(--lab-zone)",
-	markSlice: "var(--lab-mark-slice)",
+	measureSlice: "var(--lab-measure-slice)",
 	hatch: "var(--lab-hatch)",
 	danger: "var(--lab-danger)",
 	warn: "var(--lab-warn)",
@@ -366,8 +366,8 @@ export default function SingleMakerLab() {
 			side: sideOf(i),
 			size,
 		}));
-		// the lab always carries a prior mark (lastM starts at 100), so the
-		// no-mark state is unreachable here and M / the band edges are numbers
+		// the lab always carries a prior M (lastM starts at 100), so the
+		// no-M state is unreachable here and M / the band edges are numbers
 		return computeModel(
 			book,
 			{ B, D, F, Z, slope, slope2, comp },
@@ -380,7 +380,7 @@ export default function SingleMakerLab() {
 	}, [model.M, model.state]);
 
 	// —— chart geometry ——
-	// Top strip (y 0…PT) holds the Mark carriage and band-edge labels; below
+	// Top strip (y 0…PT) holds the M carriage and band-edge labels; below
 	// the price axis, a key strip and instructions close the frame.
 	const W = 960;
 	const H = 514;
@@ -613,7 +613,7 @@ export default function SingleMakerLab() {
 					}}
 				>
 					Instructions: Hover a bar for its fee and paired liquidity, or{" "}
-					<span style={{ color: C.mark }}>M</span> for the walk that set it.
+					<span style={{ color: C.measure }}>M</span> for the walk that set it.
 					Adjust the market: drag a bar's top edge, double-click 100.000 to flip
 					its side, zoom out for the whole book, and retune the dials. Scenarios
 					below.
@@ -1014,7 +1014,7 @@ export default function SingleMakerLab() {
 									textAnchor="middle"
 									fontSize={12}
 									style={{
-										fill: C.mark,
+										fill: C.measure,
 										fontFamily: mono,
 										transition: "all 220ms ease",
 									}}
@@ -1027,7 +1027,7 @@ export default function SingleMakerLab() {
 									textAnchor="middle"
 									fontSize={12}
 									style={{
-										fill: C.mark,
+										fill: C.measure,
 										fontFamily: mono,
 										transition: "all 220ms ease",
 									}}
@@ -1150,20 +1150,20 @@ export default function SingleMakerLab() {
 											}}
 										/>
 									)}
-									{lv.size > 0 && (model.markUsed.get(lv.i) || 0) > 0 && (
+									{lv.size > 0 && (model.measureUsed.get(lv.i) || 0) > 0 && (
 										<rect
 											x={xAt(lv.i) - barW / 2}
-											y={yDepth(model.markUsed.get(lv.i) ?? 0)}
+											y={yDepth(model.measureUsed.get(lv.i) ?? 0)}
 											width={barW}
 											height={Math.max(
 												0,
-												PB - yDepth(model.markUsed.get(lv.i) ?? 0),
+												PB - yDepth(model.measureUsed.get(lv.i) ?? 0),
 											)}
 											strokeWidth={1.25}
 											rx={2}
 											opacity={dimIf(lv.i)}
 											pointerEvents="none"
-											style={{ fill: C.markSlice, stroke: C.mark }}
+											style={{ fill: C.measureSlice, stroke: C.measure }}
 										/>
 									)}
 									{lv.size > 0 && lv.bk && lv.bk.unpaired > 0 && (
@@ -1409,7 +1409,7 @@ export default function SingleMakerLab() {
 								height={14}
 								rx={2}
 								strokeWidth={1.25}
-								style={{ fill: C.markSlice, stroke: C.mark }}
+								style={{ fill: C.measureSlice, stroke: C.measure }}
 							/>
 							<text
 								x={600}
@@ -1622,7 +1622,7 @@ export default function SingleMakerLab() {
 							},
 						)}
 
-						{/* Mark carriage — the signature. Rides the top strip; hover for
+						{/* M carriage — the signature. Rides the top strip; hover for
 					    the walk that produced it. */}
 						<g
 							style={{ transition: "transform 220ms ease" }}
@@ -1636,11 +1636,11 @@ export default function SingleMakerLab() {
 								strokeWidth={1}
 								opacity={0.5}
 								pointerEvents="none"
-								style={{ stroke: C.mark }}
+								style={{ stroke: C.measure }}
 							/>
 							<path
 								d={`M0,${PT - 3} l -6,-10 l 12,0 z`}
-								style={{ fill: C.mark }}
+								style={{ fill: C.measure }}
 							/>
 							<rect
 								x={-58}
@@ -1649,14 +1649,14 @@ export default function SingleMakerLab() {
 								height={22}
 								rx={4}
 								strokeWidth={0.75}
-								style={{ fill: C.panel2, stroke: C.mark }}
+								style={{ fill: C.panel2, stroke: C.measure }}
 							/>
 							<text
 								x={0}
 								y={24}
 								textAnchor="middle"
 								fontSize={13.5}
-								style={{ fill: C.mark, fontFamily: mono }}
+								style={{ fill: C.measure, fontFamily: mono }}
 							>
 								M {fmtPx(model.M)}
 								{model.state !== "fresh" ? " ❄" : ""}
@@ -1674,7 +1674,7 @@ export default function SingleMakerLab() {
 							/>
 						</g>
 
-						{/* Mark tooltip — the walk that produced M, side by side */}
+						{/* M tooltip — the walk that produced it, side by side */}
 						{mHover &&
 							(() => {
 								const xT = Math.min(
@@ -1700,7 +1700,7 @@ export default function SingleMakerLab() {
 												height={16 + rows.length * 19}
 												rx={6}
 												strokeWidth={0.75}
-												style={{ fill: C.panel2, stroke: C.mark }}
+												style={{ fill: C.panel2, stroke: C.measure }}
 											/>
 											{rows.map((r, k) => (
 												<text
@@ -1720,13 +1720,14 @@ export default function SingleMakerLab() {
 									model.levels
 										.filter(
 											(l) =>
-												l.side === side && (model.markUsed.get(l.i) ?? 0) > 0,
+												l.side === side &&
+												(model.measureUsed.get(l.i) ?? 0) > 0,
 										)
 										.sort((a, b) =>
 											side === "bid" ? b.price - a.price : a.price - b.price,
 										)
 										.map((l) => ({
-											t: `${fmtPx(l.price)} · ${fmt$(model.markUsed.get(l.i) ?? 0)}`,
+											t: `${fmtPx(l.price)} · ${fmt$(model.measureUsed.get(l.i) ?? 0)}`,
 											c: C.text,
 										}));
 								const colOf = (side: Side) => {
@@ -1767,7 +1768,7 @@ export default function SingleMakerLab() {
 											height={h}
 											rx={6}
 											strokeWidth={0.75}
-											style={{ fill: C.panel2, stroke: C.mark }}
+											style={{ fill: C.panel2, stroke: C.measure }}
 										/>
 										<text
 											x={xT}
@@ -1776,7 +1777,7 @@ export default function SingleMakerLab() {
 											fontSize={14}
 											style={{ fill: C.dim, fontFamily: mono }}
 										>
-											M: Mark Price of this Snapshot
+											M: Measured Price of this Snapshot
 										</text>
 										<line
 											x1={xT}
@@ -1844,7 +1845,7 @@ export default function SingleMakerLab() {
 											y={footY}
 											textAnchor="middle"
 											fontSize={14}
-											style={{ fill: C.mark, fontFamily: mono }}
+											style={{ fill: C.measure, fontFamily: mono }}
 										>
 											M = ({model.iBid != null ? fmtPx(model.iBid) : "–"} +{" "}
 											{model.iAsk != null ? fmtPx(model.iAsk) : "–"}) / 2 ={" "}

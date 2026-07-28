@@ -11,7 +11,7 @@ import "./lab-theme.css";
 	<svg
 		viewBox="0 0 640 540"
 		role="img"
-		aria-label="Flowchart of one auction: seal the auction, then calculate the mark and match in parallel, then price the fills, then finalize the window"
+		aria-label="Flowchart of one auction: seal the auction, then measure the book and match in parallel, then price the fills, then finalize the window"
 	>
 		<defs>
 			<marker
@@ -43,11 +43,11 @@ import "./lab-theme.css";
 			<text x="320" y="74">Auction</text>
 		</a>
 
-		<!-- Calculate the Mark: unique to the mechanism -->
-		<a href="#calculate-the-mark">
+		<!-- Measure the Book: unique to the mechanism -->
+		<a href="#measure-the-book">
 			<circle cx="170" cy="200" r="52" class="pc-node pc-ours"></circle>
-			<text x="170" y="196">Calculate</text>
-			<text x="170" y="214">the Mark</text>
+			<text x="170" y="196">Measure</text>
+			<text x="170" y="214">the Book</text>
 		</a>
 
 		<!-- Match: the venue's existing work -->
@@ -107,14 +107,14 @@ import "./lab-theme.css";
 	}
 
 	.pc-ours {
-		stroke: var(--lab-mark);
+		stroke: var(--lab-measure);
 	}
 
 	/* the blend ring: purple base circle under an evenly dashed gray circle;
 	   dash length divides the circumference (2π·52 / 40) so the stripes tile
 	   the ring exactly, with no tangent-aligned solid arcs */
 	.pc-blend-base {
-		stroke: var(--lab-mark);
+		stroke: var(--lab-measure);
 		stroke-width: 3;
 	}
 
@@ -158,7 +158,7 @@ import "./lab-theme.css";
 	}
 
 	.pc-sw-ours {
-		border: 1.5px solid var(--lab-mark);
+		border: 1.5px solid var(--lab-measure);
 	}
 
 	.pc-sw-blend {
@@ -168,7 +168,7 @@ import "./lab-theme.css";
 			repeating-linear-gradient(
 					45deg,
 					var(--lab-faint) 0 4px,
-					var(--lab-mark) 4px 8px
+					var(--lab-measure) 4px 8px
 				)
 				border-box;
 	}
