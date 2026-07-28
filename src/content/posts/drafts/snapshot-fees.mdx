@@ -217,7 +217,9 @@ leads the [Design Notes](#design-notes).
 
 Non-directional liquidity is determined from the sealed order book at auction
 close: a trader's notional dollars on the bid side pair against their dollars
-on the ask, best-priced first, until the smaller side runs out. Each paired dollar
+on the ask, best-priced first, until the smaller side runs out. A pair forms
+only when the bid stands below the ask: a trader's bid at or above their own
+ask would trade with itself, and both legs stay unpaired. Each paired dollar
 pays the worse of its two legs so that a tight bid cannot borrow a better
 rate than the far ask it is paired with.
 

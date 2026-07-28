@@ -129,14 +129,19 @@ export function computeAccountFees(
 	};
 
 	// Joint allocation: opposite-side stock is CONSUMED across same-side
-	// levels, inside-first — uncovered size spills outward.
+	// levels, inside-first — uncovered size spills outward. A pair counts
+	// only when the bid stands strictly below the ask (what a real quote
+	// looks like): a self-crossed book — own bid at or above own ask — is
+	// the wash posture the M layer already refuses to count, and without
+	// this rule it would dress an aggressive, book-crossing order in a
+	// cheap near-M partner leg and pay ~0 instead of the cap. Skipped
+	// stock stays available to worse-priced same-side levels.
 	const allocate = (
 		same: BookLevel[],
 		opp: BookLevel[],
 	): Map<number, Allocation> => {
 		const map = new Map<number, Allocation>();
-		let oi = 0;
-		let oRem = opp.length ? opp[oi].size : 0;
+		const oRem = opp.map((l) => l.size);
 		let claimed = 0;
 		for (const lv of same) {
 			const entry: Allocation = {
@@ -145,20 +150,19 @@ export function computeAccountFees(
 				claimedBefore: claimed,
 			};
 			let rem = lv.size;
-			while (rem > 1e-9 && oi < opp.length) {
-				if (opp[oi].size <= 0 || oRem <= 1e-9) {
-					oi += 1;
-					oRem = oi < opp.length ? opp[oi].size : 0;
-					continue;
-				}
-				const m = Math.min(rem, oRem);
+			for (let oi = 0; oi < opp.length && rem > 1e-9; oi++) {
+				if (oRem[oi] <= 1e-9) continue;
+				const bidP = lv.side === "bid" ? lv.price : opp[oi].price;
+				const askP = lv.side === "bid" ? opp[oi].price : lv.price;
+				if (bidP >= askP - 1e-9) continue;
+				const m = Math.min(rem, oRem[oi]);
 				entry.pairs.push({
 					price: opp[oi].price,
 					paired: m,
 					baseFee: baseFeeOf(opp[oi].price, opp[oi].side as "bid" | "ask"),
 				});
 				rem -= m;
-				oRem -= m;
+				oRem[oi] -= m;
 				claimed += m;
 			}
 			entry.unpaired = rem;
@@ -337,7 +341,8 @@ export function computeMeasure(
 	// its own best ask) would trade with itself — wash-trading posture,
 	// not a view of the market. It gets no voice in M this window:
 	// no seed, no eligibility contribution. (Its orders still match and
-	// pay fees; only M participation is withheld.) Without this gate a
+	// pay fees; the fee layer agrees on the shape — crossed legs refuse
+	// to pair there, see allocate's bid-below-ask rule.) Without this gate a
 	// $20 self-crossed straddle across two far-apart markets hijacks
 	// anchor convergence and mints an M between them — the one-sided
 	// reach filters admit its far quote via its near pair, and every

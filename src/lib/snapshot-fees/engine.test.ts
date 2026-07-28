@@ -881,6 +881,140 @@ describe("piecewise base fee (the zone knee)", () => {
 	});
 });
 
+describe("pairing coherence: a pair counts only when the bid stands below the ask", () => {
+	// Working defaults. M is supplied directly: these vectors judge the fee
+	// layer alone against a known measured price.
+	const p: FeeParams = {
+		B: 2,
+		D: 20000,
+		F: 10,
+		Z: 4,
+		slope: 0.8,
+		slope2: 0.95,
+		comp: 0,
+	};
+	const M = 100;
+	const bk = (
+		af: ReturnType<typeof computeAccountFees>,
+		i: number,
+	): NonNullable<(typeof af.levels)[number]["bk"]> => {
+		const b = af.levels.find((l) => l.i === i)?.bk;
+		if (!b) throw new Error(`no breakdown for level ${i}`);
+		return b;
+	};
+
+	test("wash sandwich: own bid above own ask refuses to pair — both legs pay F", () => {
+		// The costume: a book-crossing bid dressed in a cheap near-M ask.
+		// Before the rule this paired and paid ~0; the M layer already
+		// refused the same shape as wash posture.
+		const af = computeAccountFees(
+			[
+				{ i: 0, price: 100.48, side: "bid", size: 10000 },
+				{ i: 1, price: 100.06, side: "ask", size: 10000 },
+			],
+			p,
+			M,
+		);
+		expect(bk(af, 0).pairs).toHaveLength(0);
+		expect(bk(af, 0).unpaired).toBe(10000);
+		expect(bk(af, 0).final).toBe(p.F);
+		expect(bk(af, 1).pairs).toHaveLength(0);
+		expect(bk(af, 1).final).toBe(p.F);
+	});
+
+	test("high straddle: pairs, but the far ask leg prices the pair at ~F", () => {
+		const af = computeAccountFees(
+			[
+				{ i: 0, price: 100.48, side: "bid", size: 10000 },
+				{ i: 1, price: 100.5, side: "ask", size: 10000 },
+			],
+			p,
+			M,
+		);
+		// ask 100.50 is 49bp past the band edge — past the cap distance
+		expect(bk(af, 1).own).toBe(p.F);
+		// worse-of hands the bid its partner's cap rate
+		expect(bk(af, 0).own).toBe(0);
+		expect(bk(af, 0).final).toBe(p.F);
+		expect(bk(af, 1).final).toBe(p.F);
+	});
+
+	test("honest disagreement a hair high: pairs and pays the ask leg's small distance", () => {
+		const af = computeAccountFees(
+			[
+				{ i: 0, price: 100.04, side: "bid", size: 10000 },
+				{ i: 1, price: 100.05, side: "ask", size: 10000 },
+			],
+			p,
+			M,
+		);
+		// ask 100.05: 4bp past the edge → k1 × 4 = 3.2; the bid leg is free
+		expect(bk(af, 1).own).toBeCloseTo(3.2, 10);
+		expect(bk(af, 0).final).toBeCloseTo(3.2, 10);
+		expect(bk(af, 1).final).toBeCloseTo(3.2, 10);
+	});
+
+	test("self-locked quote (bid == ask) does not pair — strict below, matching the M gate", () => {
+		const af = computeAccountFees(
+			[
+				{ i: 0, price: 100.02, side: "bid", size: 5000 },
+				{ i: 1, price: 100.02, side: "ask", size: 5000 },
+			],
+			p,
+			M,
+		);
+		expect(bk(af, 0).pairs).toHaveLength(0);
+		expect(bk(af, 0).final).toBe(p.F);
+		expect(bk(af, 1).final).toBe(p.F);
+	});
+
+	test("skip-aware allocation stays symmetric: bid view and ask view agree on every pair", () => {
+		// Partially crossed book: the high bid must skip the near ask but
+		// pair the far one; the skipped ask stays available to the low bid.
+		const af = computeAccountFees(
+			[
+				{ i: 0, price: 100.48, side: "bid", size: 10000 },
+				{ i: 1, price: 100.0, side: "bid", size: 10000 },
+				{ i: 2, price: 100.06, side: "ask", size: 5000 },
+				{ i: 3, price: 100.5, side: "ask", size: 20000 },
+			],
+			p,
+			M,
+		);
+		// bid view
+		expect(bk(af, 0).pairs).toEqual([
+			{ price: 100.5, paired: 10000, baseFee: p.F },
+		]);
+		expect(bk(af, 1).pairs.map((pr) => [pr.price, pr.paired])).toEqual([
+			[100.06, 5000],
+			[100.5, 5000],
+		]);
+		// ask view mirrors the same physical pairs
+		expect(bk(af, 2).pairs.map((pr) => [pr.price, pr.paired])).toEqual([
+			[100.0, 5000],
+		]);
+		expect(bk(af, 3).pairs.map((pr) => [pr.price, pr.paired])).toEqual([
+			[100.48, 10000],
+			[100.0, 5000],
+		]);
+		// paired dollars agree across the two views; the leftover ask stock
+		// is directional and pays F
+		const paired = (i: number) =>
+			bk(af, i).pairs.reduce((s, pr) => s + pr.paired, 0);
+		expect(paired(0) + paired(1)).toBe(paired(2) + paired(3));
+		expect(bk(af, 3).unpaired).toBe(5000);
+	});
+
+	test("uncrossed books are untouched: the rule never binds when every bid is below every ask", () => {
+		// The spec reference book, judged at its own M: identical output to
+		// the reference computation above (worse-of, spillover intact).
+		const m = computeModel(book, P, null);
+		const outer = m.levels.find((l) => l.i === 0)?.bk;
+		expect(outer?.pairing).toBeCloseTo(5.333333333, 8);
+		expect(outer?.claimedBefore).toBe(3000);
+	});
+});
+
 describe("invariant fuzz (deterministic seeds)", () => {
 	function fuzzRng(seed: number) {
 		let a = seed >>> 0;
