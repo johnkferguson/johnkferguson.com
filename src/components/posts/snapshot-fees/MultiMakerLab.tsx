@@ -12,7 +12,7 @@ import "./lab-theme.css";
 
 // ————————————————————————————————————————————————————————————————
 // Snapshot Fees — multi-maker laboratory, mirrored: your book grows up
-// from the midline, the Aggregate Makers grow down. Communal things (M,
+// from the midline, the Other Makers grow down. Communal things (M,
 // the band) span both halves; personal things live in their own half.
 // ————————————————————————————————————————————————————————————————
 
@@ -38,7 +38,7 @@ const sideAt = (i: number): Side => (i <= CENTER ? "bid" : "ask");
 const round$ = (v: number) =>
 	Math.max(0, Math.round(v / STEP_DOLLARS) * STEP_DOLLARS);
 
-// Aggregate Makers ladder, outward from CENTER ± spread, spanning the book
+// Other Makers ladder, outward from CENTER ± spread, spanning the book
 const AGG_LADDER = Array.from(
 	{ length: 29 },
 	(_, k) => 6000 + Math.round((14000 * k) / 28 / 500) * 500,
@@ -122,7 +122,7 @@ const SCENARIOS: Scenario[] = [
 		key: "alone",
 		title: "On Your Own",
 		blurb:
-			"The aggregate makers are gone: your book is the whole market, exactly as in the first lab. Every dollar of the walk is yours, so M answers to you alone. Drag a side thin and watch it move.",
+			"The other makers are gone: your book is the whole market, exactly as in the first lab. Every dollar of the walk is yours, so M answers to you alone. Drag a side thin and watch it move.",
 		you: YOUR_DEFAULT,
 		depth: 0,
 		lean: 0,
@@ -132,7 +132,7 @@ const SCENARIOS: Scenario[] = [
 		key: "smallfish",
 		title: "Small Fish",
 		blurb:
-			"A deep aggregate book dwarfs yours. Drag your bars: M barely acknowledges you, because your dollars are a sliver of the measuring walk. Your fees still depend entirely on your own placement and matching; only your influence on the yardstick shrank.",
+			"The other makers stand a book that dwarfs yours. Drag your bars: M barely acknowledges you, because your dollars are a sliver of the measuring walk. Your fees still depend entirely on your own placement and matching; only your influence on the yardstick shrank.",
 		you: YOUR_DEFAULT,
 		depth: 2.5,
 		lean: 0,
@@ -142,7 +142,7 @@ const SCENARIOS: Scenario[] = [
 		key: "equal",
 		title: "Equal Voice",
 		blurb:
-			"You and the aggregate makers stand comparable size near the touch, so the walk consumes from both of you pro-rata and M splits the difference. Check your share of each walk in the readout.",
+			"You and the other makers stand comparable size near the touch, so the walk consumes from both of you pro-rata and M splits the difference. Check your share of each walk in the readout.",
 		you: YOUR_DEFAULT,
 		depth: 0.55,
 		lean: 0,
@@ -152,7 +152,7 @@ const SCENARIOS: Scenario[] = [
 		key: "lean",
 		title: "The Makers Lean",
 		blurb:
-			"The aggregate book goes bid-heavy: their thin ask side makes the buy walk pay up, M rises, and the band follows. Your book has not moved, but your quotes now sit differently against the standard and your fees changed. Your placement is yours; the yardstick is communal.",
+			"The other makers go bid-heavy: their thin ask side makes the buy walk pay up, M rises, and the band follows. Your book has not moved, but your quotes now sit differently against the standard and your fees changed. Your placement is yours; the yardstick is communal.",
 		you: YOUR_DEFAULT,
 		depth: 1.5,
 		lean: 60,
@@ -436,14 +436,18 @@ export default function MultiMakerLab() {
 	const [scenario, setScenario] = useState<string | null>(SCENARIOS[0].key);
 	// levels of YOUR book whose side is flipped from the positional default;
 	// flipping a right-of-center level to bid (or vice versa) builds a
-	// crossed book. The aggregate book stays positional.
+	// crossed book. The other makers\u2019 book stays positional.
 	const [yourFlips, setYourFlips] = useState<ReadonlySet<number>>(new Set());
+	// the other makers flip the same way, so a reader can build a crossed
+	// or one-sided market on either half
+	const [makerFlips, setMakerFlips] = useState<ReadonlySet<number>>(new Set());
 	const [playing, setPlaying] = useState(false);
 	// the last custom market, remembered when a scenario replaces it; the
 	// Custom button restores it
 	const [customSnap, setCustomSnap] = useState<{
 		yourSizes: number[];
 		yourFlips: ReadonlySet<number>;
+		makerFlips: ReadonlySet<number>;
 		depth: number;
 		lean: number;
 		spread: number;
@@ -479,15 +483,46 @@ export default function MultiMakerLab() {
 	const playDepth = useRef(1);
 	const playShape = useRef(0.2); // book shape: +grows outward, −thick at the mid
 	const playTilt = useRef(0); // shape opposition: bids vs asks bend opposite ways
-	const yourSideOf = (i: number): Side =>
-		yourFlips.has(i) ? (sideAt(i) === "bid" ? "ask" : "bid") : sideAt(i);
-	const flipLevel = (i: number) =>
-		setYourFlips((s) => {
-			const nx = new Set(s);
-			if (nx.has(i)) nx.delete(i);
-			else nx.add(i);
-			return nx;
-		});
+	const flipped = (i: number, fl: ReadonlySet<number>): Side =>
+		fl.has(i) ? (sideAt(i) === "bid" ? "ask" : "bid") : sideAt(i);
+	const yourSideOf = (i: number): Side => flipped(i, yourFlips);
+	const makerSideOf = (i: number): Side => flipped(i, makerFlips);
+	/**
+	 * Double-click moves a book's bid/ask frontier to the level clicked. The
+	 * level flips, and any same-side level the flip would strand on the wrong
+	 * side of it comes along: turning a bid into an ask carries the bids
+	 * standing above it, turning an ask into a bid carries the asks standing
+	 * below. A level already at the frontier has nothing to carry, so it
+	 * flips alone. Only levels holding size are moved; empty ones keep their
+	 * positional side until they are given size.
+	 */
+	const flipFrontier = (
+		i: number,
+		sizes: number[],
+		fl: ReadonlySet<number>,
+		set: (v: ReadonlySet<number>) => void,
+	) => {
+		const side = flipped(i, fl);
+		if (side === "mid") return;
+		const run = [i];
+		if (side === "bid") {
+			for (let k = i + 1; k < N; k++)
+				if (sizes[k] > 0 && flipped(k, fl) === "bid") run.push(k);
+		} else {
+			for (let k = i - 1; k >= 0; k--)
+				if (sizes[k] > 0 && flipped(k, fl) === "ask") run.push(k);
+		}
+		const nx = new Set(fl);
+		for (const k of run) {
+			if (nx.has(k)) nx.delete(k);
+			else nx.add(k);
+		}
+		set(nx);
+	};
+	const flipYours = (i: number) =>
+		flipFrontier(i, yourSizes, yourFlips, setYourFlips);
+	const flipMakers = (i: number) =>
+		flipFrontier(i, makerSizes, makerFlips, setMakerFlips);
 	const model = useMemo(() => {
 		const yourBook: BookLevel[] = yourSizes.map((size, i) => ({
 			i,
@@ -498,7 +533,7 @@ export default function MultiMakerLab() {
 		const makerBook: BookLevel[] = makerSizes.map((size, i) => ({
 			i,
 			price: priceAt(i),
-			side: sideAt(i),
+			side: makerSideOf(i),
 			size: showAgg ? size : 0,
 		}));
 		// the lab always carries a prior M (lastM starts at 100), so the
@@ -526,6 +561,7 @@ export default function MultiMakerLab() {
 		slope,
 		slope2,
 		yourFlips,
+		makerFlips,
 		showYou,
 		showAgg,
 	]);
@@ -714,6 +750,7 @@ export default function MultiMakerLab() {
 			setCustomSnap({
 				yourSizes,
 				yourFlips,
+				makerFlips,
 				depth,
 				lean,
 				spread,
@@ -727,6 +764,7 @@ export default function MultiMakerLab() {
 			});
 		setYourSizes(sc.you());
 		setYourFlips(new Set(sc.flips ?? []));
+		setMakerFlips(new Set());
 		setDepth(sc.depth);
 		setLean(sc.lean);
 		setSpread(sc.spread);
@@ -857,20 +895,24 @@ export default function MultiMakerLab() {
 						lineHeight: 1.5,
 					}}
 				>
-					Instructions: Drag a bar's outer edge to resize it, hover a bar for
-					its fee or <span style={{ color: C.measure }}>M</span> for the walk,
-					and double-click your half of a level to flip its side.
+					Instructions: Hover a level to read your fee and the makers' side by
+					side, or <span style={{ color: C.measure }}>M</span> for the walk that
+					set it and your share of each side. The book beneath the midline is
+					every other maker in the market, summed into one: reshape it with
+					their dials, deal a fresh one with Randomize, or let Play set it
+					wandering. Double-click a level in either book to flip its side.
 				</div>
-				{/* the makers' book: a tinted, bordered group, so the dials that
-				    generate their ladder never read as controls over your own */}
+				{/* the other makers' book: a tinted, bordered group, so the dials
+				    that generate their ladder never read as controls over your own */}
 				<div style={group}>
 					<div style={groupHead}>
-						<span style={label}>Aggregate Makers</span>
+						<span style={label}>Other Makers</span>
 						<div style={{ display: "flex", gap: 5, flexWrap: "wrap" }}>
 							<button
 								type="button"
 								onClick={() => {
 									setMakerSizes(randomMakers());
+									setMakerFlips(new Set());
 									setScenario(null);
 									setPlaying(false);
 								}}
@@ -962,7 +1004,7 @@ export default function MultiMakerLab() {
 									type="button"
 									role="switch"
 									aria-checked={on}
-									aria-label={`${lbl === "You" ? "Your book" : "The aggregate makers"} in the auction`}
+									aria-label={`${lbl === "You" ? "Your book" : "The other makers"} in the auction`}
 									onClick={() => set((v) => !v)}
 									style={{
 										display: "flex",
@@ -1165,7 +1207,7 @@ export default function MultiMakerLab() {
 							setUnderTip((v) => (v === inside ? v : inside));
 						}}
 						role="img"
-						aria-label="Mirrored order book: your quotes grow up from the midline, the aggregate makers grow down, with the communal M spanning both"
+						aria-label="Mirrored order book: your quotes grow up from the midline, the other makers grow down, with the communal M spanning both"
 					>
 						<defs>
 							<pattern
@@ -1455,7 +1497,7 @@ export default function MultiMakerLab() {
 						{yourSizes.map((yv, i) => {
 							if (!inView(i)) return null;
 							const sideYou = yourSideOf(i);
-							const sideAgg = sideAt(i);
+							const sideAgg = makerSideOf(i);
 							const av = makerSizes[i];
 							const usedYou = mm.used.get("you")?.get(i) ?? 0;
 							const usedAgg = mm.used.get("agg")?.get(i) ?? 0;
@@ -1477,7 +1519,8 @@ export default function MultiMakerLab() {
 											setMakerHover(null);
 										}}
 										onDblClick={(e) => {
-											if (halfAt(e) === "you") flipLevel(i);
+											if (halfAt(e) === "you") flipYours(i);
+											else flipMakers(i);
 										}}
 									/>
 									{/* grab handles: hug each bar's outer edge, mostly outside it */}
@@ -1885,7 +1928,7 @@ export default function MultiMakerLab() {
 									fontSize={16}
 									style={{ fill: C.dim, fontFamily: mono }}
 								>
-									Aggregate Makers ↓
+									Other Makers ↓
 								</text>
 								<circle
 									cx={498}
@@ -2167,7 +2210,8 @@ export default function MultiMakerLab() {
 									for (const id of ["you", "agg"])
 										for (const [i, v] of mm.used.get(id) ?? new Map())
 											if (v > 0) {
-												const sd = id === "you" ? yourSideOf(i) : sideAt(i);
+												const sd =
+													id === "you" ? yourSideOf(i) : makerSideOf(i);
 												if (sd === side) levels.add(i);
 											}
 									const sorted = [...levels].sort((a, b) =>
@@ -2697,6 +2741,7 @@ export default function MultiMakerLab() {
 							if (scenario !== null && customSnap) {
 								setYourSizes(customSnap.yourSizes);
 								setYourFlips(customSnap.yourFlips);
+								setMakerFlips(customSnap.makerFlips);
 								setDepth(customSnap.depth);
 								setLean(customSnap.lean);
 								setSpread(customSnap.spread);
