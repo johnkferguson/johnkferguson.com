@@ -9,4 +9,11 @@ exclude = [
   "mxcl\\.github\\.com",
   "uptimerobot\\.com",
   "docs\\.newrelic\\.com/docs/alert-policies",
+  # Live links this checker cannot reach, which is a different thing from the
+  # dead ones above. Oxford University Press sits behind Cloudflare and
+  # answers a runner with `cf-mitigated: challenge` and a 403. A browser user
+  # agent gets the same 403, so there is no header to set: passing it needs
+  # the JS challenge. Excluding the host rather than accepting 403 globally,
+  # which would hide a real one anywhere else on the site.
+  "academic\\.oup\\.com",
 ]
