@@ -441,6 +441,7 @@ function Param({
 			</div>
 			<input
 				type="range"
+				aria-label={name}
 				min={min}
 				max={max}
 				step={stp}
@@ -1382,7 +1383,12 @@ export default function MultiMakerLab() {
 									flexDirection: "column",
 									alignItems: "stretch",
 									justifyContent: "center",
-									gap: 4,
+									/* 6, not 4: each switch is 19px tall, and a touch target
+									   under 24px only passes if a 24px circle on one does not
+									   reach the next. At 4 their centres were 23px apart, one
+									   short. The switches are drawn the same size and the row
+									   keeps its height, so nothing moves but the two of them. */
+									gap: 6,
 								}}
 							>
 								{(

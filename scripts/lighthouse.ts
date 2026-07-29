@@ -160,6 +160,24 @@ const URL_OVERRIDES: Record<string, UrlOverride> = {
 		categories: { seo: 0.6 },
 		expectedAudits: { "is-crawlable": 0 },
 	},
+	/*
+	 * The first page to want italic prose and math on the same page, which is
+	 * what the font number is: Newsreader normal and italic are 196 KiB
+	 * between them, so a 160 KiB ceiling is unreachable here whatever KaTeX
+	 * does. KaTeX's five faces add 59 KiB on top (Main-Regular, Math-Italic,
+	 * and three Size faces), and Fira Code 400 the last 23.
+	 *
+	 * Measured at 278 KiB font / 368 KiB total. The ceilings sit a little
+	 * over that: enough that a run does not flake, tight enough that another
+	 * font face or a fifth island still trips them.
+	 *
+	 * Both should come down rather than stay here. Subsetting the KaTeX faces
+	 * to the glyphs this post actually sets is issue #23, and would take the
+	 * font figure back under 240.
+	 */
+	"/snapshot-fees": {
+		sizeBudgetsKib: { font: 290, total: 385 },
+	},
 };
 
 /* ------------------------------------------------------------------ *

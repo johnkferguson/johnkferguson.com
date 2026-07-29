@@ -94,6 +94,7 @@ function Param({
 			<input
 				class="sf-param-slider"
 				type="range"
+				aria-label={name}
 				min={min}
 				max={max}
 				step={stp}
