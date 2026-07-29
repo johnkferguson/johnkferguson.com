@@ -330,6 +330,9 @@ const groupHead = {
 
 interface ParamProps {
 	name: string;
+	/** The dial's symbol, shown in place of `name` where the column is too
+	 *  narrow to hold the spelled-out one beside the reading. */
+	short?: string;
 	val: number;
 	set: (v: number) => void;
 	min: number;
@@ -338,11 +341,15 @@ interface ParamProps {
 	suffix?: string;
 	hint?: string;
 	fmt?: (v: number) => string;
+	/** A shorter reading for narrow columns, where the full one would not
+	 *  sit beside the dial's name. */
+	fmtShort?: (v: number) => string;
 	warn?: boolean;
 }
 
 function Param({
 	name,
+	short,
 	val,
 	set,
 	min,
@@ -351,6 +358,7 @@ function Param({
 	suffix,
 	hint,
 	fmt,
+	fmtShort,
 	warn,
 }: ParamProps) {
 	// the value rides the label line rather than the slider's, so every
@@ -368,7 +376,8 @@ function Param({
 		>
 			<div style={headRow}>
 				<span style={{ ...label, fontSize: 9.5, letterSpacing: "0.1em" }}>
-					{name}
+					{short && <span class="sf-short">{short}</span>}
+					<span class="sf-long">{name}</span>
 				</span>
 				<span
 					style={{
@@ -378,7 +387,8 @@ function Param({
 						whiteSpace: "nowrap",
 					}}
 				>
-					{fmt ? fmt(val) : val + (suffix || "")}
+					{fmtShort && <span class="sf-short">{fmtShort(val)}</span>}
+					<span class="sf-long">{fmt ? fmt(val) : val + (suffix || "")}</span>
 				</span>
 			</div>
 			<input
@@ -1035,7 +1045,8 @@ export default function MultiMakerLab() {
 							</button>
 						</div>
 					</div>
-					<div class="sf-dials">
+					{/* one word a dial, so these hold three across even on a phone */}
+					<div class="sf-dials sf-dials-three">
 						<Param
 							name="Depth"
 							val={depth}
@@ -1064,6 +1075,12 @@ export default function MultiMakerLab() {
 									? "Neutral"
 									: `${Math.abs(v)}% ${v < 0 ? "Bid" : "Ask"} Dominant`
 							}
+							// Dominant is what the full reading calls it; a third of a
+							// phone holds the side and the share, which is the part
+							// that changes as the dial moves
+							fmtShort={(v) =>
+								v === 0 ? "Neutral" : `${Math.abs(v)}% ${v < 0 ? "Bid" : "Ask"}`
+							}
 							hint="Which side of their book carries the size."
 						/>
 						<Param
@@ -1089,7 +1106,7 @@ export default function MultiMakerLab() {
 						{/* one switch per book, each flanked by a shut eye and an open
 					    one so the direction of the toggle is legible; the inactive
 					    side greys out */}
-						<div style={cell}>
+						<div class="sf-u-visibility" style={cell}>
 							<div style={headRow}>
 								<span style={cellLabel}>Order Book Visibility</span>
 							</div>
@@ -1168,7 +1185,7 @@ export default function MultiMakerLab() {
 
 						{/* the readout takes a dial's shape: value on the label line,
 					    a share bar where the slider would sit, split beneath */}
-						<div style={cell}>
+						<div class="sf-u-influence" style={cell}>
 							<div style={headRow}>
 								<span style={cellLabel}>Your Total Influence</span>
 								<span
@@ -1207,7 +1224,7 @@ export default function MultiMakerLab() {
 								of each walk
 							</span>
 						</div>
-						<div style={cell}>
+						<div class="sf-u-settings" style={cell}>
 							<div style={headRow}>
 								<span style={cellLabel}>Market Settings</span>
 							</div>
@@ -1233,9 +1250,13 @@ export default function MultiMakerLab() {
 						<div style={groupHead}>
 							<span style={label}>Market Settings</span>
 						</div>
-						<div class="sf-dials">
+						{/* a recap panel: every dial here was met and named in an
+						    earlier lab, so on a phone each answers to its symbol and
+						    the hint beneath still says what it does */}
+						<div class="sf-dials sf-dials-three">
 							<Param
 								name="Fee Cap · F"
+								short="F"
 								val={F}
 								set={touch("F", F, setF)}
 								min={5}
@@ -1244,11 +1265,9 @@ export default function MultiMakerLab() {
 								suffix="bps"
 								hint="The most any resting order pays."
 							/>
-							{/* the one dial whose name and reading together outrun half a
-							    phone; shortened here, where the panel is a recap of terms
-							    the earlier labs have already taught in full */}
 							<Param
-								name="Demand · D"
+								name="Typical demand · D"
+								short="D"
 								val={D}
 								set={touch("D", D, setD)}
 								min={1000}
@@ -1259,6 +1278,7 @@ export default function MultiMakerLab() {
 							/>
 							<Param
 								name="Inner Band · B"
+								short="B"
 								val={B}
 								set={touch("B", B, setB)}
 								min={1}
@@ -1269,6 +1289,7 @@ export default function MultiMakerLab() {
 							/>
 							<Param
 								name="Maker Zone · Z"
+								short="Z"
 								val={Z}
 								set={touch("Z", Z, setZ)}
 								min={2}
@@ -1279,6 +1300,7 @@ export default function MultiMakerLab() {
 							/>
 							<Param
 								name="Zone Slope · k₁"
+								short="k₁"
 								val={slope}
 								set={touch("k", slope, setSlope)}
 								min={0.25}
@@ -1290,6 +1312,7 @@ export default function MultiMakerLab() {
 							/>
 							<Param
 								name="Far Slope · k₂"
+								short="k₂"
 								val={slope2}
 								set={touch("k2", slope2, setSlope2)}
 								min={0.25}

@@ -335,9 +335,13 @@ export default function DemandLab() {
 				>
 					{/* —— left two-thirds: dials above, the chart below —— */}
 					<div class="sf-dialbox" style={{ flex: "2 1 400px", minWidth: 300 }}>
-						<div class="sf-dials" style={{ padding: "10px 12px 8px 4px" }}>
+						<div
+							class="sf-dials sf-dials-three"
+							style={{ padding: "10px 12px 8px 4px" }}
+						>
 							<Param
 								name="Seed · D₀"
+								short="D₀"
 								val={seed}
 								set={setSeed}
 								min={50_000}
@@ -348,6 +352,7 @@ export default function DemandLab() {
 							/>
 							<Param
 								name="Floor · D_min"
+								short="D_min"
 								val={floor}
 								set={setFloor}
 								min={25_000}
@@ -358,6 +363,7 @@ export default function DemandLab() {
 							/>
 							<Param
 								name="Daily Limit · L"
+								short="L"
 								val={L}
 								set={setL}
 								min={1.5}
@@ -779,6 +785,9 @@ export default function DemandLab() {
 
 interface ParamProps {
 	name: string;
+	/** The dial's symbol, shown in place of `name` where the column is too
+	 *  narrow to hold the spelled-out one beside the reading. */
+	short?: string;
 	val: number;
 	set: (v: number) => void;
 	min: number;
@@ -789,8 +798,13 @@ interface ParamProps {
 	hint?: string;
 }
 
+// Name, reading, slider and hint are siblings of one grid rather than a
+// stack with the reading nested beside the slider: lab-theme.css moves the
+// reading up onto the name's line on a phone, which it could not do across
+// two parents.
 function Param({
 	name,
+	short,
 	val,
 	set,
 	min,
@@ -801,48 +815,42 @@ function Param({
 	hint,
 }: ParamProps) {
 	return (
-		<div
-			style={{
-				display: "flex",
-				flexDirection: "column",
-				gap: 3,
-				minWidth: 0,
-				overflow: "hidden",
-			}}
-		>
-			<span style={{ ...label, fontSize: 9.5, letterSpacing: "0.1em" }}>
-				{name}
+		<div class="sf-param">
+			<span
+				class="sf-param-name"
+				style={{ ...label, fontSize: 9.5, letterSpacing: "0.1em" }}
+			>
+				{short && <span class="sf-short">{short}</span>}
+				<span class="sf-long">{name}</span>
 			</span>
-			<div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-				<input
-					type="range"
-					min={min}
-					max={max}
-					step={stp}
-					value={val}
-					onChange={(e) => set(+(e.currentTarget as HTMLInputElement).value)}
-					style={{
-						flex: "1 1 auto",
-						minWidth: 0,
-						accentColor: "var(--lab-slider)",
-					}}
-				/>
-				<span
-					style={{
-						fontFamily: mono,
-						fontSize: 11.5,
-						color: C.text,
-						whiteSpace: "nowrap",
-						width: "6ch",
-						textAlign: "right",
-						flexShrink: 0,
-					}}
-				>
-					{fmt ? fmt(val) : `${val}${suffix ?? ""}`}
-				</span>
-			</div>
+			<span
+				class="sf-param-value"
+				style={{
+					fontFamily: mono,
+					fontSize: 11.5,
+					color: C.text,
+					whiteSpace: "nowrap",
+					width: "6ch",
+					textAlign: "right",
+				}}
+			>
+				{fmt ? fmt(val) : `${val}${suffix ?? ""}`}
+			</span>
+			<input
+				class="sf-param-slider"
+				type="range"
+				min={min}
+				max={max}
+				step={stp}
+				value={val}
+				onChange={(e) => set(+(e.currentTarget as HTMLInputElement).value)}
+				style={{ accentColor: "var(--lab-slider)" }}
+			/>
 			{hint && (
-				<span style={{ fontSize: 10.5, color: C.faint, lineHeight: 1.35 }}>
+				<span
+					class="sf-param-hint"
+					style={{ fontSize: 10.5, color: C.faint, lineHeight: 1.35 }}
+				>
 					{hint}
 				</span>
 			)}

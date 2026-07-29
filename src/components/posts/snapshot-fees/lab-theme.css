@@ -204,18 +204,127 @@
 		column-gap: 10px;
 	}
 
-	/* three unlike cells rather than parallel dials, and two of their
-	 * labels alone run wider than half a phone, so this one stacks */
+	/* what decides the count is the dial name, not the slider: a name of
+	 * one word or one symbol still sits beside its reading in a third of a
+	 * phone, where a spelled-out one does not. Those grids hold three. */
+	.sf-lab .sf-dials.sf-dials-three {
+		grid-template-columns: repeat(3, minmax(0, 1fr));
+	}
+
+	/* the two cells that only need room for a control pair up, and the
+	 * influence readout takes the full width directly above the chart it
+	 * reports on. Placed rather than reordered, so the reading order in
+	 * the markup stays visibility, influence, settings. */
 	.sf-lab .sf-utility {
+		grid-template-columns: repeat(2, minmax(0, 1fr));
+		column-gap: 10px;
+	}
+
+	.sf-lab .sf-u-visibility {
+		grid-area: 1 / 1;
+	}
+
+	.sf-lab .sf-u-settings {
+		grid-area: 1 / 2;
+	}
+
+	.sf-lab .sf-u-influence {
+		grid-area: 2 / 1 / 3 / -1;
+	}
+}
+
+/* A boxed group spends 44px of the panel on its own margins and padding,
+ * so inside one a phone runs out sooner. Below this the readings that come
+ * in words rather than figures, a spread of 2 ticks or a lean 90% to the
+ * bid, no longer sit beside their names three across, and the visibility
+ * cell's own title outgrows half the row. */
+@container sf-dials (max-width: 290px) {
+	.sf-lab .sf-dials.sf-dials-three {
+		grid-template-columns: repeat(2, minmax(0, 1fr));
+	}
+
+	.sf-lab .sf-utility {
+		grid-template-columns: minmax(0, 1fr);
+	}
+
+	.sf-lab .sf-u-visibility,
+	.sf-lab .sf-u-influence,
+	.sf-lab .sf-u-settings {
+		grid-area: auto;
+	}
+}
+
+/* the narrowest phones, where even a symbol has too little room beside
+ * its reading */
+@container sf-dials (max-width: 250px) {
+	.sf-lab .sf-dials,
+	.sf-lab .sf-dials.sf-dials-three {
 		grid-template-columns: minmax(0, 1fr);
 	}
 }
 
-/* the narrowest phones, where a boxed group leaves half a column too
- * short for a dial name and its reading side by side */
-@container sf-dials (max-width: 250px) {
-	.sf-lab .sf-dials {
-		grid-template-columns: minmax(0, 1fr);
+/* A dial name or reading that has a short form carries both and shows
+ * whichever the width allows: the spelled-out one is what a reader meets
+ * the term by, the short one is what fits a third of a phone. Nothing is
+ * lost with it, since the hint beneath still says what the dial does. */
+.sf-lab .sf-short {
+	display: none;
+}
+
+/* A dial reading sits beside its slider where there is room for both and
+ * moves up onto the name's line where there is not, which hands the
+ * slider the whole column rather than the stub left over. */
+.sf-lab .sf-param {
+	display: grid;
+	grid-template-columns: minmax(0, 1fr) auto;
+	/* one height for every dial's first row, so a name carrying a subscript
+	 * does not push its slider below the ones beside it */
+	grid-template-rows: 15px auto auto;
+	grid-template-areas:
+		"name name"
+		"slider value"
+		"hint hint";
+	align-items: center;
+	/* grid stretches every dial in a row to the tallest of them; packing the
+	 * tracks to the top leaves that slack below the hint rather than inside
+	 * the slider's row, where it would sink one slider below its neighbours */
+	align-content: start;
+	gap: 3px 6px;
+	min-width: 0;
+	overflow: hidden;
+}
+
+.sf-lab .sf-param-name {
+	grid-area: name;
+}
+
+.sf-lab .sf-param-value {
+	grid-area: value;
+}
+
+.sf-lab .sf-param-slider {
+	grid-area: slider;
+	min-width: 0;
+}
+
+.sf-lab .sf-param-hint {
+	grid-area: hint;
+}
+
+@container sf-dials (max-width: 410px) {
+	.sf-lab .sf-short {
+		display: inline;
+	}
+
+	.sf-lab .sf-short + .sf-long {
+		display: none;
+	}
+
+	.sf-lab .sf-param {
+		grid-template-areas:
+			"name value"
+			"slider slider"
+			"hint hint";
 	}
 }
 
