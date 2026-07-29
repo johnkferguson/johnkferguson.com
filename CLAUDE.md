@@ -28,7 +28,7 @@ The build script must not end with `astro sync`: that runs draft-inclusive, so a
 - `src/components/` - Astro components (Head, SiteHeader, SiteFooter, JsonLd, icons/)
 - `src/components/posts/{slug}/` - Post-owned components (interactive Preact lab islands, charts; labs theme via `--lab-*` CSS vars). The generic `Lab.astro` frame (title strip, deep-link anchor, TOC discovery via `src/lib/remark-labs.mjs`) lives in `src/components/`
 - `src/lib/` - Pure TS modules (e.g. `snapshot-fees/engine.ts` — mechanism logic, unit-tested; components only render)
-- `src/pages/lab/` - Unpublished playground pages for in-progress interactive work (noindex, excluded from sitemap)
+- `src/pages/lab/` - Unpublished playground pages for in-progress interactive work (noindex, excluded from sitemap). They are still **built** in production and then deleted: the build script is `astro build && rm -rf dist/lab`. So a broken page here fails the Netlify deploy even though it never ships, the same footgun as the draft incident in PR #34. Keep them compiling.
 - `src/styles/global.css` - import index only; the CSS lives in siblings it pulls in, in this order: `reset.css` (vendored preflight, imported into `@layer base`), `colors.css` (`:root` then `.dark` palette), `base.css` (type tokens + element defaults), `layout.css` (prose measures, shell, sticky system), `post-shell.css`, `prose.css` (article body), `print.css`. Order is meaningful — see the header comment before reordering
 - `public/images/posts/` - Post images referenced as `/images/posts/{slug}/`
 
@@ -71,7 +71,6 @@ Technical pieces additionally:
   [The Dual-Flow Fit](#the-dual-flow-fit)"), never a bare "later".
 - A precise formulation lives in exactly one place; don't repeat the
   same phrasing in the lede and the body.
-- Coined names (e.g. Snapshot Fees): italic at first use, roman after.
 
 ## Visual Verification
 

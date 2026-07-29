@@ -20,7 +20,7 @@ const { title, id = `lab-${labSlug(title)}` } = Astro.props;
  * first, the full currentColor outline paints last so the flask border
  * stays whole at the waterline */
 const beakerSvg =
-	'<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7 16h10l2.28 4.55a1 1 0 0 1-.9 1.45H5.62a1 1 0 0 1-.9-1.45Z" stroke="none" fill="#5a9367"/><path d="M7 16h10" stroke="#5a9367"/><path d="M10 2v7.527a2 2 0 0 1-.211.896L4.72 20.55a1 1 0 0 0 .9 1.45h12.76a1 1 0 0 0 .9-1.45l-5.069-10.127A2 2 0 0 1 14 9.527V2"/><path d="M8.5 2h7"/></svg>';
+	'<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7 16h10l2.28 4.55a1 1 0 0 1-.9 1.45H5.62a1 1 0 0 1-.9-1.45Z" stroke="none" fill="var(--lab-beaker)"/><path d="M7 16h10" stroke="var(--lab-beaker)"/><path d="M10 2v7.527a2 2 0 0 1-.211.896L4.72 20.55a1 1 0 0 0 .9 1.45h12.76a1 1 0 0 0 .9-1.45l-5.069-10.127A2 2 0 0 1 14 9.527V2"/><path d="M8.5 2h7"/></svg>';
 ---
 
 <div class="labwrap" id={id}>
@@ -57,5 +57,9 @@ const beakerSvg =
 	.lab-beaker {
 		display: flex;
 		flex: none;
+		/* the liquid in the beaker. A variable rather than a literal in the
+		 * markup: that SVG is a string interpolated through set:html, which a
+		 * scoped rule cannot reach into but an inherited property can. */
+		--lab-beaker: #5a9367;
 	}
 </style>

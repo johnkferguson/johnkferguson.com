@@ -594,7 +594,9 @@ const beakerSvg =
 </script>
 
 <style is:global>
-	[data-toc-root] :is(h2, h3, h4)[id],
+	/* h2 through h6, matching the headings PostLayout gives copy anchors to:
+	   a deep link to a heading without this lands under the sticky header */
+	[data-toc-root] :is(h2, h3, h4, h5, h6)[id],
 	[data-toc-root] .labwrap[id] {
 		scroll-margin-top: var(--anchor-offset);
 	}

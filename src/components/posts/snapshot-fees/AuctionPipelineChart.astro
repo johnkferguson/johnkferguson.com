@@ -4,13 +4,18 @@
 // marginal-cost story: gray nodes are the venue's existing work, purple
 // nodes are unique to the mechanism, gradient nodes are a blend of both.
 // Zero client JS; themes through the lab CSS variables.
+//
+// The svg takes role="group", not role="img": img makes the subtree
+// presentational, which hid those five links from assistive tech while
+// leaving them on screen as shortcuts into the sections they name. group
+// keeps the accessible name and lets the links be links.
 import "./lab-theme.css";
 ---
 
 <div class="sf-lab pipeline-chart">
 	<svg
 		viewBox="0 0 640 540"
-		role="img"
+		role="group"
 		aria-label="Flowchart of one auction: seal the auction, then measure the book and match in parallel, then price the fills, then finalize the window"
 	>
 		<defs>

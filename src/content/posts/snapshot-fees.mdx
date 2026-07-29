@@ -33,7 +33,9 @@ layers, each with an interactive lab for trying it directly.
 Most electronic markets run on a continuous limit
 order book. Orders rest in a book sorted by price, and when a new order
 crosses the spread it trades immediately against the best resting quote. Ties
-at the same price go to whoever arrived first. In a continuous limit order book, every fill, quote, and cancel is processed one at a time, in arrival order.
+at the same price go to whoever arrived first. In a continuous limit order
+book, every fill, quote, and cancel is processed one at a time, in arrival
+order.
 
 Processing in arrival order rewards whoever reacts first when the market
 moves. When news changes the fair price, a market maker's resting quotes go
@@ -50,10 +52,13 @@ trading for ordinary reasons.
 [Aquilina, Budish, and O'Neill](https://academic.oup.com/qje/article/137/1/493/6368348)
 measured the race directly, using exchange message data that records the
 losers as well as the winners. In FTSE 100 stocks they found races running
-about once per minute per symbol, typically decided in five to ten microseconds, accounting for roughly 20% of trading volume, with the top six
+about once per minute per symbol, typically decided in five to ten
+microseconds, accounting for roughly 20% of trading volume, with the top
+six
 firms on one side or the other of more than 80% of them. Eliminating latency
 arbitrage, they estimate, would cut the market's cost of liquidity by 17%,
-about \$5 billion a year in global equities. This additional liquidity cost is structurally inherent to
+about \$5 billion a year in global equities. This additional liquidity cost
+is structurally inherent to
 the design of continuous order books.
 
 Frequent batch auctions are the design change
@@ -69,9 +74,20 @@ The design space has kept moving since. One example is Jump Crypto's 2025
 [dual-flow batch auction](https://jumpcrypto.com/resources/dual-flow-batch-auction) design, which
 splits each window into two auctions, maker bids against taker sells and maker
 asks against taker buys, so taker flow always trades against standing quotes
-instead of netting against itself. While the Snapshot Fees mechanism proposed in this piece could work for any batch auction implementation, it is likely a more natural fit for a dual-flow batch auction, for reasons covered in [The Dual-Flow Fit](#the-dual-flow-fit) near the end of the piece.
+instead of netting against itself. While the Snapshot Fees mechanism
+proposed in this piece could work for any batch auction implementation, it
+is likely a more natural fit for a dual-flow batch auction, for reasons
+covered in [The Dual-Flow Fit](#the-dual-flow-fit) near the end of the
+piece.
 
-Plain or dual-flow, batch auctions improve on continuous books the same way: latency arbitrage is neutralized, and with it the widened spreads it forces. Discrete windows also provide something continuous books cannot: a clean snapshot of the market's state at each close, with every order in it committed and fillable at that instant. This piece asks whether that snapshot could be used to price orders directly, and whether pricing them well could improve the market further, with even tighter quotes and more size behind them.
+Plain or dual-flow, batch auctions improve on continuous books the same
+way: latency arbitrage is neutralized, and with it the widened spreads it
+forces. Discrete windows also provide something continuous books cannot: a
+clean snapshot of the market's state at each close, with every order in it
+committed and fillable at that instant. This piece asks whether that
+snapshot could be used to price orders directly, and whether pricing them
+well could improve the market further, with even tighter quotes and more
+size behind them.
 
 ## Trading Fees Today
 
@@ -239,7 +255,9 @@ where:
 - $u$: the notional left unpaired.
 - $q$: the order's total size, $q = \sum_i q_i + u$.
 
-The formula is the combination of the base fee and the pairing rule. For a maker to lower its fee rate, it should place orders closer to $M$, where the
+The formula is the combination of the base fee and the pairing rule. For a
+maker to lower its fee rate, it should place orders closer to $M$, where
+the
 base fee $b$ is smaller, and size them to what the other side of the book can
 pair, so nothing lands in $u$ paying the cap.
 
@@ -377,9 +395,13 @@ maker mirrored beneath it, both feeding one walk.
 
 ## Tracking Typical Demand
 
-To calculate $M$, the eligible book must be walked on both sides up to size $D$, the typical demand for that market. What remains is how that typical demand is determined.
+To calculate $M$, the eligible book must be walked on both sides up to size
+$D$, the typical demand for that market. What remains is how that typical
+demand is determined.
 
-Within any market, demand continuously changes. Therefore, $D$ should not be based upon some generic constant. Instead, it needs to reflect the market's conditions as they actually are.
+Within any market, demand continuously changes. Therefore, $D$ should not
+be based upon some generic constant. Instead, it needs to reflect the
+market's conditions as they actually are.
 
 Doing that well means satisfying two criteria:
 
@@ -390,7 +412,8 @@ Doing that well means satisfying two criteria:
    predictable and verifiable like every other number in the design.
 
 What follows is one mechanism that satisfies both. Unlike the fee rule and
-the Measured Price, it is not settled design: it is a demonstration of one possible solution. If preferred, other mechanisms could serve in its place.
+the Measured Price, it is not settled design: it is a demonstration of one
+possible solution. If preferred, other mechanisms could serve in its place.
 
 ### A Proposed Mechanism for Tracking Demand
 
@@ -398,7 +421,8 @@ The mechanism runs on two clocks:
 
 1. **Every window**: the market's fills add to
    two running sums.
-2. **Every day**: the sums are used to compute the typical demand for that day and $D$ then takes one bounded step toward it.
+2. **Every day**: the sums are used to compute the typical demand for that
+   day and $D$ then takes one bounded step toward it.
 
 When the day is done, the sums reset to zero and start accumulating for the new day.
 
@@ -407,7 +431,8 @@ into three groups.
 
 The value measured every window:
 
-- $v$: a window's volume, corresponding to the actual notional dollar volume that executed against the
+- $v$: a window's volume, corresponding to the actual notional dollar
+  volume that executed against the
   standing book in that window, both directions summed. Because $v$ is read
   from fills, it adapts to the venue's design: in a dual-flow auction every
   taker dollar trades against the book, while in a single-cross auction
@@ -593,7 +618,8 @@ untouched by the books of everyone who did not trade.
 ### Finalize the Window
 
 The window's executed volume adds to the demand sums $S_1$ and $S_2$, at
-$O(1)$. This is later used at the daily close when $D$ takes its one bounded step toward what they read.
+$O(1)$. This is later used at the daily close when $D$ takes its one
+bounded step toward what they read.
 The state of $M$ carries across windows: fresh when a candidate won, held
 at its last value when none did, and absent entirely before a market's
 first candidate forms, where every fill pays the cap. The venue publishes
@@ -643,7 +669,8 @@ moves inversely with the quality of the book it fills. With a 5bps
 market-order rate against a resting schedule running from 3bps of rebate
 at the center to 1bps at the cap, the venue nets 2bps to 4bps per trade.
 If the schedule instead ran down to a 5bps charge at the cap, the take
-would run 2bps to 10bps. In whichever fee schedule used, any rebates settle in-window from the same window's
+would run 2bps to 10bps. In whichever fee schedule used, any rebates settle
+in-window from the same window's
 market-order fees, and none are paid before a market's first $M$ forms;
 until placement can be measured, everything rests at the cap.
 
@@ -692,7 +719,14 @@ stays market state.
 
 ### Maker Fee Uncertainty
 
-On every venue running today, a maker knows their rate before they quote. Here the rate is known only up to the Measured Price: the schedule is fixed, but where a quote falls on it depends on where $M$ lands, so the fee is an interval rather than a number until the window seals. That is a real cost, one more variable to model alongside fill probability and adverse selection. Its bounds are also real: the schedule and formula are fully public, the worst case is the cap $F$, and the interval narrows with the same size and tightness the schedule already rewards.
+On every venue running today, a maker knows their rate before they quote.
+Here the rate is known only up to the Measured Price: the schedule is
+fixed, but where a quote falls on it depends on where $M$ lands, so the fee
+is an interval rather than a number until the window seals. That is a real
+cost, one more variable to model alongside fill probability and adverse
+selection. Its bounds are also real: the schedule and formula are fully
+public, the worst case is the cap $F$, and the interval narrows with the
+same size and tightness the schedule already rewards.
 
 ### Consuming the Measured Price
 
@@ -702,11 +736,13 @@ data, and a price that is measured at size and expensive to move is a
 candidate input for services beyond fees: settlement prints, indexes, and
 eventually higher-stakes consumers.
 
-At the highest-stakes end of that spectrum, a liquidation engine should never consume a single window's $M$
+At the highest-stakes end of that spectrum, a liquidation engine should
+never consume a single window's $M$
 directly; it would want machinery built around $M$, smoothing across
 windows, staleness bounds, health gating, so that moving the reference
 would mean sustaining a distortion across the whole lookback rather than
-winning one window. All of these are extensions around $M$, not changes to it; the per-window measurement stays exactly as described.
+winning one window. All of these are extensions around $M$, not changes to
+it; the per-window measurement stays exactly as described.
 
 ### The Dual-Flow Fit
 
