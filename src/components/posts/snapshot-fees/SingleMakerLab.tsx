@@ -232,6 +232,19 @@ const label = {
 	whiteSpace: "nowrap",
 } as const;
 
+/** One line of a readout: a heading, a reading, or a rule between them.
+ *  The chart paints these into its own units; on a phone the lab's
+ *  readout panel renders the same rows as text. */
+interface TipRow {
+	label?: string;
+	t?: string;
+	c?: string;
+	s?: number;
+	gap?: number;
+	indent?: number;
+	rule?: boolean;
+}
+
 interface ParamProps {
 	name: string;
 	/** The dial's symbol, shown in place of `name` where the column is too
@@ -555,6 +568,179 @@ export default function SingleMakerLab() {
 
 	// —— partner highlighting: the exact dollars paired with the hovered
 	// level, located inside each partner bar via the spillover order ——
+	/* the fee receipt, as data. The chart's popup paints these rows and, on
+	 * a phone, so does the readout panel above it: one reading, two ways of
+	 * showing it. */
+	/* the M walk as the same kind of rows. The chart draws it as two columns
+	 * side by side, which a phone has no width for, so the readout panel
+	 * takes the two walks one after the other instead. */
+	const mRows = useMemo((): TipRow[] | null => {
+		if (!mHover) return null;
+		const rows: TipRow[] = [];
+		if (model.state !== "fresh") {
+			rows.push({ label: "M HELD", t: "No Valid Candidate Book", c: C.text });
+			rows.push({ label: "", t: "nothing is eligible to walk", c: C.dim });
+			rows.push({
+				label: "",
+				t: `showing last computed M ${fmtPx(model.M)}`,
+				c: C.dim,
+			});
+			return rows;
+		}
+		const walk = (side: Side) =>
+			model.levels
+				.filter((l) => l.side === side && (model.measureUsed.get(l.i) ?? 0) > 0)
+				.sort((a, b) =>
+					side === "bid" ? b.price - a.price : a.price - b.price,
+				)
+				.map(
+					(l) => `${fmtPx(l.price)} · ${fmt$(model.measureUsed.get(l.i) ?? 0)}`,
+				);
+		const leg = (
+			side: Side,
+			head: string,
+			color: string,
+			result: string,
+			got: number | null,
+		) => {
+			const lines = walk(side);
+			lines.forEach((t, k) => {
+				rows.push({ label: k === 0 ? head : "", t, c: C.text });
+			});
+			const short = side === "bid" ? model.shortBid : model.shortAsk;
+			if (short)
+				rows.push({
+					label: lines.length === 0 ? head : "",
+					t: `${fmtPx(short.price)} · ${fmt$(short.missing)} *`,
+					c: C.faint,
+				});
+			rows.push({
+				label: "",
+				t: `${result} ${got != null ? fmtPx(got) : "–"}`,
+				c: color,
+			});
+		};
+		leg("bid", `SELL ${fmt$(D)} → BIDS`, C.bid, "Gets →", model.iBid ?? null);
+		leg("ask", `BUY ${fmt$(D)} → ASKS`, C.ask, "Pays →", model.iAsk ?? null);
+		rows.push({ rule: true });
+		rows.push({
+			label: "MEASURED PRICE",
+			t: `(${model.iBid != null ? fmtPx(model.iBid) : "–"} + ${
+				model.iAsk != null ? fmtPx(model.iAsk) : "–"
+			}) / 2 = ${fmtPx(model.M)}`,
+			c: C.measure,
+		});
+		rows.push({
+			label: "",
+			t:
+				model.shortBid != null || model.shortAsk != null
+					? "* missing depth, priced at the measurement boundary"
+					: "purple slices = the depth each walk consumed",
+			c: C.faint,
+			s: 12,
+		});
+		return rows;
+	}, [mHover, model, D]);
+
+	const feeRows = useMemo(() => {
+		if (feeHover == null || mHover) return null;
+		const tipI = feeHover;
+		const lv = model.levels[tipI];
+		const b = lv?.bk;
+		if (!lv || !b || lv.side === "mid") return null;
+		const d = Math.max(
+			0,
+			(lv.side === "bid"
+				? model.edgeBid - lv.price
+				: lv.price - model.edgeAsk) / BP,
+		);
+		const dist = Math.abs(lv.price - model.M) / BP;
+		const net = dist - b.final;
+		const rows: TipRow[] = [];
+		const amt$ = (v: number, sign = "") =>
+			`${(sign + v.toFixed(2)).padStart(6)}bps`;
+		rows.push({
+			label: "BASE FEE",
+			t:
+				b.own > 0
+					? `${amt$(b.own)} · ${d.toFixed(2)}bps Outside the Band`
+					: `${amt$(0)} · Inside the Band`,
+			c: C.text,
+		});
+		const items: { amt: number; t: string; c: string }[] = [];
+		// matches at-or-inside the base fee collapse into one line
+		const atOrInside = b.pairs
+			.filter((pr) => pr.baseFee <= b.own)
+			.reduce((sum, pr) => sum + pr.paired, 0);
+		if (atOrInside > 0)
+			items.push({
+				amt: 0,
+				t: `${amt$(0, "+")} · ${Math.round((atOrInside / b.q) * 100)}% ≤ Base Fee`,
+				c: C.dim,
+			});
+		for (const pr of b.pairs) {
+			const extra = Math.max(0, pr.baseFee - b.own);
+			if (extra <= 0) continue;
+			const pct = Math.round((pr.paired / b.q) * 100);
+			const amt = (pr.paired / b.q) * extra;
+			items.push({
+				amt,
+				t: `${amt$(amt, "+")} · ${pct}% @ ${extra.toFixed(2)}bps > Base Fee`,
+				c: C.text,
+			});
+		}
+		if (b.unpaired > 0) {
+			const pct = Math.round((b.unpaired / b.q) * 100);
+			const amt = (b.unpaired / b.q) * (F - b.own);
+			items.push({
+				amt,
+				t: `${amt$(amt, "+")} · ${pct}% Directional → Cap`,
+				c: C.ask,
+			});
+		}
+		items.forEach((it, k) => {
+			rows.push({
+				label: k === 0 ? "SURCHARGES" : "",
+				t: it.t,
+				c: it.c,
+			});
+		});
+		if (b.claimedBefore > 0 && b.unpaired > 0)
+			rows.push({
+				label: "",
+				t: "(better-priced bars claimed the pairing first)",
+				c: C.faint,
+				s: 12.5,
+			});
+		rows.push({
+			label: "TOTAL FEE",
+			t: amt$(b.final),
+			c: C.fee,
+			gap: 6,
+		});
+		rows.push({ rule: true, gap: 8 });
+		rows.push({
+			label: "NET EDGE",
+			t: `${amt$(Math.abs(net), net >= 0 ? "+" : "−")} = ${dist.toFixed(2)}bps − ${fmtBp(b.final)}`,
+			c: C.text,
+			gap: 2,
+		});
+		rows.push({
+			label: "",
+			// starts under the equation's right-hand side, whose terms
+			// it defines: 12 mono chars (" +0.92bps = ") at 14px ≈ 101
+			indent: 101,
+			t: "(M Distance − Total Fee)",
+			c: C.faint,
+			s: 12,
+		});
+		return rows;
+	}, [feeHover, mHover, model, F]);
+
+	/* one panel, whichever reading is live; M wins the slot, as it does in
+	   the chart */
+	const readoutRows = mRows ?? feeRows;
+
 	const tip = feeHover;
 	const tipLv = tip != null ? model.levels[tip] : null;
 	const tipBk = tipLv?.bk ?? null;
@@ -719,8 +905,33 @@ export default function SingleMakerLab() {
 							flexDirection: "column",
 							gap: 8,
 							padding: "10px 0 4px",
+							/* anchors the phone's readout panel, which stands over this
+							   column rather than in the chart, where the same text is a
+							   third of its size and under the finger that summoned it */
+							position: "relative",
 						}}
 					>
+						{readoutRows && (
+							<div class="sf-readout">
+								{readoutRows.map((r, k) =>
+									r.rule ? (
+										<div key={`rule-${k}`} class="sf-readout-rule" />
+									) : (
+										<div key={`${r.label ?? ""}-${r.t}`} class="sf-readout-row">
+											{r.label ? (
+												<span class="sf-readout-label">{r.label}</span>
+											) : null}
+											<span
+												class="sf-readout-value"
+												style={{ color: r.c, fontSize: r.s ? 11.5 : 13 }}
+											>
+												{r.t?.trim()}
+											</span>
+										</div>
+									),
+								)}
+							</div>
+						)}
 						<div
 							style={{
 								display: "flex",
@@ -1703,7 +1914,7 @@ export default function SingleMakerLab() {
 										},
 									];
 									return (
-										<g pointerEvents="none">
+										<g class="sf-tip" pointerEvents="none">
 											<rect
 												x={xT - 165}
 												y={top}
@@ -1771,7 +1982,11 @@ export default function SingleMakerLab() {
 								const colL = xT - 168;
 								const colR = xT + 16;
 								return (
-									<g pointerEvents="none" style={{ fontFamily: mono }}>
+									<g
+										class="sf-tip"
+										pointerEvents="none"
+										style={{ fontFamily: mono }}
+									>
 										<rect
 											x={xT - 180}
 											y={top}
@@ -1880,109 +2095,9 @@ export default function SingleMakerLab() {
 
 						{/* fee tooltip — itemized receipt in the fixed top-center slot
 					    (shares it with the M tooltip, which takes precedence) */}
-						{feeHover != null &&
-							!mHover &&
+						{feeRows &&
 							(() => {
-								const tipI = feeHover;
-								if (tipI == null) return null;
-								const lv = model.levels[tipI];
-								const b = lv?.bk;
-								if (!lv || !b || lv.side === "mid") return null;
-								const d = Math.max(
-									0,
-									(lv.side === "bid"
-										? model.edgeBid - lv.price
-										: lv.price - model.edgeAsk) / BP,
-								);
-								const dist = Math.abs(lv.price - model.M) / BP;
-								const net = dist - b.final;
-								interface TipRow {
-									label?: string;
-									t?: string;
-									c?: string;
-									s?: number;
-									gap?: number;
-									indent?: number;
-									rule?: boolean;
-								}
-								const rows: TipRow[] = [];
-								const amt$ = (v: number, sign = "") =>
-									`${(sign + v.toFixed(2)).padStart(6)}bps`;
-								rows.push({
-									label: "BASE FEE",
-									t:
-										b.own > 0
-											? `${amt$(b.own)} · ${d.toFixed(2)}bps Outside the Band`
-											: `${amt$(0)} · Inside the Band`,
-									c: C.text,
-								});
-								const items: { amt: number; t: string; c: string }[] = [];
-								// matches at-or-inside the base fee collapse into one line
-								const atOrInside = b.pairs
-									.filter((pr) => pr.baseFee <= b.own)
-									.reduce((sum, pr) => sum + pr.paired, 0);
-								if (atOrInside > 0)
-									items.push({
-										amt: 0,
-										t: `${amt$(0, "+")} · ${Math.round((atOrInside / b.q) * 100)}% ≤ Base Fee`,
-										c: C.dim,
-									});
-								for (const pr of b.pairs) {
-									const extra = Math.max(0, pr.baseFee - b.own);
-									if (extra <= 0) continue;
-									const pct = Math.round((pr.paired / b.q) * 100);
-									const amt = (pr.paired / b.q) * extra;
-									items.push({
-										amt,
-										t: `${amt$(amt, "+")} · ${pct}% @ ${extra.toFixed(2)}bps > Base Fee`,
-										c: C.text,
-									});
-								}
-								if (b.unpaired > 0) {
-									const pct = Math.round((b.unpaired / b.q) * 100);
-									const amt = (b.unpaired / b.q) * (F - b.own);
-									items.push({
-										amt,
-										t: `${amt$(amt, "+")} · ${pct}% Directional → Cap`,
-										c: C.ask,
-									});
-								}
-								items.forEach((it, k) => {
-									rows.push({
-										label: k === 0 ? "SURCHARGES" : "",
-										t: it.t,
-										c: it.c,
-									});
-								});
-								if (b.claimedBefore > 0 && b.unpaired > 0)
-									rows.push({
-										label: "",
-										t: "(better-priced bars claimed the pairing first)",
-										c: C.faint,
-										s: 12.5,
-									});
-								rows.push({
-									label: "TOTAL FEE",
-									t: amt$(b.final),
-									c: C.fee,
-									gap: 6,
-								});
-								rows.push({ rule: true, gap: 8 });
-								rows.push({
-									label: "NET EDGE",
-									t: `${amt$(Math.abs(net), net >= 0 ? "+" : "−")} = ${dist.toFixed(2)}bps − ${fmtBp(b.final)}`,
-									c: C.text,
-									gap: 2,
-								});
-								rows.push({
-									label: "",
-									// starts under the equation's right-hand side, whose terms
-									// it defines: 12 mono chars (" +0.92bps = ") at 14px ≈ 101
-									indent: 101,
-									t: "(M Distance − Total Fee)",
-									c: C.faint,
-									s: 12,
-								});
+								const rows = feeRows;
 								let yAcc = 24;
 								const placed = rows.map((r) => {
 									yAcc += r.gap ?? 0;
@@ -1996,6 +2111,7 @@ export default function SingleMakerLab() {
 								tipH.current = h;
 								return (
 									<g
+										class="sf-tip"
 										pointerEvents="none"
 										opacity={underTip ? 0.65 : 1}
 										style={{ transition: "opacity 120ms" }}

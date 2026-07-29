@@ -12,6 +12,12 @@
  * .dark class automatically.
  */
 .sf-lab {
+	/* the panel is the yardstick for what a lab can and cannot show: whether
+	 * its columns have wrapped, and so whether a chart popup has room to be
+	 * read at all. Named, so a query says which it means. */
+	container-type: inline-size;
+	container-name: sf-panel;
+
 	--lab-bid: #199e70;
 	--lab-ask: #d95926;
 	--lab-fee: #e34948;
@@ -194,6 +200,72 @@
 	-webkit-touch-callout: none;
 	-webkit-user-select: none;
 	user-select: none;
+}
+
+/* The readout a hover or a touch produces. In the chart it is drawn in the
+ * chart's units, which a phone paints at a third of their size, and it sits
+ * under the finger that summoned it besides. So on a narrow panel the same
+ * reading is rendered here instead, in real text over the block above the
+ * chart, and the drawn one is hidden. It stands over that block rather than
+ * displacing it: nothing reflows, and the chart cannot jump mid-touch. */
+.sf-lab .sf-readout {
+	display: none;
+	position: absolute;
+	inset: 0 0 auto 0;
+	z-index: 3;
+	background: var(--lab-panel2);
+	border: 1px solid var(--lab-fee);
+	border-radius: 6px;
+	padding: 8px 10px 9px;
+	box-shadow: var(--lab-btn-shadow);
+	/* a long walk scrolls inside the panel rather than running past the
+	 * bottom of the screen */
+	max-height: 58vh;
+	overflow-y: auto;
+}
+
+/* a heading opens a group and its readings run tight beneath it, which is
+ * what keeps a walk of ten price levels down to a readable block rather
+ * than a column longer than the chart it describes */
+.sf-lab .sf-readout-row {
+	display: flex;
+	flex-direction: column;
+	gap: 1px;
+}
+
+.sf-lab .sf-readout-row:has(.sf-readout-label) {
+	margin-top: 7px;
+}
+
+.sf-lab .sf-readout-row:first-child {
+	margin-top: 0;
+}
+
+.sf-lab .sf-readout-label {
+	font-family: var(--lab-mono);
+	font-size: 9.5px;
+	letter-spacing: 0.1em;
+	color: var(--lab-faint);
+}
+
+.sf-lab .sf-readout-value {
+	font-family: var(--lab-mono);
+	line-height: 1.3;
+}
+
+.sf-lab .sf-readout-rule {
+	border-top: 1px solid var(--lab-line);
+	margin: 2px 0 6px;
+}
+
+@container sf-panel (max-width: 560px) {
+	.sf-lab .sf-readout {
+		display: block;
+	}
+
+	.sf-lab .sf-tip {
+		display: none;
+	}
 }
 
 /* a dial's name and its reading, at opposite ends of one line */
