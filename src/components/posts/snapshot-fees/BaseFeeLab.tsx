@@ -407,15 +407,8 @@ export default function BaseFeeLab() {
 					}}
 				>
 					{/* —— left two-thirds: controls above, the curve below —— */}
-					<div style={{ flex: "2 1 400px", minWidth: 300 }}>
-						<div
-							style={{
-								display: "grid",
-								gridTemplateColumns: "repeat(3, minmax(0, 1fr))",
-								gap: "10px 16px",
-								padding: "10px 12px 8px 4px",
-							}}
-						>
+					<div class="sf-plot" style={{ flex: "2 1 400px", minWidth: 300 }}>
+						<div class="sf-dials">
 							<Param
 								name="Inner Band · B"
 								val={B}
@@ -474,13 +467,23 @@ export default function BaseFeeLab() {
 									background: C.inset,
 									border: `1px solid ${C.line}`,
 									borderRadius: 6,
-									padding: "6px 10px",
+									/* narrower side padding than the sliders' cells carry:
+									   this label is the longest in the grid, and the extra 4px
+									   is what keeps it on one line in a third of the column */
+									padding: "6px 8px",
 									alignSelf: "start",
 									minWidth: 0,
 								}}
 							>
+								{/* both lines wrap rather than run past the box, since the
+								    column can narrow further than the label's own width */}
 								<span
-									style={{ ...label, fontSize: 9.5, letterSpacing: "0.1em" }}
+									style={{
+										...label,
+										fontSize: 9.5,
+										letterSpacing: "0.1em",
+										whiteSpace: "normal",
+									}}
 								>
 									Full Fee Reached
 								</span>
@@ -489,7 +492,6 @@ export default function BaseFeeLab() {
 										fontFamily: mono,
 										fontSize: 11.5,
 										color: C.text,
-										whiteSpace: "nowrap",
 									}}
 								>
 									{dFull.toFixed(1)}bps from M
@@ -988,7 +990,12 @@ export default function BaseFeeLab() {
 								border: `1px solid ${C.line}`,
 								borderRadius: 6,
 								flex: "1 1 0",
-								minHeight: 0,
+								/* beside the chart the table grows to match its height; once
+								   the panel narrows enough to wrap it below, the flex line no
+								   longer supplies one and a zero basis collapses the table to
+								   nothing. The floor keeps a readable run of rows there, and
+								   sits well under the height the chart gives it alongside. */
+								minHeight: 240,
 								maxHeight: 560,
 								overflowY: "auto",
 							}}

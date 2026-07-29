@@ -167,6 +167,31 @@
 	white-space: pre-line;
 }
 
+/* the base-fee dials sit three across the chart's column. That column
+ * holds at 423px on every desktop width, since the article measure caps
+ * the panel; it only narrows once the schedule has wrapped below the
+ * chart and taken the panel's own width down with the phone. Past 410px
+ * a third track leaves each slider a stub of its track, so drop to two.
+ * Query the column, not the viewport: a lab is narrower than the page,
+ * and its width turns on where the schedule sits. */
+.sf-lab .sf-plot {
+	container-type: inline-size;
+	container-name: sf-plot;
+}
+
+.sf-lab .sf-dials {
+	display: grid;
+	grid-template-columns: repeat(3, minmax(0, 1fr));
+	gap: 10px 16px;
+	padding: 10px 12px 8px 4px;
+}
+
+@container sf-plot (max-width: 410px) {
+	.sf-lab .sf-dials {
+		grid-template-columns: repeat(2, minmax(0, 1fr));
+	}
+}
+
 /* scrollable insets (e.g. the base-fee schedule) — theme-aware thin bar */
 .sf-lab .sf-scroll {
 	scrollbar-width: thin;
