@@ -47,4 +47,35 @@ describe("mdxBodyToMarkdown", () => {
 		const body = '<Lab title="X">\nsome prose\n</Lab>';
 		expect(mdxBodyToMarkdown(body)).toBe(body);
 	});
+	test("leaves fenced code blocks alone", () => {
+		// every rule below rewrites things that are ordinary content inside a
+		// fence; run over the whole body they edit the sample and leave the
+		// fence standing, so the sample is wrong and nothing looks wrong
+		const body = [
+			'import Lab from "../../components/Lab.astro";',
+			"",
+			"Prose.",
+			"",
+			"```ts",
+			'import { computeMeasure } from "./engine";',
+			"const m = computeMeasure(books, params, 100);",
+			"```",
+			"",
+			"```mdx",
+			"<TableOfContents />",
+			'<Lab title="Setting the Base Fee">',
+			"  <BaseFeeLab client:visible />",
+			"</Lab>",
+			"```",
+		].join("\n");
+		const out = mdxBodyToMarkdown(body);
+		// the real import went, the fenced one stayed
+		expect(out).not.toContain("components/Lab.astro");
+		expect(out).toContain('import { computeMeasure } from "./engine";');
+		// the fenced component tags survived verbatim
+		expect(out).toContain("<TableOfContents />");
+		expect(out).toContain('<Lab title="Setting the Base Fee">');
+		expect(out).toContain("<BaseFeeLab client:visible />");
+		expect(out).not.toContain("Interactive lab in the web version");
+	});
 });

@@ -130,6 +130,16 @@ interface Scenario {
 	makers?: (ladder: number[]) => number[];
 }
 
+/** The makers' book a scenario opens with: the plain ladder its three dials
+ *  describe, then the scenario's own shaping of it. Read from here by both
+ *  the mount and the scenario loader, so neither can take one step and skip
+ *  the other — which is how the lab came to mount showing a book its own
+ *  caption described differently. */
+const makerBookOf = (sc: Scenario): number[] => {
+	const ladder = aggSizesOf(sc.depth, sc.lean, sc.spread);
+	return sc.makers ? sc.makers(ladder) : ladder;
+};
+
 const SCENARIOS: Scenario[] = [
 	{
 		key: "both",
@@ -508,7 +518,7 @@ export default function MultiMakerLab() {
 		SCENARIOS[0].you(),
 	);
 	const [makerSizes, setMakerSizes] = useState<number[]>(() =>
-		aggSizesOf(SCENARIOS[0].depth, SCENARIOS[0].lean, SCENARIOS[0].spread),
+		makerBookOf(SCENARIOS[0]),
 	);
 	const [scenario, setScenario] = useState<string | null>(SCENARIOS[0].key);
 	// levels of YOUR book whose side is flipped from the positional default;
@@ -892,10 +902,7 @@ export default function MultiMakerLab() {
 		setDepth(sc.depth);
 		setLean(sc.lean);
 		setSpread(sc.spread);
-		{
-			const ladder = aggSizesOf(sc.depth, sc.lean, sc.spread);
-			setMakerSizes(sc.makers ? sc.makers(ladder) : ladder);
-		}
+		setMakerSizes(makerBookOf(sc));
 		setZoom(sc.zoom ?? 1);
 		setB(2);
 		setD(20000);

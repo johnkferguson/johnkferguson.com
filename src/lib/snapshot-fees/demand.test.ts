@@ -177,4 +177,13 @@ describe("the dials are parameters, not constants", () => {
 		expect(r.sampled).toBe(false); // $28k < 30 × $1,000
 		expect(r.dClose).toBe(1000);
 	});
+	test("a day with no windows freezes, even where the minimum sample is zero", () => {
+		// At minSample 0 the threshold test reads 0 >= 0, so an empty day would
+		// pass it and divide 0 by 0. D holds instead, and the run stays finite.
+		const r = runEpoch(100_000, [], { ...P, minSample: 0 });
+		expect(r.sampled).toBe(false);
+		expect(r.reading).toBeNull();
+		expect(r.dClose).toBe(100_000);
+		expect(Number.isNaN(r.dClose)).toBe(false);
+	});
 });

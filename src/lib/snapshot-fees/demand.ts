@@ -72,7 +72,11 @@ export function runEpoch(
 		s1 += n * v;
 		s2 += n * v * v;
 	}
-	const sampled = s1 >= p.minSample * dOpen - 1e-9;
+	// s1 > 0 is part of being sampled, not a separate case: at minSample 0
+	// the threshold test is 0 >= 0, so a day with no windows at all would
+	// pass it and then divide 0 by 0, carrying NaN into dClose and from
+	// there into every epoch that follows it.
+	const sampled = s1 > 0 && s1 >= p.minSample * dOpen - 1e-9;
 	if (!sampled) {
 		return {
 			dOpen,

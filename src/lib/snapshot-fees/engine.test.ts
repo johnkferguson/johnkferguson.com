@@ -1064,3 +1064,29 @@ describe("invariant fuzz (deterministic seeds)", () => {
 		}
 	});
 });
+
+describe("degenerate parameters stay finite", () => {
+	test("a zero-width band pays no inside-band credit rather than NaN", () => {
+		// comp tapers across the band, so a band of zero width has no inside
+		// for it to taper across. The order resting exactly at M is the case
+		// that divided 0 by 0 and carried NaN through to its fee.
+		const levels: BookLevel[] = [
+			{ i: 0, price: 100.0, side: "bid", size: 10000 },
+			{ i: 1, price: 100.01, side: "ask", size: 10000 },
+		];
+		const p: FeeParams = {
+			B: 0,
+			D: 10000,
+			F: 10,
+			Z: 4,
+			slope: 0.8,
+			slope2: 0.95,
+			comp: 2,
+		};
+		const r = computeAccountFees(levels, p, 100);
+		for (const lv of r.levels)
+			if (lv.bk) expect(Number.isFinite(lv.bk.final)).toBe(true);
+		// the credit is simply absent, so the fee is the schedule's own
+		expect(r.levels[0].bk?.final).toBeCloseTo(0.8, 6);
+	});
+});

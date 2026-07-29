@@ -192,8 +192,11 @@ export function computeAccountFees(
 		const combined = Math.min(F, pairing);
 		const distBp =
 			M == null ? Number.POSITIVE_INFINITY : Math.abs(lv.price - M) / BP;
+		// B > 0 is required, not merely usual: a zero-width band has no
+		// inside for the credit to taper across, and an order resting
+		// exactly at M would divide 0 by 0 and carry NaN into its fee.
 		const insideComp =
-			comp > 0 && Number.isFinite(distBp)
+			comp > 0 && B > 0 && Number.isFinite(distBp)
 				? comp * Math.max(0, 1 - distBp / (B / 2))
 				: 0;
 		const final = combined - insideComp;
@@ -478,8 +481,7 @@ export function computeMeasure(
 	// intersect through real liquidity. Deliberately NOT account-level:
 	// one account running small paired books in two separate regions must
 	// not convert a disjoint tie (disagreement → held) into a forced
-	// tiebreak. NOTE: the straddler currently bypasses this entirely by
-	// hijacking anchoring (see the test.todo in engine.test.ts).
+	// tiebreak.
 	const sharesSize = (a: Candidate, b: Candidate): boolean => {
 		for (const [id, em] of a.eligible) {
 			const bm = b.eligible.get(id);
