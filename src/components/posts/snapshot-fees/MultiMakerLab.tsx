@@ -287,11 +287,12 @@ const cell = {
 	minWidth: 0,
 } as const;
 const cellLabel = { ...label, fontSize: 9.5, letterSpacing: "0.1em" } as const;
+// the gap lives in lab-theme.css (.sf-head), which gives it back on a
+// phone where the name and its reading need the room
 const headRow = {
 	display: "flex",
 	alignItems: "baseline",
 	justifyContent: "space-between",
-	gap: 6,
 	height: 15,
 } as const;
 const cellRow = {
@@ -374,7 +375,7 @@ function Param({
 				overflow: "hidden",
 			}}
 		>
-			<div style={headRow}>
+			<div class="sf-head" style={headRow}>
 				<span style={{ ...label, fontSize: 9.5, letterSpacing: "0.1em" }}>
 					{short && <span class="sf-short">{short}</span>}
 					<span class="sf-long">{name}</span>
@@ -1107,8 +1108,11 @@ export default function MultiMakerLab() {
 					    one so the direction of the toggle is legible; the inactive
 					    side greys out */}
 						<div class="sf-u-visibility" style={cell}>
-							<div style={headRow}>
-								<span style={cellLabel}>Order Book Visibility</span>
+							<div class="sf-head" style={headRow}>
+								<span style={cellLabel}>
+									<span class="sf-short">Visibility</span>
+									<span class="sf-long">Order Book Visibility</span>
+								</span>
 							</div>
 							<div
 								style={{
@@ -1186,7 +1190,7 @@ export default function MultiMakerLab() {
 						{/* the readout takes a dial's shape: value on the label line,
 					    a share bar where the slider would sit, split beneath */}
 						<div class="sf-u-influence" style={cell}>
-							<div style={headRow}>
+							<div class="sf-head" style={headRow}>
 								<span style={cellLabel}>Your Total Influence</span>
 								<span
 									style={{
@@ -1225,7 +1229,7 @@ export default function MultiMakerLab() {
 							</span>
 						</div>
 						<div class="sf-u-settings" style={cell}>
-							<div style={headRow}>
+							<div class="sf-head" style={headRow}>
 								<span style={cellLabel}>Market Settings</span>
 							</div>
 							<div style={cellRow}>

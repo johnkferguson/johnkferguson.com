@@ -186,6 +186,11 @@
 	gap: 10px 16px;
 }
 
+/* a dial's name and its reading, at opposite ends of one line */
+.sf-lab .sf-head {
+	gap: 6px;
+}
+
 /* the multi-maker utility row: visibility switches, the influence readout,
  * and the settings disclosure. Its outer margin lines up with the boxed
  * group above it, so it takes the same gap and its columns fall on the
@@ -206,9 +211,19 @@
 
 	/* what decides the count is the dial name, not the slider: a name of
 	 * one word or one symbol still sits beside its reading in a third of a
-	 * phone, where a spelled-out one does not. Those grids hold three. */
+	 * phone, where a spelled-out one does not. Those grids hold three, on
+	 * a tighter gap still, which is the few pixels the longest of these
+	 * pairs reads within. */
 	.sf-lab .sf-dials.sf-dials-three {
 		grid-template-columns: repeat(3, minmax(0, 1fr));
+		column-gap: 6px;
+	}
+
+	/* the name and its reading sit at opposite ends of this row, so the gap
+	 * between them is only ever a floor; giving it back costs nothing and
+	 * buys the pair the room to stay on one line */
+	.sf-lab .sf-head {
+		gap: 2px;
 	}
 
 	/* the two cells that only need room for a control pair up, and the
@@ -234,23 +249,14 @@
 }
 
 /* A boxed group spends 44px of the panel on its own margins and padding,
- * so inside one a phone runs out sooner. Below this the readings that come
+ * so inside one a phone runs out sooner: below this the readings that come
  * in words rather than figures, a spread of 2 ticks or a lean 90% to the
- * bid, no longer sit beside their names three across, and the visibility
- * cell's own title outgrows half the row. */
+ * bid, no longer sit beside their names three across. The utility row
+ * carries no such box and its titles are short, so it keeps its pairing
+ * down to the width where everything stacks. */
 @container sf-dials (max-width: 290px) {
 	.sf-lab .sf-dials.sf-dials-three {
 		grid-template-columns: repeat(2, minmax(0, 1fr));
-	}
-
-	.sf-lab .sf-utility {
-		grid-template-columns: minmax(0, 1fr);
-	}
-
-	.sf-lab .sf-u-visibility,
-	.sf-lab .sf-u-influence,
-	.sf-lab .sf-u-settings {
-		grid-area: auto;
 	}
 }
 
