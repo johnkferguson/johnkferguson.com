@@ -1985,6 +1985,11 @@ export default function MultiMakerLab() {
 										height={PB - PT}
 										fill="transparent"
 										style={{ cursor: "default" }}
+										/* down as well as move: a finger that taps and holds
+									   still never fires a move, and a level is 9px wide on a
+									   phone, so waiting for one meant the reading arrived
+									   only when the touch happened to drift inside the bar */
+										onPointerDown={(e) => onBodyMove(e, i)}
 										onPointerMove={(e) => onBodyMove(e, i)}
 										onPointerLeave={() => {
 											setFeeHover(null);
