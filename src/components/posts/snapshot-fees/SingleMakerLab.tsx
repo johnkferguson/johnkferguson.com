@@ -795,6 +795,7 @@ export default function SingleMakerLab() {
 				}}
 			>
 				<div
+					class="sf-prose"
 					style={{
 						fontSize: 12,
 						fontStyle: "italic",

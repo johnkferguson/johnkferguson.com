@@ -392,6 +392,7 @@ export default function BaseFeeLab() {
 				}}
 			>
 				<div
+					class="sf-prose"
 					style={{
 						fontSize: 12,
 						fontStyle: "italic",

@@ -192,14 +192,28 @@
 	gap: 10px 16px;
 }
 
-/* The charts are dragged, not read as text. Without this a press and hold
- * on a bar falls through to the platform's own gesture: iOS raises the
- * selection handles and the callout menu over the lab, and the drag never
- * starts. Scoped to the chart, so the caption below it stays selectable. */
-.sf-lab .sf-chart {
+/* A lab is an instrument, not a passage. A press inside one should move a
+ * bar or read a level; it should never hand iOS a run of text to reach for,
+ * which raises the selection handles and cancels the touch the chart was
+ * waiting on.
+ *
+ * Denied at the panel, not at the chart. Two things sit outside the chart
+ * and were selectable while it was: the readout panel, and every reading
+ * the chart draws on its axes, since Safari does not carry this into SVG
+ * text from the svg element the way it does from an HTML ancestor. The
+ * prose blocks ask for it back below. */
+.sf-lab {
 	-webkit-touch-callout: none;
 	-webkit-user-select: none;
 	user-select: none;
+}
+
+/* the instructions above each lab and the scenario caption below it: these
+ * are read, and worth quoting */
+.sf-lab .sf-prose,
+.sf-lab .sf-caption {
+	-webkit-user-select: text;
+	user-select: text;
 }
 
 /* Suppressing selection is not enough on its own: a press that lands on an
@@ -209,6 +223,10 @@
  * clear buttons keep theirs, which sits on the rect behind the words. */
 .sf-lab .sf-chart text {
 	pointer-events: none;
+	/* stated on the text itself as well as inherited, since this is the
+	 * property Safari is unreliable about carrying into SVG */
+	-webkit-user-select: none;
+	user-select: none;
 }
 
 /* The readout a hover or a touch produces. In the chart it is drawn in the
