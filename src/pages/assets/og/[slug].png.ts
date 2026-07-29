@@ -6,6 +6,7 @@ import {
 	missingGlyphs,
 	OG,
 	OG_FAMILY,
+	ogArtOptions,
 	pinArtColors,
 	renderPng,
 } from "../../../lib/og";
@@ -49,18 +50,7 @@ export function GET({ props }: APIContext) {
 	const { lines, size, lineHeight } = layoutTitle(title, TITLE_WIDTH);
 	const blockTop = 300 - ((lines.length - 1) * lineHeight) / 2;
 
-	const art = pinArtColors(
-		artSvg({
-			seedKey: post.data.art?.seed ?? post.id,
-			family: post.data.art?.family,
-			piece: post.data.art?.piece,
-			params: post.data.art?.params,
-			width: OG.width,
-			height: OG.height,
-			quiet: { x: 0.04, y: 0.22, w: 0.92, h: 0.56 },
-			quietStrength: 0.28,
-		}),
-	);
+	const art = pinArtColors(artSvg(ogArtOptions(post.data.art, post.id)));
 
 	const titleText = lines
 		.map(

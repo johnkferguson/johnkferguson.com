@@ -1,8 +1,11 @@
 import { expect, test } from "bun:test";
 import { readdirSync, readFileSync, writeFileSync } from "node:fs";
 import { resolve } from "node:path";
+import { parse as parseYaml } from "yaml";
+import { ogArtOptions, pinArtColors } from "../og";
 import { hashSeed } from "./core";
 import { artSvg, DEFAULT_QUIET } from "./generate";
+import { PIECES } from "./pieces";
 
 /*
  * Pinned art is regenerated at every build, so a change to a piece or a
@@ -25,52 +28,33 @@ interface PinnedArt {
 	motion?: boolean;
 }
 
-/* top-level art keys are strings or booleans; a quoted numeric seed
- * ("123456") must STAY a string or hashSeed's charCodeAt explodes */
-function coerceScalar(raw: string): string | boolean {
-	const s = raw.replace(/^["']|["']$/g, "");
-	if (s === "true") return true;
-	if (s === "false") return false;
-	return s;
-}
-
-/* params/thumb values, where numbers are the point */
-function coerceNested(raw: string): string | number | boolean {
-	const s = coerceScalar(raw);
-	if (typeof s === "boolean") return s;
-	const n = Number(s);
-	return Number.isNaN(n) || s === "" ? s : n;
-}
-
-/* minimal parser for the art: block this repo's frontmatter uses
- * (scalar keys at 2 spaces, params/thumb maps nested at 4) */
+/**
+ * The art: block, read with the same YAML the site's own loader uses.
+ *
+ * This was a hand-rolled line parser, and every fix to it was another
+ * way it differed from YAML: it stopped at the first comment line, and
+ * once that was fixed a TRAILING comment still parsed into the value, so
+ * `seed: abc # chosen in review` hashed as that whole string and
+ * `bars: 52 # wider` came out a string instead of a number. Both make
+ * the guard report drift that never happened, which is the one failure a
+ * drift guard cannot afford. Astro parses this frontmatter with real
+ * YAML; so does this.
+ */
 function parseArt(md: string): PinnedArt | null {
 	const fm = md.match(/^---\n([\s\S]*?)\n---/);
 	if (!fm) return null;
-	const lines = fm[1].split("\n");
-	const start = lines.findIndex((l) => /^art:\s*$/.test(l));
-	if (start === -1) return null;
-	// biome-ignore lint/suspicious/noExplicitAny: transient parse target
-	const art: any = {};
-	// biome-ignore lint/suspicious/noExplicitAny: transient parse target
-	let nested: any = null;
-	for (let i = start + 1; i < lines.length; i++) {
-		const m = lines[i].match(/^(\s+)([\w-]+):\s*(.*)$/);
-		if (!m) break;
-		const [, indent, key, raw] = m;
-		if (indent.length === 2) {
-			if (raw === "") {
-				art[key] = {};
-				nested = art[key];
-			} else {
-				art[key] = coerceScalar(raw);
-				nested = null;
-			}
-		} else if (nested) {
-			nested[key] = coerceNested(raw);
-		}
+	const doc = parseYaml(fm[1]) as { art?: PinnedArt } | null;
+	const art = doc?.art;
+	if (!art?.piece) return null;
+	/* YAML reads an unquoted 123456 as a number, and so would Astro,
+	 * whose schema types seed as a string and would reject it. Say that
+	 * here rather than letting hashSeed die inside charCodeAt. */
+	if (art.seed !== undefined && typeof art.seed !== "string") {
+		throw new Error(
+			`art.seed must be a string; quote it in the frontmatter (got ${typeof art.seed})`,
+		);
 	}
-	return art.piece ? (art as PinnedArt) : null;
+	return art;
 }
 
 const hex = (s: string) => hashSeed(s).toString(16).padStart(8, "0");
@@ -100,16 +84,52 @@ function surfaceHashes(slug: string, art: PinnedArt): Record<string, string> {
 				crop: art.thumb,
 			})
 		: artSvg({ ...common, animate: art.motion, width: 800, height: 560 });
-	return { backdrop: hex(backdrop), thumb: hex(thumb) };
+	/* The share card, built from the endpoint's own options rather than a
+	 * copy of them, and hashed AFTER pinArtColors because that is what
+	 * ships: a palette edit really does redraw every card, and this is
+	 * where that should surface. Only the art is hashed, never the
+	 * assembled card, which carries the title, date and reading time, so
+	 * hashing it would churn this snapshot on every prose edit and train
+	 * whoever sees the diff to accept it blindly. */
+	const og = pinArtColors(artSvg(ogArtOptions(art, slug)));
+	return { backdrop: hex(backdrop), thumb: hex(thumb), og: hex(og) };
 }
 
-const pinned = readdirSync(POSTS_DIR, { withFileTypes: true })
-	.filter((e) => e.isFile() && e.name.endsWith(".md"))
-	.flatMap((e) => {
-		const art = parseArt(readFileSync(resolve(POSTS_DIR, e.name), "utf8"));
-		const slug = e.name.replace(/\.md$/, "");
+/* Recursive and .mdx-aware on purpose. Posts are authored as .md or
+ * .mdx and drafts live a directory down, so a top-level .md-only scan
+ * silently covered none of either: a draft could be tuned, pinned, and
+ * published without this guard ever having watched it. Slugs mirror the
+ * collection's generateId (src/content.config.ts), which strips the
+ * drafts/ prefix, so a post keeps its snapshot key when it publishes. */
+const pinned = readdirSync(POSTS_DIR, { recursive: true })
+	.filter((f): f is string => typeof f === "string" && /\.mdx?$/.test(f))
+	.flatMap((file) => {
+		const art = parseArt(readFileSync(resolve(POSTS_DIR, file), "utf8"));
+		const slug = file.replace(/^drafts\//, "").replace(/\.mdx?$/, "");
 		return art ? [{ slug, art }] : [];
 	});
+
+test("no two posts pin the same piece", () => {
+	/* Pieces are commissioned one per post, which is what lets per-piece
+	 * settings like ogQuiet stand in for per-post ones: there is no
+	 * frontmatter override for them, so a shared piece would silently tie
+	 * two posts' cards together. */
+	const byPiece = new Map<string, string[]>();
+	for (const { slug, art } of pinned) {
+		byPiece.set(art.piece, [...(byPiece.get(art.piece) ?? []), slug]);
+	}
+	const shared = [...byPiece].filter(([, slugs]) => slugs.length > 1);
+	expect(shared.map(([p, slugs]) => `${p}: ${slugs.join(", ")}`)).toEqual([]);
+});
+
+test("every pinned piece exists", () => {
+	/* a renamed piece should fail here, not ship fallback art */
+	for (const { slug, art } of pinned) {
+		expect(Object.keys(PIECES), `${slug} pins ${art.piece}`).toContain(
+			art.piece,
+		);
+	}
+});
 
 test("a quoted numeric seed parses as a string, not a number", () => {
 	const art = parseArt(

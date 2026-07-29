@@ -45,7 +45,7 @@ describe.each(Object.keys(PIECES))("piece %s", (name) => {
 		}
 	});
 
-	test("motion adds animation without changing geometry", () => {
+	test("motion preserves the still render's geometry", () => {
 		const base = {
 			seedKey: "fixed-seed",
 			piece: name,
@@ -57,12 +57,22 @@ describe.each(Object.keys(PIECES))("piece %s", (name) => {
 		const still = artSvg(base);
 		const animated = artSvg({ ...base, animate: true });
 		expect(animated).toContain("<animate");
-		/* stripping the animation nodes must recover the static render
-		 * exactly: motion draws from a separate seeded stream */
+		/* Motion draws from a separate seeded stream, so the resting
+		 * frame must survive verbatim once the animation nodes come out.
+		 * Containment rather than equality: a piece may add geometry that
+		 * only exists to be animated (snapshot-fees emits four further
+		 * books, hidden at time zero). What is guaranteed either way is
+		 * that the frame at rest is untouched, which is what the
+		 * backdrop, the OG card, and a paused thumbnail all render. */
 		const stripped = animated
 			.replaceAll(/<animate(?:Transform)?\b[^>]*\/>/g, "")
 			.replaceAll("></rect>", "/>");
-		expect(stripped).toBe(still);
+		const body = still.slice(still.indexOf(">") + 1, -"</svg>".length);
+		/* toContain is satisfied by the empty string, which toBe never
+		 * was: a piece that rendered nothing at all would otherwise pass
+		 * this and every test beside it */
+		expect(body.length).toBeGreaterThan(0);
+		expect(stripped).toContain(body);
 	});
 
 	test("param overrides change the output", () => {

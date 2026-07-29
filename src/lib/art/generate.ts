@@ -10,7 +10,7 @@
  * Colors are CSS variables so inline SVG themes with the site palette.
  */
 
-import type { QuietCtx, QuietZone } from "./core";
+import type { QuietCtx, QuietFit, QuietZone } from "./core";
 import { hashSeed, quietPoint, quietSpan, resolveParams, rng } from "./core";
 import { getPiece } from "./pieces";
 
@@ -42,6 +42,9 @@ export interface ArtOptions {
 	crop?: { x: number; y: number; w: number; h: number };
 	/** emit seeded SMIL motion (pieces only); geometry is unchanged */
 	animate?: boolean;
+	/** how the quiet zone treats art that would fill it (pieces only);
+	 * defaults to "clip", which is what every surface did originally */
+	quietFit?: QuietFit;
 }
 
 export function artSvg(opts: ArtOptions): string {
@@ -62,6 +65,8 @@ export function artSvg(opts: ArtOptions): string {
 		if (!piece) throw new Error(`unknown art piece "${opts.piece}"`);
 		body = piece.render(r, w, h, q, resolveParams(piece.params, opts.params), {
 			animate: opts.animate,
+			fit: opts.quietFit,
+			seed,
 			/* decorrelated from the layout stream but still seed-stable */
 			animRng: rng(seed ^ 0x5bf03635),
 		});

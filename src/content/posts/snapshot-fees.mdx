@@ -5,11 +5,14 @@ description: "A fee mechanism for batch auctions: liquidity priced by what it of
 draft: false
 pace: "mixed"
 art:
-  family: "depth"
-  # deliberate: pins the exact piece chosen during the art-swap review
-  # (seeds are arbitrary strings; this one predates per-post reseeding
-  # and will be revisited in the gen-art pass)
-  seed: "refactoring-with-love"
+  piece: "snapshot-fees"
+  seed: "nev47f"
+  params:
+    bars: 52
+    depth: 1.4
+    noise: 1.4
+    walk: 16
+  motion: true
 ---
 
 import "../../styles/snapshot-fees.css";
