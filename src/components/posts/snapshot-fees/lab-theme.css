@@ -167,28 +167,55 @@
 	white-space: pre-line;
 }
 
-/* the base-fee dials sit three across the chart's column. That column
- * holds at 423px on every desktop width, since the article measure caps
- * the panel; it only narrows once the schedule has wrapped below the
- * chart and taken the panel's own width down with the phone. Past 410px
- * a third track leaves each slider a stub of its track, so drop to two.
- * Query the column, not the viewport: a lab is narrower than the page,
- * and its width turns on where the schedule sits. */
-.sf-lab .sf-plot {
+/* Every lab's dials run three across and fall to two on a phone, where a
+ * third track leaves each slider a stub and its label no room to read.
+ *
+ * The query reads the grid's own parent rather than the viewport. Some of
+ * these grids share a flex line with a chart or a schedule and narrow well
+ * ahead of the panel; others take the panel's full width. Marking the
+ * parent means one threshold covers both, and a lab keeps working wherever
+ * it is embedded. Padding stays with each lab, which sets its own. */
+.sf-lab .sf-dialbox {
 	container-type: inline-size;
-	container-name: sf-plot;
+	container-name: sf-dials;
 }
 
 .sf-lab .sf-dials {
 	display: grid;
 	grid-template-columns: repeat(3, minmax(0, 1fr));
 	gap: 10px 16px;
-	padding: 10px 12px 8px 4px;
 }
 
-@container sf-plot (max-width: 410px) {
+/* the multi-maker utility row: visibility switches, the influence readout,
+ * and the settings disclosure. Its outer margin lines up with the boxed
+ * group above it, so it takes the same gap and its columns fall on the
+ * same edges as that group's dials */
+.sf-lab .sf-utility {
+	display: grid;
+	grid-template-columns: repeat(3, minmax(0, 1fr));
+	gap: 10px 16px;
+}
+
+@container sf-dials (max-width: 410px) {
+	/* the tighter gap is worth a few pixels a column, which is the margin
+	 * the longest dial names read within */
 	.sf-lab .sf-dials {
 		grid-template-columns: repeat(2, minmax(0, 1fr));
+		column-gap: 10px;
+	}
+
+	/* three unlike cells rather than parallel dials, and two of their
+	 * labels alone run wider than half a phone, so this one stacks */
+	.sf-lab .sf-utility {
+		grid-template-columns: minmax(0, 1fr);
+	}
+}
+
+/* the narrowest phones, where a boxed group leaves half a column too
+ * short for a dial name and its reading side by side */
+@container sf-dials (max-width: 250px) {
+	.sf-lab .sf-dials {
+		grid-template-columns: minmax(0, 1fr);
 	}
 }
 

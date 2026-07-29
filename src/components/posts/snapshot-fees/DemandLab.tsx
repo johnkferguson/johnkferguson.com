@@ -334,15 +334,8 @@ export default function DemandLab() {
 					}}
 				>
 					{/* —— left two-thirds: dials above, the chart below —— */}
-					<div style={{ flex: "2 1 400px", minWidth: 300 }}>
-						<div
-							style={{
-								display: "grid",
-								gridTemplateColumns: "repeat(3, minmax(0, 1fr))",
-								gap: "10px 16px",
-								padding: "10px 12px 8px 4px",
-							}}
-						>
+					<div class="sf-dialbox" style={{ flex: "2 1 400px", minWidth: 300 }}>
+						<div class="sf-dials" style={{ padding: "10px 12px 8px 4px" }}>
 							<Param
 								name="Seed · D₀"
 								val={seed}

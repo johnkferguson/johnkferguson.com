@@ -325,11 +325,8 @@ const groupHead = {
 	gap: "4px 10px",
 	marginBottom: 7,
 } as const;
-const grid3 = {
-	display: "grid",
-	gridTemplateColumns: "repeat(3, minmax(0, 1fr))",
-	gap: "10px 14px",
-} as const;
+// the geometry lives in lab-theme.css: three columns, two on a phone, and
+// the gap tightened there to buy the labels a few pixels back
 
 interface ParamProps {
 	name: string;
@@ -1011,7 +1008,7 @@ export default function MultiMakerLab() {
 				</div>
 				{/* the other makers' book: a tinted, bordered group, so the dials
 				    that generate their ladder never read as controls over your own */}
-				<div style={group}>
+				<div class="sf-dialbox" style={group}>
 					<div style={groupHead}>
 						<span style={label}>Other Makers</span>
 						<div style={{ display: "flex", gap: 5, flexWrap: "wrap" }}>
@@ -1038,7 +1035,7 @@ export default function MultiMakerLab() {
 							</button>
 						</div>
 					</div>
-					<div style={grid3}>
+					<div class="sf-dials">
 						<Param
 							name="Depth"
 							val={depth}
@@ -1087,152 +1084,156 @@ export default function MultiMakerLab() {
 
 				{/* participation, influence, and the disclosure for the schedule
 				    dials the earlier labs already taught */}
-				<div style={{ ...grid3, margin: "0 21px 8px" }}>
-					{/* one switch per book, each flanked by a shut eye and an open
+				<div class="sf-dialbox" style={{ margin: "0 21px 8px" }}>
+					<div class="sf-utility">
+						{/* one switch per book, each flanked by a shut eye and an open
 					    one so the direction of the toggle is legible; the inactive
 					    side greys out */}
-					<div style={cell}>
-						<div style={headRow}>
-							<span style={cellLabel}>Order Book Visibility</span>
-						</div>
-						<div
-							style={{
-								...cellRow,
-								flexDirection: "column",
-								alignItems: "stretch",
-								justifyContent: "center",
-								gap: 4,
-							}}
-						>
-							{(
-								[
-									["You", showYou, setShowYou],
-									["Makers", showAgg, setShowAgg],
-								] as const
-							).map(([lbl, on, set]) => (
-								<button
-									key={lbl}
-									type="button"
-									role="switch"
-									aria-checked={on}
-									aria-label={`${lbl === "You" ? "Your book" : "The other makers"} in the auction`}
-									onClick={() => set((v) => !v)}
-									style={{
-										display: "flex",
-										alignItems: "center",
-										gap: 6,
-										background: "none",
-										border: "none",
-										padding: 0,
-										cursor: "pointer",
-										color: on ? C.text : C.faint,
-										fontFamily: mono,
-										fontSize: 11.5,
-									}}
-								>
-									<span style={{ width: "10ch", textAlign: "left" }}>
-										{lbl}
-									</span>
-									<Eye open={false} lit={!on} />
-									<span
-										style={{
-											width: 26,
-											height: 15,
-											borderRadius: 999,
-											position: "relative",
-											flexShrink: 0,
-											background: on
-												? "var(--lab-btn-active-bg)"
-												: "var(--lab-panel2)",
-											border: `1px solid ${on ? "var(--lab-btn-active-bg)" : C.line}`,
-											transition: "background 150ms, border-color 150ms",
-										}}
-									>
-										<span
-											style={{
-												position: "absolute",
-												top: 1.5,
-												left: on ? 12.5 : 1.5,
-												width: 10,
-												height: 10,
-												borderRadius: "50%",
-												background: on ? C.panel2 : C.dim,
-												transition: "left 150ms, background 150ms",
-											}}
-										/>
-									</span>
-									<Eye open lit={on} />
-								</button>
-							))}
-						</div>
-						<span style={cellHint}>Toggle to remove from the auction.</span>
-					</div>
-
-					{/* the readout takes a dial's shape: value on the label line,
-					    a share bar where the slider would sit, split beneath */}
-					<div style={cell}>
-						<div style={headRow}>
-							<span style={cellLabel}>Your Total Influence</span>
-							<span
-								style={{
-									fontFamily: mono,
-									fontSize: 11.5,
-									color: C.measure,
-								}}
-							>
-								{influence}%
-							</span>
-						</div>
-						<div style={cellRow}>
+						<div style={cell}>
+							<div style={headRow}>
+								<span style={cellLabel}>Order Book Visibility</span>
+							</div>
 							<div
 								style={{
-									width: "100%",
-									height: 8,
-									borderRadius: 999,
-									background: C.inset,
-									border: `1px solid ${C.line}`,
-									overflow: "hidden",
+									...cellRow,
+									flexDirection: "column",
+									alignItems: "stretch",
+									justifyContent: "center",
+									gap: 4,
 								}}
 							>
+								{(
+									[
+										["You", showYou, setShowYou],
+										["Makers", showAgg, setShowAgg],
+									] as const
+								).map(([lbl, on, set]) => (
+									<button
+										key={lbl}
+										type="button"
+										role="switch"
+										aria-checked={on}
+										aria-label={`${lbl === "You" ? "Your book" : "The other makers"} in the auction`}
+										onClick={() => set((v) => !v)}
+										style={{
+											display: "flex",
+											alignItems: "center",
+											gap: 6,
+											background: "none",
+											border: "none",
+											padding: 0,
+											cursor: "pointer",
+											color: on ? C.text : C.faint,
+											fontFamily: mono,
+											fontSize: 11.5,
+										}}
+									>
+										<span style={{ width: "10ch", textAlign: "left" }}>
+											{lbl}
+										</span>
+										<Eye open={false} lit={!on} />
+										<span
+											style={{
+												width: 26,
+												height: 15,
+												borderRadius: 999,
+												position: "relative",
+												flexShrink: 0,
+												background: on
+													? "var(--lab-btn-active-bg)"
+													: "var(--lab-panel2)",
+												border: `1px solid ${on ? "var(--lab-btn-active-bg)" : C.line}`,
+												transition: "background 150ms, border-color 150ms",
+											}}
+										>
+											<span
+												style={{
+													position: "absolute",
+													top: 1.5,
+													left: on ? 12.5 : 1.5,
+													width: 10,
+													height: 10,
+													borderRadius: "50%",
+													background: on ? C.panel2 : C.dim,
+													transition: "left 150ms, background 150ms",
+												}}
+											/>
+										</span>
+										<Eye open lit={on} />
+									</button>
+								))}
+							</div>
+							<span style={cellHint}>Toggle to remove from the auction.</span>
+						</div>
+
+						{/* the readout takes a dial's shape: value on the label line,
+					    a share bar where the slider would sit, split beneath */}
+						<div style={cell}>
+							<div style={headRow}>
+								<span style={cellLabel}>Your Total Influence</span>
+								<span
+									style={{
+										fontFamily: mono,
+										fontSize: 11.5,
+										color: C.measure,
+									}}
+								>
+									{influence}%
+								</span>
+							</div>
+							<div style={cellRow}>
 								<div
 									style={{
-										width: `${influence}%`,
-										height: "100%",
-										background: C.measure,
-										transition: "width 200ms ease",
+										width: "100%",
+										height: 8,
+										borderRadius: 999,
+										background: C.inset,
+										border: `1px solid ${C.line}`,
+										overflow: "hidden",
 									}}
-								/>
+								>
+									<div
+										style={{
+											width: `${influence}%`,
+											height: "100%",
+											background: C.measure,
+											transition: "width 200ms ease",
+										}}
+									/>
+								</div>
 							</div>
+							<span style={cellHint}>
+								bid {yourShareBid.toFixed(0)}% · ask {yourShareAsk.toFixed(0)}%
+								of each walk
+							</span>
 						</div>
-						<span style={cellHint}>
-							bid {yourShareBid.toFixed(0)}% · ask {yourShareAsk.toFixed(0)}% of
-							each walk
-						</span>
-					</div>
-					<div style={cell}>
-						<div style={headRow}>
-							<span style={cellLabel}>Market Settings</span>
+						<div style={cell}>
+							<div style={headRow}>
+								<span style={cellLabel}>Market Settings</span>
+							</div>
+							<div style={cellRow}>
+								<button
+									type="button"
+									aria-expanded={showSettings}
+									onClick={() => setShowSettings((v) => !v)}
+									style={btn(showSettings)}
+								>
+									{showSettings ? "▾ Hide" : "▸ Show"}
+								</button>
+							</div>
+							<span style={cellHint}>
+								The schedule set in the earlier labs.
+							</span>
 						</div>
-						<div style={cellRow}>
-							<button
-								type="button"
-								aria-expanded={showSettings}
-								onClick={() => setShowSettings((v) => !v)}
-								style={btn(showSettings)}
-							>
-								{showSettings ? "▾ Hide" : "▸ Show"}
-							</button>
-						</div>
-						<span style={cellHint}>The schedule set in the earlier labs.</span>
 					</div>
 				</div>
 
 				{showSettings && (
-					<div style={group}>
+					<div class="sf-dialbox" style={group}>
 						<div style={groupHead}>
 							<span style={label}>Market Settings</span>
 						</div>
-						<div style={grid3}>
+						<div class="sf-dials">
 							<Param
 								name="Fee Cap · F"
 								val={F}
@@ -1243,8 +1244,11 @@ export default function MultiMakerLab() {
 								suffix="bps"
 								hint="The most any resting order pays."
 							/>
+							{/* the one dial whose name and reading together outrun half a
+							    phone; shortened here, where the panel is a recap of terms
+							    the earlier labs have already taught in full */}
 							<Param
-								name="Typical demand · D"
+								name="Demand · D"
 								val={D}
 								set={touch("D", D, setD)}
 								min={1000}

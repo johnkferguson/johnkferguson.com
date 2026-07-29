@@ -407,8 +407,8 @@ export default function BaseFeeLab() {
 					}}
 				>
 					{/* —— left two-thirds: controls above, the curve below —— */}
-					<div class="sf-plot" style={{ flex: "2 1 400px", minWidth: 300 }}>
-						<div class="sf-dials">
+					<div class="sf-dialbox" style={{ flex: "2 1 400px", minWidth: 300 }}>
+						<div class="sf-dials" style={{ padding: "10px 12px 8px 4px" }}>
 							<Param
 								name="Inner Band · B"
 								val={B}

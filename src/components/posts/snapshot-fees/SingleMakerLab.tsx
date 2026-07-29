@@ -629,77 +629,70 @@ export default function SingleMakerLab() {
 						margin: "0 10px",
 					}}
 				>
-					<div
-						style={{
-							flex: "2 1 400px",
-							minWidth: 300,
-							display: "grid",
-							gridTemplateColumns: "repeat(3, minmax(0, 1fr))",
-							gap: "10px 16px",
-							padding: "10px 4px 4px",
-						}}
-					>
-						<Param
-							name="Typical demand · D"
-							val={D}
-							set={touch("D", D, setD)}
-							min={1000}
-							max={30000}
-							stp={500}
-							suffix="$"
-							hint="Per side size for measuring M."
-						/>
-						<Param
-							name="Inner Band · B"
-							val={B}
-							set={touch("B", B, setB)}
-							min={1}
-							max={10}
-							stp={0.5}
-							suffix="bps"
-							hint="Width B, drawn M ± B/2."
-						/>
-						<Param
-							name="Maker Zone · Z"
-							val={Z}
-							set={touch("Z", Z, setZ)}
-							min={2}
-							max={20}
-							stp={0.5}
-							suffix="bps"
-							hint="Working radius past the band edge."
-						/>
-						<Param
-							name="Fee Cap · F"
-							val={F}
-							set={touch("F", F, setF)}
-							min={5}
-							max={25}
-							stp={0.5}
-							suffix="bps"
-							hint="The most any resting order pays."
-						/>
-						<Param
-							name="Zone Slope · k₁"
-							val={slope}
-							set={touch("k", slope, setSlope)}
-							min={0.25}
-							max={3}
-							stp={0.05}
-							suffix="×"
-							warn={slope >= 1}
-							hint="Fee per bps inside the zone."
-						/>
-						<Param
-							name="Far Slope · k₂"
-							val={slope2}
-							set={touch("k2", slope2, setSlope2)}
-							min={0.25}
-							max={3}
-							stp={0.05}
-							suffix="×"
-							hint="Fee per bps beyond the zone."
-						/>
+					<div class="sf-dialbox" style={{ flex: "2 1 400px", minWidth: 300 }}>
+						<div class="sf-dials" style={{ padding: "10px 4px 4px" }}>
+							<Param
+								name="Typical demand · D"
+								val={D}
+								set={touch("D", D, setD)}
+								min={1000}
+								max={30000}
+								stp={500}
+								suffix="$"
+								hint="Per side size for measuring M."
+							/>
+							<Param
+								name="Inner Band · B"
+								val={B}
+								set={touch("B", B, setB)}
+								min={1}
+								max={10}
+								stp={0.5}
+								suffix="bps"
+								hint="Width B, drawn M ± B/2."
+							/>
+							<Param
+								name="Maker Zone · Z"
+								val={Z}
+								set={touch("Z", Z, setZ)}
+								min={2}
+								max={20}
+								stp={0.5}
+								suffix="bps"
+								hint="Working radius past the band edge."
+							/>
+							<Param
+								name="Fee Cap · F"
+								val={F}
+								set={touch("F", F, setF)}
+								min={5}
+								max={25}
+								stp={0.5}
+								suffix="bps"
+								hint="The most any resting order pays."
+							/>
+							<Param
+								name="Zone Slope · k₁"
+								val={slope}
+								set={touch("k", slope, setSlope)}
+								min={0.25}
+								max={3}
+								stp={0.05}
+								suffix="×"
+								warn={slope >= 1}
+								hint="Fee per bps inside the zone."
+							/>
+							<Param
+								name="Far Slope · k₂"
+								val={slope2}
+								set={touch("k2", slope2, setSlope2)}
+								min={0.25}
+								max={3}
+								stp={0.05}
+								suffix="×"
+								hint="Fee per bps beyond the zone."
+							/>
+						</div>
 					</div>
 					<div
 						style={{
