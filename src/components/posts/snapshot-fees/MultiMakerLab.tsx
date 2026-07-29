@@ -1281,7 +1281,7 @@ export default function MultiMakerLab() {
 				</div>
 				{/* the other makers' book: a tinted, bordered group, so the dials
 				    that generate their ladder never read as controls over your own */}
-				<div class="sf-dialbox" style={group}>
+				<div class="sf-dialbox sf-inset" style={group}>
 					<div style={groupHead}>
 						<span style={label}>Other Makers</span>
 						<div style={{ display: "flex", gap: 5, flexWrap: "wrap" }}>
@@ -1364,7 +1364,7 @@ export default function MultiMakerLab() {
 
 				{/* participation, influence, and the disclosure for the schedule
 				    dials the earlier labs already taught */}
-				<div class="sf-dialbox" style={{ margin: "0 21px 8px" }}>
+				<div class="sf-dialbox sf-inset" style={{ margin: "0 21px 8px" }}>
 					<div class="sf-utility">
 						{/* one switch per book, each flanked by a shut eye and an open
 					    one so the direction of the toggle is legible; the inactive
@@ -1587,7 +1587,7 @@ export default function MultiMakerLab() {
 				</div>
 
 				{showSettings && (
-					<div class="sf-dialbox" style={group}>
+					<div class="sf-dialbox sf-inset" style={group}>
 						<div style={groupHead}>
 							<span style={label}>Market Settings</span>
 						</div>

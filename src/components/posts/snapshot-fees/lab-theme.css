@@ -356,6 +356,47 @@
 	gap: 10px 16px;
 }
 
+/* A grid inside this lab's own chrome runs out of width sooner than one in a
+ * plain column: a boxed group spends 44px of the panel on its margin, border
+ * and padding, and the utility row is inset to line up with one.
+ *
+ * 580px is where the longest pair in these grids finally fits three across.
+ * Typical demand and its reading measure 174px together, and three of those
+ * plus the gaps and the group's own padding is what that number is. Below it
+ * the influence reading overprinted the settings label and Typical demand ran
+ * past its column: a band wider than any phone, but well inside a narrow
+ * window. Above it the spelled-out names come back. */
+@container sf-dials (max-width: 580px) {
+	.sf-lab .sf-inset .sf-short {
+		display: inline;
+	}
+
+	.sf-lab .sf-inset .sf-short + .sf-long {
+		display: none;
+	}
+
+	.sf-lab .sf-inset .sf-head {
+		gap: 2px;
+	}
+
+	.sf-lab .sf-utility {
+		grid-template-columns: repeat(2, minmax(0, 1fr));
+		column-gap: 10px;
+	}
+
+	.sf-lab .sf-u-visibility {
+		grid-area: 1 / 1;
+	}
+
+	.sf-lab .sf-u-settings {
+		grid-area: 1 / 2;
+	}
+
+	.sf-lab .sf-u-influence {
+		grid-area: 2 / 1 / 3 / -1;
+	}
+}
+
 @container sf-dials (max-width: 410px) {
 	/* the tighter gap is worth a few pixels a column, which is the margin
 	 * the longest dial names read within */
