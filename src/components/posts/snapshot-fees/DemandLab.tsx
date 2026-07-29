@@ -377,6 +377,7 @@ export default function DemandLab() {
 						<svg
 							ref={svgRef}
 							viewBox={`0 0 ${VBW} ${VBH}`}
+							class="sf-chart"
 							style={{ width: "100%", display: "block", touchAction: "none" }}
 							role="img"
 							aria-label="Ten days of demand as draggable bars, with three D staircases chasing them at different speeds"

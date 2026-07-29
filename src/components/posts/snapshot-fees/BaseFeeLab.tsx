@@ -524,6 +524,7 @@ export default function BaseFeeLab() {
 						<svg
 							ref={svgRef}
 							viewBox={`0 0 ${W} ${H}`}
+							class="sf-chart"
 							style={{ width: "100%", display: "block", touchAction: "none" }}
 							role="img"
 							aria-label="Base fee curve with draggable Band Edge, Zone Edge, and Cap; fee in bps against placement distance from M"

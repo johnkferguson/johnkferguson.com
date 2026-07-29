@@ -7,6 +7,7 @@ import {
 	type MarketModel,
 	type Side,
 } from "../../../lib/snapshot-fees/engine";
+import { useGrabUnits } from "./use-grab-units";
 import "./lab-theme.css";
 
 // ————————————————————————————————————————————————————————————————
@@ -398,6 +399,11 @@ export default function SingleMakerLab() {
 	const inView = (i: number) => i >= loI && i <= CENTER + viewHalf;
 	const labelStride = [2, 3, 4, 5, 6][zoom];
 	const step = (PR - PL - 2 * PAD) / (viewHalf * 2);
+	// grab handles straddle a bar's outer edge, three quarters of them
+	// outside it; on a touch pointer they grow to stay 24px on screen
+	const grab = useGrabUnits(svgRef, W);
+	const grabOut = grab * 0.75;
+	const grabEmpty = grab * 0.875;
 	const xAt = (i: number) => PL + PAD + (i - loI) * step;
 	const xOfPrice = (p: number) => PL + PAD + ((p - priceAt(loI)) / TICK) * step;
 	const barW = step * 0.6;
@@ -843,6 +849,7 @@ export default function SingleMakerLab() {
 					<svg
 						ref={svgRef}
 						viewBox={`0 0 ${W} ${H}`}
+						class="sf-chart"
 						style={{ width: "100%", display: "block", touchAction: "none" }}
 						onPointerMove={(e) => {
 							const r = svgRef.current?.getBoundingClientRect();
@@ -1124,11 +1131,11 @@ export default function SingleMakerLab() {
 										x={xAt(lv.i) - step / 2}
 										y={
 											lv.size > 0
-												? Math.max(PT - 12, yDepth(lv.size) - 12)
-												: PB - 14
+												? Math.max(PT - grabOut, yDepth(lv.size) - grabOut)
+												: PB - grabEmpty
 										}
 										width={step}
-										height={lv.size > 0 ? 16 : 14}
+										height={lv.size > 0 ? grab : grabEmpty}
 										fill="transparent"
 										style={{ cursor: "ns-resize" }}
 										onPointerEnter={() => setFeeHover(lv.bk ? lv.i : null)}

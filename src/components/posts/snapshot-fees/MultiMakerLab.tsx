@@ -8,6 +8,7 @@ import {
 	type MultiMeasure,
 	type Side,
 } from "../../../lib/snapshot-fees/engine";
+import { useGrabUnits } from "./use-grab-units";
 import "./lab-theme.css";
 
 // ————————————————————————————————————————————————————————————————
@@ -34,6 +35,8 @@ const SLOPE2_DEFAULT = 0.95;
 const priceAt = (i: number) => +(100 + (i - CENTER) * TICK).toFixed(3);
 // 100.000 (i = CENTER) is a quotable bid; asks start one tick above.
 const sideAt = (i: number): Side => (i <= CENTER ? "bid" : "ask");
+const clamp = (v: number, lo: number, hi: number) =>
+	Math.max(lo, Math.min(hi, v));
 
 const round$ = (v: number) =>
 	Math.max(0, Math.round(v / STEP_DOLLARS) * STEP_DOLLARS);
@@ -746,6 +749,13 @@ export default function MultiMakerLab() {
 	const loI = CENTER - viewHalf;
 	const inView = (i: number) => i >= loI && i <= CENTER + viewHalf;
 	const labelStride = [2, 3, 4, 5, 6][zoom];
+	// grab handles straddle a bar's outer edge, three quarters of them
+	// outside it; on a touch pointer they grow to stay 24px on screen,
+	// clamped so neither book's handle reaches across the midline
+	const grab = useGrabUnits(svgRef, W);
+	const grabOut = grab * 0.75;
+	const grabIn = grab - grabOut;
+	const grabEmpty = grab * 0.875;
 	const step = (PR - PL - 2 * PAD) / (viewHalf * 2);
 	const xAt = (i: number) => PL + PAD + (i - loI) * step;
 	const xOfPrice = (p: number) => PL + PAD + ((p - priceAt(loI)) / TICK) * step;
@@ -1333,6 +1343,7 @@ export default function MultiMakerLab() {
 					<svg
 						ref={svgRef}
 						viewBox={`0 0 ${W} ${H}`}
+						class="sf-chart"
 						style={{ width: "100%", display: "block", touchAction: "none" }}
 						onPointerMove={(e) => {
 							const r = svgRef.current?.getBoundingClientRect();
@@ -1668,9 +1679,13 @@ export default function MultiMakerLab() {
 									{/* grab handles: hug each bar's outer edge, mostly outside it */}
 									<rect
 										x={xAt(i) - step / 2}
-										y={yv > 0 ? Math.max(PT, yUp(yv) - 12) : MID - 14}
+										y={
+											yv > 0
+												? clamp(yUp(yv) - grabOut, PT, MID - grab)
+												: MID - grabEmpty
+										}
 										width={step}
-										height={yv > 0 ? 16 : 14}
+										height={yv > 0 ? grab : grabEmpty}
 										fill="transparent"
 										style={{ cursor: "ns-resize" }}
 										onPointerEnter={() =>
@@ -1686,9 +1701,11 @@ export default function MultiMakerLab() {
 									/>
 									<rect
 										x={xAt(i) - step / 2}
-										y={av > 0 ? Math.min(PB - 16, yDn(av) - 4) : MID + 1}
+										y={
+											av > 0 ? clamp(yDn(av) - grabIn, MID, PB - grab) : MID + 1
+										}
 										width={step}
-										height={av > 0 ? 16 : 14}
+										height={av > 0 ? grab : grabEmpty}
 										fill="transparent"
 										style={{ cursor: "ns-resize" }}
 										onPointerEnter={() =>

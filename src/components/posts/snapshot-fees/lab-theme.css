@@ -186,6 +186,16 @@
 	gap: 10px 16px;
 }
 
+/* The charts are dragged, not read as text. Without this a press and hold
+ * on a bar falls through to the platform's own gesture: iOS raises the
+ * selection handles and the callout menu over the lab, and the drag never
+ * starts. Scoped to the chart, so the caption below it stays selectable. */
+.sf-lab .sf-chart {
+	-webkit-touch-callout: none;
+	-webkit-user-select: none;
+	user-select: none;
+}
+
 /* a dial's name and its reading, at opposite ends of one line */
 .sf-lab .sf-head {
 	gap: 6px;
