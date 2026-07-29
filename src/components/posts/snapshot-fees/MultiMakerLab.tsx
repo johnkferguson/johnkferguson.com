@@ -115,37 +115,77 @@ interface Scenario {
 	flips?: number[];
 	/** zoom index into ZOOM_HALVES this scenario opens at (default 1, ±7.5bps) */
 	zoom?: number;
+	/**
+	 * Shapes the other makers' generated ladder, for the levels the three
+	 * dials cannot express on their own. Moving any maker dial regenerates
+	 * the plain ladder and drops this.
+	 */
+	makers?: (ladder: number[]) => number[];
 }
 
 const SCENARIOS: Scenario[] = [
 	{
-		key: "smallfish",
-		title: "Small Fish",
-		blurb:
-			"The other makers stand a book that dwarfs yours. Drag your bars: M barely acknowledges you, because your dollars are a sliver of the measuring walk. Your fees still depend entirely on your own placement and matching; only your influence on the yardstick shrank.",
-		you: YOUR_DEFAULT,
-		depth: 2.5,
+		key: "both",
+		title: "Both Books",
+		blurb: `Both books quote the same touch, 100.000 bid against 100.010 ask. Behind it their weight sits opposite: you stand $10,000 on the bid and $3,500 on the ask, while the other makers stand $3,000 on the bid and $9,000 on the ask.
+
+M lands at 100.005 and your influence sits near half. Switch the makers out of the auction and M rises to 100.007, measured from your book alone. Switch yourself out instead and it falls to 100.003, measured from theirs.
+
+Hover 99.995, where both books stand size. You pay 0.39bps there and the makers pay nothing. Your $10,000 bid at the touch has already claimed the near asks, so this one pairs out at 100.020.
+
+Hover 100.015 and it runs the other way. You pay nothing and the makers pay 0.28bps. Their $3,000 bid at the touch runs out, so their ask reaches down to 99.990 for its pairing.`,
+		you: () =>
+			bookOf({
+				[CENTER]: 10000,
+				[CENTER - 1]: 13000,
+				[CENTER - 2]: 16000,
+				[CENTER - 3]: 19000,
+				[CENTER + 2]: 3500,
+				[CENTER + 3]: 6500,
+				[CENTER + 4]: 13000,
+				[CENTER + 5]: 16000,
+				[CENTER + 6]: 19000,
+			}),
+		makers: (l) => l.map((v, i) => (i === CENTER ? 3000 : v)),
+		depth: 1.5,
 		lean: 0,
-		spread: 1,
-	},
-	{
-		key: "equal",
-		title: "Equal Voice",
-		blurb:
-			"You and the other makers stand comparable size near the touch, so the walk consumes from both of you pro-rata and M splits the difference. Check your share of each walk in the readout.",
-		you: YOUR_DEFAULT,
-		depth: 0.55,
-		lean: 0,
-		spread: 1,
+		spread: 2,
 	},
 	{
 		key: "lean",
 		title: "The Makers Lean",
-		blurb:
-			"The other makers go bid-heavy: their thin ask side makes the buy walk pay up, M rises, and the band follows. Your book has not moved, but your quotes now sit differently against the standard and your fees changed. Your placement is yours; the yardstick is communal.",
-		you: YOUR_DEFAULT,
+		blurb: `The same two books as [[Both Books]], with one change: the other makers have tilted their size onto the ask side. Their bids thin to $3,500 behind the touch while their asks swell to $14,500.
+
+Those heavier asks let the buy walk fill $18,000 of its $20,000 at 100.010 alone, so M slips from 100.005 to 100.004 and the band slips with it. Your own book has not moved, but your asks now stand just outside the band's upper edge, so the bids pairing against them pay a little more. Your bid at 99.995 pays 0.45bps now, against 0.39bps before.
+
+The sell walk hardly notices, because your bids anchor it. They are large and stand on adjacent ticks, so the walk fills at 100.000 and 99.995 and never reaches deeper. You supply 78% of it, against under $4,500 from their thinned bids. Hover M for the split.
+
+Switch the makers out and M returns to 100.007, measured from your book alone. Switch yourself out and it drops to 100.000, measured from their tilted one.`,
+		you: () =>
+			bookOf({
+				[CENTER]: 10000,
+				[CENTER - 1]: 13000,
+				[CENTER - 2]: 16000,
+				[CENTER - 3]: 19000,
+				[CENTER + 2]: 3500,
+				[CENTER + 3]: 6500,
+				[CENTER + 4]: 13000,
+				[CENTER + 5]: 16000,
+				[CENTER + 6]: 19000,
+			}),
+		makers: (l) => l.map((v, i) => (i === CENTER ? 3000 : v)),
 		depth: 1.5,
-		lean: 60,
+		lean: -60,
+		spread: 2,
+	},
+	{
+		key: "smallfish",
+		title: "Small Fish",
+		blurb:
+			"The other makers stand a book that dwarfs yours. Drag your bars: M barely acknowledges you, because your dollars are a sliver of the measuring walk. Your fees still depend entirely on your own placement and pairing; only your influence on the price shrank.",
+		you: YOUR_DEFAULT,
+		depth: 2.5,
+		lean: 0,
 		spread: 1,
 	},
 	{
@@ -798,7 +838,10 @@ export default function MultiMakerLab() {
 		setDepth(sc.depth);
 		setLean(sc.lean);
 		setSpread(sc.spread);
-		regenMakers(sc.depth, sc.lean, sc.spread);
+		{
+			const ladder = aggSizesOf(sc.depth, sc.lean, sc.spread);
+			setMakerSizes(sc.makers ? sc.makers(ladder) : ladder);
+		}
 		setZoom(sc.zoom ?? 1);
 		setB(2);
 		setD(20000);
@@ -810,6 +853,38 @@ export default function MultiMakerLab() {
 		setShowYou(true);
 		setShowAgg(true);
 		setScenario(sc.key);
+	};
+	// blurb markup: [[Title]] or [[Title|shown text]] renders as an inline
+	// link that selects that scenario
+	const renderBlurb = (text: string) => {
+		const parts = text.split(/\[\[([^\]]+)\]\]/g);
+		return parts.map((part, i) => {
+			if (i % 2 === 0) return part;
+			const [ref, shown] = part.split("|");
+			const target = SCENARIOS.find((sc) => sc.title === ref.trim());
+			const labelText = (shown ?? ref).trim();
+			if (!target) return labelText;
+			return (
+				<button
+					key={i}
+					type="button"
+					onClick={() => applyScenario(target)}
+					style={{
+						background: "none",
+						border: "none",
+						padding: 0,
+						font: "inherit",
+						color: C.text,
+						textDecoration: "underline",
+						textDecorationStyle: "dotted",
+						textUnderlineOffset: 3,
+						cursor: "pointer",
+					}}
+				>
+					{labelText}
+				</button>
+			);
+		});
 	};
 	const touch =
 		(_dial: string, _cur: number, fn: (v: number) => void) => (v: number) => {
@@ -2800,7 +2875,9 @@ export default function MultiMakerLab() {
 				</div>
 				<div class="sf-caption">
 					{scenario
-						? SCENARIOS.find((sc) => sc.key === scenario)?.blurb
+						? renderBlurb(
+								SCENARIOS.find((sc) => sc.key === scenario)?.blurb ?? "",
+							)
 						: "Custom setup. Drag bars and dials freely. Picking a scenario keeps this market in memory, and the Custom button brings it back."}
 				</div>
 			</div>
