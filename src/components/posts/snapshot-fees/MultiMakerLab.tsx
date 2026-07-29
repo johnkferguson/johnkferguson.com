@@ -189,38 +189,28 @@ Switch the makers out and M returns to 100.007, measured from your book alone. S
 
 Switch yourself out of the auction and M barely moves, holding its reading of 100.002. Switch them out instead and it falls to 100.000. Their book sets the price here and yours hardly registers in it.
 
-Adjust the Other Makers' dials to see how each one moves your influence. Push Depth from 2.5 to 3 and yours falls from 15% to 12%. Pull their Spread out to 3 ticks and it climbs to 60%, because you become the one quoting tighter. Then work all three freely, tilting their Lean, widening and narrowing their Spread, taking their Depth up and down, and watch their book and M reshape around wherever you leave them standing.`,
+Adjust the Other Makers' dials to see how each one moves your influence. Push Depth from 2.5 to 3 and yours falls from 15% to 12%. Pull their Spread out to 3 ticks and it climbs to 60%, because you become the one quoting tighter. Then work all three freely, tilting their Lean, widening and narrowing their Spread, taking their Depth up and down, and watch their book and M reshape around wherever you leave them standing. Press Play to let them move it themselves, and watch M wander with them.`,
 		you: YOUR_DEFAULT,
 		depth: 2.5,
 		lean: 0,
 		spread: 1,
 	},
 	{
-		key: "bend",
-		title: "Try to Bend It",
-		blurb:
-			"You stand a huge bid wall below the market, hoping to drag M down. It never votes: only two-sided size counts, and your overlap is spent on your near quotes first. Thin the makers to zero and the wall still has no voice. The only way to move M is to stand real, paired, fillable size near the touch.",
-		you: () =>
-			bookOf({
-				[CENTER - 1]: 5000,
-				[CENTER - 2]: 5000,
-				[CENTER + 1]: 5000,
-				[CENTER + 2]: 5000,
-				[CENTER - 9]: 25000,
-			}),
-		depth: 1,
-		lean: 0,
-		spread: 1,
-	},
-	{
 		key: "crossed",
 		title: "Crossed Market",
-		blurb:
-			"Your bid stands 2.5bps above the makers' best ask, at size, with your own ask behind it. A crossed book is not an error: the walks run per side, the impact prices cross, and M lands inside the overlap, pulled toward the aggressive bid. The crossing bid's own base fee is zero, since aggression is never charged for contesting the price. In a dual-flow venue makers never trade each other, so a cross like this drains through taker flow instead. A cross narrower than about twice the market-order rate is not even an arbitrage, since a round trip pays that rate twice; a small cross is simply a better price for natural flow.",
+		blurb: `Your bid stands at 100.030 with your offer one tick above it, while the other makers quote 100.000 against 100.005. Your bid is 2.5bps above their best offer, so the book is crossed. It survives because of a dual-flow assumption: the maker book stands separate and never trades against itself, so a cross like this drains through taker flow. Another venue could resolve crosses another way, and that choice belongs to the market's design.
+
+The mechanism has no opinion about which of you is right. It reads where the size stands and how far away it is, finds both books within measuring range, and puts M at 100.020, between them. Hover M and the two impact prices cross as well, the sell walk getting 100.030 while the buy walk pays 100.010.
+
+Both sides pay for the distance. Your levels pay 0.38bps and theirs pay 0.82bps and up, because M stands a full bps from your quotes and further still from theirs.
+
+Double-click your bid to turn it back into an offer. Your book is one-sided, nothing pairs, both levels jump to the 10bps cap, and M drops to 100.002. Double-click it again to restore the cross, then double-click their offers below you, at 100.025. Their whole ask side turns to bids, the disagreement closes, M moves up to 100.031, and your levels sit on it paying nothing.
+
+Drag your bid smaller and M slides back toward them, reaching 100.012 by $10,000. There is a limit to how far this stretches. Quote far enough away and your book stops counting at all, which is [[Rival Books]].`,
 		you: () =>
 			bookOf({
 				[CENTER + 6]: 20000,
-				[CENTER + 8]: 20000,
+				[CENTER + 7]: 20000,
 			}),
 		flips: [CENTER + 6],
 		depth: 1,
@@ -230,8 +220,13 @@ Adjust the Other Makers' dials to see how each one moves your influence. Push De
 	{
 		key: "incoherent",
 		title: "Rival Books",
-		blurb:
-			"Your two-sided market stands 5.5bps above the makers', too far for either book to lie within the other's measuring reach. The snapshot now holds two candidate eligible books, and M reads the larger one: the makers keep M, your book gets no voice, and its receipts are priced against the M their book set. Clear the makers and your book becomes the only candidate: M jumps to it. Only when two rival books stand at exactly equal eligible size is there no dominant candidate; then M holds its last value (the ❄ in the readout).",
+		blurb: `Your two-sided market stands at 100.055 against 100.060, 5.5bps above where the other makers quote. Each side of the measurement reaches 5bps from its anchor, so the two books fall half a bps short of seeing each other. In [[Crossed Market]] they stood 2.5bps apart and merged into one reading. Here the snapshot holds two candidate books instead.
+
+M reads the larger candidate, and theirs is larger, so it holds at 100.002 and your influence is zero. Your quotes are still priced against it. They stand more than 4bps outside a band your book had no part in setting, and both levels pay 3.91bps.
+
+None of that is fixed. Pull their Depth down to 0.2 and your candidate becomes the larger one: M jumps to 100.058, your fees fall to nothing, and their book is the one left without a voice. Switching them out of the auction does the same thing in one click.
+
+You can also win it on size. Build your book out to four levels a side at $25,000 each and it outgrows theirs from where it already stands, and M moves to you. When two rival candidates stand at exactly equal size, neither dominates and M holds its last value, marked by the ❄ in the readout.`,
 		you: () =>
 			bookOf({
 				[CENTER + 11]: 20000,
