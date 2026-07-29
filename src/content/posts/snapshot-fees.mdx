@@ -1,0 +1,788 @@
+---
+title: "Snapshot Fees: Pricing Liquidity From Within a Batch Auction"
+date: 2026-07-28
+description: "A fee mechanism for batch auctions: liquidity priced by what it offers the market, computed from each sealed snapshot, with interactive labs throughout."
+draft: false
+pace: "mixed"
+art:
+  piece: "snapshot-fees"
+  seed: "nev47f"
+  params:
+    bars: 52
+    depth: 1.4
+    noise: 1.4
+    walk: 16
+  motion: true
+---
+
+import "../../styles/snapshot-fees.css";
+import Lab from "../../components/Lab.astro";
+import AuctionPipelineChart from "../../components/posts/snapshot-fees/AuctionPipelineChart.astro";
+import BaseFeeLab from "../../components/posts/snapshot-fees/BaseFeeLab";
+import DemandLab from "../../components/posts/snapshot-fees/DemandLab";
+import MultiMakerLab from "../../components/posts/snapshot-fees/MultiMakerLab";
+import SingleMakerLab from "../../components/posts/snapshot-fees/SingleMakerLab";
+
+This piece proposes _Snapshot Fees_, a fee mechanism that prices each
+trader's standing liquidity by what it offers the market. The reading
+comes from the market itself: a batch auction seals the whole book at one
+instant, and every fee is computed from that sealed snapshot. Each fill is
+priced by whether its liquidity stood on one side of the book or both, and
+when both, how near the market's center. The mechanism is built up in
+layers, each with an interactive lab for trying it directly.
+
+## Understanding Batch Auctions
+
+Most electronic markets run on a continuous limit
+order book. Orders rest in a book sorted by price, and when a new order
+crosses the spread it trades immediately against the best resting quote. Ties
+at the same price go to whoever arrived first. In a continuous limit order
+book, every fill, quote, and cancel is processed one at a time, in arrival
+order.
+
+Processing in arrival order rewards whoever reacts first when the market
+moves. When news changes the fair price, a market maker's resting quotes go
+momentarily stale, and until the maker cancels them, anyone who reaches them
+first can trade against the old price at a profit. A race follows each such
+move, and it is a lopsided one: the maker's cancel is a single message
+running against the orders of every firm trying to snipe the quote, and more
+often than not the quote is picked off before it can be pulled. These races
+are known as sniping, or latency arbitrage, and they are a form of adverse
+selection that concentrates on market makers. Makers respond by quoting
+smaller size and wider spreads, and that added cost is paid by everyone
+trading for ordinary reasons.
+
+[Aquilina, Budish, and O'Neill](https://academic.oup.com/qje/article/137/1/493/6368348)
+measured the race directly, using exchange message data that records the
+losers as well as the winners. In FTSE 100 stocks they found races running
+about once per minute per symbol, typically decided in five to ten
+microseconds, accounting for roughly 20% of trading volume, with the top
+six
+firms on one side or the other of more than 80% of them. Eliminating latency
+arbitrage, they estimate, would cut the market's cost of liquidity by 17%,
+about \$5 billion a year in global equities. This additional liquidity cost
+is structurally inherent to
+the design of continuous order books.
+
+Frequent batch auctions are the design change
+[Budish, Cramton, and Shim proposed](https://academic.oup.com/qje/article/130/4/1547/1916146):
+instead of processing orders continuously, collect them for a short window,
+seal it, and clear every crossing order at one uniform price. Inside a window
+there is no first. A momentarily stale quote is no longer a prize for the
+fastest, because while the auction window is open, everyone has the same
+chance to react. With that form of adverse selection neutralized, a maker can quote
+tighter and with larger size.
+
+The design space has kept moving since. One example is Jump Crypto's 2025
+[dual-flow batch auction](https://jumpcrypto.com/resources/dual-flow-batch-auction) design, which
+splits each window into two auctions, maker bids against taker sells and maker
+asks against taker buys, so taker flow always trades against standing quotes
+instead of netting against itself. While the Snapshot Fees mechanism
+proposed in this piece could work for any batch auction implementation, it
+is likely a more natural fit for a dual-flow batch auction, for reasons
+covered in [The Dual-Flow Fit](#the-dual-flow-fit) near the end of the
+piece.
+
+Plain or dual-flow, batch auctions improve on continuous books the same
+way: latency arbitrage is neutralized, and with it the widened spreads it
+forces. Discrete windows also provide something continuous books cannot: a
+clean snapshot of the market's state at each close, with every order in it
+committed and fillable at that instant. This piece asks whether that
+snapshot could be used to price orders directly, and whether pricing them
+well could improve the market further, with even tighter quotes and more
+size behind them.
+
+## Trading Fees Today
+
+Exchanges everywhere charge for execution, and nearly everywhere the same two
+ideas shape the price: liquidity provision is treated better than liquidity
+demand, and activity is rewarded, with rates that fall as volume grows. In
+traditional markets these arrangements are more layered and bespoke, running
+through negotiated maker programs and rebate schedules that vary by venue and
+firm. This piece focuses on crypto markets, where fee structures are simple,
+public, and already quoted in bps. The typical schedule is compact: a
+maker/taker split, where takers pay a few bps of notional and makers pay
+less, sometimes nothing, occasionally a rebate. Tiers then scale those rates
+with each account's trailing volume.
+
+Volume-based pricing still works on a batch venue, but the sealed snapshot
+makes a different kind of pricing possible. Jump Crypto's dual-flow paper
+alludes to it: maker fees could be priced by how far an order stands from
+the midpoint. This piece takes that idea and expands it into a full pricing
+mechanism.
+
+## Pricing Each Auction's Liquidity
+
+If the objective is to use fees to improve the market's quotes, that
+objective can be priced directly:
+
+> Liquidity standing on one side of the book pays the cap, the highest rate
+> any resting order is charged. Liquidity standing on both sides pays less.
+> Liquidity standing on both sides, close to the mid, pays the least.
+
+Two properties follow directly from pricing this way:
+
+- **Day-one competition.** A new maker can pay the best rates from their
+  first window. Since the rate follows the
+  quality of the quotes, a newcomer willing to quote tight and two-sided
+  starts on equal fee terms with the largest incumbents.
+- **Per-market competition.** Fees are calculated market by market, window by
+  window. A maker's standing in one market buys nothing in another, so every
+  market, however small, is independently contestable: a specialist quoting
+  one obscure pair well competes on equal terms with the largest firm in it.
+
+Together, these two make liquidity supply responsive. When interest arrives
+in an asset, makers can arrive with it at full strength without the need to
+build up history first.
+
+From here the piece builds the mechanism outward: the price of placement
+for a single order, then a full one-maker book, then the market-wide
+version, each with its own lab.
+
+## The Base Fee
+
+For liquidity nearest the mid to pay the least, distance from the mid has to
+carry a price. The base fee is the first leg of that price: it sets the
+lowest rate a resting order can be charged given its distance from the
+market's midpoint, the Measured Price, $M$, which is calculated from the
+sealed book. Whether an order actually gets that rate is the rest of the
+mechanism's job.
+
+The schedule around the Measured Price takes a simple shape. Nearest to $M$
+sits a band with a fee level of its own, zero in everything this piece shows. Beyond the
+band's edge the fee grows with distance, at rates the market configures; under the
+default calibration used here it grows gently through the zone where makers do much of their
+everyday quoting, then more steeply past it. The fee never exceeds the
+cap the rule referred to: $F$, the most a resting order can be charged.
+Market orders pay a rate of their own, never below $F$, so no resting
+order is ever charged more than a market order.
+
+To calculate the base fee, seven values are necessary, and they fall into
+three groups.
+
+The first value is dynamic and recomputed every window:
+
+- $M$, the Measured Price: the market's midpoint, calculated from the sealed
+  book. Its formula is introduced in
+  [The Measured Price](#the-measured-price) below, and the
+  sections after it refine how the reading works.
+
+The market's configuration settings, fixed from window to window, though the
+regions they define all sit relative to $M$:
+
+- $B$, the Inner Band: the region $M \pm B/2$, declared by the market. The base
+  fee there is zero throughout this piece.
+- $Z$, the Maker Zone: the working radius past the band edge.
+- $k_1$, the Zone Slope: fee per bps of distance inside the zone.
+- $k_2$, the Far Slope: takes over past the zone edge and runs the fee to the
+  cap.
+- $F$, the Fee Cap: the ceiling of the resting schedule. No resting order
+  ever pays more than $F$, and no market order pays less.
+
+And the one value belonging to the order being priced:
+
+- $d$: an order's distance, in bps, beyond the band edge. It starts counting
+  at $B/2$ from $M$, and inside the band it is zero. The fee is a function of
+  $d$ and nothing else.
+
+Put together, the base fee for a single order is:
+
+$$
+\text{base fee}(d) = \min\bigl(F,\; k_1 \cdot \min(d, Z) + k_2 \cdot \max(0,\, d - Z)\bigr)
+$$
+
+Read left to right: distance inside the zone is charged at $k_1$, distance
+beyond it at $k_2$, and the total is clipped at $F$. Inside the band, $d$ is
+zero, so the fee is zero.
+
+Alongside the fee, the lab below plots a second curve: the net edge, an
+order's distance from $M$ minus the fee charged at that
+distance. Distance is roughly the edge an order is asking for: if it fills,
+it earns that many bps of price improvement relative to $M$, and the net edge
+is what remains of that improvement after the fee. The curve ignores fill
+probability, adverse selection, and inventory, so it is not a profit model,
+but it does show what the schedule rewards. With $k_1$ below 1, a wider
+quote still nets more edge per fill, just less per bps. And once the fee
+reaches $F$, distance stops mattering: every placement past that point
+pays the cap.
+
+<Lab title="Setting the Base Fee">
+  <BaseFeeLab client:visible />
+</Lab>
+
+## The Order Fee
+
+The base fee set the floor: the lowest rate an order can pay at its distance.
+What an order actually pays comes down to one rule:
+
+> Every resting dollar of notional is either paired, with a dollar on the
+> other side of the book behind it, or unpaired. A paired dollar pays the worse of its two
+> legs' base fees. An unpaired dollar pays the cap.
+
+A market functions when there is something to trade against at any
+moment, in either direction. Judged against that need, orders fall into
+three classes. Non-directional resting liquidity, quotes standing on both
+sides of the book at once, serves both directions at the same time; it is
+what lets a market function continuously. Directional resting liquidity, a
+limit order with nothing behind it on the other side, still provides
+something real: it stands committed and fillable, adding depth the market
+can trade against, but only on one side, and only because an opinion
+happened to rest there. A market order provides nothing to trade against;
+it is demand alone. The schedule prices the three in that order:
+non-directional liquidity earns the discounts, by placement; directional
+resting liquidity pays the cap; and market orders pay a rate of their own,
+never below it. How far the market-order rate should stand above the cap
+leads the [Design Notes](#design-notes).
+
+Non-directional liquidity is determined from the sealed order book at auction
+close: a trader's notional dollars on the bid side pair against their dollars
+on the ask, best-priced first, until the smaller side runs out. A pair forms
+only when the bid stands below the ask: a trader's bid at or above their own
+ask would trade with itself, and both legs stay unpaired. Each paired dollar
+pays the worse of its two legs so that a tight bid cannot borrow a better
+rate than the far ask it is paired with.
+
+The calculated fee rate is charged only when the underlying liquidity
+actually trades. The formula for the order fee is:
+
+$$
+\text{order fee} = \frac{\sum_{\text{slices}} q_i \cdot \max(b,\, b_i) \;+\; u \cdot F}{q}
+$$
+
+where:
+
+- $q_i$, a slice: the portion of the order paired against a single
+  opposite-side level.
+- $b$: the slice's own base fee.
+- $b_i$: the base fee of the level the slice paired against.
+- $u$: the notional left unpaired.
+- $q$: the order's total size, $q = \sum_i q_i + u$.
+
+The formula is the combination of the base fee and the pairing rule. For a
+maker to lower its fee rate, it should place orders closer to $M$, where
+the
+base fee $b$ is smaller, and size them to what the other side of the book can
+pair, so nothing lands in $u$ paying the cap.
+
+## The Measured Price
+
+Every fee in the schedule is priced as a distance from a single reference
+point: the Measured Price, $M$, recomputed each window from the sealed book.
+
+Whatever form the calculation takes, the reference has two criteria to
+meet:
+
+1. The Measured Price should reflect the real cost of trading.
+2. The Measured Price should be influenced only by those who directly bear its cost.
+
+Two familiar references both fail:
+
+- **The midpoint of the best quotes.** One dollar of bids at the touch sets
+  the same midpoint as a million, though what trading against them costs is
+  entirely different. It fails the second criterion as well: a few dollars
+  parked ahead of the real depth set a new best price and carry the
+  midpoint with them, bearing almost nothing for where it lands.
+- **A weight over every resting order.** This improves on the midpoint by
+  the first criterion: depth now enters the number, and it moves closer to
+  what trading at size would cost. It fails the second, and not in a way
+  any range restriction could repair. A directional order's rate is the
+  cap wherever $M$ sits, so it bears none of that cost and has no
+  incentive to place it well; size piled on one side just below the touch
+  would drag the average toward itself, and being wrong would cost it
+  nothing.
+
+The Measured Price keeps the depth-weighting but restricts it to the
+liquidity for which being wrong is expensive: a trader quoting both sides
+is stating where they believe the price stands, their fees hang on $M$
+through both legs, and a mispriced leg stands to be traded against.
+
+Within that liquidity, weight comes from size and placement: more notional
+is a larger claim about where the asset trades, and notional standing
+closer to the mid is a more confident one. The whole calculation can be
+thought of as an election held each auction: standing paired, fillable size
+is how a trader votes on $M$, and size and proximity set the weight of
+each vote.
+
+The calculation has boundaries. Quotes count only within $B/2 + Z$ of
+each side's best quote, half the Inner Band plus the Maker Zone: the same
+working width the fee schedule discounts is the width $M$ reads, which is
+where the zone gets its name. The pairing must also happen inside that
+area, on both sides. A tight bid whose only ask stands beyond the zone gets
+no voice, even though the two still pair for fees; the fee's pairing
+accepts any distance and prices it, while the reading requires both legs to
+stand within the area it covers.
+
+The same width bounds the market itself. The best bid and best ask being
+read must stand within $B + 2Z$ of each other, the full working span.
+Two quotes farther apart than that are not a market with a wide spread;
+they are two claims about the price with no working region between them,
+and $M$ does not average them. A book that wide produces no reading at
+all.
+
+The Measured Price, then, is not calculated from the raw book but from a
+filtered one. Per trader, keep only the two-sided size that pairs within the area,
+and pool what survives by price level. The ladder that remains is the
+eligible book, the only book $M$ ever reads. Comparing prices across it
+requires a common size to evaluate them at. $D$, the market's typical
+demand, is that basis (how
+$D$ is derived from the market's own activity, rather than set by hand,
+comes in [Tracking Typical Demand](#tracking-typical-demand)). The walk
+takes $D$ dollars of notional into the eligible bids, best prices first,
+and averages everything it consumed by volume. That is the bid-side impact
+price, the price a seller of $D$ dollars would actually receive against the
+eligible liquidity. The ask side gives its mirror, and the Measured Price
+is the midpoint of the two:
+
+$$
+M = \frac{\text{impactBid}(D) + \text{impactAsk}(D)}{2}
+$$
+
+Both impact prices are read from the eligible book alone; the rest of the
+book never enters the formula. Measuring at size is what makes $M$
+expensive to move. A tiny order
+absorbs almost none of a $D$-dollar walk, so it barely moves the average;
+shifting $M$ requires real size near the mid. If paired depth within the
+area runs out before $D$ dollars, the missing dollars are priced at the
+area's boundary; the walk never reaches for size beyond it.
+
+The lab below runs everything so far on a single maker's book: the walk,
+the Measured Price, and a fee receipt for every level.
+
+<Lab title="Running One Maker's Book">
+  <SingleMakerLab client:visible />
+</Lab>
+
+## Many Makers, One Price
+
+Everything so far ran on a single maker's book. In a real market the eligible
+book pools every trader's paired, in-area size at once: the same filter and
+the same walk, producing one $M$ for the whole market.
+
+Within the pooled walk, a trader's voice is their share of the dollars it
+consumed. Better-priced quotes are consumed first, and quotes at the same
+price share pro-rata. A small maker's size counts exactly in proportion, with
+no seniority and no minimum.
+
+This produces a property worth stating plainly, because no existing fee
+schedule has it: a maker does not set their fee. They set their book. The
+formula is identical for everyone, but the $M$ inside it is calculated from
+every maker's quotes at once, so the rate a given book pays depends on where
+the rest of the market stands. The dependence shrinks with weight, and weight
+comes from the same actions the schedule already rewards: a maker quoting
+larger and tighter pulls $M$ toward the center of their own quotes,
+which is where their rate is most predictable.
+
+Pooling has one more consequence. Makers usually cluster, everyone's quotes
+within reach of everyone else's, and the filter produces a single eligible
+book. But books can also stand so far apart that neither lies within the
+other's reading reach. Each region then forms its own candidate eligible
+book, and $M$ reads the largest one. The smaller candidate gets no
+voice: its quotes are priced against the larger book's $M$. Moving $M$
+away from the market therefore has a single price: standing more
+paired, fillable size than everyone else combined, within one working span.
+
+Two situations produce no new reading. If no valid candidate stands anywhere,
+or two candidates that share nothing stand at exactly equal size, the market
+holds the last $M$, flagged as held, until a dominant book returns. And a
+market that has never had one holds nothing: from launch until the first
+candidate forms there is no $M$, and every fill pays the cap. The first
+account to stand a real two-sided book within the span sets the first
+Measured Price, and with it the first access to a discount.
+
+The lab below is that market: your book on top, the aggregate of every other
+maker mirrored beneath it, both feeding one walk.
+
+<Lab title="Measuring with the Makers">
+  <MultiMakerLab client:visible />
+</Lab>
+
+## Tracking Typical Demand
+
+To calculate $M$, the eligible book must be walked on both sides up to size
+$D$, the typical demand for that market. What remains is how that typical
+demand is determined.
+
+Within any market, demand continuously changes. Therefore, $D$ should not
+be based upon some generic constant. Instead, it needs to reflect the
+market's conditions as they actually are.
+
+Doing that well means satisfying two criteria:
+
+1. $D$ should follow the market's demand as it changes, quickly enough to
+   track a real shift within days and steadily enough that the measurement
+   adds no noise of its own.
+2. $D$ should be trustless, computed from published data by a fixed rule,
+   predictable and verifiable like every other number in the design.
+
+What follows is one mechanism that satisfies both. Unlike the fee rule and
+the Measured Price, it is not settled design: it is a demonstration of one
+possible solution. If preferred, other mechanisms could serve in its place.
+
+### A Proposed Mechanism for Tracking Demand
+
+The mechanism runs on two clocks:
+
+1. **Every window**: the market's fills add to
+   two running sums.
+2. **Every day**: the sums are used to compute the typical demand for that
+   day and $D$ then takes one bounded step toward it.
+
+When the day is done, the sums reset to zero and start accumulating for the new day.
+
+To run the mechanism in full, eight values are necessary, and they fall
+into three groups.
+
+The value measured every window:
+
+- $v$: a window's volume, corresponding to the actual notional dollar
+  volume that executed against the
+  standing book in that window, both directions summed. Because $v$ is read
+  from fills, it adapts to the venue's design: in a dual-flow auction every
+  taker dollar trades against the book, while in a single-cross auction
+  buys and sells net against each other first and only the imbalance
+  reaches the book, which is then genuinely what the book absorbed. $D$ is
+  the typical window's demand, not the typical order's size.
+
+The two sums carried through the day:
+
+- $S_1$: the sum of every window's $v$, the day's total flow.
+- $S_2$: the sum of every window's $v^2$. Together the two sums give the
+  day's reading of typical demand, $S_2/S_1$.
+
+And the market's configuration, fixed from day to day:
+
+- $\alpha$: the chase speed, how much of the gap between $D$ and the day's
+  reading a single day may close.
+- $m$: the minimum sample. A day carrying less than $m \cdot D$ of flow
+  does not update.
+- $L$: the daily limit. One day moves $D$ by at most a factor of $L$,
+  in either direction.
+- $D_{\min}$: the floor, the smallest value $D$ may take.
+- $D_0$: the seed, $D$’s value at launch. It initializes and constrains
+  nothing afterward.
+
+Put together, the daily update is:
+
+$$
+\begin{aligned}
+\text{step} &= \min\!\left(L,\; \max\!\left(\tfrac{1}{L},\; \left(\tfrac{S_2/S_1}{D}\right)^{\alpha}\right)\right) \\[8pt]
+D &\leftarrow
+\begin{cases}
+\max\left(D_{\min},\; D \cdot \text{step}\right) & \text{if } S_1 \geq m \cdot D \\
+D & \text{otherwise}
+\end{cases}
+\end{aligned}
+$$
+
+The step line reads from the inside out: $S_2/S_1$ is where the day says
+demand stands, its ratio against $D$ is the gap, $\alpha$ sets how much of
+that gap one day may close, and the $\min$ and $\max$ hold the result to
+$[1/L,\ L]$. The second line applies it: a day that carried the minimum
+sample moves $D$ by the step, never below the floor, and a day that did
+not leaves $D$ unchanged.
+
+#### The Reasoning
+
+**The dollar-weighted average.** Consider a fictitious day with two windows
+of trading, one clearing \$2,000 and one clearing \$8,000. There are two
+ways to average them. Averaged over windows, the typical window carried
+\$5,000. Averaged over dollars, the answer is different: of the \$10,000
+that traded, four of every five dollars traded in the larger window, so the
+typical traded dollar sat in a window of
+$0.2 \times 2000 + 0.8 \times 8000 = 6800$ dollars. $S_2/S_1$ computes the
+second average
+($S_1 = 2000 + 8000 = 10000$ and $S_2 = 2000^2 + 8000^2 = 68 \times 10^6$),
+and it is the one the walk needs, because the walk's question is what it
+costs to trade where the trading actually is. It is also inexpensive to
+maintain: computing it requires no count of windows, an empty window adds
+nothing to either sum, and a window that traded costs only two additions to
+record.
+
+**The fractional chase.** The exponent controls how quickly $D$ chases the
+day's reading. At $\alpha = 1$ the update would jump the whole way in a
+single day, and $D$ would inherit each day's noise along with its signal.
+Below one, the update closes only part of the gap and leaves the rest for
+the days that follow. At $\alpha = 1/2$, a reading at four times $D$ steps
+it up by $\sqrt{4} = 2$, and the gap that remains falls to its square root
+each day after; at $\alpha = 3/4$ the same reading steps it by
+$4^{3/4} \approx 2.8$ and converges in fewer days. Where in that range a
+market should sit is a calibration choice the design leaves open.
+
+**The minimum sample and the daily limit.** These two conditions protect
+the tracking from days that would mislead it. The minimum sample keeps a
+dead day from re-measuring anything: a day with only a handful of fills
+says very little about typical demand, so $D$ holds unchanged rather than
+update from it, and nothing decays while it waits. The daily limit caps how
+far any single day can move $D$, however strange that day's trading was, a
+single enormous window included.
+
+**The floor.** The floor exists for the reading's sake rather than for the
+tracking. $D$ sets the depth the walk measures at, and a walk that
+has shrunk too far reads only the quotes at the touch, which is the
+size-blind midpoint $M$ was designed to avoid in the first place.
+
+---
+
+The lab below runs three copies of the machine over the same ten days of
+demand, one line per chase speed. The limit, the seed, and the floor are
+dials, and none of their values is settled design: they are calibration
+choices a venue would fit to its own market.
+
+<Lab title="Chasing Demand">
+  <DemandLab client:visible />
+</Lab>
+
+## One Auction, Start to Finish
+
+Every part of the mechanism has now been introduced in its own section.
+This section runs a single auction from start to finish. Once the window
+seals, measuring the book and matching the orders are independent of
+each other, both reading only the sealed snapshot, so a venue can run the
+two in parallel or simply perform everything top to bottom. Pricing the
+fills needs them both, and finalizing the window books the results. The
+chart shows what depends on what; the scheduling is the venue's choice.
+
+<AuctionPipelineChart />
+
+Each step below carries its computational cost. Three counts cover them:
+$n$ resting orders in the sealed book, $a$ accounts standing both a bid
+and an ask, and $\ell$ eligible levels in the winning candidate. $a$ is at
+most the number of accounts and $\ell$ is at most $n$, so every bound is
+against the book itself; most steps touch only a subset of it, and the
+bounds given are worst cases. The gray nodes are work a batch-auction
+venue performs whether or not this fee mechanism exists; only the rest is
+the mechanism's marginal cost.
+
+### Seal the Auction
+
+The auction closes with every resting order committed and fillable.
+Everything after is computed from this snapshot and published history;
+nothing else enters. Cost: $O(1)$, the snapshot is the book the venue
+already holds, kept price-sorted as the orders arrived.
+
+### Measure the Book
+
+This branch turns the sealed book into the window's reference price. It is
+also the branch a venue can omit: a window with no fills and no consumer
+asking for $M$ has nothing to price, and the reading keeps no state that
+needs maintaining, since it is recomputed from each window's own book. A
+venue with downstream consumers of $M$, health series or reference prices,
+will compute it every window regardless.
+
+1. **Find the candidate eligible books.** Per account, keep only the
+   paired size standing within reach, and pool what survives by price
+   level. Books near one another share a single candidate eligible book,
+   books too far apart form separate ones, and a candidate whose best
+   quotes stand more than $B + 2Z$ apart is dropped as incoherent. Cost:
+   each candidate is found in a bounded number of passes over the quotes
+   within its reach; $O(a \cdot n)$ in the worst case, $O(n)$ in the
+   common one, where every account's view converges to the same candidate.
+2. **Select the market.** The largest candidate by eligible size wins, and
+   $M$ reads only it. If no valid candidate exists, or two candidates
+   that share nothing tie exactly, no fresh $M$ is possible this window.
+   Cost: comparing at most $a$ candidate sizes, plus one $O(n)$
+   disjointness check in the exact-tie case.
+3. **Walk both sides.** Consume $D$ dollars of the winning book on each
+   side, best prices first, pro-rata at equal prices; depth the book does
+   not hold is priced at the edge of the measured area. The two
+   volume-weighted prices are the impact prices. Cost: $O(\ell)$, only the
+   winning book's levels.
+4. **Set $M$ and the band.** $M$ is the midpoint of the two impact
+   prices, and the band is $M \pm B/2$. The venue also records the impact
+   spread, the gap between the two impact prices: tight when the walk was
+   fed by real depth, wide when the book ran thin and the boundary fill had
+   to price the difference. Downstream consumers gate on it as the
+   measurement's health reading. Cost: $O(1)$.
+
+### Match
+
+The venue's own cross computes the fills at the uniform price. Fees never
+enter price priority, so nothing the mechanism computes affects the
+matching. Cost: with the book already price-sorted, the cross walks only
+the orders that trade, and it is the venue's existing work either way, not
+the mechanism's.
+
+### Price the Fills
+
+Fees are charged only on fills, and a filled order's rate depends on its
+account's whole sealed book (its pairing can spill across levels), so
+base fees and pairing are computed per account with fills, never for the
+market at large. Each level's base fee comes from its distance beyond the
+band edge; each account's bid dollars pair against its ask dollars,
+best-priced first; every paired dollar then pays the worse of its two
+legs' base fees,
+every unpaired dollar pays $F$, and the fee applies to the notional that
+traded. The fee never changes how much traded: the matched quantity is
+fixed by the cross, and the fee is deducted from what the fill delivers at
+settlement, so no separate balance or reservation is involved. Cost:
+linear in the books of the accounts that filled, bounded by $O(n)$, and
+untouched by the books of everyone who did not trade.
+
+### Finalize the Window
+
+The window's executed volume adds to the demand sums $S_1$ and $S_2$, at
+$O(1)$. This is later used at the daily close when $D$ takes its one
+bounded step toward what they read.
+The state of $M$ carries across windows: fresh when a candidate won, held
+at its last value when none did, and absent entirely before a market's
+first candidate forms, where every fill pays the cap. The venue publishes
+the sealed book, the fills, $M$ with its state, and the impact spread, and
+the window settles as one unit: the fills, their fees, and the day's sums
+land together. From what is published, any participant can reproduce every
+base fee, every pairing, and every final rate; no step
+depends on operator judgment or on data the venue holds privately.
+
+Summed, the mechanism's marginal cost is the measuring branch and the pricing
+of fills: $O(a \cdot n)$ in the worst case, $O(n)$ in the common one, and
+nothing at all in a window where nothing traded and nothing asked. There
+are no convergence loops anywhere; every step touches each order a bounded
+number of times, which is what lets the schedule price at auction cadence
+and lets any participant re-run a window's arithmetic as fast as the venue
+does. One implementation note: the demand sums accumulate squared volumes,
+so fixed-point integers must be sized for $S_2$.
+
+## Design Notes
+
+These notes cover where the market-order rate stands and what its distance
+from the cap can fund, how Snapshot Fees composes with existing practice,
+what it leaves flexible, what it costs, what $M$ could serve beyond
+fees, and which auction design fits it best.
+
+### The Market-Order Rate
+
+The schedule above prices resting liquidity and never fixes what a market
+order pays. The only constraint is that the market-order rate stand at or
+above the cap $F$. Setting the two equal is the simplest choice. Setting
+the market-order rate above the cap opens room the next notes use: the
+gap can fund [negative maker fees](#negative-maker-fees) and gives
+[volume tiers](#volume-based-discounts-compose) room to discount.
+
+### Negative Maker Fees
+
+Nothing requires the resting schedule to stop at zero. Shifted downward,
+the best-placed, fully paired liquidity is paid for its fills rather than
+charged. For this to work, what the filled market order pays must exceed
+the rebate paid out, and the excess is best kept a strict premium rather
+than a full transfer, so that a self-cross always burns money and wash
+trading is never free.
+
+A natural construction is a flat market-order rate against the scaled
+resting schedule, with the venue collecting the difference, so its take
+moves inversely with the quality of the book it fills. With a 5bps
+market-order rate against a resting schedule running from 3bps of rebate
+at the center to 1bps at the cap, the venue nets 2bps to 4bps per trade.
+If the schedule instead ran down to a 5bps charge at the cap, the take
+would run 2bps to 10bps. In whichever fee schedule used, any rebates settle
+in-window from the same window's
+market-order fees, and none are paid before a market's first $M$ forms;
+until placement can be measured, everything rests at the cap.
+
+Rebates also require knowing which side of a fill was resting. A batch
+has no aggressor, so the venue must classify, by declaring order classes
+at entry or by seniority, an order counting as resting once it has stood
+through a seal without filling. Any scheme must satisfy one requirement:
+no fill collects a rebate on both sides. The reading carries no seniority in
+any of this; a two-sided book standing at the seal votes on that window's
+that window's $M$ in full.
+
+### Volume-Based Discounts Compose
+
+Nothing in this design requires abandoning volume tiers, and they can
+attach to any rate: the market-order rate, the cap, the resting schedule.
+The composition works under one rule:
+
+> Volume lowers rates toward floors; it never reorders them.
+
+Concretely, two invariants survive every tier. At equal volume, resting
+liquidity stays the better deal; no discount makes a market order cheaper
+than standing in the book. And where fees run negative, no combination of
+an account's own orders nets a profit; what an account pays on one side
+always exceeds what it can collect on the other. A market might run its
+resting schedule from a 5bps cap down to a 2bps rebate at the center,
+with volume lowering only the ceiling, from 5bps toward 2bps; its
+market-order rate might run from 10bps down to 4bps on volume alone. The
+ordering holds at every tier, and no pairing of the rates nets a gain. One recalibration comes
+with the venue rather than the mechanism: a batch auction prints less
+volume for the same natural flow, since the latency-race volume is gone,
+so volume thresholds would be set against a smaller total.
+
+### Market Fee Profiles
+
+Each market needs a calibration, but bespoke settings per market are
+unlikely to be the end state. More likely is a small family of vetted fee
+profiles, perhaps two to five, correlating with volume and volatility:
+deep markets running tight bands and strict precision pricing, volatile
+ones running wider bands and gentler slopes.
+
+Extending this further, a market could shift its profile as conditions
+change, by governance or by an automated rule: $M$ already recomputes
+per window and $D$ per day, so the band, the zone, and the rest could
+follow slower metrics of the market's own volume and volatility. All of it
+stays market state.
+
+### Maker Fee Uncertainty
+
+On every venue running today, a maker knows their rate before they quote.
+Here the rate is known only up to the Measured Price: the schedule is
+fixed, but where a quote falls on it depends on where $M$ lands, so the fee
+is an interval rather than a number until the window seals. That is a real
+cost, one more variable to model alongside fill probability and adverse
+selection. Its bounds are also real: the schedule and formula are fully
+public, the worst case is the cap $F$, and the interval narrows with the
+same size and tightness the schedule already rewards.
+
+### Consuming the Measured Price
+
+The mechanism's byproduct is a reference price. Each window exports $M$
+with its state and the impact spread, all recomputable from published
+data, and a price that is measured at size and expensive to move is a
+candidate input for services beyond fees: settlement prints, indexes, and
+eventually higher-stakes consumers.
+
+At the highest-stakes end of that spectrum, a liquidation engine should
+never consume a single window's $M$
+directly; it would want machinery built around $M$, smoothing across
+windows, staleness bounds, health gating, so that moving the reference
+would mean sustaining a distortion across the whole lookback rather than
+winning one window. All of these are extensions around $M$, not changes to
+it; the per-window measurement stays exactly as described.
+
+### The Dual-Flow Fit
+
+The mechanism runs on any batch auction, but a dual-flow venue fits it
+naturally. Its flows are declared rather than inferred, so the standing
+book is an explicit, labeled object and $M$ reads only it. Its fills
+split pro-rata with no seniority carried across windows, which is already
+how the walk shares and how the fees judge. And its takers always trade
+against the standing book rather than netting against each other, so
+gross flow walks the maker book, the flow the fee slopes are calibrated
+for. The two also push in the same direction, since the venue's structure
+favors tight quotes at size before any fee enters and the schedule pays
+for the same behavior.
+
+## Conclusion
+
+Snapshot Fees prices each auction's liquidity from the auction itself: one
+snapshot, one schedule, and a rate set by what the filled liquidity
+offered the market. Whether anyone would run it cannot be settled on
+paper.
+
+Adoption is likeliest as part of a new venue rather than a retrofit, and
+whether the machinery, light as it is, earns its place there is the
+venue's judgment. For regular traders the mechanism is mostly invisible: they
+pay the market-order rate, volume discounts intact, though whether it feels
+that simple to them is another matter. The real question belongs to
+makers, and it is a genuine balance. A batch venue removes latency-driven
+adverse selection, and this schedule removes the volume gate at the bottom
+of the fee ladder, so a new maker can compete on quoting alone from the
+first window. Against that, the fee machinery is novel, and modeling a
+rate that is an interval rather than a number is a real switching cost.
+Where that balance lands is for makers to decide.
+
+The piece opened with two questions: whether the snapshot could price
+orders directly, and whether doing so would improve the market. The first
+is answered by the mechanism's construction. The second can only be
+answered empirically, by a market where the schedule runs and the
+comparison that follows. If the mechanism works as argued, the evidence
+would show in the book: tighter spreads, greater depth at the touch, and
+new makers appearing in markets that previously had none.

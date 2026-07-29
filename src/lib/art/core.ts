@@ -95,8 +95,25 @@ export interface ParamSpec {
 	default: number;
 }
 
+/**
+ * What the quiet zone does to art that would otherwise fill it.
+ *
+ * "clip" holds art under the zone's floor and lets it collect there.
+ * "scale" fits the whole composition into the room available instead.
+ * Which one looks right depends on how much of the frame the zone takes:
+ * a small zone can clip invisibly, while a zone covering most of the
+ * canvas turns clipping into a flat mass and needs scaling to keep the
+ * art legible.
+ */
+export type QuietFit = "clip" | "scale";
+
 /** per-render context beyond the dials */
 export interface PieceCtx {
+	/** how to fit art under the quiet zone; defaults to "clip" */
+	fit?: QuietFit;
+	/** the hashed seed, for pieces that need a stream of their own on
+	 * top of the layout one (see animRng for the same idea) */
+	seed?: number;
 	/** emit SMIL motion. animRng is a SEPARATE seeded stream so motion
 	 * parameters never perturb the layout stream: an animated render is
 	 * geometrically identical to the static one */
@@ -115,6 +132,11 @@ export interface ArtPiece {
 	/** registry key; also the frontmatter `art.piece` value */
 	name: string;
 	params: ParamSpec[];
+	/** the share card's quiet zone, when this piece's composition needs
+	 * different room than the card's default. Opt-in per piece: the
+	 * default is shared by every card, so tuning it for one artwork
+	 * silently redraws the rest. */
+	ogQuiet?: { rect: QuietZone; strength?: number };
 	render(
 		r: () => number,
 		w: number,
@@ -125,11 +147,38 @@ export interface ArtPiece {
 	): string;
 }
 
-/** spec defaults overlaid with any overrides; unknown keys are ignored */
+/**
+ * Spec defaults overlaid with any overrides.
+ *
+ * Rejects rather than clamps, and rejects unknown keys outright. Params
+ * are hand-edited in frontmatter, where every way of getting them wrong
+ * used to be silent: a typo like barz rendered a perfectly ordinary card
+ * that simply was not the one configured, and books: 0 shipped
+ * keyTimes="0; Infinity; 1" into the markup. Neither is visible without
+ * opening the SVG. Same reasoning as the unknown-piece throw above and
+ * the unmapped-variable throw in the OG renderer: a frontmatter mistake
+ * should fail the build, not ship art nobody asked for.
+ *
+ * Step alignment is deliberately not enforced; a value between steps is
+ * harmless and rejecting it would only fight hand-tuning.
+ */
 export function resolveParams(
 	spec: ParamSpec[],
 	overrides?: Record<string, number>,
 ): Record<string, number> {
+	for (const [key, value] of Object.entries(overrides ?? {})) {
+		const s = spec.find((x) => x.key === key);
+		if (!s) {
+			throw new Error(
+				`unknown art param "${key}"; this piece takes ${spec.map((x) => x.key).join(", ")}`,
+			);
+		}
+		if (!Number.isFinite(value) || value < s.min || value > s.max) {
+			throw new Error(
+				`art param "${key}" is ${value}, outside its range ${s.min}..${s.max}`,
+			);
+		}
+	}
 	const p: Record<string, number> = {};
 	for (const s of spec) {
 		p[s.key] = overrides?.[s.key] ?? s.default;

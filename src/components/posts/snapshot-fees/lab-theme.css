@@ -1,0 +1,570 @@
+/*
+ * Snapshot-fees lab theme.
+ *
+ * Series colors are from the validated dataviz method (aqua/orange/blue/
+ * violet), stepped per mode against the site surfaces (white / dark --bg):
+ *   light "#199e70,#d95926,#2a78d6,#4a3aa7" and
+ *   dark  "#199e70,#d95926,#256abf,#9085e9" both pass the palette validator
+ *   (all-pairs CVD ≥ 16 light / ≥ 13 dark on deutan+protan).
+ * Semantics: green/orange = your book · blue = fees · purple = everything
+ * M defines (the Measured Price, band edges, walk slices) · band fill is neutral gray.
+ * Chrome colors reference the site's theme variables so they switch with the
+ * .dark class automatically.
+ */
+.sf-lab {
+	/* the panel is the yardstick for what a lab can and cannot show: whether
+	 * its columns have wrapped, and so whether a chart popup has room to be
+	 * read at all. Named, so a query says which it means. */
+	container-type: inline-size;
+	container-name: sf-panel;
+
+	--lab-bid: #199e70;
+	--lab-ask: #d95926;
+	--lab-fee: #e34948;
+	--lab-measure: #4a3aa7;
+	--lab-zone: #2a78d6;
+	--lab-zone-soft: rgba(42, 120, 214, 0.07);
+	--lab-danger: #d03b3b;
+	/* advisory, not error: k₁ ≥ 1 is a regime the maker can choose, so it
+	 * gets a softened terracotta rather than the danger red. Kept clear of
+	 * --lab-hint's amber so the warning still reads as distinct from the
+	 * ordinary bulb tip beside it. */
+	--lab-warn: #a8442f;
+	--lab-band: rgba(120, 120, 120, 0.12);
+	--lab-band-edge: rgba(74, 58, 167, 0.55);
+	--lab-measure-slice: rgba(74, 58, 167, 0.09);
+	--lab-hatch: rgba(0, 0, 0, 0.45);
+	--lab-grid: #efefef;
+	--lab-inset: #eeeae4;
+	--lab-hint: #c98500;
+	--lab-on-accent: #ffffff;
+	--lab-slider: var(--text-color);
+
+	--lab-panel: var(--code-background);
+	--lab-panel2: var(--bg);
+	--lab-line: var(--border-color);
+	--lab-text: var(--heading-color);
+	--lab-dim: var(--text-color);
+	--lab-faint: var(--date-color);
+	--lab-mono: var(--font-mono);
+
+	/* fee-contrast popup text: the popup group renders at 0.88 opacity, which
+	 * washes dark-on-light text; these run darker than the page palette so
+	 * the diluted result lands back on it (dark mode aliases the normal set) */
+	--lab-tip-text: #121110;
+	--lab-tip-dim: #2a2724;
+	--lab-tip-faint: #56514a;
+
+	/* buttons (scenario pills, zoom, play): active tracks the slider gray in
+	 * light mode rather than the near-black heading color; idle buttons take
+	 * the inset stone so they stand off the page background */
+	--lab-btn-active-bg: var(--lab-dim);
+	--lab-btn-bg: var(--lab-inset);
+
+	/* the scenario strip's weave: an SVG tile (rasterized once and repeated,
+	 * so fractional display scaling cannot moiré it the way repeating CSS
+	 * gradients do) */
+	--lab-weave-tile: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='4' height='4'%3E%3Cpath d='M0 .5h4M.5 0v4' stroke='rgba(0,0,0,0.022)'/%3E%3C/svg%3E");
+
+	/* the scenario caption zone: a step lighter than the panel */
+	--lab-caption: #faf8f5;
+
+	/* pill depth on the weave bed */
+	--lab-btn-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+
+	/* the same depth as a filter, for button shapes drawn inside an SVG */
+	--lab-btn-drop: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.18));
+
+	/* chart controls (zoom, clear): a step lighter than the scenario
+	 * pills so the two button families read as different */
+	--lab-chartbtn-bg: #f5f2ee;
+}
+
+.dark .sf-lab {
+	--lab-fee: #e66767;
+	--lab-measure: #9085e9;
+	--lab-zone: #4b8fdd;
+	--lab-zone-soft: rgba(75, 143, 221, 0.09);
+	--lab-band: rgba(255, 255, 255, 0.06);
+	--lab-band-edge: rgba(144, 133, 233, 0.6);
+	--lab-measure-slice: rgba(144, 133, 233, 0.14);
+	--lab-warn: #e59080;
+	--lab-hatch: rgba(255, 255, 255, 0.55);
+	--lab-grid: #2e2a27;
+	--lab-inset: #332d29;
+	--lab-on-accent: var(--bg);
+	--lab-slider: #f0ebe5;
+	--lab-btn-active-bg: var(--lab-text);
+	--lab-btn-bg: var(--lab-panel2);
+	--lab-tip-text: var(--lab-text);
+	--lab-tip-dim: var(--lab-dim);
+	--lab-tip-faint: var(--lab-faint);
+	--lab-weave-tile: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='4' height='4'%3E%3Cpath d='M0 .5h4M.5 0v4' stroke='rgba(255,255,255,0.028)'/%3E%3C/svg%3E");
+	--lab-caption: #2f2a26;
+	--lab-btn-shadow: 0 1px 3px rgba(0, 0, 0, 0.5);
+	--lab-btn-drop: drop-shadow(0 1px 3px rgba(0, 0, 0, 0.55));
+	--lab-chartbtn-bg: #2b2622;
+}
+
+/* SVG-drawn buttons (zoom, clear): the browser paints its default focus
+ * ring on them after a click; suppress it and keep a ring only for
+ * keyboard focus */
+.sf-lab svg [role="button"] {
+	outline: none;
+}
+.sf-lab svg [role="button"]:focus-visible {
+	outline: 2px solid var(--code-color);
+	outline-offset: 2px;
+}
+
+/* The lab footer, shared by every lab: the scenario band and the
+ * caption below it, both full-bleed regions of the frame (the negative
+ * margins cancel the panel's 4px/2px padding).
+ *
+ * The band carries a cheesecloth weave — hairlines crossing at a fine
+ * grid, near imperceptible, just enough to give the controls a bed of
+ * texture. Its top and bottom rules are gradient-drawn 1px layers whose
+ * tips dissolve over their last 18px, so they never form a hard
+ * T-junction with the card's side borders; being 1px tall, the fade
+ * cannot bleed down the band. */
+.sf-lab .sf-scenarios {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 6px;
+	margin: 4px -4px 0;
+	padding: 10px;
+	background-image:
+		linear-gradient(
+			90deg,
+			transparent,
+			var(--lab-line) 18px,
+			var(--lab-line) calc(100% - 18px),
+			transparent
+		),
+		linear-gradient(
+			90deg,
+			transparent,
+			var(--lab-line) 18px,
+			var(--lab-line) calc(100% - 18px),
+			transparent
+		),
+		var(--lab-weave-tile);
+	background-size:
+		100% 1px,
+		100% 1px,
+		4px 4px;
+	background-position:
+		0 0,
+		0 100%,
+		0 0;
+	background-repeat: no-repeat, no-repeat, repeat;
+}
+
+/* the caption bed: a step lighter than the panel, closing the card
+ * with its bottom radius (7px = the panel's 8px minus its 1px border) */
+.sf-lab .sf-caption {
+	background: var(--lab-caption);
+	margin: 0 -4px -2px;
+	padding: 10px 14px 12px;
+	border-radius: 0 0 7px 7px;
+	font-size: 14px;
+	line-height: 1.6;
+	color: var(--lab-dim);
+	white-space: pre-line;
+}
+
+/* Every lab's dials run three across and fall to two on a phone, where a
+ * third track leaves each slider a stub and its label no room to read.
+ *
+ * The query reads the grid's own parent rather than the viewport. Some of
+ * these grids share a flex line with a chart or a schedule and narrow well
+ * ahead of the panel; others take the panel's full width. Marking the
+ * parent means one threshold covers both, and a lab keeps working wherever
+ * it is embedded. Padding stays with each lab, which sets its own. */
+.sf-lab .sf-dialbox {
+	container-type: inline-size;
+	container-name: sf-dials;
+}
+
+.sf-lab .sf-dials {
+	display: grid;
+	grid-template-columns: repeat(3, minmax(0, 1fr));
+	gap: 10px 16px;
+}
+
+/* A lab is an instrument, not a passage. A press inside one should move a
+ * bar or read a level; it should never hand iOS a run of text to reach for,
+ * which raises the selection handles and cancels the touch the chart was
+ * waiting on.
+ *
+ * Denied at the panel, not at the chart. Two things sit outside the chart
+ * and were selectable while it was: the readout panel, and every reading
+ * the chart draws on its axes, since Safari does not carry this into SVG
+ * text from the svg element the way it does from an HTML ancestor. The
+ * prose blocks ask for it back below. */
+.sf-lab {
+	-webkit-touch-callout: none;
+	-webkit-user-select: none;
+	user-select: none;
+}
+
+/* the instructions above each lab and the scenario caption below it: these
+ * are read, and worth quoting */
+.sf-lab .sf-prose,
+.sf-lab .sf-caption {
+	-webkit-user-select: text;
+	user-select: text;
+}
+
+/* Suppressing selection is not enough on its own: a press that lands on an
+ * axis label still gives iOS a run of text to reach for, and it takes it,
+ * cancelling the touch the chart was waiting on. No label in these charts
+ * is something to press, so none of them takes the press. The zoom and
+ * clear buttons keep theirs, which sits on the rect behind the words. */
+.sf-lab .sf-chart text {
+	pointer-events: none;
+	/* stated on the text itself as well as inherited, since this is the
+	 * property Safari is unreliable about carrying into SVG */
+	-webkit-user-select: none;
+	user-select: none;
+}
+
+/* The readout a hover or a touch produces. In the chart it is drawn in the
+ * chart's units, which a phone paints at a third of their size, and it sits
+ * under the finger that summoned it besides. So on a narrow panel the same
+ * reading is rendered here instead, in real text over the block above the
+ * chart, and the drawn one is hidden. It stands over that block rather than
+ * displacing it: nothing reflows, and the chart cannot jump mid-touch. */
+.sf-lab .sf-readout {
+	display: none;
+	position: absolute;
+	inset: 0 0 auto 0;
+	z-index: 3;
+	background: var(--lab-panel2);
+	border: 1px solid var(--lab-fee);
+	border-radius: 6px;
+	padding: 8px 10px 9px;
+	box-shadow: var(--lab-btn-shadow);
+	/* a long walk scrolls inside the panel rather than running past the
+	 * bottom of the screen */
+	max-height: 58vh;
+	overflow-y: auto;
+}
+
+/* a heading opens a group and its readings run tight beneath it, which is
+ * what keeps a walk of ten price levels down to a readable block rather
+ * than a column longer than the chart it describes */
+.sf-lab .sf-readout-row {
+	display: flex;
+	flex-direction: column;
+	gap: 1px;
+}
+
+.sf-lab .sf-readout-row:has(.sf-readout-label) {
+	margin-top: 7px;
+}
+
+.sf-lab .sf-readout-row:first-child {
+	margin-top: 0;
+}
+
+.sf-lab .sf-readout-label {
+	font-family: var(--lab-mono);
+	font-size: 9.5px;
+	letter-spacing: 0.1em;
+	color: var(--lab-faint);
+}
+
+.sf-lab .sf-readout-value {
+	font-family: var(--lab-mono);
+	line-height: 1.3;
+}
+
+.sf-lab .sf-readout-rule {
+	border-top: 1px solid var(--lab-line);
+	margin: 2px 0 6px;
+}
+
+/* the fee contrast keeps its shape here: your reading, what it is a reading
+ * of, and the makers' reading, so the two are still read against each other
+ * rather than one after the other */
+.sf-lab .sf-readout.sf-contrast {
+	grid-template-columns: 1fr auto 1fr;
+	gap: 3px 8px;
+	align-items: baseline;
+	font-family: var(--lab-mono);
+	font-size: 12px;
+}
+
+.sf-lab .sf-contrast-span {
+	grid-column: 1 / -1;
+	font-size: 12px;
+	line-height: 1.35;
+}
+
+.sf-lab .sf-contrast-l,
+.sf-lab .sf-contrast-r {
+	display: flex;
+	flex-direction: column;
+}
+
+.sf-lab .sf-contrast-l {
+	text-align: right;
+}
+
+.sf-lab .sf-contrast-mid {
+	font-size: 9.5px;
+	letter-spacing: 0.08em;
+	text-align: center;
+	color: var(--lab-faint);
+}
+
+.sf-lab .sf-contrast-why {
+	font-size: 10px;
+	color: var(--lab-faint);
+}
+
+@container sf-panel (max-width: 560px) {
+	.sf-lab .sf-readout {
+		display: block;
+	}
+
+	/* the contrast readout is a grid; both selectors have to name the class
+	 * so neither wins over the other outside this query, where the panel is
+	 * hidden and the chart draws the reading itself */
+	.sf-lab .sf-readout.sf-contrast {
+		display: grid;
+	}
+
+	.sf-lab .sf-tip {
+		display: none;
+	}
+}
+
+/* a dial's name and its reading, at opposite ends of one line */
+.sf-lab .sf-head {
+	gap: 6px;
+}
+
+/* the multi-maker utility row: visibility switches, the influence readout,
+ * and the settings disclosure. Its outer margin lines up with the boxed
+ * group above it, so it takes the same gap and its columns fall on the
+ * same edges as that group's dials */
+.sf-lab .sf-utility {
+	display: grid;
+	grid-template-columns: repeat(3, minmax(0, 1fr));
+	gap: 10px 16px;
+}
+
+/* A grid inside this lab's own chrome runs out of width sooner than one in a
+ * plain column: a boxed group spends 44px of the panel on its margin, border
+ * and padding, and the utility row is inset to line up with one.
+ *
+ * 580px is where the longest pair in these grids finally fits three across.
+ * Typical demand and its reading measure 174px together, and three of those
+ * plus the gaps and the group's own padding is what that number is. Below it
+ * the influence reading overprinted the settings label and Typical demand ran
+ * past its column: a band wider than any phone, but well inside a narrow
+ * window. Above it the spelled-out names come back. */
+@container sf-dials (max-width: 580px) {
+	.sf-lab .sf-inset .sf-short {
+		display: inline;
+	}
+
+	.sf-lab .sf-inset .sf-short + .sf-long {
+		display: none;
+	}
+
+	.sf-lab .sf-inset .sf-head {
+		gap: 2px;
+	}
+
+	.sf-lab .sf-utility {
+		grid-template-columns: repeat(2, minmax(0, 1fr));
+		column-gap: 10px;
+	}
+
+	.sf-lab .sf-u-visibility {
+		grid-area: 1 / 1;
+	}
+
+	.sf-lab .sf-u-settings {
+		grid-area: 1 / 2;
+	}
+
+	.sf-lab .sf-u-influence {
+		grid-area: 2 / 1 / 3 / -1;
+	}
+}
+
+@container sf-dials (max-width: 410px) {
+	/* the tighter gap is worth a few pixels a column, which is the margin
+	 * the longest dial names read within */
+	.sf-lab .sf-dials {
+		grid-template-columns: repeat(2, minmax(0, 1fr));
+		column-gap: 10px;
+	}
+
+	/* what decides the count is the dial name, not the slider: a name of
+	 * one word or one symbol still sits beside its reading in a third of a
+	 * phone, where a spelled-out one does not. Those grids hold three, on
+	 * a tighter gap still, which is the few pixels the longest of these
+	 * pairs reads within. */
+	.sf-lab .sf-dials.sf-dials-three {
+		grid-template-columns: repeat(3, minmax(0, 1fr));
+		column-gap: 6px;
+	}
+
+	/* the name and its reading sit at opposite ends of this row, so the gap
+	 * between them is only ever a floor; giving it back costs nothing and
+	 * buys the pair the room to stay on one line */
+	.sf-lab .sf-head {
+		gap: 2px;
+	}
+
+	/* the two cells that only need room for a control pair up, and the
+	 * influence readout takes the full width directly above the chart it
+	 * reports on. Placed rather than reordered, so the reading order in
+	 * the markup stays visibility, influence, settings. */
+	.sf-lab .sf-utility {
+		grid-template-columns: repeat(2, minmax(0, 1fr));
+		column-gap: 10px;
+	}
+
+	.sf-lab .sf-u-visibility {
+		grid-area: 1 / 1;
+	}
+
+	.sf-lab .sf-u-settings {
+		grid-area: 1 / 2;
+	}
+
+	.sf-lab .sf-u-influence {
+		grid-area: 2 / 1 / 3 / -1;
+	}
+}
+
+/* A boxed group spends 44px of the panel on its own margins and padding,
+ * so inside one a phone runs out sooner: below this the readings that come
+ * in words rather than figures, a spread of 2 ticks or a lean 90% to the
+ * bid, no longer sit beside their names three across. The utility row
+ * carries no such box and its titles are short, so it keeps its pairing
+ * down to the width where everything stacks. */
+@container sf-dials (max-width: 290px) {
+	.sf-lab .sf-dials.sf-dials-three {
+		grid-template-columns: repeat(2, minmax(0, 1fr));
+	}
+}
+
+/* the narrowest phones, where even a symbol has too little room beside
+ * its reading */
+@container sf-dials (max-width: 250px) {
+	.sf-lab .sf-dials,
+	.sf-lab .sf-dials.sf-dials-three {
+		grid-template-columns: minmax(0, 1fr);
+	}
+}
+
+/* A dial name or reading that has a short form carries both and shows
+ * whichever the width allows: the spelled-out one is what a reader meets
+ * the term by, the short one is what fits a third of a phone. Nothing is
+ * lost with it, since the hint beneath still says what the dial does. */
+.sf-lab .sf-short {
+	display: none;
+}
+
+/* A dial reading sits beside its slider where there is room for both and
+ * moves up onto the name's line where there is not, which hands the
+ * slider the whole column rather than the stub left over. */
+.sf-lab .sf-param {
+	display: grid;
+	grid-template-columns: minmax(0, 1fr) auto;
+	/* one height for every dial's first row, so a name carrying a subscript
+	 * does not push its slider below the ones beside it */
+	grid-template-rows: 15px auto auto;
+	grid-template-areas:
+		"name name"
+		"slider value"
+		"hint hint";
+	align-items: center;
+	/* grid stretches every dial in a row to the tallest of them; packing the
+	 * tracks to the top leaves that slack below the hint rather than inside
+	 * the slider's row, where it would sink one slider below its neighbours */
+	align-content: start;
+	gap: 3px 6px;
+	min-width: 0;
+	overflow: hidden;
+}
+
+.sf-lab .sf-param-name {
+	grid-area: name;
+}
+
+.sf-lab .sf-param-value {
+	grid-area: value;
+}
+
+.sf-lab .sf-param-slider {
+	grid-area: slider;
+	min-width: 0;
+}
+
+.sf-lab .sf-param-hint {
+	grid-area: hint;
+}
+
+@container sf-dials (max-width: 410px) {
+	.sf-lab .sf-short {
+		display: inline;
+	}
+
+	.sf-lab .sf-short + .sf-long {
+		display: none;
+	}
+
+	.sf-lab .sf-param {
+		grid-template-areas:
+			"name value"
+			"slider slider"
+			"hint hint";
+	}
+}
+
+/* scrollable insets (e.g. the base-fee schedule) — theme-aware thin bar */
+.sf-lab .sf-scroll {
+	scrollbar-width: thin;
+	scrollbar-color: var(--border-color) transparent;
+}
+
+.sf-lab .sf-scroll::-webkit-scrollbar {
+	width: 8px;
+}
+
+.sf-lab .sf-scroll::-webkit-scrollbar-thumb {
+	background: var(--border-color);
+	border-radius: 4px;
+}
+
+.sf-lab .sf-scroll::-webkit-scrollbar-track {
+	background: transparent;
+}
+
+/* the Effect readout fades in the first time a dial moves */
+.sf-lab .sf-effect {
+	animation: sf-fade-in 400ms ease;
+}
+
+@keyframes sf-fade-in {
+	from {
+		opacity: 0;
+	}
+	to {
+		opacity: 1;
+	}
+}
+
+@media (prefers-reduced-motion: reduce) {
+	.sf-lab .sf-effect {
+		animation: none;
+	}
+}

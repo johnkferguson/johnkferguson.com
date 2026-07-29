@@ -12,7 +12,7 @@ const slug = (s: string) => s.toLowerCase().replace(/[^a-z0-9]+/g, "-");
  * font set out of the bundle; this page only exercises layout) */
 const k = (tex: string) =>
 	`<span class="katex" style="font-style:italic">${tex}</span>`;
-const chipPara = `Liquidity resting inside ${k("M ± B/2")} rides free; beyond the band the fee climbs at slope ${k("k₁")} through the zone and ${k("k₂")} past it, while ${k("D")} sets the walk size and ${k("qᵢ")} the per-account share against the mark ${k("M")}.`;
+const chipPara = `Liquidity resting inside ${k("M ± B/2")} rides free; beyond the band the fee climbs at slope ${k("k₁")} through the zone and ${k("k₂")} past it, while ${k("D")} sets the walk size and ${k("qᵢ")} the per-account share against ${k("M")}.`;
 
 const sections = Array.from({ length: 8 }, (_, i) => ({
 	title: `Section ${i + 1}: ${["Mechanism", "Measurement", "Matching", "Settlement", "Incentives", "Adversaries", "Calibration", "Adoption"][i]}`,
@@ -62,7 +62,7 @@ const para =
 					<>
 						<p>
 							The engine walks the eligible book at size <code>D</code> per
-							side, so <code>computeMark(book, D)</code> stays{" "}
+							side, so <code>computeMeasure(book, D)</code> stays{" "}
 							<code>O(n)</code> in price levels, and the daily update clamps
 							with <code>Math.max(floor, dOpen * step)</code> before the
 							window seals.

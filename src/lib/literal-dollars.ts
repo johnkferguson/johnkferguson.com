@@ -70,6 +70,37 @@ function checkParagraph(
 	}
 }
 
+/**
+ * Whether a post body contains math for remark-math to render. Same walk
+ * as validateLiteralDollars (frontmatter, fences, display blocks, inline
+ * code); since that validator keeps every post free of stray dollars,
+ * any unescaped $ that survives the stripping IS a math delimiter. The
+ * layout gates the KaTeX stylesheet on this.
+ */
+export function containsMath(body: string): boolean {
+	const lines = body.split("\n");
+	let i = 0;
+	if (lines[0]?.trim() === "---") {
+		i = 1;
+		while (i < lines.length && lines[i].trim() !== "---") i++;
+		i++;
+	}
+	let inFence = false;
+	for (; i < lines.length; i++) {
+		const trimmed = lines[i].trim();
+		if (/^(```|~~~)/.test(trimmed)) {
+			inFence = !inFence;
+			continue;
+		}
+		if (inFence) continue;
+		/* a display-math fence is math outright */
+		if (trimmed === "$$") return true;
+		const stripped = lines[i].replace(/`[^`]*`/g, "");
+		if (/(?<!\\)\$/.test(stripped)) return true;
+	}
+	return false;
+}
+
 export function validateLiteralDollars(body: string): DollarViolation[] {
 	const violations: DollarViolation[] = [];
 	const lines = body.split("\n");

@@ -1,0 +1,22 @@
+/*
+ * Snapshot Fees article styling: lab spacing and heading rhythm.
+ * Imported by the post's MDX, so it loads only on that page. The math
+ * dressing (math.css) and KaTeX's own CSS arrive via PostLayout, gated
+ * on the post actually containing math.
+ */
+
+article .labwrap {
+	margin: 1.25rem 0 2rem;
+}
+
+article h2 {
+	margin-top: 2.4rem;
+}
+
+article h3 {
+	margin-top: 1.8rem;
+}
+
+article h4 {
+	margin-top: 1.5rem;
+}

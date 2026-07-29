@@ -5,6 +5,10 @@ import ReadingTime from "../components/ReadingTime.astro";
 import ShareControls from "../components/ShareControls.astro";
 import TableOfContents from "../components/TableOfContents.astro";
 import { artSvg, DEFAULT_QUIET } from "../lib/art/generate";
+/* ?raw keeps math.css out of the CSS module graph: Astro ships
+ * component-imported CSS to every page in the graph whether or not the
+ * importing markup rendered, and this must ship only with hasMath */
+import mathCss from "../styles/math.css?raw";
 import BaseLayout from "./BaseLayout.astro";
 
 interface Props {
@@ -19,6 +23,10 @@ interface Props {
 	readingMinutes?: number;
 	/** build-time headings (from render(post)); the TOC renders from these */
 	headings?: MarkdownHeading[];
+	/** interactive labs found by remark-labs; merged into the TOC tree */
+	labs?: { title: string; id: string; afterHeading: number }[];
+	/** post body contains math (containsMath); gates the KaTeX CSS */
+	hasMath?: boolean;
 	/** dev-only marker for draft posts */
 	draftBadge?: boolean;
 	art?: {
@@ -44,6 +52,8 @@ const {
 	art,
 	readingMinutes,
 	headings,
+	labs,
+	hasMath,
 	draftBadge,
 } = Astro.props;
 
@@ -91,6 +101,17 @@ const backdropSvg = art?.image
 	headerContextDate={formattedDate}
 	noindex={noindex}
 >
+  {
+    /* static link + raw-inlined dressing, NOT imports: served from
+     * public/katex (scripts/build-katex.py), loaded only when the post
+     * has math (issue 20) */
+    hasMath && (
+      <Fragment slot="head">
+        <link rel="stylesheet" href="/katex/katex.min.css" />
+        <style set:html={mathCss} />
+      </Fragment>
+    )
+  }
   <div class="post-page">
     <div class="post-backdrop" aria-hidden="true">
       {
@@ -103,7 +124,7 @@ const backdropSvg = art?.image
     </div>
     <div class="post-shell">
       <aside class="post-rail">
-        <TableOfContents headings={headings} />
+        <TableOfContents headings={headings} labs={labs} />
       </aside>
       <div class="post-main">
         <header class="post-header">
@@ -114,6 +135,7 @@ const backdropSvg = art?.image
             {readingMinutes && <ReadingTime minutes={readingMinutes} />}
           </p>
         </header>
+        <TableOfContents inline headings={headings} labs={labs} />
         <article data-toc-root>
           <slot />
         </article>
@@ -121,7 +143,7 @@ const backdropSvg = art?.image
       </div>
     </div>
     <BackToTop />
-    {ArtDevPicker && <ArtDevPicker />}
+    {ArtDevPicker && <ArtDevPicker art={art} />}
   </div>
 </BaseLayout>
 
@@ -140,14 +162,14 @@ const backdropSvg = art?.image
 		const headings = root.querySelectorAll<HTMLElement>(
 			":is(h2, h3, h4, h5, h6)[id]",
 		);
-		for (const h of headings) {
+		const addAnchor = (host: HTMLElement, id: string, label: string) => {
 			const btn = document.createElement("button");
 			btn.className = "anchor-link";
 			btn.type = "button";
-			btn.setAttribute("aria-label", "Copy link to this section");
+			btn.setAttribute("aria-label", label);
 			btn.innerHTML = linkSvg;
 			attachCopyButton(btn, {
-				url: () => `${location.origin}${location.pathname}#${h.id}`,
+				url: () => `${location.origin}${location.pathname}#${id}`,
 				idle: () => {
 					btn.innerHTML = linkSvg;
 					btn.classList.remove("copied");
@@ -157,7 +179,62 @@ const backdropSvg = art?.image
 					btn.classList.add("copied");
 				},
 			});
-			h.append(btn);
+			host.append(btn);
+		};
+		for (const h of headings) addAnchor(h, h.id, "Copy link to this section");
+		// lab title strips get the same affordance, anchored to the labwrap id
+		for (const head of root.querySelectorAll<HTMLElement>(
+			".labwrap[id] > .lab-head",
+		)) {
+			const id = head.parentElement?.id;
+			if (id) addAnchor(head, id, "Copy link to this lab");
+		}
+
+		// hover copy: a button floated over code and math blocks. Math blocks
+		// copy their TeX source (KaTeX keeps it in the MathML annotation;
+		// selecting rendered KaTeX by hand yields garbled text), code blocks
+		// copy their text. Each block is moved into a positioning wrapper
+		// because pre and .katex-display are horizontal scroll containers —
+		// a button inside would scroll away with the content.
+		const copySvg =
+			'<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="8" y="2" width="8" height="4" rx="1"/><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/></svg>';
+		const blocks = root.querySelectorAll<HTMLElement>("pre, .katex-display");
+		for (const block of blocks) {
+			const isMath = block.classList.contains("katex-display");
+			const textOf = () =>
+				isMath
+					? (block.querySelector('annotation[encoding="application/x-tex"]')
+							?.textContent ?? "")
+					: (block.querySelector("code")?.textContent ??
+						block.textContent ??
+						"");
+			if (!textOf().trim()) continue;
+			const wrap = document.createElement("div");
+			wrap.className = "block-copy-wrap";
+			block.before(wrap);
+			wrap.append(block);
+			const btn = document.createElement("button");
+			btn.className = "block-copy";
+			btn.type = "button";
+			btn.dataset.tip = isMath ? "Copy LaTeX" : "Copy code";
+			btn.setAttribute(
+				"aria-label",
+				isMath ? "Copy this formula's LaTeX source" : "Copy this code block",
+			);
+			btn.innerHTML = copySvg;
+			attachCopyButton(btn, {
+				url: textOf,
+				announcement: "Copied",
+				idle: () => {
+					btn.innerHTML = copySvg;
+					btn.classList.remove("copied");
+				},
+				copied: () => {
+					btn.innerHTML = checkSvg;
+					btn.classList.add("copied");
+				},
+			});
+			wrap.append(btn);
 		}
 	}
 </script>

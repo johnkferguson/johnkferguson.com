@@ -1,6 +1,7 @@
 /*
- * KaTeX dressing for math-bearing pages (imported alongside
- * katex/dist/katex.min.css by any page that renders math).
+ * KaTeX dressing for math-bearing pages. PostLayout inlines this (?raw)
+ * next to the /katex/katex.min.css link whenever the post contains math;
+ * nothing should @import it into the CSS module graph.
  *
  * Inline math ($x_i$) is dressed like a code span: prose-sized, code
  * color/background, with a hairline stroke (KaTeX ships no medium cut).

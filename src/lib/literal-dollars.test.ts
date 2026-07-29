@@ -1,13 +1,13 @@
 import { describe, expect, test } from "bun:test";
 import { readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
-import { validateLiteralDollars } from "./literal-dollars";
+import { containsMath, validateLiteralDollars } from "./literal-dollars";
 
 describe("validateLiteralDollars", () => {
 	test("accepts real inline math", () => {
 		expect(
 			validateLiteralDollars(
-				"The mark $M$ moves by $B/2$ when $q_i$ crosses $M \\pm B/2$.",
+				"The Measured Price $M$ moves by $B/2$ when $q_i$ crosses $M \\pm B/2$.",
 			),
 		).toEqual([]);
 	});
@@ -50,7 +50,9 @@ describe("validateLiteralDollars", () => {
 	});
 
 	test("flags money corrupting real math in the same paragraph", () => {
-		const v = validateLiteralDollars("It costs $5 but the mark $M$ moves.");
+		const v = validateLiteralDollars(
+			"It costs $5 but the Measured Price $M$ moves.",
+		);
 		expect(v.length).toBeGreaterThan(0);
 	});
 
@@ -82,6 +84,42 @@ describe("validateLiteralDollars", () => {
 		expect(
 			validateLiteralDollars("---\ndescription: costs $5 or $10\n---\n\nBody."),
 		).toEqual([]);
+	});
+});
+
+describe("containsMath", () => {
+	test("detects an inline math span", () => {
+		expect(containsMath("The Measured Price $M$ moves.")).toBe(true);
+	});
+
+	test("detects a display math block", () => {
+		expect(containsMath("Before.\n\n$$\nx = y\n$$\n\nAfter.")).toBe(true);
+	});
+
+	test("detects inline double-dollar math", () => {
+		expect(containsMath("The value $$x = y$$ here.")).toBe(true);
+	});
+
+	test("ignores a post with no dollars at all", () => {
+		expect(containsMath("Just prose.\n\nMore prose.")).toBe(false);
+	});
+
+	test("ignores escaped literal dollars", () => {
+		expect(containsMath("It costs \\$5 and \\$10 together.")).toBe(false);
+	});
+
+	test("ignores dollars in code fences and inline code", () => {
+		expect(
+			containsMath(
+				"Run `echo $HOME` first.\n\n```sh\necho $5 $10\n```\n\ndone",
+			),
+		).toBe(false);
+	});
+
+	test("ignores dollars in frontmatter", () => {
+		expect(
+			containsMath("---\ndescription: costs $5 or $10\n---\n\nBody."),
+		).toBe(false);
 	});
 });
 

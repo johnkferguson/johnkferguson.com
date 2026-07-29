@@ -104,6 +104,30 @@ const { postTitle, postDate } = Astro.props;
     box-shadow: var(--header-shadow);
   }
 
+  /* progressive blur under the bar: content scrolling beneath softens
+   * into the header instead of vanishing at its hard edge. A thin
+   * backdrop-filter strip hangs below the header, masked so the blur is
+   * strongest at the edge and dissolves downward. */
+  .site-header::after {
+    content: "";
+    position: absolute;
+    top: 100%;
+    left: 0;
+    right: 0;
+    height: 6px;
+    pointer-events: none;
+    backdrop-filter: blur(4px);
+    -webkit-backdrop-filter: blur(4px);
+    -webkit-mask-image: linear-gradient(#000, transparent);
+    mask-image: linear-gradient(#000, transparent);
+    opacity: 0;
+    transition: opacity 0.2s ease;
+  }
+
+  .site-header.scrolled::after {
+    opacity: 1;
+  }
+
   /* always the compact bar: the large-name state drew too much
    * attention, so the header lives at its scrolled size permanently */
   .site-header-inner {
@@ -198,12 +222,21 @@ const { postTitle, postDate } = Astro.props;
     color: var(--heading-color);
   }
 
+  /* sized directly rather than scale(0.78): a fractionally scaled
+   * element re-rasterizes (visibly wobbles) every time the header
+   * repaints, e.g. when the scrolled dressing snaps on */
   .site-header :global(#theme-toggle) {
-    transform: translateY(-2px) scale(0.78);
+    margin-top: -2px;
+  }
+
+  .site-header :global(#theme-toggle svg) {
+    width: 17px;
+    height: 17px;
   }
 
   @media (prefers-reduced-motion: reduce) {
     .site-header,
+    .site-header::after,
     .site-header-inner,
     .site-name,
     .post-context {

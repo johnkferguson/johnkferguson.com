@@ -36,6 +36,7 @@
 	.toc-inline,
 	.post-rail,
 	article[data-toc-root] .anchor-link,
+	article .block-copy,
 	.share,
 	.post-backdrop,
 	.side-art {

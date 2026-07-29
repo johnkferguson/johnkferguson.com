@@ -1,4 +1,19 @@
 ---
+interface Props {
+	/** the post's pinned art, so the panel opens on what the page
+	 * actually renders instead of regenerating a guess over it */
+	art?: {
+		family?: string;
+		piece?: string;
+		seed?: string;
+		params?: Record<string, number>;
+		thumb?: { x: number; y: number; w: number; h: number };
+		motion?: boolean;
+	};
+}
+
+const { art } = Astro.props;
+
 /* Dev-only in-place art picker. PostLayout mounts this only when
  * import.meta.env.DEV (via dynamic import), so nothing here ships in
  * production builds.
@@ -12,7 +27,7 @@
  * candidates. "Copy frontmatter" emits the art: block to pin. */
 ---
 
-<div class="art-dev-picker" data-art-picker>
+<div class="art-dev-picker" data-art-picker data-pinned={JSON.stringify(art ?? {})}>
   <button type="button" class="adp-toggle" title="art picker (dev)">✦</button>
   <div class="adp-panel" hidden>
     <div class="adp-previews">
@@ -53,6 +68,7 @@
 <script>
   import { artSvg, DEFAULT_QUIET, FAMILIES } from "../lib/art/generate";
   import { PIECES } from "../lib/art/pieces";
+  import { attachThumbMotion } from "../lib/art/thumb-motion";
 
   interface Crop {
     x: number;
@@ -89,6 +105,8 @@
   const slug = location.pathname.replace(/^\/|\/$/g, "") || "post";
   const params: Record<string, number> = {};
   let crop: Crop | null = null;
+  /* releases the previous preview's hover listeners; see regen() */
+  let dropThumbMotion: () => void = () => {};
 
   /* the thumb element's display aspect; crop rects are locked to it so
    * the chosen window fills the thumb exactly. SYNC POINT: mirrors the
@@ -137,6 +155,25 @@
     }
   };
 
+  /* Open on what the page is already showing. The panel used to start on
+   * "(page default)" with an empty seed, so the first regen painted a
+   * hash-chosen family straight over a pinned piece: a tool for judging
+   * art in place cannot begin by replacing it. */
+  const pinned = JSON.parse(root.dataset.pinned || "{}") as {
+    family?: string;
+    piece?: string;
+    seed?: string;
+    params?: Record<string, number>;
+    thumb?: Crop;
+    motion?: boolean;
+  };
+  if (pinned.piece) source.value = `piece:${pinned.piece}`;
+  else if (pinned.family) source.value = `family:${pinned.family}`;
+  if (pinned.seed) seedEl.value = pinned.seed;
+  if (pinned.thumb) crop = pinned.thumb;
+  motionEl.checked = !!pinned.motion;
+  buildDials(pinned.params);
+
   const artOpts = (width: number, height: number, useQuiet: boolean) => {
     const sel = selected();
     return {
@@ -168,26 +205,15 @@
       ? { ...artOpts(1600, 640, true), crop }
       : artOpts(800, 560, false);
     prevThumb.innerHTML = artSvg({ ...thumbOpts, animate: motionEl.checked });
-    /* like the homepage: motion is paused at rest, runs on hover */
+    /* exactly what the homepage does, from the same helper: the preview
+     * is only useful if it behaves like the card it stands in for. Rebound
+     * on every regen because innerHTML replaces the svg each time. */
     const svg = prevThumb.querySelector("svg") as SVGSVGElement | null;
-    if (svg && motionEl.checked) {
-      svg.pauseAnimations();
-      svg.setCurrentTime(0);
-    }
+    dropThumbMotion();
+    dropThumbMotion = svg ? attachThumbMotion(prevThumb, svg) : () => {};
     drawCropBox();
     renderFavs();
   };
-
-  prevThumb.addEventListener("mouseenter", () => {
-    prevThumb.querySelector("svg")?.unpauseAnimations();
-  });
-  prevThumb.addEventListener("mouseleave", () => {
-    const svg = prevThumb.querySelector("svg");
-    if (svg) {
-      svg.pauseAnimations();
-      svg.setCurrentTime(0);
-    }
-  });
 
   /* ----- thumb crop: drag on the full preview ----- */
 
@@ -425,14 +451,9 @@
   );
   (root.querySelector("[data-reset]") as HTMLElement).addEventListener(
     "click",
-    () => {
-      source.value = "";
-      seedEl.value = "";
-      crop = null;
-      motionEl.checked = false;
-      buildDials();
-      location.reload();
-    },
+    /* the reload re-reads the pinned art, which is now the resting
+     * state, so clearing the controls first would only flash */
+    () => location.reload(),
   );
   copyBtn.addEventListener("click", async () => {
     const sel = selected();
