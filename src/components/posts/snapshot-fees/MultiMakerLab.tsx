@@ -43,15 +43,19 @@ const AGG_LADDER = Array.from(
 	{ length: 29 },
 	(_, k) => 6000 + Math.round((14000 * k) / 28 / 500) * 500,
 );
+/**
+ * The other makers' ladder. Lean runs the way the chart does: pulled left it
+ * goes negative and fattens the bid side, which is drawn to the left.
+ */
 const aggSizesOf = (depth: number, leanPct: number, spread: number) => {
 	const a = Array(N).fill(0);
 	const lean = leanPct / 100;
 	AGG_LADDER.forEach((v, k) => {
 		const bi = CENTER + 1 - spread - k;
 		const ai = CENTER + spread + k;
-		if (bi >= 0) a[bi] = Math.min(MAKER_MAX, round$(v * depth * (1 + lean)));
+		if (bi >= 0) a[bi] = Math.min(MAKER_MAX, round$(v * depth * (1 - lean)));
 		if (ai <= N - 1)
-			a[ai] = Math.min(MAKER_MAX, round$(v * depth * (1 - lean)));
+			a[ai] = Math.min(MAKER_MAX, round$(v * depth * (1 + lean)));
 	});
 	return a;
 };
@@ -154,7 +158,7 @@ Hover 100.015 and it runs the other way. You pay nothing and the makers pay 0.28
 	{
 		key: "lean",
 		title: "The Makers Lean",
-		blurb: `The same two books as [[Both Books]], with one change: the other makers have tilted their size onto the ask side. Their bids thin to $3,500 behind the touch while their asks swell to $14,500.
+		blurb: `The same two books as [[Both Books]], with one change: their Lean has been pushed right to 60% Ask Dominant. Their bids thin to $3,500 behind the touch while their asks swell to $14,500.
 
 Those heavier asks let the buy walk fill $18,000 of its $20,000 at 100.010 alone, so M slips from 100.005 to 100.004 and the band slips with it. Your own book has not moved, but your asks now stand just outside the band's upper edge, so the bids pairing against them pay a little more. Your bid at 99.995 pays 0.45bps now, against 0.39bps before.
 
@@ -175,14 +179,17 @@ Switch the makers out and M returns to 100.007, measured from your book alone. S
 			}),
 		makers: (l) => l.map((v, i) => (i === CENTER ? 3000 : v)),
 		depth: 1.5,
-		lean: -60,
+		lean: 60,
 		spread: 2,
 	},
 	{
 		key: "smallfish",
 		title: "Small Fish",
-		blurb:
-			"The other makers stand a book that dwarfs yours. Drag your bars: M barely acknowledges you, because your dollars are a sliver of the measuring walk. Your fees still depend entirely on your own placement and pairing; only your influence on the price shrank.",
+		blurb: `The other makers outsize you and outquote you. They stand $15,000 at their best bid and their best ask against your $5,000, their ladder runs deeper at every level behind that, and their bid at 100.000 sits a tick inside yours. Your influence reads 15%, six percent of the sell walk and a quarter of the buy walk.
+
+Switch yourself out of the auction and M barely moves, holding its reading of 100.002. Switch them out instead and it falls to 100.000. Their book sets the price here and yours hardly registers in it.
+
+Adjust the Other Makers' dials to see how each one moves your influence. Push Depth from 2.5 to 3 and yours falls from 15% to 12%. Pull their Spread out to 3 ticks and it climbs to 60%, because you become the one quoting tighter. Then work all three freely, tilting their Lean, widening and narrowing their Spread, taking their Depth up and down, and watch their book and M reshape around wherever you leave them standing.`,
 		you: YOUR_DEFAULT,
 		depth: 2.5,
 		lean: 0,
@@ -687,7 +694,7 @@ export default function MultiMakerLab() {
 					const side = sideAt(i);
 					if (side === "mid") return 0;
 					const dist = side === "bid" ? cF - i : i - cF;
-					const sideMul = side === "bid" ? 1 + lv : 1 - lv;
+					const sideMul = side === "bid" ? 1 - lv : 1 + lv;
 					const g = side === "bid" ? gBid : gAsk;
 					const target =
 						dist < 0.5
@@ -1060,8 +1067,12 @@ export default function MultiMakerLab() {
 							min={-90}
 							max={90}
 							stp={5}
-							fmt={(v) => `${v > 0 ? "+" : ""}${v}%`}
-							hint="Their bid/ask imbalance."
+							fmt={(v) =>
+								v === 0
+									? "Neutral"
+									: `${Math.abs(v)}% ${v < 0 ? "Bid" : "Ask"} Dominant`
+							}
+							hint="Which side of their book carries the size."
 						/>
 						<Param
 							name="Spread"
