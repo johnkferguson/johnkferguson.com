@@ -41,6 +41,9 @@ const label = {
 
 interface ParamProps {
 	name: string;
+	/** The dial's symbol, shown in place of `name` where the column is too
+	 *  narrow to hold the spelled-out one beside the reading. */
+	short?: string;
 	val: number;
 	set: (v: number) => void;
 	min: number;
@@ -50,51 +53,59 @@ interface ParamProps {
 	hint?: string;
 }
 
-function Param({ name, val, set, min, max, stp, suffix, hint }: ParamProps) {
+// Name, reading, slider and hint are siblings of one grid rather than a
+// stack with the reading nested beside the slider: lab-theme.css moves the
+// reading up onto the name's line on a phone, which hands the slider the
+// whole column instead of the stub left beside a 7ch readout.
+function Param({
+	name,
+	short,
+	val,
+	set,
+	min,
+	max,
+	stp,
+	suffix,
+	hint,
+}: ParamProps) {
 	return (
-		<div
-			style={{
-				display: "flex",
-				flexDirection: "column",
-				gap: 3,
-				minWidth: 0,
-				overflow: "hidden",
-			}}
-		>
-			<span style={{ ...label, fontSize: 9.5, letterSpacing: "0.1em" }}>
-				{name}
+		<div class="sf-param">
+			<span
+				class="sf-param-name"
+				style={{ ...label, fontSize: 9.5, letterSpacing: "0.1em" }}
+			>
+				{short && <span class="sf-short">{short}</span>}
+				<span class="sf-long">{name}</span>
 			</span>
-			<div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-				<input
-					type="range"
-					min={min}
-					max={max}
-					step={stp}
-					value={val}
-					onChange={(e) => set(+(e.currentTarget as HTMLInputElement).value)}
-					style={{
-						flex: "1 1 auto",
-						minWidth: 0,
-						accentColor: "var(--lab-slider)",
-					}}
-				/>
-				<span
-					style={{
-						fontFamily: mono,
-						fontSize: 11.5,
-						color: C.text,
-						whiteSpace: "nowrap",
-						width: "7ch",
-						textAlign: "right",
-						flexShrink: 0,
-					}}
-				>
-					{val}
-					{suffix || ""}
-				</span>
-			</div>
+			<span
+				class="sf-param-value"
+				style={{
+					fontFamily: mono,
+					fontSize: 11.5,
+					color: C.text,
+					whiteSpace: "nowrap",
+					width: "7ch",
+					textAlign: "right",
+				}}
+			>
+				{val}
+				{suffix || ""}
+			</span>
+			<input
+				class="sf-param-slider"
+				type="range"
+				min={min}
+				max={max}
+				step={stp}
+				value={val}
+				onChange={(e) => set(+(e.currentTarget as HTMLInputElement).value)}
+				style={{ accentColor: "var(--lab-slider)" }}
+			/>
 			{hint && (
-				<span style={{ fontSize: 10.5, color: C.faint, lineHeight: 1.35 }}>
+				<span
+					class="sf-param-hint"
+					style={{ fontSize: 10.5, color: C.faint, lineHeight: 1.35 }}
+				>
 					{hint}
 				</span>
 			)}
@@ -408,9 +419,13 @@ export default function BaseFeeLab() {
 				>
 					{/* —— left two-thirds: controls above, the curve below —— */}
 					<div class="sf-dialbox" style={{ flex: "2 1 400px", minWidth: 300 }}>
-						<div class="sf-dials" style={{ padding: "10px 12px 8px 4px" }}>
+						<div
+							class="sf-dials sf-dials-three"
+							style={{ padding: "10px 12px 8px 4px" }}
+						>
 							<Param
 								name="Inner Band · B"
+								short="B"
 								val={B}
 								set={setB}
 								min={1}
@@ -421,6 +436,7 @@ export default function BaseFeeLab() {
 							/>
 							<Param
 								name="Maker Zone · Z"
+								short="Z"
 								val={Z}
 								set={setZ}
 								min={2}
@@ -431,6 +447,7 @@ export default function BaseFeeLab() {
 							/>
 							<Param
 								name="Fee Cap · F"
+								short="F"
 								val={F}
 								set={setF}
 								min={5}
@@ -441,6 +458,7 @@ export default function BaseFeeLab() {
 							/>
 							<Param
 								name="Zone Slope · k₁"
+								short="k₁"
 								val={slope}
 								set={setSlope}
 								min={0.25}
@@ -451,6 +469,7 @@ export default function BaseFeeLab() {
 							/>
 							<Param
 								name="Far Slope · k₂"
+								short="k₂"
 								val={slope2}
 								set={setSlope2}
 								min={0.25}
@@ -475,8 +494,10 @@ export default function BaseFeeLab() {
 									minWidth: 0,
 								}}
 							>
-								{/* both lines wrap rather than run past the box, since the
-								    column can narrow further than the label's own width */}
+								{/* the title wraps rather than runs past the box, since a
+								    third of a phone is narrower than it. The reading drops
+								    its from M there instead, which the axis under the chart
+								    already says, rather than breaking across two lines. */}
 								<span
 									style={{
 										...label,
@@ -494,7 +515,8 @@ export default function BaseFeeLab() {
 										color: C.text,
 									}}
 								>
-									{dFull.toFixed(1)}bps from M
+									<span class="sf-short">{dFull.toFixed(1)}bps</span>
+									<span class="sf-long">{dFull.toFixed(1)}bps from M</span>
 								</span>
 							</div>
 						</div>
