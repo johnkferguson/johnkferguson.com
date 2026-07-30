@@ -2,6 +2,13 @@
 publish = "dist"
 command = "bun run build"
 
+# Pretty URLs is on by default and rewrites /about and /about.html to /about/.
+# Off, with build.format "file" in astro.config.mjs, /about serves directly.
+# Redirect rules cannot do this: Netlify normalizes trailing slashes before
+# rules run. Overrides the UI toggle under Build & deploy > Post processing.
+[build.processing.html]
+pretty_urls = false
+
 [build.environment]
 # Pin bun so Netlify's `bun install` uses this version rather than whatever is
 # newest at build time. Keep in sync with bun-version in the CI workflows.

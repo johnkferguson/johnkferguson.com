@@ -1,5 +1,6 @@
 ---
 import { SITE_CARD_PATH, SITE_DESCRIPTION, SITE_NAME } from "../consts";
+import { canonicalPath } from "../lib/canonical";
 
 interface Props {
 	type: "website" | "article";
@@ -14,7 +15,7 @@ interface Props {
 const { type, title, description, ogImage, pubDate, updated, tags } =
 	Astro.props;
 
-const url = new URL(Astro.url.pathname, Astro.site).href;
+const url = new URL(canonicalPath(Astro.url.pathname), Astro.site).href;
 const siteUrl = Astro.site?.href ?? "https://johnkferguson.com";
 const ogImageURL = ogImage
 	? new URL(ogImage, Astro.site).href

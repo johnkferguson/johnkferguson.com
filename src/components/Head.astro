@@ -5,6 +5,7 @@ import {
 	THEME_COLOR,
 	TWITTER_HANDLE,
 } from "../consts";
+import { canonicalPath } from "../lib/canonical";
 import { cardMeta } from "../lib/card-meta";
 
 interface Props {
@@ -29,7 +30,8 @@ const {
 	noindex,
 } = Astro.props;
 
-const canonicalURL = new URL(Astro.url.pathname, Astro.site).href;
+const canonicalURL = new URL(canonicalPath(Astro.url.pathname), Astro.site)
+	.href;
 const ogImageURL = new URL(ogImage, Astro.site).href;
 const fullTitle =
 	title === SITE_NAME

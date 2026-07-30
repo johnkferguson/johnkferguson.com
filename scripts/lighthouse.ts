@@ -156,7 +156,7 @@ const URL_OVERRIDES: Record<string, UrlOverride> = {
 	 * mean nobody notices if the noindex ever disappears, so the exception
 	 * is paired with a positive assertion that it is still failing.
 	 */
-	"/404.html": {
+	"/404": {
 		categories: { seo: 0.6 },
 		expectedAudits: { "is-crawlable": 0 },
 	},
