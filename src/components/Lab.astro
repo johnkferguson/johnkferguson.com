@@ -1,13 +1,13 @@
 ---
 // Generic frame for interactive lab embeds. Renders the shared title
 // strip (static HTML, so it shows before the island hydrates) and the
-// deep-link anchor; the remark-labs plugin reads <Lab> tags at build
+// deep-link anchor; the labs markdown plugin reads <Lab> tags at build
 // time to surface each lab in the table of contents.
 //
 // The strip reproduces the lab panel's top edge (background, side
 // borders, rounded top corners); the lab components render their panels
 // with squared, borderless tops so the two meet seamlessly.
-import { labSlug } from "../lib/remark-labs.mjs";
+import { labSlug } from "../markdown/labs.mjs";
 
 interface Props {
 	title: string;

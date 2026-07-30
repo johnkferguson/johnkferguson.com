@@ -16,7 +16,7 @@ export async function getStaticPaths() {
 
 const { post } = Astro.props;
 const { Content, headings, remarkPluginFrontmatter } = await render(post);
-/* interactive labs discovered at build time by the remark-labs plugin */
+/* interactive labs discovered at build time by the labs markdown plugin */
 const labs = remarkPluginFrontmatter?.labs ?? [];
 
 const description = post.data.description || createExcerpt(post.body ?? "");
