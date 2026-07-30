@@ -23,7 +23,7 @@ interface Props {
 	readingMinutes?: number;
 	/** build-time headings (from render(post)); the TOC renders from these */
 	headings?: MarkdownHeading[];
-	/** interactive labs found by remark-labs; merged into the TOC tree */
+	/** interactive labs found by the labs markdown plugin; merged into the TOC tree */
 	labs?: { title: string; id: string; afterHeading: number }[];
 	/** post body contains math (containsMath); gates the KaTeX CSS */
 	hasMath?: boolean;

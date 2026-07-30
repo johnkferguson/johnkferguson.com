@@ -1,7 +1,7 @@
 /**
  * Guard against unescaped literal dollar signs in post prose.
  *
- * remark-math pairs ANY two unescaped $ within a paragraph (soft line
+ * The Markdown processor pairs ANY two unescaped $ within a paragraph (soft line
  * breaks included), so "costs $5 and $10" renders "5 and" as a math chip
  * with "10" dangling, and a lone money "$5" garbles legitimate math
  * elsewhere in the same paragraph. Site convention: literal dollars are
@@ -71,7 +71,7 @@ function checkParagraph(
 }
 
 /**
- * Whether a post body contains math for remark-math to render. Same walk
+ * Whether a post body contains math for the processor to render. Same walk
  * as validateLiteralDollars (frontmatter, fences, display blocks, inline
  * code); since that validator keeps every post free of stray dollars,
  * any unescaped $ that survives the stripping IS a math delimiter. The
@@ -105,7 +105,7 @@ export function validateLiteralDollars(body: string): DollarViolation[] {
 	const violations: DollarViolation[] = [];
 	const lines = body.split("\n");
 	let i = 0;
-	/* skip YAML frontmatter (not processed by remark-math) */
+	/* skip YAML frontmatter (not processed as math) */
 	if (lines[0]?.trim() === "---") {
 		i = 1;
 		while (i < lines.length && lines[i].trim() !== "---") i++;

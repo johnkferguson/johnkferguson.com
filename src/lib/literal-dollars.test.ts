@@ -1,6 +1,7 @@
 import { describe, expect, test } from "bun:test";
 import { readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
+import { markdownToHtml } from "satteri";
 import { containsMath, validateLiteralDollars } from "./literal-dollars";
 
 describe("validateLiteralDollars", () => {
@@ -120,6 +121,48 @@ describe("containsMath", () => {
 		expect(
 			containsMath("---\ndescription: costs $5 or $10\n---\n\nBody."),
 		).toBe(false);
+	});
+});
+
+/**
+ * The rules above encode how the Markdown processor pairs `$`. That processor
+ * is now Sätteri rather than remark-math, so pin the assumption to the parser
+ * actually in use: if a future Sätteri release stops honoring `\$`, or stops
+ * pairing across a paragraph, these fail instead of the site quietly garbling
+ * money.
+ */
+describe("Sätteri math parsing matches the convention", () => {
+	const parse = async (md: string) =>
+		(await markdownToHtml(md, { features: { math: true } })).html;
+
+	test("an escaped dollar stays literal text", async () => {
+		const html = await parse("It costs \\$5 and \\$10 together.");
+		expect(html).not.toContain("language-math");
+		expect(html).toContain("$5");
+	});
+
+	test("a paired span becomes inline math", async () => {
+		expect(await parse("The Measured Price $M$ moves.")).toContain(
+			'<code class="language-math math-inline">M</code>',
+		);
+	});
+
+	test("display blocks become display math", async () => {
+		expect(await parse("$$\nx = y\n$$")).toContain(
+			'<code class="language-math math-display">',
+		);
+	});
+
+	/* the exact failure validateLiteralDollars exists to prevent: two money
+	 * amounts in one paragraph are paired, swallowing the prose between them */
+	test("two unescaped dollars pair and swallow the prose between", async () => {
+		const html = await parse("It costs $5 and $10 together.");
+		expect(html).toContain(
+			'<code class="language-math math-inline">5 and </code>',
+		);
+		expect(
+			validateLiteralDollars("It costs $5 and $10 together."),
+		).toHaveLength(1);
 	});
 });
 
