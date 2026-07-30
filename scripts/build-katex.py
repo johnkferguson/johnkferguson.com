@@ -9,7 +9,10 @@ fetch the woff/ttf fallbacks listed after it in each @font-face src.
 page fetches only the faces its own formulas use (see issue #23 for the
 deferred subsetting analysis).
 
-Outputs are committed. Rerun when upgrading the katex package.
+Outputs are committed. Rerun when upgrading the katex package, in the same
+commit as the bump: katex 0.18.0 renamed every internal CSS class, so a stale
+copy styles nothing and every formula collapses into loose characters with no
+build error. src/markdown/katex-assets.test.ts fails until this is rerun.
 """
 
 import shutil
