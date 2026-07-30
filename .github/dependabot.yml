@@ -44,14 +44,22 @@ updates:
         patterns:
           - "preact"
           - "@astrojs/preact"
+      # `katex` and `satteri` are deliberately absent: both are 0.x, where a
+      # breaking change ships as a MINOR, so grouping them under
+      # update-types: [minor, patch] treats exactly the risky bump as routine.
+      # katex 0.18.0 renamed every internal CSS class and arrived here as a
+      # grouped minor. Ungrouped, each gets its own PR, which is the same
+      # reasoning that already excludes majors from every group.
+      #
+      # A katex bump is also never mergeable on its own: public/katex/ is a
+      # committed copy of the package, so `scripts/build-katex.py` has to be
+      # re-run in the same commit. src/markdown/katex-assets.test.ts fails the
+      # PR until it is.
       markdown:
         update-types: ["minor", "patch"]
         patterns:
           - "markdown-it"
           - "@types/markdown-it"
-          - "remark-*"
-          - "rehype-*"
-          - "katex"
           - "sanitize-html"
           - "@types/sanitize-html"
       fonts:
