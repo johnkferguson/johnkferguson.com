@@ -26,10 +26,6 @@ export default defineConfig({
 		preact({ compat: true }),
 	],
 	trailingSlash: "never",
-	// Astro 7 switched compressHTML to "jsx" whitespace rules, which strips
-	// whitespace between elements. Pinned to the v6 behavior so inline-element
-	// spacing stays identical; taking the new default is its own change.
-	compressHTML: true,
 	build: {
 		inlineStylesheets: "auto",
 	},
