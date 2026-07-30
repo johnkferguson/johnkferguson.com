@@ -34,3 +34,9 @@ dev-debug.log
 
 # Local files
 .local/*
+
+# Unpublished drafts. This directory is its own private git repo, so the
+# writing and its history stay out of this public one. The dev server and
+# `astro check` still read the files normally; only git ignores them.
+# Publishing = move the post up one level, where this repo picks it up.
+src/content/posts/drafts/
