@@ -1,3 +1,5 @@
+// @ts-check
+
 /**
  * Sätteri mdast plugin: build-time discovery of <Lab> embeds in MDX posts.
  *
@@ -53,17 +55,32 @@ export function labs() {
 	};
 
 	/**
-	 * The labs array, created on first use. There is no root or
-	 * end-of-document hook to initialise it in, so a post with neither a
-	 * heading nor a lab exports no `labs` key at all, where the old remark
-	 * plugin always exported []. Consumers default it ([slug].astro), so the
-	 * difference is invisible; frontmatter itself is mutated rather than
-	 * reassigned, which the MDX integration validates.
+	 * The labs array, created on first use.
+	 *
+	 * There is no root or end-of-document hook to initialise it in, so a post
+	 * with neither a heading nor a lab exports no `labs` key at all, where the
+	 * old remark plugin always exported []. Consumers default it
+	 * ([slug].astro), so the difference is invisible.
+	 *
+	 * `frontmatter` is mutated, never reassigned: @astrojs/mdx validates
+	 * `ctx.data.astro.frontmatter` and throws on a null or non-object.
+	 *
+	 * `data.astro` is optional in satteri's types and seeded by whoever drives
+	 * the compile, which both real entry points do (satteri-processor.js:188
+	 * and @astrojs/mdx/dist/satteri/index.js). Asserted rather than created
+	 * with a defensive `??= {}`: a bag this plugin invented would collect labs
+	 * nobody reads, so the TOC would just silently lose its lab entries.
 	 *
 	 * @param {import("satteri").MdastVisitorContext} ctx
 	 */
 	const list = (ctx) => {
-		const frontmatter = ctx.data.astro.frontmatter;
+		const frontmatter = ctx.data.astro?.frontmatter;
+		if (!frontmatter) {
+			throw new Error(
+				"labs plugin: the compile did not seed ctx.data.astro.frontmatter, " +
+					"so discovered labs would never reach the page",
+			);
+		}
 		frontmatter.labs ??= [];
 		return frontmatter.labs;
 	};
@@ -72,6 +89,8 @@ export function labs() {
 		name: "labs",
 		heading(_node, ctx) {
 			heading += 1;
+			/* every post with a heading exports a list, empty or not, so the
+			 * common no-labs case matches the old plugin's output */
 			list(ctx);
 		},
 		/* satteri's walk descends into children on its own, so these visitors
