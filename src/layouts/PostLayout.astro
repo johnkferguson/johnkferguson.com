@@ -151,14 +151,14 @@ const backdropSvg = art?.image
 	// hover anchor: a copy-link button appended to every id'd heading.
 	// Copy, confirm, revert and the live region come from the shared
 	// helper, so these and the end-of-post controls cannot drift apart.
-	import { attachCopyButton } from "../components/copy-link";
+	import { attachBlockCopyButtons } from "../components/block-copy";
+	import { attachCopyButton, CHECK_SVG } from "../components/copy-link";
 
 	const root = document.querySelector("[data-toc-root]");
 	if (root) {
 		const linkSvg =
 			'<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>';
-		const checkSvg =
-			'<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg>';
+		const checkSvg = CHECK_SVG;
 		const headings = root.querySelectorAll<HTMLElement>(
 			":is(h2, h3, h4, h5, h6)[id]",
 		);
@@ -190,52 +190,7 @@ const backdropSvg = art?.image
 			if (id) addAnchor(head, id, "Copy link to this lab");
 		}
 
-		// hover copy: a button floated over code and math blocks. Math blocks
-		// copy their TeX source (KaTeX keeps it in the MathML annotation;
-		// selecting rendered KaTeX by hand yields garbled text), code blocks
-		// copy their text. Each block is moved into a positioning wrapper
-		// because pre and .katex-display are horizontal scroll containers —
-		// a button inside would scroll away with the content.
-		const copySvg =
-			'<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="8" y="2" width="8" height="4" rx="1"/><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/></svg>';
-		const blocks = root.querySelectorAll<HTMLElement>("pre, .katex-display");
-		for (const block of blocks) {
-			const isMath = block.classList.contains("katex-display");
-			const textOf = () =>
-				isMath
-					? (block.querySelector('annotation[encoding="application/x-tex"]')
-							?.textContent ?? "")
-					: (block.querySelector("code")?.textContent ??
-						block.textContent ??
-						"");
-			if (!textOf().trim()) continue;
-			const wrap = document.createElement("div");
-			wrap.className = "block-copy-wrap";
-			block.before(wrap);
-			wrap.append(block);
-			const btn = document.createElement("button");
-			btn.className = "block-copy";
-			btn.type = "button";
-			btn.dataset.tip = isMath ? "Copy LaTeX" : "Copy code";
-			btn.setAttribute(
-				"aria-label",
-				isMath ? "Copy this formula's LaTeX source" : "Copy this code block",
-			);
-			btn.innerHTML = copySvg;
-			attachCopyButton(btn, {
-				url: textOf,
-				announcement: "Copied",
-				idle: () => {
-					btn.innerHTML = copySvg;
-					btn.classList.remove("copied");
-				},
-				copied: () => {
-					btn.innerHTML = checkSvg;
-					btn.classList.add("copied");
-				},
-			});
-			wrap.append(btn);
-		}
+		attachBlockCopyButtons(root);
 	}
 </script>
 
