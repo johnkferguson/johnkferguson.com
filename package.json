@@ -5,7 +5,7 @@
 	"private": true,
 	"scripts": {
 		"dev": "astro dev",
-		"build": "ASTRO_BUILD=1 astro build && rm -rf dist/lab",
+		"build": "ASTRO_BUILD=1 astro build && rm -rf dist/lab dist/lab.html",
 		"preview": "astro preview",
 		"astro": "astro",
 		"test": "bun test",
