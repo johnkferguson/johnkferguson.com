@@ -54,6 +54,9 @@ jobs:
       - run: bunx biome check .
       - run: bunx astro check
       - run: bun run build
+      # Reads dist/, so it cannot be a bun:test: those run before the build,
+      # and one that skipped on a missing dist/ would assert nothing.
+      - run: bun scripts/check-canonicals.ts
       - uses: actions/cache@v6
         with:
           path: .lycheecache

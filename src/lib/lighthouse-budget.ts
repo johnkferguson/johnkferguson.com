@@ -35,13 +35,18 @@ const KIB = 1024;
 
 /**
  * Map a built HTML file, relative to `dist/`, onto the URL path that serves
- * it. Astro emits directory-style pages (`about/index.html`) plus a
- * top-level `404.html`, which has no pretty URL and is requested as-is.
+ * it. build.format is "file", so pages are emitted flat (`about.html`) and
+ * served at the bare path by both `astro preview` and Netlify. Stripping the
+ * extension here is what keeps the audited URL equal to the public one, so a
+ * `URL_OVERRIDES` key reads like the URL it describes. The directory-style
+ * cases are kept so a format flip does not silently change every audited URL
+ * and orphan every override.
  */
 export function htmlFileToUrl(relPath: string): string {
 	const p = relPath.replaceAll("\\", "/");
 	if (p === "index.html") return "/";
 	if (p.endsWith("/index.html")) return `/${p.slice(0, -"/index.html".length)}`;
+	if (p.endsWith(".html")) return `/${p.slice(0, -".html".length)}`;
 	return `/${p}`;
 }
 
@@ -91,7 +96,7 @@ export function checkCategories(
 }
 
 /**
- * Individual audits asserted to hold a specific score. Used for the `/404.html`
+ * Individual audits asserted to hold a specific score. Used for the `/404`
  * `noindex`: rather than only relaxing that page's SEO threshold, assert the
  * `is-crawlable` failure is still there, so the `noindex` cannot silently
  * disappear.
@@ -119,7 +124,7 @@ export function checkExpectedAudits(
  * A per-page exception outliving its page is silent otherwise: the page is
  * gone or renamed, so nothing consults the entry, and it sits in config
  * looking authoritative while describing something that no longer exists.
- * The same reasoning as pairing the `/404.html` SEO exception with a
+ * The same reasoning as pairing the `/404` SEO exception with a
  * positive `is-crawlable` assertion, an exception should never quietly stop
  * meaning anything.
  */

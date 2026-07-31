@@ -20,17 +20,27 @@ describe("htmlFileToUrl", () => {
 		expect(htmlFileToUrl("index.html")).toBe("/");
 	});
 
-	test("maps a directory-style page to its pretty URL", () => {
+	test("strips the extension from a flat page", () => {
+		/* build.format is "file", so this is the shape dist actually has.
+		 * astro preview and Netlify both serve about.html at /about, so the
+		 * audited URL matches the public one and an override key reads like
+		 * the URL it describes */
+		expect(htmlFileToUrl("about.html")).toBe("/about");
+		expect(htmlFileToUrl("refactoring-with-love.html")).toBe(
+			"/refactoring-with-love",
+		);
+		expect(htmlFileToUrl("404.html")).toBe("/404");
+	});
+
+	test("still maps directory-style pages, so a format flip keeps the same URLs", () => {
 		expect(htmlFileToUrl("about/index.html")).toBe("/about");
 		expect(htmlFileToUrl("refactoring-with-love/index.html")).toBe(
 			"/refactoring-with-love",
 		);
 	});
 
-	test("keeps 404.html as a literal path", () => {
-		/* astro preview serves it at /404.html with a 200, which is what
-		 * Lighthouse needs; there is no pretty URL for it */
-		expect(htmlFileToUrl("404.html")).toBe("/404.html");
+	test("leaves a non-HTML path alone", () => {
+		expect(htmlFileToUrl("llms.txt")).toBe("/llms.txt");
 	});
 });
 

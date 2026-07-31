@@ -1,6 +1,10 @@
+# build.format is "file", so a page is dist/about.html while every link to it
+# says /about. The --remap in check.yml turns those into file:// paths, which
+# then resolve to nothing without this. Directory-format builds needed no
+# equivalent, because dist/about/ was a real directory with an index.
+fallback_extensions = ["html"]
+
 exclude = [
-  # 404 canonical self-reference (file is 404.html, not /404)
-  "/404$",
   # Dead external links in old posts
   "kaffeine\\.herokuapp\\.com",
   "unidler\\.herokuapp\\.com",

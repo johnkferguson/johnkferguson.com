@@ -27,6 +27,13 @@ export default defineConfig({
 	],
 	trailingSlash: "never",
 	build: {
+		// Emit dist/slug.html rather than dist/slug/index.html. Netlify
+		// serves a directory only at its trailing-slash URL and 301s the
+		// bare path to it, which contradicts trailingSlash: "never" above:
+		// canonical, og:url and every sitemap entry are emitted without the
+		// slash, so each one redirected. A flat .html file is served at the
+		// bare path directly.
+		format: "file",
 		inlineStylesheets: "auto",
 	},
 	prefetch: {
