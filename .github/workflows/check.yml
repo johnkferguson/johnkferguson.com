@@ -4,6 +4,9 @@ on:
   pull_request:
   push:
     branches: [main]
+  # Re-run the gate without pushing: after a flake, or to confirm main is
+  # still green following something that did not arrive as a PR.
+  workflow_dispatch:
 
 # Cancel a stale run when new commits land on the same ref.
 concurrency:
