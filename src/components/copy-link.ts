@@ -9,6 +9,11 @@
  * is unit tested; everything here needs a document.
  */
 
+/** The confirmed-state tick, shared by every copy affordance so they
+ * cannot confirm with different icons. */
+export const CHECK_SVG =
+	'<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg>';
+
 /** One polite live region per page, not one per button. */
 let live: HTMLElement | null = null;
 /* Bumped on every announcement. Each caller keeps the token it was given

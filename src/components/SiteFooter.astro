@@ -3,7 +3,7 @@
 // outbound surfaces. No email by design.
 //
 // One centered strand below 1020px, splitting to the two gutters above
-// it: copyright left, outbound links right. Keyed to the TOC rail's
+// it: year and source left, outbound links right. Keyed to the TOC rail's
 // breakpoint because the rail is what makes the difference. In
 // single-column mode .post-shell is margin-inline:auto, so the article
 // is genuinely centered and a centered footer lines up with it. Once
@@ -17,11 +17,16 @@
 const year = new Date().getFullYear();
 const githubUsername = "johnkferguson";
 const twitterUsername = "johnkferguson";
+const repoUrl = `https://github.com/${githubUsername}/johnkferguson.com`;
 ---
 
 <footer class="site-footer">
   <div class="site-footer-inner">
-    <span class="footer-copy" data-year>© {year}</span>
+    <span class="footer-copy">
+      <span data-year>© {year}</span>
+      <span class="sep">·</span>
+      <a href={repoUrl} rel="noopener noreferrer" target="_blank">Source</a>
+    </span>
     <span class="sep group-sep">·</span>
     <span class="footer-links">
       <a
@@ -67,16 +72,32 @@ const twitterUsername = "johnkferguson";
     display: flex;
     align-items: center;
     justify-content: center;
-    gap: 0.55rem;
+    gap: 0.35rem;
     max-width: var(--shell-max);
     margin-inline: auto;
     padding: 0 var(--shell-pad);
   }
 
+  /* both ends are groups now, so each keeps its own members together and
+   * space-between still sees exactly two things to push apart */
+  .footer-copy,
   .footer-links {
     display: inline-flex;
     align-items: center;
-    gap: 0.55rem;
+    gap: 0.35rem;
+  }
+
+  /* Anchor the strand left on the narrowest viewports.
+   *
+   * Centered, its right end reaches into the corner the floating Back to
+   * top button occupies, and the button paints an opaque background, so
+   * any overlap eats a glyph rather than crowding one. Left-anchored the
+   * strand moves clear of that corner and lands on the wordmark's left
+   * edge, the same mirroring the split layout does above 1020. */
+  @media (max-width: 380px) {
+    .site-footer-inner {
+      justify-content: flex-start;
+    }
   }
 
   /* the rail's breakpoint: see the note at the top of this file */
@@ -103,6 +124,15 @@ const twitterUsername = "johnkferguson";
     /* the strand separator only makes sense while it is one strand */
     .group-sep {
       display: none;
+    }
+
+    /* Halfway back toward the old 0.55rem. The tighter mobile value is
+     * there because the strand has to fit beside the floating Top button;
+     * at this width that button is gone and the two groups sit in their
+     * own gutters, so the separators can breathe again. */
+    .footer-copy,
+    .footer-links {
+      gap: 0.475rem;
     }
   }
 

@@ -1,0 +1,82 @@
+#!/usr/bin/env bash
+#
+# Refuse to push anything that touches the drafts directory.
+#
+# src/content/posts/drafts/ is gitignored in this repo and tracked in its
+# own private one. Gitignore is not a guarantee: `git add -f` stages a
+# draft anyway, and this repo is public. This hook is the thing that
+# actually stops unpublished writing reaching a remote.
+#
+# Enable once per clone:
+#
+#     git config core.hooksPath .githooks
+#
+# Bypassing it is `git push --no-verify`, which is deliberate friction
+# rather than a lock.
+
+set -euo pipefail
+
+GUARDED='src/content/posts/drafts/'
+ZERO='0000000000000000000000000000000000000000'
+
+remote_name="${1:-}"
+
+reject() {
+	echo >&2
+	echo "pre-push: $1" >&2
+	echo >&2
+	echo "  $GUARDED is private. It lives in its own repo; commit and" >&2
+	echo "  push from inside that directory instead. If a draft reached" >&2
+	echo "  this repo's index, it was almost certainly a 'git add -f'." >&2
+	echo >&2
+	exit 1
+}
+
+# Commits being pushed that the remote does not already have anywhere.
+#
+# Scoping matters twice over. History predating the drafts split still
+# contains src/content/posts/drafts/snapshot-fees.mdx, so an unscoped
+# scan would reject every push forever. And a plain <remote_sha>..<local>
+# range is wrong after a rebase, where it spans all of main's history and
+# trips on those same old commits. What we actually want is the content
+# this push would publish that is not already published: everything
+# reachable from the new tip and from no remote-tracking ref.
+new_commits() {
+	local local_sha="$1"
+
+	# A bare-URL push has no remote name to scope by, so fall back to
+	# every remote. That errs toward scanning more commits, not fewer.
+	if [ -n "$remote_name" ] && git config --get "remote.${remote_name}.url" >/dev/null 2>&1; then
+		git rev-list "$local_sha" --not --remotes="$remote_name"
+	else
+		git rev-list "$local_sha" --not --remotes
+	fi
+}
+
+while read -r _local_ref local_sha _remote_ref _remote_sha; do
+	# Deleting a remote ref pushes no content.
+	[ "$local_sha" = "$ZERO" ] && continue
+
+	# The tip's tree is the check that matters, and it needs no range:
+	# if a draft is tracked at the commit being pushed, reject.
+	if [ -n "$(git ls-tree -r --name-only "$local_sha" -- "$GUARDED")" ]; then
+		reject "$GUARDED is tracked in the commit being pushed ($(git rev-parse --short "$local_sha"))."
+	fi
+
+	# Also catch a draft added and removed again within this push, which
+	# leaves a clean tip but still publishes the content in history.
+	commits="$(new_commits "$local_sha")"
+	[ -z "$commits" ] && continue
+
+	touched="$(
+		printf '%s\n' "$commits" |
+			git diff-tree --stdin --no-commit-id --name-only -r |
+			grep -F -- "$GUARDED" || true
+	)"
+
+	if [ -n "$touched" ]; then
+		reject "commits in this push touch $GUARDED, even though the tip does not."
+	fi
+done
+
+exit 0
