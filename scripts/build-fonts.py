@@ -12,6 +12,11 @@ variable woff2s into node_modules or a temp dir first); fonttools is
 pinned exactly so committed outputs stay byte-reproducible.
 Outputs to src/assets/fonts/ and prints the metrics needed for the
 CSS fallback overrides.
+
+Instanced copies are modifications under OFL 1.1, so the license must
+travel with the outputs: src/assets/fonts/OFL.txt is a compliance
+requirement, not decoration. Keep it beside the woff2s, and refresh
+its copyright notice if an upgrade changes upstream's.
 """
 
 from pathlib import Path
