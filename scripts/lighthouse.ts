@@ -266,7 +266,19 @@ async function startServer(): Promise<{ port: number; stop: () => void }> {
 	 * cannot fill and block the server mid-run. */
 	const proc = Bun.spawn(
 		["bunx", "astro", "preview", "--host", HOST, "--port", String(PORT)],
-		{ stdout: "pipe", stderr: "pipe" },
+		{
+			stdout: "pipe",
+			stderr: "pipe",
+			/* Astro 7.2 daemonizes preview when it detects an agent running the
+			 * CLI (`am-i-vibing`, so CLAUDECODE and friends). The command then
+			 * prints a pid and exits, which reads here as a server that died
+			 * during startup. This variable is how astro marks the child it
+			 * backgrounded, so setting it keeps preview in the foreground and
+			 * makes a local run behave like CI, where nothing is detected.
+			 * Without it the gate is unrunnable from inside an agent, which is
+			 * the only Lighthouse check a draft ever gets. */
+			env: { ...process.env, ASTRO_PREVIEW_BACKGROUND: "1" },
+		},
 	);
 	previewProc = proc;
 
