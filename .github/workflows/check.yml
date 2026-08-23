@@ -34,10 +34,13 @@ jobs:
       # injection, over-broad permissions, credential persistence, unsafe
       # triggers. advanced-security is off because this repo has no GHAS, so
       # findings surface as inline annotations instead of a SARIF upload.
-      - uses: zizmorcore/zizmor-action@v0.6.1
+      - uses: zizmorcore/zizmor-action@v0.6.2
         with:
           advanced-security: false
-          inline-annotations: true
+          # The input is `annotations`; `inline-annotations` was accepted
+          # silently as unknown, leaving it at its default of false. Zizmor
+          # ran and reported nothing inline until this was corrected.
+          annotations: true
           min-severity: low
           config: zizmor.yml
       - uses: actions/setup-node@v7

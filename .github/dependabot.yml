@@ -29,6 +29,17 @@ updates:
     cooldown:
       default-days: 7
       semver-major-days: 30
+    # astro check reaches TypeScript's programmatic API through
+    # @astrojs/language-server, and the native compiler (7.0 and later) does not
+    # ship it: the step aborts before reporting a single diagnostic, and nothing
+    # on our side configures around it. Held on 6.x rather than left to fail,
+    # since the major is otherwise reproposed weekly and its PR is red on
+    # arrival every time. Named as the version boundary it is, not as a blanket
+    # block on majors, which the groups below already handle.
+    # Tracking: https://github.com/withastro/roadmap/discussions/1321
+    ignore:
+      - dependency-name: "typescript"
+        versions: [">=7"]
     # Order matters: Dependabot assigns each dependency to the FIRST group whose
     # patterns it matches. `preact` is listed before `astro` so @astrojs/preact
     # lands with preact core rather than in the @astrojs/* catch-all — they
