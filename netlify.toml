@@ -13,4 +13,4 @@ pretty_urls = false
 # Pin bun so Netlify's `bun install` uses this version rather than whatever is
 # newest at build time. Netlify cannot read packageManager, so this copy is
 # checked against package.json by scripts/check-bun-version.ts on every install.
-BUN_VERSION = "1.4.2"
+BUN_VERSION = "1.3.14"
