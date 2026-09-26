@@ -1,9 +1,11 @@
 #!/usr/bin/env bun
 /**
- * Refuse to install under a bun other than the pinned one. Runs as the root
- * preinstall, before bun touches bun.lock: a newer bun rewrites the lockfile
- * in a format the pinned one cannot parse, which otherwise surfaces only as
- * "Unknown lockfile version" in CI.
+ * Refuse to install under a bun other than the pinned one. A newer bun
+ * rewrites bun.lock in a format the pinned one, and Dependabot, cannot parse.
+ * Runs as the root preinstall, so it stops a plain `bun install` before the
+ * lockfile is written. `bun add`, `bun update` and `bun remove` save the
+ * lockfile before preinstall, so for those it only reports the damage;
+ * .githooks/pre-commit is what keeps that lockfile out of a commit.
  *
  * package.json's packageManager is the pin, read by setup-bun in CI. Netlify
  * reads only BUN_VERSION from netlify.toml, so that copy is checked here too.

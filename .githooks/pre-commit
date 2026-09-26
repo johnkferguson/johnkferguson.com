@@ -1,0 +1,39 @@
+#!/usr/bin/env bash
+#
+# Refuse to commit a bun.lock in a format Dependabot cannot parse.
+#
+# bun is pinned to the version Dependabot's bun image runs (see
+# packageManager in package.json). A newer bun rewrites bun.lock with a
+# higher lockfileVersion, and Dependabot then fails every bun update PR.
+# The preinstall check cannot prevent this: `bun add`, `bun update` and
+# `bun remove` save the lockfile before preinstall runs. So this hook
+# guards the file itself, whichever command wrote it.
+#
+# Raise EXPECTED together with the bun pin, once Dependabot's image runs
+# a bun that writes the newer format.
+#
+# Enabled by the same `git config core.hooksPath .githooks` as pre-push.
+# Bypassing it is `git commit --no-verify`.
+
+set -euo pipefail
+
+EXPECTED=1
+
+# Only a staged bun.lock matters; check the index copy, not the worktree.
+git diff --cached --name-only --diff-filter=AM | grep -qx 'bun.lock' || exit 0
+
+actual="$(git show :bun.lock | sed -n 's/^ *"lockfileVersion": *\([0-9]*\),*$/\1/p' | head -n 1)"
+
+if [ "$actual" != "$EXPECTED" ]; then
+	echo >&2
+	echo "pre-commit: staged bun.lock has lockfileVersion ${actual:-<missing>}, expected $EXPECTED." >&2
+	echo >&2
+	echo "  It was written by a bun other than the pinned one, and Dependabot" >&2
+	echo "  cannot parse it. Load the devenv shell (direnv allow), then:" >&2
+	echo "    git checkout HEAD -- bun.lock package.json && bun install" >&2
+	echo "  and redo the dependency change." >&2
+	echo >&2
+	exit 1
+fi
+
+exit 0
