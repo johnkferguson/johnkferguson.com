@@ -20,4 +20,7 @@ exclude = [
   # the JS challenge. Excluding the host rather than accepting 403 globally,
   # which would hide a real one anywhere else on the site.
   "academic\\.oup\\.com",
+  # x.com answers unauthenticated clients with a 403 (seen on the runner from
+  # 2026-09), for the live profile link in the site footer.
+  "^https://x\\.com/",
 ]
