@@ -93,6 +93,7 @@ Everything that can fail a PR.
 
 ## Dependencies
 
+- **The bun version lives in `packageManager`**, which setup-bun reads in CI. Netlify reads only `BUN_VERSION` in netlify.toml, so the root `preinstall` (`scripts/check-bun-version.ts`) fails any install where the running bun or that copy disagrees. A mismatched bun rewrites `bun.lock` in a format the pinned one rejects.
 - **Two cooldown numbers must stay in sync**: `minimumReleaseAge` in `bunfig.toml` and `cooldown.default-days` in `.github/dependabot.yml`, both 7 days.
 - **A `minimumReleaseAge` failure reads like a missing version.** `No version matching "<pkg>" found for specifier` means younger than 7 days; escape via `minimumReleaseAgeExcludes`. `bun update` can pull inside the window, which Netlify's plain `bun install` then refuses even though CI's `--frozen-lockfile` glosses over it.
 - Actions are **tag-pinned deliberately** (`zizmor.yml` overrides its hash-pin default), because Dependabot only raises alerts for semver-tagged actions.

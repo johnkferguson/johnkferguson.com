@@ -3,7 +3,9 @@
 	"type": "module",
 	"version": "0.1.0",
 	"private": true,
+	"packageManager": "bun@1.4.2",
 	"scripts": {
+		"preinstall": "bun scripts/check-bun-version.ts",
 		"dev": "astro dev",
 		"build": "ASTRO_BUILD=1 astro build && rm -rf dist/lab dist/lab.html",
 		"preview": "astro preview",
