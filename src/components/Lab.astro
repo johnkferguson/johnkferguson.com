@@ -31,6 +31,13 @@ const beakerSvg =
 	<slot />
 </div>
 
+<script>
+	/* GoatCounter seen/used events for every lab on the page */
+	import { trackLabs } from "./lab-tracking";
+
+	trackLabs();
+</script>
+
 <style>
 	.lab-head {
 		display: flex;
