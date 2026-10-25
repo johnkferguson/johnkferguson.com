@@ -6,6 +6,7 @@ import "@fontsource/fira-code/400.css";
 import "@fontsource/fira-code/500.css";
 import "@fontsource/fira-code/700.css";
 import "../styles/global.css";
+import goatcounterJs from "../assets/goatcounter-count.js?url";
 import Head from "../components/Head.astro";
 import JsonLd from "../components/JsonLd.astro";
 import SiteFooter from "../components/SiteFooter.astro";
@@ -73,9 +74,9 @@ const {
         if (meta) meta.setAttribute('content', themeColors[theme]);
       })();
     </script>
-    <!-- GoatCounter. count.js is vendored into public/ so the Lighthouse
-         third-party budget of 0 holds: it skips localhost on its own, so
-         no beacon fires there. The guard keeps deploy previews from
+    <!-- GoatCounter. count.js is vendored (scripts/build-goatcounter.sh)
+         so the Lighthouse third-party budget of 0 holds: it skips
+         localhost on its own, so no beacon fires there. The guard keeps deploy previews from
          counting; only the beacon itself goes to goatcounter.com. Lab
          events (components/lab-tracking.ts) read the no_onload flag set
          here, so this is the only copy of the host rule. -->
@@ -84,7 +85,7 @@ const {
         no_onload: location.hostname.replace(/^www\./, '') !== countedHost,
       };
     </script>
-    <script is:inline data-goatcounter="https://jkf.goatcounter.com/count" async src="/goatcounter/count.js"></script>
+    <script is:inline data-goatcounter="https://jkf.goatcounter.com/count" async src={goatcounterJs}></script>
   </head>
   <body style="background-color: var(--bg); color: var(--text-color);">
     <SiteHeader postTitle={headerContextTitle} postDate={headerContextDate} />

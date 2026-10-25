@@ -41,6 +41,12 @@
 		}
 	],
 	"files": {
-		"includes": ["src/**", "*.json", "*.mjs", "*.ts"]
+		"includes": [
+			"src/**",
+			"*.json",
+			"*.mjs",
+			"*.ts",
+			"!src/assets/goatcounter-count.js"
+		]
 	}
 }
