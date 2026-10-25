@@ -1,3 +1,6 @@
+// Vendored from https://github.com/arp242/goatcounter/blob/478f026eb9deacb9378a46b96db72e11e9f20557/public/count.js
+// (the file's latest upstream change as of 2026-10-25). Update by replacing
+// this file and this header.
 // GoatCounter: https://www.goatcounter.com
 // This file is released under the ISC license: https://opensource.org/licenses/ISC
 ;(function() {

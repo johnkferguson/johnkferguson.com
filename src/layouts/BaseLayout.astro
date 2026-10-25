@@ -77,7 +77,8 @@ const {
          third-party budget of 0 holds: it skips localhost on its own, so
          no beacon fires there. The guard keeps deploy previews from
          counting; only the beacon itself goes to goatcounter.com. Lab
-         events are wired in Lab.astro. -->
+         events (components/lab-tracking.ts) read the no_onload flag set
+         here, so this is the only copy of the host rule. -->
     <script define:vars={{ countedHost: COUNTED_HOST }}>
       window.goatcounter = {
         no_onload: location.hostname.replace(/^www\./, '') !== countedHost,

@@ -32,50 +32,10 @@ const beakerSvg =
 </div>
 
 <script>
-	import { labEventPath, shouldCount, type LabEventKind } from "../lib/analytics";
+	/* GoatCounter seen/used events for every lab on the page */
+	import { trackLabs } from "./lab-tracking";
 
-	/* GoatCounter events: "seen" when half a lab is on screen, "used" on the
-	 * first input inside it, each at most once per page view. Wired here so
-	 * every <Lab> is tracked without touching the lab components. */
-	type GoatCounter = { count?: (vars: { path: string; title: string; event: boolean }) => void };
-
-	const send = (path: string) => {
-		const gc = (window as { goatcounter?: GoatCounter }).goatcounter;
-		const fire = () => gc?.count?.({ path, title: document.title, event: true });
-		if (gc?.count) return fire();
-		/* count.js loads async, so the first lab can scroll in before it
-		 * arrives; if a blocker drops it, this never fires */
-		document
-			.querySelector("script[data-goatcounter]")
-			?.addEventListener("load", fire, { once: true });
-	};
-
-	if (shouldCount(location.hostname)) {
-		const track = (el: HTMLElement, kind: LabEventKind) =>
-			send(labEventPath(location.pathname, el.id, kind));
-
-		const observer = new IntersectionObserver(
-			(entries) => {
-				for (const entry of entries) {
-					if (!entry.isIntersecting) continue;
-					observer.unobserve(entry.target);
-					track(entry.target as HTMLElement, "seen");
-				}
-			},
-			{ threshold: 0.5 },
-		);
-
-		for (const el of document.querySelectorAll<HTMLElement>(".labwrap")) {
-			observer.observe(el);
-			const used = () => {
-				el.removeEventListener("pointerdown", used);
-				el.removeEventListener("keydown", used);
-				track(el, "used");
-			};
-			el.addEventListener("pointerdown", used);
-			el.addEventListener("keydown", used);
-		}
-	}
+	trackLabs();
 </script>
 
 <style>
