@@ -40,3 +40,8 @@ dev-debug.log
 # `astro check` still read the files normally; only git ignores them.
 # Publishing = move the post up one level, where this repo picks it up.
 src/content/posts/drafts/
+
+# devenv
+.devenv/
+.devenv.flake.nix
+.direnv/
