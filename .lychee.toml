@@ -20,6 +20,9 @@ exclude = [
   # the JS challenge. Excluding the host rather than accepting 403 globally,
   # which would hide a real one anywhere else on the site.
   "academic\\.oup\\.com",
+  # AlphaSights sits behind Cloudflare too, answering the runner and curl with
+  # a bare 403 (seen from 2026-10), for a live link in Refactoring with Love.
+  "www\\.alphasights\\.com",
   # x.com answers unauthenticated clients with a 403 (seen on the runner from
   # 2026-09), for the live profile link in the site footer.
   "^https://x\\.com/",
