@@ -32,7 +32,7 @@
 		"hast-util-from-html": "^2.0.3",
 		"katex": "^0.18.1",
 		"markdown-it": "^14.3.0",
-		"preact": "^10.29.7",
+		"preact": "^11.0.0",
 		"sanitize-html": "^2.17.6",
 		"satteri": "^0.10.3"
 	},
