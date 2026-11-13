@@ -14,6 +14,6 @@ rules:
         # ref-pin still rejects bare refs and floating branches, so `uses: a/b`
         # or `@main` remains a finding.
         #
-        # Revisit if the action set grows beyond well-known publishers: flip to
-        # hash-pin and run `pinact` to rewrite the refs.
+        # Tags are not trusted on their own: .github/workflows/actions.lock
+        # pins each one to a verified commit, and check.yml verifies it.
         "*": ref-pin

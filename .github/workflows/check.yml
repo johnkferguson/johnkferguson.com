@@ -24,7 +24,7 @@ jobs:
     # hours if a step hangs.
     timeout-minutes: 10
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@v7.0.1
         with:
           # The git token is otherwise left on disk for later steps. Safe here:
           # nothing after checkout does git operations (the scripts/ font tools
@@ -43,10 +43,10 @@ jobs:
           annotations: true
           min-severity: low
           config: zizmor.yml
-      - uses: actions/setup-node@v7
+      - uses: actions/setup-node@v7.1.0
         with:
           node-version: 22
-      - uses: oven-sh/setup-bun@v2
+      - uses: oven-sh/setup-bun@v2.2.0
         with:
           bun-version-file: package.json
       - run: bun install --frozen-lockfile
@@ -63,15 +63,24 @@ jobs:
       # Reads dist/, so it cannot be a bun:test: those run before the build,
       # and one that skipped on a missing dist/ would assert nothing.
       - run: bun scripts/check-canonicals.ts
-      - uses: actions/cache@v6
+      - uses: actions/cache@v6.1.0
         with:
           path: .lycheecache
           key: lychee-${{ github.sha }}
           restore-keys: lychee-
-      - uses: lycheeverse/lychee-action@v2
+      - uses: lycheeverse/lychee-action@v2.9.0
         with:
           args: "--config .lychee.toml --root-dir ./dist --remap 'https://johnkferguson\\.com file://${{ github.workspace }}/dist' --cache --max-cache-age 1d --no-progress './dist/**/*.html'"
           fail: true
+      # Fails when actions.lock is out of sync with the workflows or a locked
+      # commit no longer verifies upstream. Last, so a failure here still shows
+      # the build and test results above. Keep the pin below in step with CLAUDE.md.
+      - name: Verify actions.lock
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh extension install github/gh-actions-lock --pin v0.4.1
+          gh actions-lock --verify
 
   # Separate from `check` rather than appended to it: this job drives a real
   # Chrome over every built page, and a browser that hangs should not hold up
@@ -80,10 +89,10 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@v7.0.1
         with:
           persist-credentials: false
-      - uses: oven-sh/setup-bun@v2
+      - uses: oven-sh/setup-bun@v2.2.0
         with:
           bun-version-file: package.json
       - run: bun install --frozen-lockfile
@@ -95,7 +104,7 @@ jobs:
           CHROME_PATH: /usr/bin/google-chrome
       # A failing category assertion names the category, not the element
       # behind it. The full reports are what make that diagnosable.
-      - uses: actions/upload-artifact@v7
+      - uses: actions/upload-artifact@v7.0.2
         if: failure()
         with:
           name: lighthouse-reports
