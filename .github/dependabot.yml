@@ -47,9 +47,16 @@ updates:
     # migration) fails or merges alone instead of holding the rest. Cooldown
     # still applies, so a major waits its semver-major-days first.
     #
-    # katex and satteri are 0.x, where a breaking change ships as a minor, so
-    # they open their own PRs too: katex 0.18.0 renamed every internal CSS
-    # class and arrived as a grouped minor. A katex bump is also never
+    # astro, its @astrojs/* packages and satteri share a group of their own.
+    # They cannot move apart: astro pins @astrojs/markdown-satteri exactly, and
+    # that package's satteri range can jump a 0.x minor in an astro patch
+    # (astro 7.4.7 took satteri from ^0.10 to ^0.11), so a solo satteri or
+    # astro PR resolves two satteri copies and fails astro check. Kept out of
+    # the npm group so a satteri migration doesn't hold back the rest.
+    #
+    # katex is 0.x, where a breaking change ships as a minor, so it opens its
+    # own PR too: katex 0.18.0 renamed every internal CSS class and arrived
+    # as a grouped minor. A katex bump is also never
     # mergeable alone: public/katex/ is a committed copy of the package, so
     # scripts/build-katex.py has to be rerun in the same commit, and
     # src/markdown/katex-assets.test.ts fails the PR until it is.
@@ -57,13 +64,21 @@ updates:
     # To move another package out of the group, add it to exclude-patterns;
     # an ignore entry would also stop its security updates.
     groups:
+      astro:
+        update-types: ["minor", "patch"]
+        patterns:
+          - "astro"
+          - "@astrojs/*"
+          - "satteri"
       npm:
         update-types: ["minor", "patch"]
         patterns:
           - "*"
         exclude-patterns:
-          - "katex"
+          - "astro"
+          - "@astrojs/*"
           - "satteri"
+          - "katex"
           # 0.x too, and scripts/build-goatcounter.sh's output depends on it.
           - "esbuild"
 

@@ -45,9 +45,9 @@ function parse(html) {
  * Warn about a formula that did not render.
  *
  * `ctx.report()` is not usable for this: satteri collects hast diagnostics on
- * the visitor context, but nothing reads them back. `compile.js` calls
- * `visitHastHandle` for its dropped-patch count only, and neither
- * `@astrojs/markdown-satteri` nor `@astrojs/mdx` touches `getDiagnostics()`.
+ * the visitor context, but nothing reads them back. `plugin-pipeline.js`
+ * hands each hast pass a fresh `diagnostics` array and never reads it, and
+ * neither `@astrojs/markdown-satteri` nor `@astrojs/mdx` touches `getDiagnostics()`.
  * A report would be silently discarded, which is the failure this guards.
  *
  * So: console for the dev server, and a hard failure for a production build,
