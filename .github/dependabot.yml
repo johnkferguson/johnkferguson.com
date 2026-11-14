@@ -1,15 +1,15 @@
 version: 2
 
 updates:
-  # Bun supports version updates but NOT security updates, and GitHub's
-  # dependency graph does not parse bun.lock at all — alerts resolve only from
-  # the package.json ranges below, so the transitive tree is not covered.
-  # Keeping direct deps current is therefore the practical remediation path.
-  - package-ecosystem: "bun"
+  # Dependabot reads pnpm-lock.yaml for this ecosystem, so alerts and
+  # security updates cover the whole tree, transitive packages included.
+  # Security updates come from the repo setting, run whenever an advisory
+  # lands, and ignore the schedule and cooldown below.
+  - package-ecosystem: "npm"
     directory: "/"
+    # Version updates once a month, on the 1st.
     schedule:
-      interval: "weekly"
-      day: "monday"
+      interval: "monthly"
       time: "06:00"
       timezone: "Etc/UTC"
     # Counts currently OPEN PRs, not PRs per run. At the default of 5 a few
@@ -19,13 +19,12 @@ updates:
       - "dependencies"
     commit-message:
       prefix: "chore(deps)"
-      prefix-development: "chore(deps-dev)"
-      include: "scope"
+      prefix-development: "chore(deps)"
     # Quarantine new releases so a compromised publish is likely caught before
     # it reaches CI or Netlify. Majors get longer: no urgency, and that is where
     # breakage lives. Security updates are never delayed by cooldown.
     # 7 days is zizmor's dependabot-cooldown threshold; keep default-days in
-    # sync with minimumReleaseAge in bunfig.toml.
+    # sync with minimumReleaseAge in pnpm-workspace.yaml.
     cooldown:
       default-days: 7
       semver-major-days: 30
@@ -33,67 +32,41 @@ updates:
     # @astrojs/language-server, and the native compiler (7.0 and later) does not
     # ship it: the step aborts before reporting a single diagnostic, and nothing
     # on our side configures around it. Held on 6.x rather than left to fail,
-    # since the major is otherwise reproposed weekly and its PR is red on
+    # since the major is otherwise reproposed monthly and its PR is red on
     # arrival every time. Named as the version boundary it is, not as a blanket
     # block on majors, which the groups below already handle.
     # Tracking: https://github.com/withastro/roadmap/discussions/1321
     ignore:
       - dependency-name: "typescript"
         versions: [">=7"]
-    # Order matters: Dependabot assigns each dependency to the FIRST group whose
-    # patterns it matches. `preact` is listed before `astro` so @astrojs/preact
-    # lands with preact core rather than in the @astrojs/* catch-all — they
-    # break together, so they should bump together.
-    # Groups bundle minor and patch bumps into one PR per group. Majors are
-    # deliberately excluded so each arrives as its own PR: a major that needs a
-    # code change (a new tsconfig option, a config migration) then fails or
-    # merges on its own instead of holding four unrelated patch bumps hostage.
-    # Cooldown still applies, so a major waits its semver-major-days first.
+    # A month's minor and patch updates arrive as one PR. Majors open their
+    # own, so one that needs a code change (a new tsconfig option, a config
+    # migration) fails or merges alone instead of holding the rest. Cooldown
+    # still applies, so a major waits its semver-major-days first.
+    #
+    # katex and satteri are 0.x, where a breaking change ships as a minor, so
+    # they open their own PRs too: katex 0.18.0 renamed every internal CSS
+    # class and arrived as a grouped minor. A katex bump is also never
+    # mergeable alone: public/katex/ is a committed copy of the package, so
+    # scripts/build-katex.py has to be rerun in the same commit, and
+    # src/markdown/katex-assets.test.ts fails the PR until it is.
+    #
+    # To move another package out of the group, add it to exclude-patterns;
+    # an ignore entry would also stop its security updates.
     groups:
-      preact:
-        update-types: ["minor", "patch"]
-        patterns:
-          - "preact"
-          - "@astrojs/preact"
-      # `katex` and `satteri` are deliberately absent: both are 0.x, where a
-      # breaking change ships as a MINOR, so grouping them under
-      # update-types: [minor, patch] treats exactly the risky bump as routine.
-      # katex 0.18.0 renamed every internal CSS class and arrived here as a
-      # grouped minor. Ungrouped, each gets its own PR, which is the same
-      # reasoning that already excludes majors from every group.
-      #
-      # A katex bump is also never mergeable on its own: public/katex/ is a
-      # committed copy of the package, so `scripts/build-katex.py` has to be
-      # re-run in the same commit. src/markdown/katex-assets.test.ts fails the
-      # PR until it is.
-      markdown:
-        update-types: ["minor", "patch"]
-        patterns:
-          - "markdown-it"
-          - "@types/markdown-it"
-          - "sanitize-html"
-          - "@types/sanitize-html"
-      fonts:
-        update-types: ["minor", "patch"]
-        patterns:
-          - "@fontsource/*"
-          - "@fontsource-variable/*"
-      astro:
-        update-types: ["minor", "patch"]
-        patterns:
-          - "astro"
-          - "@astrojs/*"
-      dev-tooling:
-        dependency-type: "development"
+      npm:
         update-types: ["minor", "patch"]
         patterns:
           - "*"
+        exclude-patterns:
+          - "katex"
+          - "satteri"
 
   - package-ecosystem: "github-actions"
     directory: "/"
+    # Version updates once a month, on the 1st.
     schedule:
-      interval: "weekly"
-      day: "monday"
+      interval: "monthly"
       time: "06:00"
       timezone: "Etc/UTC"
     # Counts currently OPEN PRs, not PRs per run. At the default of 5 a few
@@ -102,14 +75,15 @@ updates:
     labels:
       - "dependencies"
       - "github-actions"
+    # Action bumps edit workflow files, so they take the ci type.
     commit-message:
-      prefix: "chore(ci)"
+      prefix: "ci(deps)"
     # github-actions supports default-days only; semver-* keys are not honored.
     cooldown:
       default-days: 7
     groups:
       actions:
-        # Same reasoning as the bun groups: a major action bump (a new runner or
+        # Same reasoning as the npm group: a major action bump (a new runner or
         # node runtime, changed inputs) arrives on its own rather than bundled.
         update-types: ["minor", "patch"]
         patterns:

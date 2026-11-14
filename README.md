@@ -2,7 +2,7 @@
 
 This is the source code for my personal site and blog.
 
-It's a static site built with [Astro](https://astro.build/), [Bun](https://bun.com/), vanilla CSS, and is deployed on [Netlify](https://www.netlify.com/).
+It's a static site built with [Astro](https://astro.build/), [pnpm](https://pnpm.io/), vanilla CSS, and is deployed on [Netlify](https://www.netlify.com/).
 
 Some of the cool and noteworthy features of the blog itself:
 
@@ -38,24 +38,24 @@ Finally, when a post is ready to be made public, the file itself needs to be mov
 
 ## Development
 
-Bun is used for local development. Some of the noteworthy commands include:
+pnpm installs and runs the site, and [Bun](https://bun.com/) runs the tests. Some of the noteworthy commands include:
 
 ```bash
-bun install
-bun run dev        # dev server on :4321 (drafts visible)
-bun run build      # production build to dist/ (drafts excluded)
-bun run preview    # serve the production build
-bun test           # unit tests (bun:test)
-bun run check      # lint with Biome
-bun run lighthouse # Lighthouse gate over dist/ (build first)
+pnpm install
+pnpm run dev        # dev server on :4321 (drafts visible)
+pnpm run build      # production build to dist/ (drafts excluded)
+pnpm run preview    # serve the production build
+pnpm test           # unit tests (bun:test)
+pnpm run check      # lint with Biome
+pnpm run lighthouse # Lighthouse gate over dist/ (build first)
 ```
 
 There are several dev related niceties in place to keep everything in order and the blog itself running smoothly:
 
 - A [Lighthouse check](scripts/lighthouse.ts) runs in CI over every built page, ensuring no changes degrade performance
-- Running the local commands `bun run lighthouse --save baseline` and then `bun run lighthouse --compare baseline` produces a per-file byte delta after changing fonts or CSS
+- Running the local commands `pnpm run lighthouse --save baseline` and then `pnpm run lighthouse --compare baseline` produces a per-file byte delta after changing fonts or CSS
 - Broken links are checked for the [built site](.github/workflows/check.yml) and for [this README](src/lib/doc-links.test.ts)
-- For security reasons, any new dependencies must wait through a 7 day [cooldown](bunfig.toml) before they can be installed
+- For security reasons, any new dependencies must wait through a 7 day [cooldown](pnpm-workspace.yaml) before they can be installed
 - [Fonts](scripts/build-fonts.py) are slimmed down to the weight range the site actually uses
 - [KaTeX](scripts/build-katex.py) is served from `public/` so its stylesheet and font faces only load on posts that contain math
 - [Generated art](src/lib/art/pinned-art.test.ts) is tested on published posts to ensure no code changes cause a drift in appearance

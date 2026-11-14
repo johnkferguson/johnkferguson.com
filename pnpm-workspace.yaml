@@ -1,0 +1,54 @@
+# Supply-chain policy for npm packages. Single-package repo: this file holds
+# settings only. Lines marked "default" restate pnpm's defaults, so a change
+# of default shows up as a diff. pnpm fails on an unknown key here, so a typo
+# cannot silently drop a rule.
+
+# Install no release until it has been public for 7 days (minutes). Matches
+# cooldown.default-days in .github/dependabot.yml.
+minimumReleaseAge: 10080
+minimumReleaseAgeStrict: true
+# Versions let in early for a security fix, each with the date it turns 7 days old.
+minimumReleaseAgeExclude: []
+
+# Fail on a release with weaker publishing evidence than an earlier one.
+trustPolicy: no-downgrade
+trustPolicyExclude:
+  # Through lighthouse > puppeteer-core. Versions up to 17.0.2 came from
+  # GitHub Actions with provenance; from 157.x (Chrome milestone numbering)
+  # Chrome DevTools' npm account publishes them without it.
+  - chromium-bidi
+
+# Install scripts: true lets one run, false skips it without failing. Any
+# script not listed here fails the install.
+allowBuilds: {}
+strictDepBuilds: true             # default: any other install script fails the install
+blockExoticSubdeps: true          # default: only direct deps may use git or tarball URLs
+trustLockfile: false              # default: re-check lockfile entries on every install
+dangerouslyAllowAllBuilds: false  # default
+
+# Keep pnpm-lock.yaml one YAML document. GitHub's dependency graph skips
+# two-document lockfiles, which pnpm writes when packageManager pins pnpm 12.
+# This also stops pnpm checking its own version against packageManager:
+# CI installs that version, and devenv provides it (nix/pnpm.nix), so run
+# pnpm from the devenv shell rather than a global install.
+pmOnFail: ignore
+# Refuse `pnpm run` when node_modules does not match the lockfile.
+verifyDepsBeforeRun: error
+
+audit:
+  level: high
+  ignore: []   # GHSA id, then a comment: why we are not exposed, revisit by YYYY-MM-DD
+
+# @astrojs/astro2tsx pins @emnapi/core 1.11.3 but leaves @emnapi/runtime to its
+# @napi-rs/wasm-runtime peer range (^1.7.1 || 2.0.0-beta.2), where pnpm picks
+# the beta. Beta runtime with 1.x core crashes `astro check` on load. Drop this
+# once astro2tsx declares the runtime itself.
+packageExtensions:
+  "@astrojs/astro2tsx@<0.2":
+    dependencies:
+      "@emnapi/runtime": 1.11.3
+
+# Force a patched version of a transitive package whose parents pin a
+# vulnerable range. Prefer a selector that lifts only the vulnerable
+# versions, e.g. "pkg@<1.2.3": "^1.2.3", and drop it once the parents move.
+overrides: {}
