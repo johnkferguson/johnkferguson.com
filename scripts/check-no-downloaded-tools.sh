@@ -13,7 +13,7 @@ set -euo pipefail
 
 cd "$(git rev-parse --show-toplevel)"
 
-paths=(.github .githooks scripts package.json netlify.toml .mcp.json devenv.nix nix)
+paths=(.github .githooks scripts package.json netlify.toml .mcp.json devenv.nix devenv.yaml .envrc nix astro.config.mjs)
 
 # A path that matches no tracked file would be searched as "no match".
 for p in "${paths[@]}"; do
@@ -30,13 +30,14 @@ s='[[:space:]]+'
 status=0
 git grep --cached -nIE \
   -e "${b}(npx|bunx|pnpx|uvx)${e}" \
-  -e "${b}(bun|npm)${s}(x|exec)${e}" \
+  -e "${b}bun(${s}-[^[:space:]]+)*${s}x${e}" \
+  -e "${b}npm(${s}-[^[:space:]]+)*${s}(x|exec)${e}" \
   -e "${b}(pnpm|yarn)(${s}-[^[:space:]]+)*${s}dlx${e}" \
   -e "${b}uv${s}tool${s}run${e}" \
   -e "${b}pipx${s}run${e}" \
   -e "@latest${e}" \
-  -e "(curl|wget)[^|]*\|${s}?(sudo${s})?(ba|z)?sh${e}" \
-  -e "(ba|z)?sh${s}(-c${s})?[\"']?(<\(|\\\$\()${s}?(curl|wget)${e}" \
+  -e "(curl|wget)[^|]*\|[[:space:]]*(sudo(${s}-[^[:space:]]+)*${s}|env${s})?(ba|z)?sh${e}" \
+  -e "${b}((ba|z)?sh${s}(-c${s})?|eval${s}|source${s}|\.${s})[\"']?(<\(|\\\$\()[[:space:]]*(curl|wget)${e}" \
   -- "${paths[@]}" ':!scripts/check-no-downloaded-tools.sh' || status=$?
 
 case $status in

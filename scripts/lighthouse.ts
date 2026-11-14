@@ -244,6 +244,12 @@ function cleanup(): void {
 	previewProc = null;
 }
 
+/* Runs a devDependency's own binary. A package runner would
+ * download the package when it is missing, outside the lockfile. */
+function bin(name: string): string {
+	return join("node_modules", ".bin", name);
+}
+
 /**
  * Start `astro preview` and return the port it actually bound.
  *
@@ -259,12 +265,6 @@ function cleanup(): void {
  * only, so 127.0.0.1 is refused and connectivity comes down to how
  * `localhost` happens to resolve, for this poll and for Chrome alike.
  */
-/* Runs a devDependency's own binary. A package runner would
- * download the package when it is missing, outside the lockfile. */
-function bin(name: string): string {
-	return join("node_modules", ".bin", name);
-}
-
 async function startServer(): Promise<{ port: number; stop: () => void }> {
 	/* Piped rather than ignored so a startup failure reports astro's actual
 	 * message instead of a 30-second timeout. Safe to leave undrained:
@@ -344,7 +344,8 @@ async function startServer(): Promise<{ port: number; stop: () => void }> {
 		}
 
 		/* Exiting before printing a port means it failed outright: a config
-		 * or plugin error, or astro missing from node_modules. Reporting that
+		 * or plugin error. (A missing node_modules/.bin/astro throws from
+		 * Bun.spawn before this point.) Reporting that
 		 * immediately beats waiting out the deadline for a message we
 		 * already have. */
 		if (exited) return fail("exited during startup");

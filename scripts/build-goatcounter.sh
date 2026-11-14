@@ -13,9 +13,12 @@ repo=arp242/goatcounter
 commit=${1:-$(gh api "repos/$repo/commits?path=public/count.js&per_page=1" --jq '.[0].sha')}
 out=src/assets/goatcounter-count.js
 
-src=$(mktemp --suffix=.js)
-tmp=$(mktemp)
+src=
+tmp=
 trap 'rm -f "$src" "$tmp"' EXIT
+src=$(mktemp --suffix=.js)
+# Next to the output, so the final mv is a rename on one filesystem.
+tmp=$(mktemp "$out.XXXXXX")
 curl -fsSL "https://raw.githubusercontent.com/$repo/$commit/public/count.js" -o "$src"
 
 {
@@ -25,6 +28,7 @@ curl -fsSL "https://raw.githubusercontent.com/$repo/$commit/public/count.js" -o 
 	pnpm exec esbuild "$src" --minify --legal-comments=none --log-level=warning
 } >"$tmp"
 # Replace the vendored file only once esbuild has succeeded.
+chmod 644 "$tmp"
 mv "$tmp" "$out"
 
 echo "$out: $(wc -c <"$out") bytes, $(gzip -c "$out" | wc -c) gzipped, from $commit"
