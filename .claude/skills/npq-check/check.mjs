@@ -42,13 +42,18 @@ export const CHECKS = new Set([
 ]);
 // git and pnpm print whole lockfiles; spawnSync's default 1 MiB is too small.
 const MAX_BUFFER = 256 * 1024 * 1024;
-const NPQ_TIMEOUT_MS = 5 * 60 * 1000;
+// npq audits one package at a time, a few seconds each.
+const npqTimeoutMs = (count) => (60 + 30 * count) * 1000;
 // npq reports OSV's malicious-package advisories under the `snyk` check, which
 // also carries ordinary vulnerabilities; an allow line never covers these.
-const NEVER_ALLOWED = /^Malicious package found/;
+// npm's security placeholder (a name taken down for malware) is reported
+// under `license`; it is never allowed either.
+const NEVER_ALLOWED =
+  /^Malicious package found|flagged for security issues and served as place-holder/;
 // Some checks report an outage (a GitHub rate limit, say) as an error finding
 // rather than an audit failure. Those need a re-run, not an allow line.
-const UNFINISHED = /could not evaluate/i;
+const UNFINISHED =
+  /could not evaluate|Unable to query vulnerabilities|API request failed/i;
 const EXACT_VERSION =
   /^\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?(?:\+[0-9A-Za-z.-]+)?$/;
 
@@ -192,6 +197,8 @@ export function baseDeps(rev) {
   try {
     writeFileSync(join(dir, "package.json"), manifest);
     writeFileSync(join(dir, "pnpm-lock.yaml"), lockfile);
+    // Run the PR's pnpm here too, not the one the base's packageManager names.
+    writeFileSync(join(dir, "pnpm-workspace.yaml"), "pmOnFail: ignore\n");
     return directDeps(pnpmList(dir));
   } finally {
     rmSync(dir, { recursive: true, force: true });
@@ -212,8 +219,13 @@ export function runNpq(npqBin, specs) {
     encoding: "utf8",
     env,
     maxBuffer: MAX_BUFFER,
-    timeout: NPQ_TIMEOUT_MS,
+    timeout: npqTimeoutMs(specs.length),
   });
+  if (result.error?.code === "ETIMEDOUT") {
+    throw new Error(
+      `npq took longer than ${npqTimeoutMs(specs.length) / 1000}s for ${specs.length} packages`,
+    );
+  }
   if (result.error) {
     throw new Error(`could not run ${npqBin}: ${result.error.message}`);
   }
@@ -225,7 +237,12 @@ export function runNpq(npqBin, specs) {
       `npq didn't print a JSON report (exit ${result.status}):\n${result.stderr}${result.stdout}`,
     );
   }
-  if (report.status === "failed" || (report.failures ?? []).length > 0) {
+  if (report.schemaVersion !== 1) {
+    throw new Error(
+      `npq report schemaVersion ${report.schemaVersion}; check.mjs reads version 1`,
+    );
+  }
+  if ((report.failures ?? []).length > 0) {
     const reasons = (report.failures ?? [])
       .map(
         (f) =>
@@ -265,6 +282,12 @@ export function evaluate(deps, report, allow) {
     );
   }
   deps.forEach((dep, index) => {
+    const requested = report.packages[index].requested;
+    if (requested !== `${dep.name}@${dep.version}`) {
+      throw new Error(
+        `npq reported ${requested} where ${dep.name}@${dep.version} was requested`,
+      );
+    }
     for (const finding of report.packages[index].findings ?? []) {
       const item = { dep, check: finding.marshall, message: finding.message };
       if (finding.severity === "warning") {
@@ -309,14 +332,25 @@ function annotate(level, message, { file, line } = {}) {
   );
 }
 
+// The registry.npmjs.org tarball URL for name@version. Any other `resolved`,
+// a registry URL for another package included, means npq would check a
+// different package than the one installed.
+export function registryTarball(name, version) {
+  if (!EXACT_VERSION.test(version)) return null;
+  const base = name.slice(name.lastIndexOf("/") + 1);
+  return `${REGISTRY}${name}/-/${base}-${version}.tgz`;
+}
+
 // The package.json line that declares `alias`, searched only inside the
 // dependency sections, since a script can have the same name.
 export function manifestLine(manifestText, alias) {
   const lines = manifestText.split("\n");
   const key = `${JSON.stringify(alias)}:`;
+  // Top-level keys sit at the indentation of the first one.
+  const indent = lines.find((l) => /^\s+"/.test(l))?.match(/^\s+/)[0] ?? "";
   for (const section of SECTIONS) {
     const start = lines.findIndex((l) =>
-      l.trimStart().startsWith(`${JSON.stringify(section)}:`),
+      new RegExp(`^${indent}${JSON.stringify(section)}:\\s*\\{\\s*$`).test(l),
     );
     if (start === -1) continue;
     for (let i = start + 1; i < lines.length; i++) {
@@ -361,7 +395,7 @@ function main(argv) {
   });
 
   const notRegistry = changed.filter(
-    (d) => !d.resolved.startsWith(REGISTRY) || !EXACT_VERSION.test(d.version),
+    (d) => d.resolved !== registryTarball(d.name, d.version),
   );
   for (const dep of notRegistry) {
     annotate(

@@ -10,7 +10,7 @@ description: Check new and changed npm dependencies with npq in CI, with reviewe
 - An npq **error** fails the check: typosquatting, a new or dormant maintainer, a version under a week old, deprecation, install scripts, known vulnerabilities, low downloads, no license. A **warning** shows as an annotation on `package.json` and doesn't fail.
 - The check fails when npq reports it couldn't finish (a registry lookup fails, for example). Re-run the job; don't add an exception for it. Some of npq's checks pass quietly when their service is down: an OSV outage reads as no vulnerabilities, so `pnpm audit` stays the vulnerability gate.
 - npq's `author` check errors on a version 7 days old or younger, rounded to whole days, so a version just past pnpm's 7-day wait can fail it for a few hours. Re-run the job the next day rather than adding an exception.
-- A dependency that resolves outside registry.npmjs.org (git, tarball URL, `link:`) fails, since npq can't check it. So does a change of source at the same version.
+- A dependency that resolves anywhere but its own tarball on registry.npmjs.org (git, a tarball URL, `link:`, another package's registry tarball) fails, since npq would check a different package than the one installed. So does a change of source at the same version.
 - `MARSHALL_DISABLE_*` variables, npq's switches for turning a check off, are cleared before npq runs. Exceptions go in `.npq-allow`, where review sees them.
 
 ## When the check fails
@@ -27,7 +27,7 @@ For a false positive, add one line to `.npq-allow` at the repo root, in the same
 - The version is exact. A line covers one check at one version, so an upgrade needs a new line; delete the old one with it. The check prints a notice for lines whose version is no longer installed.
 - The reason says why the finding doesn't apply, as a fact a reviewer can check ("the official Svelte CLI, published by the Svelte org"), not that it was reviewed.
 - The date is the day the line was added.
-- A "Malicious package found" finding can't be allowed.
+- A "Malicious package found" finding, npm's security placeholder, and a check npq couldn't finish (a rate limit or an outage) can't be allowed; the last needs a re-run.
 - Lines starting with `#` are comments. The file's first line documents the format.
 
 Change `check.mjs` in agent-skills, never in a consumer repo's copy: the sync, or a hand copy where the sync doesn't reach, replaces it.
