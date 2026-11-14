@@ -42,8 +42,23 @@
 		"chrome-devtools-mcp": "1.12.0",
 		"esbuild": "0.28.2",
 		"lighthouse": "^13.6.0",
-		"npq": "3.27.3",
 		"typescript": "^6.0.3",
 		"yaml": "^2.9.0"
+	},
+	"npq": {
+		"allow": [
+			{
+				"package": "@astrojs/preact",
+				"check": "typosquatting",
+				"reason": "Astro's Preact integration, built from withastro/astro with npm trusted publishing; one letter from its sibling @astrojs/react",
+				"date": "2026-11-14"
+			},
+			{
+				"package": "satteri",
+				"check": "typosquatting",
+				"reason": "the Markdown processor behind @astrojs/markdown-satteri, built from bruits/satteri with npm trusted publishing; close in spelling to satori",
+				"date": "2026-11-14"
+			}
+		]
 	}
 }

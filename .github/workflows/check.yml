@@ -30,6 +30,9 @@ jobs:
           # nothing after checkout does git operations (the scripts/ font tools
           # are run manually, not in CI).
           persist-credentials: false
+          # On a PR, the merge commit and its first parent, the base branch,
+          # which the npq step compares the lockfile with.
+          fetch-depth: 2
       # Static security analysis of the workflows themselves: template
       # injection, over-broad permissions, credential persistence, unsafe
       # triggers. advanced-security is off because this repo has no GHAS, so
@@ -55,6 +58,13 @@ jobs:
       - uses: oven-sh/setup-bun@v2.2.0
         with:
           bun-version-file: .bun-version
+      # npq checks the direct dependencies this PR adds or changes; errors
+      # fail unless the "npq" field in package.json allows them. Before the
+      # install, so the dependencies under review run no code before they are
+      # checked; it reads only the lockfile and pnpm's config.
+      - name: Check new and changed dependencies with npq
+        if: github.event_name == 'pull_request'
+        uses: towardstypetwo/actions/npq-check@v1.0.1
       # No dependency cache: an uncached install takes seconds, and it keeps
       # cache poisoning out.
       - run: pnpm install --frozen-lockfile
