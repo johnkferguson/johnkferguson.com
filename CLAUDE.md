@@ -86,6 +86,7 @@ Everything that can fail a PR.
 - **Everything fails closed.** A budgeted resource type missing from the audit, an expected audit score, or a `URL_OVERRIDES` key matching no page all fail rather than pass quietly.
 - `URL_OVERRIDES` keys are exact-match on the served URL (`/snapshot-fees`, `/404`) and merge over the defaults, so a page with no entry gets the tight ones. `/404` relaxes SEO to 0.60 *and* asserts `is-crawlable` still scores 0, so the noindex cannot silently vanish.
 - **Font budget headroom is ~21 KiB and one Fira Code weight is ~23 KiB.** The first post to use bold monospace will trip it. That is the gate working.
+- **Biome skips `.md` files** (`!**/*.md` in `biome.json`). Biome 2.6 added Markdown support, on by default, and without `markdown.parser.frontmatter` its formatter reads the YAML frontmatter as prose: `check:fix` would flatten nested keys such as `art.params`.
 - **lychee needs `fallback_extensions = ["html"]`**, since it remaps site URLs onto `file://` paths where `/about` is `about.html`.
 - **Dependabot reads `pnpm-lock.yaml`**, so its alerts and security updates cover transitive packages. `pnpm audit` in `check.yml` gates PRs on high and critical advisories; an accepted advisory goes in `audit.ignore` in `pnpm-workspace.yaml` with why the site is not exposed and a revisit date.
 
