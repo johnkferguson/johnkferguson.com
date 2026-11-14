@@ -12,6 +12,7 @@ import {
   existsSync,
   mkdtempSync,
   readFileSync,
+  realpathSync,
   rmSync,
   writeFileSync,
 } from "node:fs";
@@ -39,6 +40,15 @@ export const CHECKS = new Set([
   "typosquatting",
   "version_maturity",
 ]);
+// git and pnpm print whole lockfiles; spawnSync's default 1 MiB is too small.
+const MAX_BUFFER = 256 * 1024 * 1024;
+const NPQ_TIMEOUT_MS = 5 * 60 * 1000;
+// npq reports OSV's malicious-package advisories under the `snyk` check, which
+// also carries ordinary vulnerabilities; an allow line never covers these.
+const NEVER_ALLOWED = /^Malicious package found/;
+// Some checks report an outage (a GitHub rate limit, say) as an error finding
+// rather than an audit failure. Those need a re-run, not an allow line.
+const UNFINISHED = /could not evaluate/i;
 const EXACT_VERSION =
   /^\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?(?:\+[0-9A-Za-z.-]+)?$/;
 
@@ -76,7 +86,7 @@ export function parseAllow(text) {
       });
       return;
     }
-    if (!/^\d{4}-\d{2}-\d{2}$/.test(date) || Number.isNaN(Date.parse(date))) {
+    if (!isCalendarDate(date)) {
       errors.push({
         line: lineNo,
         message: `${date}: the date must be YYYY-MM-DD`,
@@ -86,6 +96,15 @@ export function parseAllow(text) {
     entries.push({ line: lineNo, name, version, check, date, reason });
   });
   return { entries, errors };
+}
+
+function isCalendarDate(text) {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(text)) return false;
+  const time = Date.parse(`${text}T00:00:00Z`);
+  // Date.parse rolls 2026-02-30 over to March rather than rejecting it.
+  return (
+    !Number.isNaN(time) && new Date(time).toISOString().slice(0, 10) === text
+  );
 }
 
 // Direct dependencies of the one project in `listing`, the parsed output of
@@ -110,12 +129,17 @@ export function directDeps(listing) {
   return deps;
 }
 
-// Dependencies in `head` that `base` lacks or resolves to another version.
+// Dependencies in `head` that `base` lacks or resolves to another version or
+// source. A git or tarball dependency can report the same version as the
+// registry release it replaces, so `resolved` is compared too.
 export function changedDeps(base, head) {
   return [...head.values()].filter((dep) => {
     const before = base.get(dep.alias);
     return (
-      !before || before.name !== dep.name || before.version !== dep.version
+      !before ||
+      before.name !== dep.name ||
+      before.version !== dep.version ||
+      before.resolved !== dep.resolved
     );
   });
 }
@@ -124,26 +148,43 @@ function pnpmList(cwd) {
   const result = spawnSync(
     "pnpm",
     ["list", "--lockfile-only", "--json", "--depth", "0"],
-    {
-      cwd,
-      encoding: "utf8",
-    },
+    { cwd, encoding: "utf8", maxBuffer: MAX_BUFFER },
   );
+  if (result.error) throw result.error;
   if (result.status !== 0) {
     throw new Error(`pnpm list failed in ${cwd}:\n${result.stderr}`);
   }
   return JSON.parse(result.stdout);
 }
 
-function gitShow(rev, path) {
-  const result = spawnSync("git", ["show", `${rev}:${path}`], {
+function git(args) {
+  const result = spawnSync("git", args, {
     encoding: "utf8",
+    maxBuffer: MAX_BUFFER,
   });
-  return result.status === 0 ? result.stdout : null;
+  if (result.error) throw result.error;
+  return result;
+}
+
+// The file at `rev`, or null when `rev` has no such file.
+function gitShow(rev, path) {
+  if (git(["cat-file", "-e", `${rev}:${path}`]).status !== 0) return null;
+  const result = git(["show", `${rev}:${path}`]);
+  if (result.status !== 0) {
+    throw new Error(`git show ${rev}:${path} failed:\n${result.stderr}`);
+  }
+  return result.stdout;
 }
 
 // The base commit's dependencies, listed from its own manifest and lockfile.
-function baseDeps(rev) {
+// Its pnpm-workspace.yaml is left out: the lockfile alone gives the versions,
+// and the PR's pnpm may reject settings an older file has.
+export function baseDeps(rev) {
+  if (git(["rev-parse", "--verify", "--quiet", `${rev}^{commit}`]).status) {
+    throw new Error(
+      `base ${rev} is not a commit in this checkout; on a PR, check out with fetch-depth: 2`,
+    );
+  }
   const lockfile = gitShow(rev, "pnpm-lock.yaml");
   const manifest = gitShow(rev, "package.json");
   if (lockfile === null || manifest === null) return new Map();
@@ -151,9 +192,6 @@ function baseDeps(rev) {
   try {
     writeFileSync(join(dir, "package.json"), manifest);
     writeFileSync(join(dir, "pnpm-lock.yaml"), lockfile);
-    const workspace = gitShow(rev, "pnpm-workspace.yaml");
-    if (workspace !== null)
-      writeFileSync(join(dir, "pnpm-workspace.yaml"), workspace);
     return directDeps(pnpmList(dir));
   } finally {
     rmSync(dir, { recursive: true, force: true });
@@ -173,14 +211,18 @@ export function runNpq(npqBin, specs) {
   const result = spawnSync(npqBin, ["--json", ...specs], {
     encoding: "utf8",
     env,
-    maxBuffer: 64 * 1024 * 1024,
+    maxBuffer: MAX_BUFFER,
+    timeout: NPQ_TIMEOUT_MS,
   });
+  if (result.error) {
+    throw new Error(`could not run ${npqBin}: ${result.error.message}`);
+  }
   let report;
   try {
     report = JSON.parse(result.stdout);
   } catch {
     throw new Error(
-      `npq printed no JSON report (exit ${result.status}):\n${result.stderr}${result.stdout}`,
+      `npq didn't print a JSON report (exit ${result.status}):\n${result.stderr}${result.stdout}`,
     );
   }
   if (report.status === "failed" || (report.failures ?? []).length > 0) {
@@ -202,6 +244,14 @@ export function runNpq(npqBin, specs) {
   return report;
 }
 
+function allowable(check, message) {
+  return (
+    CHECKS.has(check) &&
+    !NEVER_ALLOWED.test(message) &&
+    !UNFINISHED.test(message)
+  );
+}
+
 // Sorts npq's findings into errors (failing), allowed errors and warnings.
 // `deps` are the checked dependencies, in the order they were passed to npq,
 // which keeps its package reports in that order.
@@ -209,7 +259,6 @@ export function evaluate(deps, report, allow) {
   const errors = [];
   const allowed = [];
   const warnings = [];
-  const used = new Set();
   if (report.packages.length !== deps.length) {
     throw new Error(
       `npq reported ${report.packages.length} packages for ${deps.length} requested`,
@@ -222,21 +271,22 @@ export function evaluate(deps, report, allow) {
         warnings.push(item);
         continue;
       }
-      const entry = allow.find(
-        (e) =>
-          e.name === dep.name &&
-          e.version === dep.version &&
-          e.check === finding.marshall,
-      );
+      const entry =
+        allowable(finding.marshall, finding.message) &&
+        allow.find(
+          (e) =>
+            e.name === dep.name &&
+            e.version === dep.version &&
+            e.check === finding.marshall,
+        );
       if (entry) {
-        used.add(entry);
         allowed.push({ ...item, entry });
       } else {
         errors.push(item);
       }
     }
   });
-  return { errors, allowed, warnings, used };
+  return { errors, allowed, warnings };
 }
 
 function escapeData(text) {
@@ -259,12 +309,29 @@ function annotate(level, message, { file, line } = {}) {
   );
 }
 
-function manifestLine(manifestText, alias) {
+// The package.json line that declares `alias`, searched only inside the
+// dependency sections, since a script can have the same name.
+export function manifestLine(manifestText, alias) {
   const lines = manifestText.split("\n");
-  const index = lines.findIndex((l) =>
-    l.trimStart().startsWith(`${JSON.stringify(alias)}:`),
-  );
-  return index === -1 ? undefined : index + 1;
+  const key = `${JSON.stringify(alias)}:`;
+  for (const section of SECTIONS) {
+    const start = lines.findIndex((l) =>
+      l.trimStart().startsWith(`${JSON.stringify(section)}:`),
+    );
+    if (start === -1) continue;
+    for (let i = start + 1; i < lines.length; i++) {
+      const line = lines[i].trimStart();
+      if (line.startsWith("}")) break;
+      if (line.startsWith(key)) return i + 1;
+    }
+  }
+  return undefined;
+}
+
+// One log line, with line breaks removed so registry text can't start a
+// workflow command.
+function logLine(text) {
+  console.log(String(text).replace(/[\r\n]+/g, " "));
 }
 
 function main(argv) {
@@ -305,7 +372,7 @@ function main(argv) {
   }
   const toCheck = changed.filter((d) => !notRegistry.includes(d));
 
-  let result = { errors: [], allowed: [], warnings: [], used: new Set() };
+  let result = { errors: [], allowed: [], warnings: [] };
   if (toCheck.length > 0) {
     console.log(
       `npq: checking ${toCheck.map((d) => `${d.name}@${d.version}`).join(", ")}`,
@@ -327,15 +394,20 @@ function main(argv) {
     );
   }
   for (const a of result.allowed) {
-    console.log(
+    logLine(
       `allowed by ${ALLOW_FILE} line ${a.entry.line}: npq ${a.check}: ${a.dep.name}@${a.dep.version}: ${a.message}`,
     );
   }
   for (const e of result.errors) {
     const line = `${e.dep.name}@${e.dep.version} ${e.check} ${new Date().toISOString().slice(0, 10)} <reason>`;
+    const hint = UNFINISHED.test(e.message)
+      ? "\nnpq couldn't finish this check; re-run the job."
+      : allowable(e.check, e.message)
+        ? `\nIf this is a false positive, add to ${ALLOW_FILE}: ${line}`
+        : "";
     annotate(
       "error",
-      `npq ${e.check}: ${e.dep.name}@${e.dep.version}: ${e.message}\nIf this is a false positive, add to ${ALLOW_FILE}: ${line}`,
+      `npq ${e.check}: ${e.dep.name}@${e.dep.version}: ${e.message}${hint}`,
       where(e.dep),
     );
   }
@@ -362,7 +434,10 @@ function main(argv) {
   return failed > 0 ? 1 : 0;
 }
 
-if (import.meta.url === pathToFileURL(process.argv[1]).href) {
+// import.meta.url has symlinks resolved and argv[1] doesn't, so resolve both;
+// a mismatch would skip main() and pass without checking anything.
+const entry = process.argv[1] && pathToFileURL(realpathSync(process.argv[1]));
+if (entry && import.meta.url === entry.href) {
   try {
     process.exitCode = main(process.argv.slice(2));
   } catch (error) {

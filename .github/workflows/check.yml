@@ -61,12 +61,6 @@ jobs:
       # No dependency cache: an uncached install takes seconds, and it keeps
       # cache poisoning out.
       - run: pnpm install --frozen-lockfile
-      # npq checks the direct dependencies this PR adds or changes; errors
-      # fail unless .npq-allow lists them. The script and its rules are the
-      # npq-check skill in .claude/skills.
-      - name: Check new and changed dependencies with npq
-        if: github.event_name == 'pull_request'
-        run: node .claude/skills/npq-check/check.mjs --base HEAD^1
       # Gates PRs on high and critical advisories (audit settings and ignore
       # list in pnpm-workspace.yaml).
       - run: pnpm audit
@@ -88,6 +82,15 @@ jobs:
         with:
           args: "--config .lychee.toml --root-dir ./dist --remap 'https://johnkferguson\\.com file://${{ github.workspace }}/dist' --cache --max-cache-age 1d --no-progress './dist/**/*.html'"
           fail: true
+      # npq checks the direct dependencies this PR adds or changes; errors
+      # fail unless .npq-allow lists them. After the build and tests, so a
+      # dependency PR that npq fails still shows whether it builds. The token
+      # keeps npq's GitHub API calls under the rate limit.
+      - name: Check new and changed dependencies with npq
+        if: github.event_name == 'pull_request'
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: node .claude/skills/npq-check/check.mjs --base HEAD^1
       # Fails when actions.lock is out of sync with the workflows or a locked
       # commit no longer verifies upstream. Last, so a failure here still shows
       # the build and test results above. Keep the pin below in step with CLAUDE.md.
