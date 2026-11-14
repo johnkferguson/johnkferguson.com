@@ -37,7 +37,19 @@ in
   # package.json) gets past it.
   scripts.pnpm.exec = ''
     die() { echo "pnpm (devenv wrapper): $*" >&2; exit 2; }
+    # pnpm options that take a value, so the value is not a package.
+    takes_value() {
+      case "$1" in
+        -C | --dir | -F | --filter | --filter-prod | --reporter | --loglevel | \
+          --registry | --store-dir | --lockfile-dir | --modules-dir | \
+          --virtual-store-dir | --state-dir | --cpu | --os | --libc | \
+          --workspace-concurrency | --save-prefix | --save-catalog-name | \
+          --allow-build | --npmrc-auth-file | --proxy | --https-proxy) return 0 ;;
+      esac
+      return 1
+    }
     adds=
+    valueopt=
     case "''${1-}" in
       add | install | i)
         skip=
@@ -46,20 +58,31 @@ in
           case "$arg" in
             # npq drops these and installs for real.
             --dry-run | --pkgMgr* | --packageManager*) die "$arg is not supported with npq" ;;
-            # Options that take a value; the value is not a package.
-            -C | --dir | -F | --filter | --reporter | --loglevel | --registry | \
-              --store-dir | --lockfile-dir | --modules-dir | --virtual-store-dir) skip=1 ;;
-            -*) ;;
+            -*)
+              if takes_value "$arg"; then
+                skip=1
+                # npq parses -F/--filter itself; it would read other values as packages.
+                case "$arg" in -F | --filter) ;; *) valueopt=$arg ;; esac
+              fi
+              ;;
+            # npq checks registry packages only; it would check an alias,
+            # git, URL or path spec as some other package.
+            *:* | .* | /* | "~"*) die "$arg: only registry packages (name, name@version, name@tag) can be added" ;;
             *) adds=1 ;;
           esac
         done
+        if [ -n "$adds" ] && [ -n "$valueopt" ]; then
+          die "$valueopt is not supported when adding a package"
+        fi
         ;;
       -* | m | multi | recursive)
         # An add after global options or `recursive` would skip the check.
+        seen=
         for arg in "$@"; do
-          case "$arg" in
-            add | install | i) die "put the subcommand first: pnpm $arg <pkg> [options]" ;;
-          esac
+          if [ -n "$seen" ]; then
+            case "$arg" in -*) ;; *) die "put the subcommand first: pnpm $seen <pkg> [options]" ;; esac
+          fi
+          case "$arg" in add | install | i) seen=$arg ;; esac
         done
         ;;
     esac
@@ -69,11 +92,17 @@ in
         echo "npq is not installed yet: run pnpm install first" >&2
         exit 1
       fi
-      # Set here so a caller cannot loosen them. With auto-continue off, any
-      # finding stops an install that no one at a terminal answers, agents
-      # included. npq hands the install to the real pnpm, not this wrapper.
-      exec env -u NPQ_ALLOW_NON_INTERACTIVE_INSTALL \
-        NPQ_DISABLE_AUTO_CONTINUE=true NPQ_PKG_MGR=${pnpm} "$npq" "$@"
+      # Each MARSHALL_DISABLE_<CHECK> variable turns off one npq check, so
+      # none reach it from the caller.
+      for var in $(compgen -e); do
+        case "$var" in MARSHALL_*) unset "$var" ;; esac
+      done
+      # Auto-continue off: any finding stops an install that no one at a
+      # terminal answers, agents included. Set here so a caller cannot
+      # loosen it. npq runs `pnpm`, found first on PATH as the real one, and
+      # parses arguments the way pnpm does.
+      export PATH="${pnpmPackage}/bin:$PATH"
+      exec env NPQ_DISABLE_AUTO_CONTINUE=true NPQ_PKG_MGR=pnpm "$npq" "$@"
     fi
     exec ${pnpm} "$@"
   '';
