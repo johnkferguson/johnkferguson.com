@@ -64,6 +64,8 @@ updates:
         exclude-patterns:
           - "katex"
           - "satteri"
+          # 0.x too, and scripts/build-goatcounter.sh's output depends on it.
+          - "esbuild"
 
   - package-ecosystem: "github-actions"
     directory: "/"

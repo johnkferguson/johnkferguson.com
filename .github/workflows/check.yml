@@ -43,6 +43,9 @@ jobs:
           annotations: true
           min-severity: low
           config: zizmor.yml
+      # Fails when a workflow, script or config downloads and runs a tool
+      # outside the lockfile; the script lists the patterns.
+      - run: bash scripts/check-no-downloaded-tools.sh
       # Installs the pnpm version named by packageManager in package.json.
       - uses: pnpm/action-setup@v6.1.1
       - uses: actions/setup-node@v7.1.0
