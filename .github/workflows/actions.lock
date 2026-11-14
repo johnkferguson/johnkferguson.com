@@ -11,6 +11,7 @@ workflows:
         - 'lycheeverse/lychee-action@v2.9.0'
         - 'oven-sh/setup-bun@v2.2.0'
         - 'pnpm/action-setup@v6.1.1'
+        - 'towardstypetwo/actions@v1.0.1'
         - 'zizmorcore/zizmor-action@v0.6.4'
 dependencies:
     'actions/cache@v6.1.0':
@@ -53,6 +54,11 @@ dependencies:
         commit: 'sha1-73e46992e05b19abd31f2f3c20e0e7370d762115'
         owner_id: 21320719
         repo_id: 262289747
+    'towardstypetwo/actions@v1.0.1':
+        ref: 'v1.0.1'
+        commit: 'sha1-399eb15925ba149b58b7e4cc743795625b7a826f'
+        owner_id: 260307330
+        repo_id: 1458056543
     'zizmorcore/zizmor-action@v0.6.4':
         ref: 'v0.6.4'
         commit: 'sha1-cc914d7f3750a2d13d75c7f184a1060aa0e9d482'
