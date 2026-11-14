@@ -21,7 +21,11 @@ trustPolicyExclude:
 
 # Install scripts: true lets one run, false skips it without failing. Any
 # script not listed here fails the install.
-allowBuilds: {}
+allowBuilds:
+  # The binary comes from an @esbuild/* optional dependency. The postinstall
+  # only links it in place of a slower launcher, or downloads one when that
+  # dependency is missing, which this install should never do.
+  esbuild: false
 strictDepBuilds: true             # default: any other install script fails the install
 blockExoticSubdeps: true          # default: only direct deps may use git or tarball URLs
 trustLockfile: false              # default: re-check lockfile entries on every install

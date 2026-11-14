@@ -40,6 +40,8 @@
 		"@types/hast": "^3.0.5",
 		"@types/markdown-it": "^14.1.2",
 		"@types/sanitize-html": "^2.13.0",
+		"chrome-devtools-mcp": "1.1.1",
+		"esbuild": "0.28.2",
 		"lighthouse": "^13.4.1",
 		"typescript": "^6.0.3",
 		"yaml": "^2.9.0"
