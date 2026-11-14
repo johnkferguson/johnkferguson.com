@@ -1,0 +1,3 @@
+# <package>@<version> <check> <YYYY-MM-DD> <reason>; see .claude/skills/npq-check/SKILL.md
+@astrojs/preact@6.1.0 typosquatting 2026-11-13 Astro's Preact integration, built from withastro/astro with npm trusted publishing; one letter from its sibling @astrojs/react
+satteri@0.10.5 typosquatting 2026-11-13 the Markdown processor behind @astrojs/markdown-satteri, built from bruits/satteri with npm trusted publishing; close in spelling to satori

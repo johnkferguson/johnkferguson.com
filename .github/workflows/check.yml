@@ -30,6 +30,9 @@ jobs:
           # nothing after checkout does git operations (the scripts/ font tools
           # are run manually, not in CI).
           persist-credentials: false
+          # On a PR, the merge commit and its first parent, the base branch,
+          # which the npq step compares the lockfile with.
+          fetch-depth: 2
       # Static security analysis of the workflows themselves: template
       # injection, over-broad permissions, credential persistence, unsafe
       # triggers. advanced-security is off because this repo has no GHAS, so
@@ -58,6 +61,12 @@ jobs:
       # No dependency cache: an uncached install takes seconds, and it keeps
       # cache poisoning out.
       - run: pnpm install --frozen-lockfile
+      # npq checks the direct dependencies this PR adds or changes; errors
+      # fail unless .npq-allow lists them. The script and its rules are the
+      # npq-check skill in .claude/skills.
+      - name: Check new and changed dependencies with npq
+        if: github.event_name == 'pull_request'
+        run: node .claude/skills/npq-check/check.mjs --base HEAD^1
       # Gates PRs on high and critical advisories (audit settings and ignore
       # list in pnpm-workspace.yaml).
       - run: pnpm audit
