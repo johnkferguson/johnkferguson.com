@@ -66,9 +66,10 @@ export function labs() {
 	 * `ctx.data.astro.frontmatter` and throws on a null or non-object.
 	 *
 	 * `data.astro` is optional in satteri's types and seeded by whoever drives
-	 * the compile, which both real entry points do (satteri-processor.js:188
-	 * and @astrojs/mdx/dist/satteri/index.js). Asserted rather than created
-	 * with a defensive `??= {}`: a bag this plugin invented would collect labs
+	 * the compile, which both real entry points in @astrojs/markdown-satteri do
+	 * (dist/satteri-processor.js and dist/mdx/create-processor.js). Asserted
+	 * rather than created with a defensive `??= {}`: a bag this plugin invented
+	 * would collect labs
 	 * nobody reads, so the TOC would just silently lose its lab entries.
 	 *
 	 * @param {import("satteri").MdastVisitorContext} ctx
