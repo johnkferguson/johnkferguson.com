@@ -45,9 +45,9 @@ function parse(html) {
  * Warn about a formula that did not render.
  *
  * `ctx.report()` is not usable for this: satteri collects hast diagnostics on
- * the visitor context, but nothing reads them back. `compile.js` calls
- * `visitHastHandle` for its dropped-patch count only, and neither
- * `@astrojs/markdown-satteri` nor `@astrojs/mdx` touches `getDiagnostics()`.
+ * the visitor context, but nothing reads them back. `plugin-pipeline.js`
+ * hands each hast pass a fresh `diagnostics` array and never reads it, and
+ * neither `@astrojs/markdown-satteri` nor `@astrojs/mdx` touches `getDiagnostics()`.
  * A report would be silently discarded, which is the failure this guards.
  *
  * So: console for the dev server, and a hard failure for a production build,
@@ -91,10 +91,15 @@ export const katexMath = defineHastPlugin({
 			try {
 				/* throwOnError first purely for the diagnostic, as rehype-katex did:
 				 * it is the only way to learn the formula is malformed, since the
-				 * lenient render succeeds and returns red error markup instead. */
+				 * lenient render succeeds and returns red error markup instead.
+				 * strict "error" puts KaTeX's strict reports through the same path:
+				 * since 0.18.11 a glyph with no font metrics (symbolNotInFont) is one,
+				 * and under the default "warn" it only reaches the console while the
+				 * formula ships in a fallback font with wrong spacing. */
 				html = katex.renderToString(tex, {
 					displayMode,
 					throwOnError: true,
+					strict: "error",
 					/* htmlAndMathml, not html: the MathML branch carries the
 					 * original LaTeX in an annotation, which PostLayout's copy
 					 * button reads (selecting rendered KaTeX by hand yields
