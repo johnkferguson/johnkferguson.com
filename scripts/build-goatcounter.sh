@@ -14,14 +14,17 @@ commit=${1:-$(gh api "repos/$repo/commits?path=public/count.js&per_page=1" --jq 
 out=src/assets/goatcounter-count.js
 
 src=$(mktemp --suffix=.js)
-trap 'rm -f "$src"' EXIT
+tmp=$(mktemp)
+trap 'rm -f "$src" "$tmp"' EXIT
 curl -fsSL "https://raw.githubusercontent.com/$repo/$commit/public/count.js" -o "$src"
 
 {
 	printf '/*! GoatCounter count.js, ISC license: https://opensource.org/licenses/ISC\n'
 	printf ' * Vendored and minified by scripts/build-goatcounter.sh from\n'
 	printf ' * https://github.com/%s/blob/%s/public/count.js */\n' "$repo" "$commit"
-	bunx esbuild "$src" --minify --legal-comments=none --log-level=warning
-} >"$out"
+	pnpm exec esbuild "$src" --minify --legal-comments=none --log-level=warning
+} >"$tmp"
+# Replace the vendored file only once esbuild has succeeded.
+mv "$tmp" "$out"
 
 echo "$out: $(wc -c <"$out") bytes, $(gzip -c "$out" | wc -c) gzipped, from $commit"

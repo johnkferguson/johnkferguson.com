@@ -1,0 +1,11 @@
+#!/usr/bin/env bash
+#
+# Refuse a commit that runs a tool downloaded outside the lockfile (see
+# scripts/check-no-downloaded-tools.sh, which CI also runs).
+#
+# Enabled by the same `git config core.hooksPath .githooks` as pre-push.
+# Bypassing it is `git commit --no-verify`.
+
+set -euo pipefail
+
+exec bash scripts/check-no-downloaded-tools.sh

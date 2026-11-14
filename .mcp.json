@@ -2,10 +2,8 @@
 	"mcpServers": {
 		"chrome-devtools": {
 			"type": "stdio",
-			"command": "npx",
+			"command": "./node_modules/.bin/chrome-devtools-mcp",
 			"args": [
-				"-y",
-				"chrome-devtools-mcp@1.1.1",
 				"--executablePath",
 				"${CHROME_EXECUTABLE_PATH:-/etc/profiles/per-user/jkf/bin/google-chrome}"
 			]

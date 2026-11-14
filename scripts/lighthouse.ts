@@ -259,13 +259,19 @@ function cleanup(): void {
  * only, so 127.0.0.1 is refused and connectivity comes down to how
  * `localhost` happens to resolve, for this poll and for Chrome alike.
  */
+/* Runs a devDependency's own binary. A package runner would
+ * download the package when it is missing, outside the lockfile. */
+function bin(name: string): string {
+	return join("node_modules", ".bin", name);
+}
+
 async function startServer(): Promise<{ port: number; stop: () => void }> {
 	/* Piped rather than ignored so a startup failure reports astro's actual
 	 * message instead of a 30-second timeout. Safe to leave undrained:
 	 * preview emits three lines and does not log requests, so the pipe
 	 * cannot fill and block the server mid-run. */
 	const proc = Bun.spawn(
-		["bunx", "astro", "preview", "--host", HOST, "--port", String(PORT)],
+		[bin("astro"), "preview", "--host", HOST, "--port", String(PORT)],
 		{
 			stdout: "pipe",
 			stderr: "pipe",
@@ -338,7 +344,7 @@ async function startServer(): Promise<{ port: number; stop: () => void }> {
 		}
 
 		/* Exiting before printing a port means it failed outright: a config
-		 * or plugin error, or bunx failing to resolve astro. Reporting that
+		 * or plugin error, or astro missing from node_modules. Reporting that
 		 * immediately beats waiting out the deadline for a message we
 		 * already have. */
 		if (exited) return fail("exited during startup");
@@ -367,7 +373,6 @@ async function runLighthouse(
 	const slug = url === "/" ? "root" : url.replaceAll("/", "_");
 	const out = join(REPORT_DIR, `${preset}-${slug}.json`);
 	const args = [
-		"lighthouse",
 		`http://${HOST}:${port}${url}`,
 		"--quiet",
 		"--output=json",
@@ -382,7 +387,7 @@ async function runLighthouse(
 	];
 	if (preset === "desktop") args.push("--preset=desktop");
 
-	const proc = Bun.spawn(["bunx", ...args], {
+	const proc = Bun.spawn([bin("lighthouse"), ...args], {
 		stdout: "pipe",
 		stderr: "pipe",
 	});
