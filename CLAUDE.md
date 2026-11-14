@@ -51,7 +51,7 @@ Technical pieces additionally:
 - **A raw hast node is not an escape hatch for HTML.** `{ type: "raw" }` renders in `.md`, but MDX compiles it to a string child that JSX escapes. Parse into real hast with `hast-util-from-html`.
 - **Bumping `katex` means re-running `scripts/build-katex.py` in the same commit**, because `public/katex/` is a committed copy and 0.18.0 renamed every internal class. It is excluded from Dependabot's monthly group for that reason: its PR can never merge unaided.
 - **KaTeX parse errors fail production builds but only warn in dev**, so a bad formula looks fine locally.
-- Keep `@astrojs/markdown-satteri` pinned exact to astro's own dependency and bump them in lockstep. `satteri` is excluded from the monthly group, so its breaking 0.x minors arrive alone.
+- Keep `@astrojs/markdown-satteri` pinned exact to astro's own dependency and bump them in lockstep, with `satteri` alongside: that package's satteri range can move a 0.x minor inside an astro patch (astro 7.4.7 needed satteri 0.11), and a second satteri copy fails `astro check`. Dependabot's `astro` group keeps the three together and out of the monthly `npm` group; `satteri-pin.test.ts` fails when either package resolves twice.
 
 ## Build Script
 
