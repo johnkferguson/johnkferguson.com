@@ -71,7 +71,7 @@ import {
  * CONFIG
  *
  * Thresholds and budgets live here with their reasoning, the way the
- * accepted-advisory list lives in scripts/audit.sh, so the numbers and
+ * accepted-advisory list lives in pnpm-workspace.yaml, so the numbers and
  * the argument for them cannot drift apart.
  * ------------------------------------------------------------------ */
 

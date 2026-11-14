@@ -14,4 +14,4 @@ For things like features, design changes, etc., I'm not seeking anything. But if
 For PRs:
 
 - Write commit messages in conventional commit style.
-- Run `bun test && bun run check && bunx astro check` locally first to ensure everything passes.
+- Run `pnpm test && pnpm run check && pnpm exec astro check` locally first to ensure everything passes.

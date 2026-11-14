@@ -1,8 +1,8 @@
 # CLAUDE.md
 
-Personal blog at johnkferguson.com. Astro 7, hand-written CSS, Bun, static on Netlify.
+Personal blog at johnkferguson.com. Astro 7, hand-written CSS, pnpm 12 on Node 24 (bun runs the tests and `scripts/`), static on Netlify.
 
-Commands are in `package.json`. Two that aren't obvious: `bun run lighthouse` needs a build first, and prefer `bun run dev` over build-and-preview when iterating.
+Commands are in `package.json`. Two that aren't obvious: `pnpm run lighthouse` needs a build first, and prefer `pnpm run dev` over build-and-preview when iterating.
 
 Two standing conventions: `src/lib/` is pure TS and unit-tested, with components only rendering; Preact runs with `compat: true`, so labs import from `"react"` and are written React-style.
 
@@ -49,9 +49,9 @@ Technical pieces additionally:
 - `src/markdown/` holds the Sätteri plugins, plain `.mjs` so `astro.config.mjs` loads them through Node rather than falling back to vite.
 - **`remarkPlugins`/`rehypePlugins` typecheck but are silently ignored.** Sätteri plugins go in `mdastPlugins`/`hastPlugins`. Relatedly, a hast plugin's `ctx.report()` goes nowhere, so warn or throw instead.
 - **A raw hast node is not an escape hatch for HTML.** `{ type: "raw" }` renders in `.md`, but MDX compiles it to a string child that JSX escapes. Parse into real hast with `hast-util-from-html`.
-- **Bumping `katex` means re-running `scripts/build-katex.py` in the same commit**, because `public/katex/` is a committed copy and 0.18.0 renamed every internal class. It sits outside Dependabot's `markdown` group for that reason: its PR can never merge unaided.
+- **Bumping `katex` means re-running `scripts/build-katex.py` in the same commit**, because `public/katex/` is a committed copy and 0.18.0 renamed every internal class. It is excluded from Dependabot's monthly group for that reason: its PR can never merge unaided.
 - **KaTeX parse errors fail production builds but only warn in dev**, so a bad formula looks fine locally.
-- Keep `@astrojs/markdown-satteri` pinned exact to astro's own dependency and bump them in lockstep. `satteri` is ungrouped, so its breaking 0.x minors arrive alone.
+- Keep `@astrojs/markdown-satteri` pinned exact to astro's own dependency and bump them in lockstep. `satteri` is excluded from the monthly group, so its breaking 0.x minors arrive alone.
 
 ## Build Script
 
@@ -87,17 +87,15 @@ Everything that can fail a PR.
 - `URL_OVERRIDES` keys are exact-match on the served URL (`/snapshot-fees`, `/404`) and merge over the defaults, so a page with no entry gets the tight ones. `/404` relaxes SEO to 0.60 *and* asserts `is-crawlable` still scores 0, so the noindex cannot silently vanish.
 - **Font budget headroom is ~21 KiB and one Fira Code weight is ~23 KiB.** The first post to use bold monospace will trip it. That is the gate working.
 - **lychee needs `fallback_extensions = ["html"]`**, since it remaps site URLs onto `file://` paths where `/about` is `about.html`.
-- **`bun.lock` is invisible to GitHub's dependency graph**, so Dependabot alerts resolve only from `package.json` ranges. `bun audit`, via `scripts/audit.sh`, is the only thing that sees the transitive tree.
-- **`scripts/audit.sh` is the source of truth for accepted advisories**, not the workflows. Each ignore documents its exposure class. It runs from `check.yml` and from a daily `security.yml` sweep that catches advisories newly published against unchanged deps.
-- The audit gate is cooldown-aware: an advisory whose only in-range fix is younger than `minimumReleaseAge` is waived with the date it starts failing by itself. Criticals are never waived.
+- **Dependabot reads `pnpm-lock.yaml`**, so its alerts and security updates cover transitive packages. `pnpm audit` in `check.yml` gates PRs on high and critical advisories; an accepted advisory goes in `audit.ignore` in `pnpm-workspace.yaml` with why the site is not exposed and a revisit date.
 
 ## Dependencies
 
-- **bun is pinned to what Dependabot runs** (1.3.14, `ARG BUN_VERSION` in dependabot-core `bun/Dockerfile`), because a newer bun writes a `bun.lock` format Dependabot cannot parse, and it installs with `--ignore-scripts` so nothing here catches it. The pin lives in `packageManager` (read by setup-bun), `netlify.toml` `BUN_VERSION`, and `devenv.nix` for local shells via direnv. The root `preinstall` (`scripts/check-bun-version.ts`) fails when the running bun or netlify.toml disagrees with `packageManager`, but `bun add`/`update`/`remove` save the lockfile before it runs, so `.githooks/pre-commit` rejects any staged `bun.lock` whose `lockfileVersion` is not 1. Raise that together with the pin.
-- **Two cooldown numbers must stay in sync**: `minimumReleaseAge` in `bunfig.toml` and `cooldown.default-days` in `.github/dependabot.yml`, both 7 days.
-- **A `minimumReleaseAge` failure reads like a missing version.** `No version matching "<pkg>" found for specifier` means younger than 7 days; escape via `minimumReleaseAgeExcludes`. `bun update` can pull inside the window, which Netlify's plain `bun install` then refuses even though CI's `--frozen-lockfile` glosses over it.
+- **`pnpm-workspace.yaml` holds the install policy**, each setting commented there: the 7-day wait, the install-script allowlist (`allowBuilds`, empty: nothing here needs a script), `trustPolicy: no-downgrade`, the audit gate. pnpm fails on an unknown top-level key in it (keys nested under `audit:` are not checked). `packageManager` names the pnpm version: CI installs it through `pnpm/action-setup`, Netlify through corepack (`scripts/netlify-build.sh`, the build command, fails the deploy if Netlify ran another version), and `nix/pnpm.nix` gives devenv the same release binary (its hashes need updating when the version moves). nixpkgs' `pnpm_12` (12.9.0) lacks later pnpm security fixes; ENG-383 tracks moving to it.
+- **`minimumReleaseAge` (7 days) applies on every install**, CI and Netlify included, and to versions already in `pnpm-lock.yaml`. For a range, pnpm picks the newest release past the wait; an exact version inside it fails with `ERR_PNPM_NO_MATURE_MATCHING_VERSION`, and one already locked with `ERR_PNPM_MINIMUM_RELEASE_AGE_VIOLATION`. To let a security fix in early, add the exact version to `minimumReleaseAgeExclude` with the date it turns 7 days old. Keep the wait and `cooldown.default-days` in `.github/dependabot.yml` at the same number of days.
+- **`trustPolicy: no-downgrade` fails the install on a release published with weaker evidence than earlier ones.** `chromium-bidi` (through lighthouse) is excluded: its Chrome-milestone releases come from Chrome DevTools' npm account without the provenance its 17.x releases had.
+- **pnpm's `node_modules` is strict**: code can import only what `package.json` lists, so a type or module that bun's flat layout made reachable must be declared (`@types/hast` for `src/markdown/katex.mjs`).
+- **bun runs the tests and `scripts/`**, at the version in `.bun-version`, which `check.yml` (setup-bun) and `devenv.nix` both read.
 - Workflows name actions by full version tag (`actions/checkout@v7.0.1`), and `.github/workflows/actions.lock` pins each tag, and each action those actions use, to a verified commit. `uses:` keeps the tag because Dependabot raises alerts only for semver-tagged actions (`zizmor.yml` overrides its hash-pin default). The lockfile is generated by `gh actions-lock`, never edited by hand. Install the extension at the version `check.yml` pins (`gh extension install github/gh-actions-lock --pin v0.4.1`), since a newer one can write a lockfile format CI's copy cannot read, and bump both together. After adding a workflow or changing a `uses:` line, run `gh actions-lock` and commit the lockfile with the workflow. `check.yml` runs `gh actions-lock --verify`, which fails when the two disagree.
-- **GoatCounter's `count.js` is vendored, minified, in `src/assets/`**, regenerated by `scripts/build-goatcounter.sh [commit]`. Nothing tracks it: Dependabot and `bun audit` never see it, so updates are manual. Its `?url` import hashes the filename but does not minify, which is why the script does.
-- **`trustedDependencies` replaces bun's 368-package allowlist rather than extending it**, so it must list everything needing install scripts. Only `esbuild` and `sharp` do.
+- **GoatCounter's `count.js` is vendored, minified, in `src/assets/`**, regenerated by `scripts/build-goatcounter.sh [commit]`. Nothing tracks it: Dependabot and `pnpm audit` never see it, so updates are manual. Its `?url` import hashes the filename but does not minify, which is why the script does.
 - **TypeScript is held on 6.x** by a Dependabot ignore: `astro check` reaches the TS programmatic API through `@astrojs/language-server`, and the native compiler (7.0+) does not ship it, so the step aborts before reporting a diagnostic. Lift the ignore once [withastro/roadmap#1321](https://github.com/withastro/roadmap/discussions/1321) lands.
-- **Editing `bun.lock` at all re-resolves the whole tree**, so the audit gate's advice to drop an entry and reinstall is a full refresh, not a targeted bump. `bun update <pkg>` is not the alternative: for a transitive-only package it adds a new direct dependency at the latest major and leaves the vulnerable copy pinned.

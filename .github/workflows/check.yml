@@ -43,23 +43,27 @@ jobs:
           annotations: true
           min-severity: low
           config: zizmor.yml
+      # Installs the pnpm version named by packageManager in package.json.
+      - uses: pnpm/action-setup@v6.1.1
       - uses: actions/setup-node@v7.1.0
         with:
-          node-version: 22
+          node-version: 24
+      # Tests and repo scripts run on bun; pnpm installs and runs the rest.
       - uses: oven-sh/setup-bun@v2.2.0
         with:
-          bun-version-file: package.json
-      - run: bun install --frozen-lockfile
-      # Gates PRs on high/critical advisories. Lives here rather than only in
-      # security.yml because this is the status check on a PR; the ignore list
-      # and its reasoning live in the script so the two callers cannot drift.
-      - run: ./scripts/audit.sh
+          bun-version-file: .bun-version
+      # No dependency cache: an uncached install takes seconds, and it keeps
+      # cache poisoning out.
+      - run: pnpm install --frozen-lockfile
+      # Gates PRs on high and critical advisories (audit settings and ignore
+      # list in pnpm-workspace.yaml).
+      - run: pnpm audit
       # --pass-with-no-tests: unit tests live on feature branches until they
       # merge; a branch with zero test files should not fail the check
       - run: bun test --pass-with-no-tests
-      - run: bunx biome check .
-      - run: bunx astro check
-      - run: bun run build
+      - run: pnpm run check
+      - run: pnpm exec astro check
+      - run: pnpm run build
       # Reads dist/, so it cannot be a bun:test: those run before the build,
       # and one that skipped on a missing dist/ would assert nothing.
       - run: bun scripts/check-canonicals.ts
@@ -92,14 +96,18 @@ jobs:
       - uses: actions/checkout@v7.0.1
         with:
           persist-credentials: false
+      - uses: pnpm/action-setup@v6.1.1
+      - uses: actions/setup-node@v7.1.0
+        with:
+          node-version: 24
       - uses: oven-sh/setup-bun@v2.2.0
         with:
-          bun-version-file: package.json
-      - run: bun install --frozen-lockfile
-      - run: bun run build
+          bun-version-file: .bun-version
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm run build
       # Chrome is preinstalled on the runner image; CHROME_PATH stops
       # chrome-launcher guessing and keeps a failure here legible.
-      - run: bun run lighthouse
+      - run: pnpm run lighthouse
         env:
           CHROME_PATH: /usr/bin/google-chrome
       # A failing category assertion names the category, not the element
