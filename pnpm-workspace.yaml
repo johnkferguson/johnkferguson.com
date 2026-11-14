@@ -30,7 +30,7 @@ dangerouslyAllowAllBuilds: false  # default
 # Keep pnpm-lock.yaml one YAML document. GitHub's dependency graph skips
 # two-document lockfiles, which pnpm writes when packageManager pins pnpm 12.
 # This also stops pnpm checking its own version against packageManager:
-# CI installs that version, and devenv provides it (pnpm_12 from nixpkgs), so run
+# CI installs that version, and devenv provides it (nix/pnpm.nix), so run
 # pnpm from the devenv shell rather than a global install.
 pmOnFail: ignore
 # Refuse `pnpm run` when node_modules does not match the lockfile.

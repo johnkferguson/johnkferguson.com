@@ -9,14 +9,12 @@ let
       hash = "sha256-lR7iruhV8IWVruxiJSJqKY0/6oOj3NZGXAnLzN9+hI8=";
     };
   });
-  # pnpm comes from nixpkgs, and package.json's packageManager names the same
-  # version, which CI (pnpm/action-setup) and Netlify (corepack) install.
-  # After `devenv update` moves nixpkgs, this shell refuses to start and names
-  # the version nixpkgs now provides; set packageManager to it.
-  # scripts/check-pnpm-version.sh fails a commit where the two differ.
-  pnpm = pkgs.pnpm_12;
-  packageManager = (lib.importJSON ./package.json).packageManager or "";
-  pinned = builtins.head (lib.splitString "+" (lib.removePrefix "pnpm@" packageManager));
+  # The pnpm that package.json's packageManager names, from pnpm's own
+  # release; CI (pnpm/action-setup) and Netlify (corepack) install the same.
+  pnpm = import ./nix/pnpm.nix {
+    inherit pkgs;
+    packageJson = ./package.json;
+  };
 in
 {
   languages.javascript = {
@@ -27,8 +25,5 @@ in
       package = bun;
     };
   };
-  packages =
-    assert lib.assertMsg (pinned == pnpm.version)
-      "package.json packageManager is \"${packageManager}\", but devenv's nixpkgs provides pnpm ${pnpm.version}";
-    [ pnpm ];
+  packages = [ pnpm ];
 }
