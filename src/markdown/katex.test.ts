@@ -105,4 +105,21 @@ describe("katexMath", () => {
 			console.warn = original;
 		}
 	});
+
+	/* A glyph KaTeX has no metrics for renders, in a fallback font, but goes
+	 * through the same warn-or-fail path as a parse error. */
+	test("warns about a symbol missing from KaTeX's fonts", async () => {
+		const warnings: string[] = [];
+		const original = console.warn;
+		console.warn = (...args: unknown[]) => warnings.push(String(args[0]));
+		try {
+			const { html } = await md("$\\text{😀}$");
+			expect(html).toContain("😀");
+			expect(html).not.toContain("katex-error");
+			expect(warnings).toHaveLength(1);
+			expect(warnings[0]).toContain("Could not render math with KaTeX");
+		} finally {
+			console.warn = original;
+		}
+	});
 });

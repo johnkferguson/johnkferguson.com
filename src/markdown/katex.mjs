@@ -91,10 +91,15 @@ export const katexMath = defineHastPlugin({
 			try {
 				/* throwOnError first purely for the diagnostic, as rehype-katex did:
 				 * it is the only way to learn the formula is malformed, since the
-				 * lenient render succeeds and returns red error markup instead. */
+				 * lenient render succeeds and returns red error markup instead.
+				 * strict "error" puts KaTeX's strict reports through the same path:
+				 * since 0.18.11 a glyph with no font metrics (symbolNotInFont) is one,
+				 * and under the default "warn" it only reaches the console while the
+				 * formula ships in a fallback font with wrong spacing. */
 				html = katex.renderToString(tex, {
 					displayMode,
 					throwOnError: true,
+					strict: "error",
 					/* htmlAndMathml, not html: the MathML branch carries the
 					 * original LaTeX in an annotation, which PostLayout's copy
 					 * button reads (selecting rendered KaTeX by hand yields
