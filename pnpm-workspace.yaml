@@ -1,7 +1,8 @@
 # Supply-chain policy for npm packages. Single-package repo: this file holds
 # settings only. Lines marked "default" restate pnpm's defaults, so a change
-# of default shows up as a diff. pnpm fails on an unknown key here, so a typo
-# cannot silently drop a rule.
+# of default shows up as a diff. pnpm fails on an unknown top-level key here,
+# so a misspelled setting fails the install; keys nested under audit: are not
+# checked.
 
 # Install no release until it has been public for 7 days (minutes). Matches
 # cooldown.default-days in .github/dependabot.yml.
@@ -29,7 +30,7 @@ dangerouslyAllowAllBuilds: false  # default
 # Keep pnpm-lock.yaml one YAML document. GitHub's dependency graph skips
 # two-document lockfiles, which pnpm writes when packageManager pins pnpm 12.
 # This also stops pnpm checking its own version against packageManager:
-# CI installs that version, and devenv provides it (nix/pnpm.nix), so run
+# CI installs that version, and devenv provides it (pnpm_12 from nixpkgs), so run
 # pnpm from the devenv shell rather than a global install.
 pmOnFail: ignore
 # Refuse `pnpm run` when node_modules does not match the lockfile.

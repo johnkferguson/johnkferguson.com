@@ -4,7 +4,10 @@ updates:
   # Dependabot reads pnpm-lock.yaml for this ecosystem, so alerts and
   # security updates cover the whole tree, transitive packages included.
   # Security updates come from the repo setting, run whenever an advisory
-  # lands, and ignore the schedule and cooldown below.
+  # lands, and ignore the schedule and cooldown below. A fix younger than 7
+  # days still fails CI and Netlify (minimumReleaseAge re-checks the
+  # lockfile) until its exact version is added to minimumReleaseAgeExclude in
+  # pnpm-workspace.yaml.
   - package-ecosystem: "npm"
     directory: "/"
     # Version updates once a month, on the 1st.

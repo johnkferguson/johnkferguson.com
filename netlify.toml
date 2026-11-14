@@ -1,6 +1,6 @@
 [build]
 publish = "dist"
-command = "pnpm run build"
+command = "bash scripts/netlify-build.sh"
 
 # Pretty URLs is on by default and rewrites /about and /about.html to /about/.
 # Off, with build.format "file" in astro.config.mjs, /about serves directly.
