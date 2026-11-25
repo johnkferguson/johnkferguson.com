@@ -58,6 +58,12 @@
 				"check": "typosquatting",
 				"reason": "the Markdown processor behind @astrojs/markdown-satteri, built from bruits/satteri with npm trusted publishing; close in spelling to satori",
 				"date": "2026-11-14"
+			},
+			{
+				"package": "hast-util-from-html",
+				"check": "author",
+				"reason": "published by wooorm, a listed maintainer and the long-standing author of the syntax-tree packages; the check only fires because the package had no release for 780 days",
+				"date": "2026-11-25"
 			}
 		]
 	}
