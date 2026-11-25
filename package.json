@@ -62,6 +62,7 @@
 			{
 				"package": "hast-util-from-html",
 				"check": "author",
+				"version": "2.1.0",
 				"reason": "published by wooorm, a listed maintainer and the long-standing author of the syntax-tree packages; the check only fires because the package had no release for 780 days",
 				"date": "2026-11-25"
 			}
